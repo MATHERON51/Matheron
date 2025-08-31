@@ -887,16 +887,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      // Prend Vérifier & Solution (prioritaires sur mobile)
-      ['Vérifier','Solution'].forEach(txt=>{
-        const src = [...actions.querySelectorAll('button, a')].find(b=>b.textContent.trim().toLowerCase().includes(txt.toLowerCase()));
-        if(src){
-          const clone = src.cloneNode(true); clone.classList.add('btn');
-          // évite double id
-          clone.removeAttribute('id');
-          bar.appendChild(clone);
-        }
-      });
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
       document.body.appendChild(bar);
     }
   }

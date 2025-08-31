@@ -37,6 +37,7 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #dd
 .chip .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
 @media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
 
+.svgbox{ touch-action: manipulation; user-select: none; }
 
 </style>
 
@@ -177,43 +178,81 @@ class Repere{
     this.points=[]; this.user=[]; this.clickable=false; this.onClick=null;
     this.el=this._makeSVG(); this.redraw();
   }
-  _makeSVG(){
-    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
-    const defs=document.createElementNS(s.namespaceURI,'defs');
-    const marker=document.createElementNS(s.namespaceURI,'marker');
-    marker.setAttribute('id','arrow'); marker.setAttribute('orient','auto');
-    marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8');
-    marker.setAttribute('refX','0'); marker.setAttribute('refY','3');
-    const path=document.createElementNS(s.namespaceURI,'path');
-    path.setAttribute('d','M0,0 L0,6 L8,3 z'); path.setAttribute('fill','#000');
-    marker.appendChild(path); defs.appendChild(marker); s.appendChild(defs);
-    this.gGrid=document.createElementNS(s.namespaceURI,'g');
-    this.gAxes=document.createElementNS(s.namespaceURI,'g');
-    this.gQ=document.createElementNS(s.namespaceURI,'g');
-    this.gPts=document.createElementNS(s.namespaceURI,'g');
-    this.gUser=document.createElementNS(s.namespaceURI,'g');
-    [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
-    s.addEventListener('click', (ev) => {
-  if (!this.clickable || !this.onClick) return;
+_makeSVG(){
+  const ns = 'http://www.w3.org/2000/svg';
+  const s  = document.createElementNS(ns,'svg');
+  s.setAttribute('class','svgbox');
+  s.setAttribute('viewBox','0 0 420 420');
+  s.setAttribute('preserveAspectRatio','xMidYMid meet'); // important pour les conversions
 
-  const r = s.getBoundingClientRect();                // taille VISIBLE (écran)
-  const vb = s.viewBox?.baseVal || {width:420, height:420};
+  // --- defs (flèche) ---
+  const defs   = document.createElementNS(ns,'defs');
+  const marker = document.createElementNS(ns,'marker');
+  marker.setAttribute('id','arrow');
+  marker.setAttribute('orient','auto');
+  marker.setAttribute('markerWidth','8');
+  marker.setAttribute('markerHeight','8');
+  marker.setAttribute('refX','0');
+  marker.setAttribute('refY','3');
+  const path = document.createElementNS(ns,'path');
+  path.setAttribute('d','M0,0 L0,6 L8,3 z');
+  path.setAttribute('fill','#000');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  s.appendChild(defs);
 
-  // Recalibrage: écran → unités du viewBox
-  const x = (ev.clientX - r.left) * (vb.width  / r.width);
-  const y = (ev.clientY - r.top)  * (vb.height / r.height);
+  // --- calques ---
+  this.gGrid = document.createElementNS(ns,'g');
+  this.gAxes = document.createElementNS(ns,'g');
+  this.gQ    = document.createElementNS(ns,'g');
+  this.gPts  = document.createElementNS(ns,'g');
+  this.gUser = document.createElementNS(ns,'g');
+  [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
 
-  const c   = this.screenToCoord(x, y);
-  const lim = this.innerLimits();
-  const xi = Math.round(c.x), yi = Math.round(c.y);
+  // --- gestion du tap/clic : écran -> unités du viewBox ---
+  const handleTap = (ev) => {
+    if (!this.clickable || !this.onClick) return;
 
-  if (xi < lim.xmin || xi > lim.xmax || yi < lim.ymin || yi > lim.ymax) return;
-  this.onClick({ x: xi, y: yi });
-}, { passive: true });
+    const ctm = s.getScreenCTM && s.getScreenCTM();
+    let x, y;
 
-    return s;
-  }
+    if (ctm && ctm.inverse) {
+      // Chemin “parfait” : utilise la matrice écran↔SVG
+      const pt = s.createSVGPoint();
+      pt.x = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      pt.y = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      const p = pt.matrixTransform(ctm.inverse());
+      x = p.x; y = p.y;
+    } else {
+      // Fallback (rare) : ratios rect/viewBox
+      const r  = s.getBoundingClientRect();
+      const vb = s.viewBox?.baseVal || {x:0,y:0,width:420,height:420};
+      const cx = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      const cy = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      x = (cx - r.left) * (vb.width  / r.width);
+      y = (cy - r.top)  * (vb.height / r.height);
+    }
+
+    const c   = this.screenToCoord(x, y);
+    const lim = this.innerLimits();
+    const xi  = Math.round(c.x), yi = Math.round(c.y);
+    if (xi < lim.xmin || xi > lim.xmax || yi < lim.ymin || yi > lim.ymax) return;
+
+    this.onClick({ x: xi, y: yi });
+  };
+
+  // Pointer events (meilleur sur mobile)
+  s.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'touch') ev.preventDefault(); // évite le scroll qui “mange” le tap
+    handleTap(ev);
+  }, { passive: false });
+
+  // Fallback desktop
+  s.addEventListener('click', handleTap, { passive: true });
+
+  return s;
+}
+
   innerLimits(){ return { xmin:this.R.xmin+1, xmax:this.R.xmax-1, ymin:this.R.ymin+1, ymax:this.R.ymax-1 }; }
   basis(){
     const w=420,h=420,m=20, X=this.R.xmax-this.R.xmin, Y=this.R.ymax-this.R.ymin;

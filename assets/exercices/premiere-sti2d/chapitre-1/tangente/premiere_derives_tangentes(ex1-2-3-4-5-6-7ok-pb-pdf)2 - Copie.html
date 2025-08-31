@@ -7,8 +7,6 @@
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/mobile.css">
-
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
@@ -1201,73 +1199,14 @@ verify(host){
     render(host, st){
   const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
   const ui=renderWithRepere(host, s.R);
-  // Segment visible de la tangente dans [xmin,xmax]×[ymin,ymax]
-function segmentInBox_throughPointSlope(x0,y0,m,R){
-  const cand=[];
-  const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
-  const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
-  if (Math.abs(m)>1e-12){
-    const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
-    const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
-  } else { cand.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0}); }
-  const u=[]; for(const p of cand){ if(!u.some(q=>Math.abs(q.x-p.x)<1e-9&&Math.abs(q.y-p.y)<1e-9)) u.push(p); }
-  while(u.length<2) u.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0});
-  return u.slice(0,2);
-}
-
-// Duplique une tangente en "PDF-safe" (un simple <line> en PIXELS, dans un groupe dédié)
-function addPdfSafeLine(rep, Q1, Q2, color){
-  const NS = rep.el.namespaceURI;
-  let g = rep.el.querySelector('g.tangent-pdf-safe');
-  if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','tangent-pdf-safe'); rep.el.appendChild(g); }
-  // on dessine en coordonnées écran (pixels)
-  const A = rep.coordToScreen(Q1.x, Q1.y);
-  const B = rep.coordToScreen(Q2.x, Q2.y);
-  const L = document.createElementNS(NS,'line');
-  L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
-  L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
-  L.setAttribute('stroke', color);
-  L.setAttribute('stroke-width', '2.5');
-  L.setAttribute('stroke-dasharray', '6 6');     // pointillés
-  L.setAttribute('stroke-linecap', 'round');
-  // IMPORTANT: pas de "vector-effect", ça passe mieux en PDF
-  g.appendChild(L);
-}
-
-// Supprime le cercle d’un point nommé (pour ne garder QUE le texte)
-function stripDotForLabel(rep, labelText){
-  const texts = Array.from(rep.el.querySelectorAll('text')).filter(t=>t.textContent===labelText);
-  texts.forEach(t=>{
-    const g = t.closest('g');
-    if(!g) return;
-    const c = g.querySelector('circle');
-    if(c) c.remove();
-  });
-}
-
      // --- Tangentes colorées + labels visibles
 const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
   const SUB    = ['₁','₂','₃'];
 
   ui.rep.drawCurve(s.f,'#e53935',2.5);
-  ui.rep.drawLineThroughPointSlope(s.A.x, s.A.y, s.A.m, COLORS[0], true);
-{ const m = Math.abs(s.A.m)<1e-12?0:s.A.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.A.x,s.A.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[0]);
-  // ton label écran (SVG) reste comme tu l’avais (pas nécessaire pour le PDF)
-}
-// B
-ui.rep.drawLineThroughPointSlope(s.B.x, s.B.y, s.B.m, COLORS[1], true);
-{ const m = Math.abs(s.B.m)<1e-12?0:s.B.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.B.x,s.B.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[1]);
-}
-// D
-ui.rep.drawLineThroughPointSlope(s.D.x, s.D.y, s.D.m, COLORS[2], true);
-{ const m = Math.abs(s.D.m)<1e-12?0:s.D.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.D.x,s.D.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[2]);
-}
+  ui.rep.drawPoint('A',s.A.x,s.A.y,'#e53935');
+  ui.rep.drawPoint('B',s.B.x,s.B.y,'#e53935');
+  ui.rep.drawPoint('D',s.D.x,s.D.y,'#e53935');
     drawTangentWithLabel(s.A, COLORS[0], 'T'+SUB[0]);
 drawTangentWithLabel(s.B, COLORS[1], 'T'+SUB[1]);
 drawTangentWithLabel(s.D, COLORS[2], 'T'+SUB[2]);
@@ -1538,50 +1477,45 @@ function placeLabelAtSegmentEndCoord(R, Q1, Q2, anchor /* {x,y} */, opts = {}){
 // === Tangentes "solution" 100% compatibles PDF : lignes via repère + labels via drawPoint ===
 (function drawSolutionTangents(){
   const ui = host._ui, R = ui.rep.R;
-  const COLORS = ['#1e40af', '#7c3aed', '#16a34a'];
+  const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
   const SUB    = ['₁','₂','₃'];
   const Ps     = [s.A, s.B, s.D];
 
-  // Nettoyage anti-doublons
+  // Anti-doublons : on retire nos labels SVG éventuels de l’énoncé
   ui.rep.gUser.querySelectorAll('g.initial-tangent-labels, g.solution-tangent-labels').forEach(n => n.remove());
-  const svgTexts = ui.rep.el.querySelectorAll('g.tangent-pdf-safe text');
-  svgTexts.forEach(n => n.remove());
 
-  // Groupe (facultatif) si tu veux des labels SVG d’écran en plus
-  const NS = ui.rep.el.namespaceURI;
-  let gLab = ui.rep.gUser.querySelector('g.solution-tangent-labels');
-  if(!gLab){ gLab = document.createElementNS(NS,'g'); gLab.setAttribute('class','solution-tangent-labels'); ui.rep.gUser.appendChild(gLab); }
+  // Facultatif : si on a déjà posé les labels PDF-safe, on ne les recrée pas
+  if (host._state.__tPdfLabelsAdded) return;
+
+  function segmentInBox_throughPointSlope(x0,y0,m,R){
+    const cand=[];
+    const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
+    const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
+    if (Math.abs(m) > 1e-12){
+      const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
+      const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
+    } else {
+      cand.push({x:R.xmin,y:y0},{x:R.xmax,y:y0});
+    }
+    const u=[]; for(const p of cand){ if(!u.some(q=>Math.abs(q.x-p.x)<1e-9 && Math.abs(q.y-p.y)<1e-9)) u.push(p); }
+    while(u.length<2) u.push({x:R.xmin,y:y0},{x:R.xmax,y:y0});
+    return u.slice(0,2);
+  }
 
   Ps.forEach((P,i)=>{
     const color = COLORS[i];
-    const m = (Math.abs(P.m)<1e-12)? 0 : P.m;
+    const m = (Math.abs(P.m) < 1e-12) ? 0 : P.m;
 
-    // 1) Lignes (écran) + copie PDF-safe
+    // 1) LIGNE pointillée → API du repère (sûr pour PDF)
     ui.rep.drawLineThroughPointSlope(P.x, P.y, m, color, true);
-    const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,m,R);
-    addPdfSafeLine(ui.rep, Q1, Q2, color);
 
-    // 2) Nom en PDF : drawPoint + suppression du cercle ⇒ il ne reste que le texte
-    ui.rep.drawPoint('T'+SUB[i], ... (function(){  // position près d'une extrémité visible
-      // petit placement côté extrémité la plus éloignée de P, avec un léger recul
-      const d1 = Math.hypot(Q1.x - P.x, Q1.y - P.y);
-      const d2 = Math.hypot(Q2.x - P.x, Q2.y - P.y);
-      const E  = (d1>=d2)? Q1 : Q2;
-      // recul de 6% du segment + léger décalage perpendiculaire (coordonnées)
-      const O  = (E===Q1)? Q2 : Q1;
-      const vx = E.x - O.x, vy = E.y - O.y, L = Math.hypot(vx,vy)||1;
-      let x = E.x - 0.06*vx, y = E.y - 0.06*vy;   // recul
-      let nx = -vy/L, ny = vx/L;
-      const cx=(R.xmin+R.xmax)/2, cy=(R.ymin+R.ymax)/2;
-      if (nx*(cx-x)+ny*(cy-y) < 0){ nx=-nx; ny=-ny; }
-      const s=0.03*Math.min(R.xmax-R.xmin, R.ymax-R.ymin);
-      x += s*nx; y += s*ny;
-      return [x,y];
-    })(), color);
-
-    // supprimer le disque → label texte seul (capturé en PDF)
-    stripDotForLabel(ui.rep, 'T'+SUB[i]);
+    // 2) LABEL → via drawPoint (comme A, B, D), donc capturé en PDF
+    const [Q1,Q2] = segmentInBox_throughPointSlope(P.x, P.y, m, R);
+    const [xL, yL] = placeLabelAtSegmentEndCoord(R, Q1, Q2, {x:P.x, y:P.y}, {insetFrac:0.06, normalFrac:0.03});
+    ui.rep.drawPoint('T'+SUB[i], xL, yL, color); // ✔ nom visible en PDF
   });
+
+  host._state.__tPdfLabelsAdded = true;
 })();
 
 
@@ -2774,71 +2708,7 @@ span.style.cssText =
 });
 </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const coarse = matchMedia('(pointer:coarse)').matches;
 
-  // 1) Barre d’actions mobile (clones des boutons existants)
-  if (window.innerWidth <= 760) {
-    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
-    if (actions) {
-      const bar = document.createElement('div');
-      bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
-[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-  const src = document.querySelector(sel);
-  if (src) {
-    const clone = src.cloneNode(true);
-    clone.classList.add('btn');
-    clone.type = 'button';
-    clone.removeAttribute('id');        // id doit rester unique
-    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-    bar.appendChild(clone);
-  } else {
-    // fallback si jamais l’original est absent (rare)
-    const fallback = document.createElement('button');
-    fallback.className = 'btn';
-    fallback.type = 'button';
-    fallback.textContent = label;
-    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-    bar.appendChild(fallback);
-  }
-});
-      document.body.appendChild(bar);
-    }
-  }
-
-  // 2) Clavier math repliable (si présent)
-  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
-  if (kbdHost && window.innerWidth <= 760) {
-    kbdHost.setAttribute('data-collapsible','');
-    const tg = document.createElement('button');
-    tg.className='kbd-toggle'; tg.type='button';
-    tg.textContent='Clavier math';
-    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
-    document.body.appendChild(tg);
-  }
-
-  // 3) Confort de saisie
-  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
-    el.setAttribute('autocomplete','off');
-    el.setAttribute('autocapitalize','off');
-    el.setAttribute('autocorrect','off');
-    el.setAttribute('spellcheck','false');
-    // Scroll au centre quand le clavier s’ouvre
-    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
-  });
-
-  // 4) Points à déplacer : rayon + touche
-  if (coarse) {
-    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
-      const r = parseFloat(c.getAttribute('r')||'5');
-      if (r < 10) c.setAttribute('r', String(12));
-      c.style.touchAction='none';
-    });
-  }
-}, {passive:true});
-</script>
 
 </body>
 </html>

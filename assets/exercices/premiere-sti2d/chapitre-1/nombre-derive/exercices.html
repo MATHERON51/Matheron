@@ -1,35 +1,1336 @@
-<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 1 – Nombre dérivé</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1STI2D — Nombre dérivé d'une fonction</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .frame{border:2px solid #000;border-radius:10px;padding:10px 12px;margin-top:.6rem}
+  .frame ul{margin:.2rem 0 .2rem 1.1rem}
+  .frame li{margin:.2rem 0}
+  .equ{font-variant-numeric:tabular-nums}
+  .math{font-variant-numeric:tabular-nums}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;vertical-align:middle;line-height:1}
+  .frac .bar{display:block;border-top:1px solid #000;width:100%;margin:.08em 0}
+  .frac .num,.frac .den{padding:0 .15em}
+  /* empileur pour lim */
+.limstack{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  line-height:1;
+  margin:0 .25em;
+}
+.limstack .to{ font-size:.85em; }
+
+  
+  .ans{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .ans input{flex:1;padding:9px 11px;border:1px solid #dcdcdc;border-radius:10px;font-size:16px}
+  .msg{margin-left:6px;font-weight:600}
+  .ok{color:var(--ok)} .ko{color:var(--ko)}
+  .enonce-controls{
+  margin: .25rem 0 .75rem;
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+ 
+
+}
+@media print{
+  .enonce-controls{ display:none !important; }
+}
+
+  @media print{ .controls{display:none !important;} }
+</style>
 </head>
 <body>
-  <h1>Exercices – Nombre dérivé</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Nombre dérivé</strong> (Premiere Sti2D, chapitre 1) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-1</code></li>
-        <li>Thème (slug) : <code>nombre-derive</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem"><strong>1STI2D — Nombre dérivé d'une fonction</strong></h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+
+ 
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Écrire la <b>valeur finale</b> de la dérivée (ce qui est écrit après <code>f′(…)=</code>).</li>
+<li>Ex. 1 (au point n) : une valeur numérique (ex. <code>-17</code>). Ex. 2 (au point a) : réponds <code>2a</code>, <code>3a^2</code>, <code>-1/a^2</code>, etc. — </li>
+<li>Notation clavier acceptée : <code>^</code>, <code>/</code>, parenthèses.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+  <script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+  <script src='../../../../js/math-kbd.js' defer></script>
+  <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+
+<script>
+'use strict';
+const $  = (s,r)=> (r||document).querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const UMINUS = (window.DevRules && DevRules.consts && DevRules.consts.UMINUS) || '−';
+const times = (a,b)=> a+'×'+b;
+const times3= (a,b,c)=> a+'×'+b+'×'+c;
+
+/* utilitaire : type choisi dans le menu (ou 'auto') */
+function getSelectedType(){
+  const sel = $('#fn-select');
+  return sel ? (sel.value || 'auto') : 'auto';
+}
+
+/* 1) Coefficient devant une parenthèse : k(a+…) */
+function coefPar(k, innerHTML){
+  if(k === 1)  return innerHTML;
+  if(k === -1) return UMINUS + innerHTML;
+  return (k < 0 ? UMINUS + Math.abs(k) : String(k)) + innerHTML;
+}
+
+/* 2) Coefficient devant une lettre/symbole : k·h, k·a, k·x */
+function coefLet(k, sym){
+  if(k === 1)  return sym;
+  if(k === -1) return UMINUS + sym;
+  return (k < 0 ? UMINUS + Math.abs(k) : String(k)) + sym;
+}
+
+/* 3) Terme signé devant une lettre */
+function signedMono(k, sym){
+  if(!k) return '';
+  if(k === 1)  return ' + ' + sym;
+  if(k === -1) return ' ' + UMINUS + ' ' + sym;
+  return (k > 0 ? ' + ' + k : ' ' + UMINUS + ' ' + Math.abs(k)) + sym;
+}
+
+/* 4) k×(expression HTML) sans 1 / −1 visibles */
+function kTimesHTML(k, exprHTML){
+  if(k === 1)  return exprHTML;
+  if(k === -1) return UMINUS + exprHTML;
+  return (k < 0 ? UMINUS + Math.abs(k) : String(k)) + exprHTML;
+}
+
+// Fraction (verticale)
+const Q = (num, den)=> '<span class="frac"><span class="num">'+num+'</span><span class="bar"></span><span class="den">'+den+'</span></span>';
+
+// ---- Fonctions affichage ----
+function fxHTML(type, params){
+  switch(type){
+    case 'carre': return 'x<sup>2</sup>';
+    case 'cube': return 'x<sup>3</sup>';
+    case 'inverse': return Q('1','x');
+    case 'affine': {
+      const {m,p}=params;
+      let s=m===1?'x':m===-1?UMINUS+'x':m+'x';
+      if(p) s+=' '+(p<0?(UMINUS+' '+Math.abs(p)):'+ '+p);
+      return s.replace(/^ \\+ /,'');
+    }
+    case 'quad': {
+      const {a,b,c}=params;
+      let s='';
+      if(a){ if(a===1) s='x<sup>2</sup>'; else if(a===-1) s=UMINUS+'x<sup>2</sup>'; else s=a+'x<sup>2</sup>'; }
+      if(b){ s+=' '+(b<0?(UMINUS+' '+Math.abs(b)):'+ '+b)+'x'; }
+      if(c){ s+=' '+(c<0?(UMINUS+' '+Math.abs(c)):'+ '+c); }
+      return s.replace(/^ \\+ /,'');
+    }
+  }
+}
+
+// ---- Génération d'états ----
+function genState_ex1(){
+  const forced = getSelectedType();
+  const type = forced !== 'auto' ? forced : choice(['carre','cube','inverse','affine','quad']);
+  let n = rnd(-3,3);
+  if(type==='inverse'){ while(n===0) n=rnd(-3,3); }
+  const params = {};
+  if(type==='affine'){ params.m=choice([-3,-2,-1,1,2,3]); params.p=rnd(-5,5); }
+  if(type==='quad'){ params.a=choice([-2,-1,1,2]); params.b=rnd(-5,5); params.c=rnd(-6,6); }
+  return {kind:'ex1', type, n, params, h:'h', _forced: forced}; // ← AJOUT
+}
+
+function genState_ex2(){
+  const forced = getSelectedType();
+  const type = forced !== 'auto' ? forced : choice(['carre','cube','inverse','affine','quad']);
+  const params = {};
+  if(type==='affine'){ params.m=choice([-5,-3,-2,-1,1,2,3,5]); params.p=rnd(-6,6); }
+  if(type==='quad'){ params.a=choice([-2,-1,1,2]); params.b=rnd(-6,6); params.c=rnd(-6,6); }
+  return {kind:'ex2', type, params, h:'h', _forced: forced}; // ← AJOUT
+}
+
+
+// ---- Enoncé + barre de saisie ----
+function renderEnonce(host, st){
+  const f = fxHTML(st.type, st.params||{});
+
+  // — sélecteur placé DANS l’énoncé, masqué au print —
+  const selectorHTML = `
+    <div class="enonce-controls">
+      <label for="fn-select"><strong>Fonction f(x) :</strong></label>
+      <select id="fn-select">
+        <option value="auto">Aléatoire</option>
+        <option value="carre">x²</option>
+        <option value="cube">x³</option>
+        <option value="inverse">1/x</option>
+        <option value="affine">ax + b</option>
+        <option value="quad">ax² + bx + c</option>
+      </select>
+    </div>`;
+
+  const head = st.kind==='ex1'
+    ? `<p><strong>Exercice 1 :</strong></p>
+       <p>Soit la fonction f définie sur ℝ par f(x) = ${f}.</p>
+     <p>Prouver l’existence du nombre dérivé au point d'abscisse <b>${st.n}</b> de la fonction f indiquée, puis calculer sa valeur.</p>`
+    : `<p><strong>Exercice 2 :</strong></p>
+       <p>Soit la fonction f définie sur ℝ par f(x) = ${f}.</p>
+     <p>Prouver l’existence du nombre dérivé au point d'abscisse <b>a</b> de la fonction f indiquée, puis calculer sa valeur.</p>`;
+
+  host.innerHTML = `
+    ${selectorHTML}
+    <div class="equ">${head}</div>
+    <div class="ans">
+      <label for="ans" style="white-space:nowrap"><strong>Réponse :</strong></label>
+<input id="ans" placeholder="Ex. 2a  ,  3a^2  ,  -1/a^2  ,  -17 …">
+      <span id="msg" class="msg"></span>
+    </div>
+    <div id="solution" class="frame" style="display:none"></div>
+  `;
+
+  // Synchroniser l'UI sur le type/choix courant
+const sel = document.querySelector('#fn-select');
+if (sel) {
+  sel.value = st._forced || 'auto';  // ← FIX: affiche le bon item dans le menu
+  sel.onchange = () => {
+    const ex = (document.querySelector('#exo-select').value === 'ex2')
+      ? window.REGISTRY.find(e=>e.id==='ex2')
+      : window.REGISTRY.find(e=>e.id==='ex1');
+    ex.gen(document.querySelector('#host'));    // régénère en tenant compte du nouveau choix
+  };
+}
+
+}
+/* Helpers limites + conclusion — push dans le MÊME <ul> */
+function pushConclusionLines(L, st, rhsHTML){
+  const h = 'h';
+  const point = (st.kind==='ex1') ? String(st.n).replace(/-/g,'−') : 'a';
+const lim = `<span class="limstack" style="display:inline-flex;flex-direction:column;align-items:center;line-height:1;margin:0 .25em"><span>lim</span><span class="to" style="font-size:.85em">h→0</span></span>`;
+  const frac = Q(`f(${point}+${h}) − f(${point})`, h);
+  const sub = t => `<div class="sub">${t}</div>`;               // ← ajoute un “sous‑pas” comme à l’écran
+  const nice = rhsHTML || expectedExprToHTML(st, expectedExpression(st));
+  const finalHTML = finalLimitHTML(st);
+
+  L.push(`<li>${lim} ${frac} = ${lim} ${nice}</li>`);
+  L.push(sub(`${lim} ${frac} = ${finalHTML}`));                 // ← même rendu que l’écran
+  L.push(`<li>Donc f est dérivable en ${point} et f′( ${point} ) = ${finalHTML}</li>`);
+}
+
+function wrapUL(L){ return '<ul class="math steps">'+L.join('')+'</ul>'; }
+
+
+/* ---------- Ex.1 — Cas particuliers quand n = 0 (sauf inverse) — avec limites ---------- */
+
+function solEX1_n0_carre(){
+  const h='h';
+  const L=[];
+  const sub=t=>`<div class="sub">${t}</div>`;
+  L.push(`<li>f(0) = 0</li>`);
+  L.push(`<li>f(0 + ${h}) = ( 0 + ${h} )<sup>2</sup></li>`);
+  L.push(sub(`f(0 + ${h}) = ${h}<sup>2</sup>`));
+  L.push(`<li>f(0 + ${h}) − f(0) = ${h}<sup>2</sup> − 0</li>`);
+  L.push(sub(`f(0 + ${h}) − f(0) = ${h}<sup>2</sup>`));
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${Q(''+h+'<sup>2</sup>','h')} = ${h}`));
+   pushConclusionLines(L, {kind:'ex1',type:'carre',n:0,params:{}}, 'h');
+  return wrapUL(L);
+}
+function solEX1_n0_cube(){
+  const h='h';
+  const L=[];
+  const sub=t=>`<div class="sub">${t}</div>`;
+  L.push(`<li>f(0) = 0</li>`);
+  L.push(`<li>f(0 + ${h}) = ( 0 + ${h} )<sup>3</sup></li>`);
+  L.push(sub(`f(0 + ${h}) = ${h}<sup>3</sup>`));
+  L.push(`<li>f(0 + ${h}) − f(0) = ${h}<sup>3</sup> − 0</li>`);
+  L.push(sub(`f(0 + ${h}) − f(0) = ${h}<sup>3</sup>`));
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${Q(''+h+'<sup>3</sup>','h')} = ${h}<sup>2</sup>`));
+  pushConclusionLines(L, {kind:'ex1',type:'cube',n:0,params:{}}, 'h<sup>2</sup>');
+  return wrapUL(L);
+}
+
+function solEX1_n0_affine(st){
+  const h='h', UMINUS='−';
+  const { m, p } = st.params;               // ← valeurs de l'énoncé
+  const u = n => String(n).replace(/-/g, UMINUS);
+  const sub=t=>`<div class="sub">${t}</div>`;
+
+  const plusNum = k => k ? (k<0 ? ` ${UMINUS} ${u(Math.abs(k))}` : ` + ${u(k)}`) : '';
+  const mh = (m===0) ? '0'
+        : (m===-1 ? UMINUS : (m<0? UMINUS+' '+u(Math.abs(m)) : (Math.abs(m)===1?'':u(m)))) + (m!==0? h : '');
+
+  const par = m===1 ? `( 0 + ${h} )`
+            : m===-1 ? `${UMINUS}( 0 + ${h} )`
+            : `${u(m)}( 0 + ${h} )`;
+
+  const L=[];
+  L.push(`<li>f(0) = ${u(m)} × 0 + ${u(p)}</li>`);
+  L.push(sub(`f(0) = ${u(p)}`));
+  L.push(`<li>f(0 + ${h}) = ${par}${plusNum(p)}</li>`);
+  L.push(sub(`f(0 + ${h}) = ${mh}${plusNum(p)}`));
+// soustraction propre de p : "− (−k)" → " + k"
+const minusP = p < 0 ? ` + ${u(Math.abs(p))}` : ` ${UMINUS} ${u(p)}`;
+L.push(`<li>f(0 + ${h}) − f(0) = ${mh}${plusNum(p)}${minusP}</li>`);
+  L.push(sub(`f(0 + ${h}) − f(0) = ${m===0 ? '0' : mh}`));
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${Q(mh,'h')}`));
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${u(m)}`));
+   pushConclusionLines(L, st, u(m));
+  return wrapUL(L);
+}
+
+function solEX1_n0_quad(st){
+  const h='h', UMINUS='−';
+  const { a: A, b: B, c: C } = st.params;   // ← valeurs de l'énoncé
+  const u = n => String(n).replace(/-/g, UMINUS);
+  const sub=t=>`<div class="sub">${t}</div>`;
+
+  // helpers d’affichage
+  const termH2 = k => (k===0)? '' : (k<0? UMINUS+' ' : '') + (Math.abs(k)===1?'':u(Math.abs(k))) + 'h<sup>2</sup>';
+  const termH1 = k => (k===0)? '' : (k<0? ` ${UMINUS} ` : ' + ') + (Math.abs(k)===1?'':u(Math.abs(k))) + 'h';
+  const termC  = k => (k===0)? '' : (k<0? ` ${UMINUS} ${u(Math.abs(k))}` : ` + ${u(k)}`);
+
+  // Ligne "f(0+h) = …" avec les signes corrects (sans "+ " initial)
+  let f0h = '';
+  const tAh2 = termH2(A); if(tAh2) f0h += (tAh2.startsWith(UMINUS)? tAh2 : tAh2.replace(/^ \+ /,''));
+  const tBh  = termH1(B); if(tBh)  f0h += (f0h? tBh : tBh.replace(/^ \+ /,''));
+  const tC   = termC(C);  if(tC)   f0h += (f0h? tC  : tC.replace(/^ \+ /,'')); 
+  if(!f0h) f0h='0';
+
+  // Pour la factorisation : h( Ah + B ) avec valeurs
+  let inside = '';
+  if(A!==0){
+    inside += (A<0? UMINUS+' ' : '') + (Math.abs(A)===1?'':u(Math.abs(A))) + h;
+  }
+  if(B!==0){
+    inside += inside ? (B<0? ` ${UMINUS} ${u(Math.abs(B))}` : ` + ${u(B)}`)
+                     : (B<0? `${UMINUS} ${u(Math.abs(B))}` : u(B));
+  }
+  if(!inside) inside = '0';
+
+  const L=[];
+  L.push(`<li>f(0) = ${u(C)}</li>`);
+  L.push(`<li>f(0 + ${h}) = ${f0h}</li>`);
+  // soustraction propre de C : "− (−k)" → " + k"
+const minusC = C < 0 ? ` + ${u(Math.abs(C))}` : ` ${UMINUS} ${u(C)}`;
+L.push(`<li>f(0 + ${h}) − f(0) = ${f0h}${minusC}</li>`);
+
+
+  // simplification (on enlève C)
+  let diff = f0h.replace(termC(C).trim(), '').trim();
+  // si B ou A sont nuls, corriger diff
+  if(A===0 && B===0) diff = '0';
+  else if(A===0 && B!==0) diff = (termH1(B).replace(/^ \+ /,'').replace(/^ − /, UMINUS+' ').trim());
+  else if(A!==0 && B===0) diff = (termH2(A).replace(/^ \+ /,'').replace(/^ − /, UMINUS+' ').trim());
+
+  L.push(sub(`f(0 + ${h}) − f(0) = ${diff}`));
+  L.push(sub(`f(0 + ${h}) − f(0) = ${h}( ${inside} )`));
+
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${Q(h+'('+inside+')','h')}`));
+  L.push(sub(`${Q('f(0+'+h+') − f(0)','h')} = ${inside}`));
+  pushConclusionLines(L, st, inside);
+  return wrapUL(L);
+}
+
+
+
+/* --------------------------------------------------------------------- */
+
+function solHTML_ex1(st){
+  const h = 'h';
+  const UMINUS = '−';
+  const type = st.type;                         // 'carre' | 'cube' | 'inverse' | 'affine' | 'quad'
+  const n = (st.params && 'n' in st.params) ? st.params.n : (st.n ?? 0);
+
+  /* —— CAS PARTICULIERS : n = 0 (sauf inverse) —— */
+if (st.n === 0) {
+  if (type === 'affine')  return solEX1_n0_affine(st);
+  if (type === 'quad')    return solEX1_n0_quad(st);
+ if (type === 'carre') return solEX1_n0_carre(st);
+  if (type === 'cube')  return solEX1_n0_cube(st);
+}
+
+
+  // ——— Helpers d’affichage ———
+  const u      = x => String(x).replace(/-/g, UMINUS);      // nombre → texte (− unicode)
+  const absu   = x => u(Math.abs(x));
+  const plus   = k => (k < 0 ? ` ${UMINUS} ` : ' + ');
+  const parNum = x => x < 0 ? `(${u(x)})` : String(x);
+  const sub    = t => `<div class="sub">${t}</div>`;
+
+  // × uniquement entre nombres
+  const mulNN = (a,b) => `${u(a)}×${parNum(b)}`;   // conserve le signe de a
+
+  // k·sym (lettre) — jamais 1/−1 visibles (sans signe global)
+  const kSym  = (k, sym) => (k===0?'0':(Math.abs(k)===1? sym : absu(Math.abs(k))+sym));
+  // k·sym avec signe inclus (utile quand le terme est seul)
+  const kSymSigned = (k, sym) => (k===0?'0':(k>0? (Math.abs(k)===1? sym : absu(k)+sym)
+                                                 : (Math.abs(k)===1? UMINUS+sym : UMINUS+absu(Math.abs(k))+sym)));
+
+  // k·( … ) — jamais 1/−1 visibles
+  const kParen = (k, inner) => k===1 ? `( ${inner} )`
+                           : k===-1 ? `${UMINUS}( ${inner} )`
+                                    : `${u(k)} ( ${inner} )`;
+
+  // A×(n)² rendu « A×( n )² » (ou « ( n )² » si |A|=1), avec signe intégré si A<0
+  const A_n2_text = (A,n0) => {
+    const sq = `${parNum(n0)}<sup>2</sup>`;
+    if (A ===  0) return '';
+    if (A ===  1) return sq;
+    if (A === -1) return UMINUS + sq;
+    return (A < 0 ? UMINUS : '') + `${absu(Math.abs(A))}×${sq}`;
+  };
+  // ( n + h ) avec n sans parenthèses internes
+  const innerNH = n => `${u(n)} + ${h}`;
+
+  // A ( n + h )²
+  const A_nph2_text = (A,n0) => kParen(A, innerNH(n0)) + `<sup>2</sup>`;
+  // B ( n + h )
+  const B_nph_text  = (B,n0) => kParen(B, innerNH(n0));
+
+  const L = [];
+let limRHS = ''; // RHS de la première limite (= dernière ligne du quotient)
+
+  switch(type){
+
+    // ———————————————————————————— f(x) = x² ————————————————————————————
+    case 'carre': {
+      const n2 = n*n;
+
+      // f(n)
+      L.push(`<li>f(${u(n)}) = ${parNum(n)}<sup>2</sup></li>`);
+      L.push(sub(`f(${u(n)}) = ${u(n2)}`));
+
+      // f(n+h) : tête correcte (une seule paire de parenthèses)
+      L.push(`<li>f(${u(n)} + ${h}) = ( ${u(n)} + ${h} )<sup>2</sup></li>`);
+
+      // (n+h)² = n² + 2nh + h² → avec n² et 2n numériques
+      const two_n = 2*n;
+      L.push(sub(`f(${u(n)} + ${h}) = ${u(n2)} ${plus(two_n)} ${absu(Math.abs(two_n))}${h} + ${h}<sup>2</sup>`));
+
+      // Réorganisation (h², h, constante)
+      L.push(sub(`f(${u(n)} + ${h}) = ${h}<sup>2</sup> ${plus(two_n)} ${kSym(Math.abs(two_n), h)} ${plus(n2)} ${u(n2)}`));
+
+      // différence
+      L.push(`<li>f(${u(n)} + ${h}) − f(${u(n)}) = ${h}<sup>2</sup> ${plus(two_n)} ${kSym(Math.abs(two_n), h)} ${plus(n2)} ${u(n2)} − ${u(n2)}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${h}<sup>2</sup> ${plus(two_n)} ${kSym(Math.abs(two_n), h)}`));
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${h}( ${h} ${plus(two_n)} ${absu(Math.abs(two_n))} )`));
+
+      // quotient
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q('h( h '+(two_n>=0?'+ ':'− ')+absu(two_n)+' )','h')}`));
+L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${h} ${plus(two_n)} ${absu(Math.abs(two_n))}`));
+limRHS = `${h} ${plus(two_n)} ${absu(Math.abs(two_n))}`;
+      break;
+    }
+
+    // ———————————————————————————— f(x) = x³ ————————————————————————————
+    case 'cube': {
+      const n2 = n*n, n3 = n2*n;
+
+      // f(n)
+      L.push(`<li>f(${u(n)}) = ${parNum(n)}<sup>3</sup></li>`);
+      L.push(sub(`f(${u(n)}) = ${u(n3)}`));
+
+      // f(n+h) — pas de double parenthèses
+      L.push(`<li>f(${u(n)} + ${h}) = ( ${u(n)} + ${h} )<sup>3</sup></li>`);
+      L.push(sub(`f(${u(n)} + ${h}) = ( ${u(n)} + ${h} )<sup>2</sup>( ${u(n)} + ${h} )`));
+
+      // (n+h)² → numérique (n² et 2n évalués)
+      const two_n = 2*n;
+      L.push(sub(`f(${u(n)} + ${h}) = ( ${u(n2)} ${plus(two_n)} ${absu(Math.abs(two_n))}${h} + ${h}<sup>2</sup> )( ${u(n)} + ${h} )`));
+
+      const expandedPieces =
+          `${u(n3)} ${plus(n2)} ${kSym(Math.abs(n2),h)}`
+        + ` ${plus(two_n*n)} ${kSym(Math.abs(two_n*n),h)}`
+        + ` ${plus(two_n)} ${(Math.abs(two_n)===1 ? 'h<sup>2</sup>' : absu(Math.abs(two_n))+'h<sup>2</sup>')}`
+        + ` ${plus(n)} ${(Math.abs(n)===1 ? 'h<sup>2</sup>' : absu(Math.abs(n))+'h<sup>2</sup>')}`
+        + ` + ${h}<sup>3</sup>`;
+      L.push(sub(`f(${u(n)} + ${h}) = ${expandedPieces}`));
+
+      const constTerm = n3 < 0 ? ` ${UMINUS} ${absu(Math.abs(n3))}` : ` + ${absu(Math.abs(n3))}`;
+      L.push(sub(`f(${u(n)} + ${h}) = ${h}<sup>3</sup> ${plus(3*n)} ${kSym(Math.abs(3*n), 'h<sup>2</sup>')} ${plus(3*n2)} ${kSym(Math.abs(3*n2), h)}${constTerm}`));
+
+      // différence
+      L.push(`<li>f(${u(n)} + ${h}) − f(${u(n)}) = ${h}<sup>3</sup> ${plus(3*n)} ${kSym(Math.abs(3*n), 'h<sup>2</sup>')} ${plus(3*n2)} ${kSym(Math.abs(3*n2), h)}${constTerm} − ( ${u(n3)} )</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${h}<sup>3</sup> ${plus(3*n)} ${kSym(Math.abs(3*n), 'h<sup>2</sup>')} ${plus(3*n2)} ${kSym(Math.abs(3*n2), h)}`));
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${h}( ${h}<sup>2</sup> ${plus(3*n)} ${absu(Math.abs(3*n))} ${h} ${plus(3*n2)} ${absu(Math.abs(3*n2))} )`));
+
+      // quotient
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q('h( h<sup>2</sup> '+(3*n>=0?'+ ':'− ')+absu(3*n)+'h '+(3*n2>=0?'+ ':'− ')+absu(3*n2)+' )','h')}`));
+L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${h}<sup>2</sup> ${plus(3*n)} ${absu(Math.abs(3*n))} ${h} ${plus(3*n2)} ${absu(Math.abs(3*n2))}`));
+limRHS = `${h}<sup>2</sup> ${plus(3*n)} ${absu(Math.abs(3*n))} ${h} ${plus(3*n2)} ${absu(Math.abs(3*n2))}`;
+
+      break;
+    }
+
+    // ———————————————————————————— f(x) = 1/x ————————————————————————————
+    case 'inverse': {
+      // f(n)
+      L.push(`<li>f(${u(n)}) = ${Q('1', u(n))}</li>`);
+
+      // f(n+h)
+      L.push(`<li>f(${u(n)} + ${h}) = ${Q('1', u(n)+'+'+h)}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) = ${Q('1', u(n)+'+'+h)}`));
+
+      // différence
+      L.push(`<li>f(${u(n)} + ${h}) − f(${u(n)}) = ${Q('1', u(n)+'+'+h)} − ${Q('1', u(n))}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${Q(u(n), u(n)+'('+u(n)+'+'+h+')')} − ${Q(u(n)+'+'+h, u(n)+'('+u(n)+'+'+h+')')}`));
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${Q(u(n)+' − '+u(n)+' − '+h, u(n)+'('+u(n)+'+'+h+')')}`));
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${Q(UMINUS+h, u(n)+'('+u(n)+'+'+h+')')}`));
+
+      // quotient
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q(UMINUS+h, u(n)+'('+u(n)+'+'+h+')')} × ${Q('1','h')}`));
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q(UMINUS+'1', u(n)+'('+u(n)+'+'+h+')')}`));
+limRHS = `${Q(UMINUS+'1', u(n)+'('+u(n)+'+'+h+')')}`;
+      break;
+    }
+
+    // ———————————————————————————— f(x) = m x + p ————————————————————————————
+    case 'affine': {
+      const m = st.params.m, p = st.params.p;
+
+      // f(n) : m×n + p
+      L.push(`<li>f(${u(n)}) = ${u(m)}×${parNum(n)}${p? plus(p)+absu(Math.abs(p)) : ''}</li>`);
+      const mn = m*n;
+      L.push(sub(`f(${u(n)}) = ${u(mn)}${p? plus(p)+absu(Math.abs(p)) : ''}`));
+      const f0 = mn + (p||0);
+      L.push(sub(`f(${u(n)}) = ${u(f0)}`));
+
+      // f(n+h) : m(n+h)+p  — pas de double parenthèses
+      L.push(`<li>f(${u(n)} + ${h}) = ${kParen(m, innerNH(n))}${p? plus(p)+absu(Math.abs(p)) : ''}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) = ${u(mn)} ${plus(m)} ${(Math.abs(m)===1? '' : absu(Math.abs(m)))}${h}${p? plus(p)+absu(Math.abs(p)) : ''}`.replace(/\s\+\s0$/,'')));
+
+      // différence
+// différence (évite "− −f0" → affiche " + |f0|" si f0<0)
+const minusF0 = f0 < 0 ? ` + ${absu(Math.abs(f0))}` : ` ${UMINUS} ${absu(Math.abs(f0))}`;
+L.push(`<li>f(${u(n)} + ${h}) − f(${u(n)}) = ${u(mn)} ${plus(m)} ${(Math.abs(m)===1? '' : absu(Math.abs(m)))}${h}${p? plus(p)+absu(Math.abs(p)) : ''}${minusF0}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${(m===1?'':m===-1?UMINUS:absu(Math.abs(m)))}${h}`));
+
+      // quotient
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q((m===1?'':m===-1?UMINUS:absu(Math.abs(m)))+h,'h')}`));
+L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${u(m)}`));
+limRHS = `${u(m)}`;
+      break;
+    }
+
+    // ———————————————————————————— f(x) = A x² + B x + C ————————————————————————————
+    case 'quad': {
+      const A = st.params.a, B = st.params.b, C = st.params.c;
+
+      // Pré-calculs
+      const n2    = n*n;
+      const two_n = 2*n;
+      const An2   = A*n2;
+      const Bn    = B*n;
+      const f0    = (A?An2:0) + (B?Bn:0) + (C||0);
+
+      // — f(n) — (1) symbolique avec signe de A conservé
+      let line1 = '';
+      if (A) line1 += A_n2_text(A,n);
+      if (B) line1 += (line1 ? (B<0? ` ${UMINUS} ` : ' + ') : (B<0? ` ${UMINUS} ` : ''))
+                       + (Math.abs(B)===1 ? parNum(n) : `${absu(Math.abs(B))}×${parNum(n)}`);
+      if (C) line1 += (line1 ? (C<0? ` ${UMINUS} ` : ' + ') : (C<0? ` ${UMINUS} ` : '')) + absu(Math.abs(C));
+      L.push(`<li>f(${u(n)}) = ${line1 || '0'}</li>`);
+
+      // — f(n) — (2) produits numériques explicites
+      if (A || B || C) {
+        const partA = A ? (A<0? UMINUS : '') + (Math.abs(A)===1 ? `${n2}` : `${absu(Math.abs(A))}×${parNum(n2)}`) : '';
+        const partB = B ? (Bn<0? ` ${UMINUS} ` : ' + ') + absu(Math.abs(Bn)) : '';
+        const partC = C ? (C<0? ` ${UMINUS} ` : ' + ') + absu(Math.abs(C)) : '';
+        L.push(sub(`f(${u(n)}) = ${(partA + partB + partC).replace(/^ (?:\\+|−) /,'')}`));
+      }
+
+      // — f(n) — (3) valeur finale
+      L.push(sub(`f(${u(n)}) = ${u(f0)}`));
+
+      // — f(n+h) — (tête)  — pas de double parenthèses
+      const joinSigned = parts => parts.filter(Boolean).reduce((acc, part) => {
+        const neg = part.trim().startsWith(UMINUS);
+        if (!acc) return part;
+        return acc + (neg ? ' ' : ' + ') + part;
+      }, '');
+
+      const headParts = [];
+      if (A) headParts.push(A_nph2_text(A,n));
+      if (B) headParts.push(B_nph_text(B,n));
+      if (C) headParts.push(C < 0 ? UMINUS + (''+Math.abs(C)).replace(/-/g,UMINUS) : (''+Math.abs(C)).replace(/-/g,UMINUS));
+
+      const head = joinSigned(headParts);
+      L.push(`<li>f(${u(n)} + ${h}) = ${head || '0'}</li>`);
+
+      // — f(n+h) — (expansion : n² et 2n évalués + développement de B(n+h))
+      {
+        const insideA = `${u(n2)} ${two_n>=0 ? ' + ' : ' ' + UMINUS + ' '}${absu(Math.abs(two_n))}${h} + ${h}<sup>2</sup>`;
+        let mid = '';
+        if (A) {
+          mid += (A===1 ? `(${insideA})`
+                : A===-1 ? `${UMINUS}(${insideA})`
+                         : `${u(A)} ( ${insideA} )`);
+        }
+        if (B) {
+          mid += (Bn<0? ` ${UMINUS} ` : ' + ') + absu(Math.abs(Bn));  // Bn (signe du produit)
+          mid += (B<0? ` ${UMINUS} ` : ' + ') + (Math.abs(B)===1 ? h : absu(Math.abs(B))+h); // Bh
+        }
+        if (C) mid += (C<0? ` ${UMINUS} ` : ' + ') + absu(Math.abs(C));
+        L.push(sub(`f(${u(n)} + ${h}) = ${mid}`));
+      }
+
+      // — f(n+h) — (distribution de A et B)  ——— signe correct via A2n = A·2n ———
+      const A2n = A * two_n;
+      let distA = '';
+      if (A) {
+        // A n²
+        distA = u(An2);
+        // (A·2n) h
+        if (A2n !== 0) {
+          distA += (A2n < 0 ? ` ${UMINUS} ` : ' + ')
+                + (Math.abs(A2n) === 1 ? h : absu(Math.abs(A2n)) + h);
+        }
+        // A h²
+        distA += (A < 0 ? ` ${UMINUS} ` : ' + ')
+              + (Math.abs(A) === 1 ? 'h<sup>2</sup>' : absu(Math.abs(A)) + 'h<sup>2</sup>');
+      }
+      const distB = B
+        ? `${Bn>=0?' + ':' '+UMINUS+' '} ${absu(Math.abs(Bn))} ${B>=0?' + ':' '+UMINUS+' '} ${Math.abs(B)===1? h : absu(Math.abs(B))+h}`
+        : '';
+      L.push(sub(`f(${u(n)} + ${h}) = ${ (distA + distB + (C? (C>=0?' + ':' '+UMINUS+' ')+absu(Math.abs(C)) : '') ).replace(/^ \+ /,'') }`));
+
+           // — Regroupement : Ah² + (2An+B)h + (An²+Bn+C)
+      const Ah2 = A;
+      const H1  = 2*A*n + (B||0);
+      const H0  = (A?An2:0) + (B?Bn:0) + (C||0);
+
+      // helpers d’affichage signés (incluent le signe du 1er terme si négatif)
+      const termH2 = k => (Math.abs(k)===1 ? 'h<sup>2</sup>' : absu(Math.abs(k))+'h<sup>2</sup>');
+      const termH1 = k => (Math.abs(k)===1 ? h : absu(Math.abs(k))+h);
+      function joinBySign(parts){ // parts: [{txt, sign}]
+        const P = parts.filter(p=>p && p.sign);
+        if(!P.length) return '0';
+        let out = (P[0].sign<0 ? UMINUS+' ' : '') + P[0].txt;
+        for(let i=1;i<P.length;i++){
+          out += (P[i].sign<0 ? ` ${UMINUS} ` : ' + ') + P[i].txt;
+        }
+        return out;
+      }
+
+      // regroupement propre (le signe de Ah² est bien conservé)
+      const regroup = joinBySign([
+        Ah2 ? {txt: termH2(Ah2), sign: Ah2} : null,
+        H1  ? {txt: termH1(Math.abs(H1)), sign: H1} : null,
+        H0  ? {txt: absu(Math.abs(H0)),   sign: H0} : null
+      ]);
+      L.push(sub(`f(${u(n)} + ${h}) = ${regroup}`));
+
+      // — Différence (on enlève f(n))
+      const diffPoly = joinBySign([
+        Ah2 ? {txt: termH2(Ah2), sign: Ah2} : null,
+        H1  ? {txt: termH1(Math.abs(H1)), sign: H1} : null
+      ]);
+// — Différence (on enlève f(n)) — sans “− − …”
+const minusF0q = f0 < 0 ? ` + ${absu(Math.abs(f0))}` : ` ${UMINUS} ${absu(Math.abs(f0))}`;
+L.push(`<li>f(${u(n)} + ${h}) − f(${u(n)}) = ${regroup}${minusF0q}</li>`);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${diffPoly}`));
+
+      // — Factorisation par h : h( Ah + (2An+B) )
+      const inside = joinBySign([
+        Ah2 ? {txt: termH1(Math.abs(Ah2)), sign: Ah2} : null,   // Ah (avec le signe de A)
+        H1  ? {txt: absu(Math.abs(H1)),     sign: H1}  : null   // (2An+B)
+      ]);
+      L.push(sub(`f(${u(n)} + ${h}) − f(${u(n)}) = ${h}( ${inside} )`));
+
+      // — Quotient
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${Q('h('+inside+')','h')}`));
+L.push(sub(`${Q('f('+u(n)+'+'+h+') − f('+u(n)+')','h')} = ${inside}`));
+limRHS = `${inside}`; // ex. Ah + (2An ± |B|)
+
+      break;
+    }
+  }
+
+  pushConclusionLines(L, st, limRHS);
+  return wrapUL(L);
+}
+
+
+
+
+function solHTML_ex2(st){
+  const h = 'h';
+  const UMINUS = '−';
+
+  // —————————————— Helpers d’affichage (internes) ——————————————
+  const u = n => String(n).replace(/-/g, UMINUS);           // nombre → texte (avec − unicode)
+  const sgn = n => n < 0 ? UMINUS : '+';                    // signe pour concaténer
+  const absu = n => u(Math.abs(n));                         // valeur absolue (texte)
+
+  // Coefficient devant une lettre (jamais 1 / −1 visibles)
+  function coefBeforeLetter(k){
+    if (k === 1)  return '';
+    if (k === -1) return UMINUS;
+    return u(k);
+  }
+  // Terme « k·x » (jamais 1x / −1x)
+  function termVar(k, v='a'){ return coefBeforeLetter(k) + v; }
+
+  // Terme « k·x² » (jamais 1x² / −1x²)
+  function termSquare(k, v='a'){ return coefBeforeLetter(k) + v + '<sup>2</sup>'; }
+
+  // Facteur devant des parenthèses (jamais 1(…) / −1(…) → « −(…) »)
+  function factorParen(k, inner){
+    if (k === 1)  return '(' + inner + ')';
+    if (k === -1) return UMINUS + '(' + inner + ')';
+    return u(k) + '(' + inner + ')';
+  }
+
+  // Concatène proprement des termes [ {txt, valSign} , … ]
+  // valSign sert à savoir si on met « + » ou « − » devant (ex. k pour kx, etc.)
+  function joinTerms(terms){
+    if(!terms.length) return '';
+    let out = terms[0].txt;
+    for(let i=1;i<terms.length;i++){
+      const {txt, valSign} = terms[i];
+      out += ' ' + (valSign < 0 ? UMINUS : '+') + ' ' + (valSign < 0 ? txt.replace(/^−/,'') : txt);
+    }
+    return out;
+  }
+
+  // Affiche « + … » ou « − … » (coefficient numérique simple)
+  function withSign(k, bodyTxt){
+    return ' ' + (k<0 ? UMINUS : '+') + ' ' + (k<0 ? bodyTxt.replace(/^−/,'') : bodyTxt);
+  }
+
+  // —————————————— Génération ——————————————
+  const L = [];
+  const sub = t => '<div class="sub">'+t+'</div>';
+let limRHS = '';
+
+  switch(st.type){
+
+    // f(x) = x²
+    case 'carre': {
+      L.push(`<li>f(a) = ${termSquare(1,'a')}</li>`);
+     
+
+      L.push(`<li>f(a + ${h}) = ${(factorParen(1, `a + ${h}`))}<sup>2</sup></li>`);
+      L.push(sub(`f(a + ${h}) = ${termSquare(1,'a')} ${withSign(1, termVar(2, 'a'+h))} ${withSign(1, h+'<sup>2</sup>')}`));
+      L.push(sub(`f(a + ${h}) = ${h}<sup>2</sup> ${withSign(1, termVar(2,'a'+h))} ${withSign(1, termSquare(1,'a'))}`));
+
+      L.push(`<li>f(a + ${h}) − f(a) = ${h}<sup>2</sup> ${withSign(1, termVar(2,'a'+h))} ${withSign(1, termSquare(1,'a'))}</li>`);
+      L.push(sub(`f(a + ${h}) − f(a) = ${h}<sup>2</sup> ${withSign(1, termVar(2,'a'+h))} ${withSign(1, termSquare(1,'a'))} − ${termSquare(1,'a')}`));
+      L.push(sub(`f(a + ${h}) − f(a) = ${h}<sup>2</sup> ${withSign(1, termVar(2,'a'+h))}`));
+      L.push(sub(`f(a + ${h}) − f(a) = ${h}( ${h} + ${termVar(2,'a')} )`));
+
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q('h(h + 2a)','h')}`));
+L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${h} + ${termVar(2,'a')}`));
+limRHS = `${h} + ${termVar(2,'a')}`;
+      break;
+    }
+
+    // f(x) = x³
+    case 'cube': {
+      L.push(`<li>f(a) = a<sup>3</sup></li>`);
+     
+      L.push(`<li>f(a + ${h}) = ${(factorParen(1, `a + ${h}`))}<sup>3</sup></li>`);
+      L.push(sub(`f(a + ${h}) = ${(factorParen(1, `a + ${h}`))}<sup>2</sup>(a + ${h})`));
+      L.push(sub(`f(a + ${h}) = ${(factorParen(1, 'a<sup>2</sup> + 2a'+h+' + '+h+'<sup>2</sup>'))}(a + ${h})`));
+      L.push(sub(`f(a + ${h}) = a<sup>3</sup> + 3a<sup>2</sup>${h} + 3a${h}<sup>2</sup> + ${h}<sup>3</sup>`));
+L.push(sub(`f(a + ${h}) = ${h}<sup>3</sup> + 3a${h}<sup>2</sup> + 3a<sup>2</sup>${h} + a<sup>3</sup>`));
+
+      L.push(`<li>f(a + ${h}) − f(a) = ${h}<sup>3</sup> + 3a${h}<sup>2</sup> + 3a<sup>2</sup>${h} + a<sup>3</sup>  − a<sup>3</sup></li>`);
+      L.push(sub(`f(a + ${h}) − f(a) = ${h}<sup>3</sup> + 3a${h}<sup>2</sup> + 3a<sup>2</sup>${h}`));
+      L.push(sub(`f(a + ${h}) − f(a) = ${h}( ${h}<sup>2</sup> + 3a${h} + 3a<sup>2</sup> )`));
+
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q('h(h<sup>2</sup> + 3a'+h+' + 3a<sup>2</sup>)','h')}`));
+L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${h}<sup>2</sup> + 3a${h} + 3a<sup>2</sup>`));
+limRHS = `${h}<sup>2</sup> + 3a${h} + 3a<sup>2</sup>`;
+      break;
+    }
+
+    // f(x) = 1/x
+    case 'inverse': {
+      L.push(`<li>f(a) = ${Q('1','a')}</li>`);
+   
+      L.push(`<li>f(a + ${h}) = ${Q('1','a+'+h)}</li>`);
+
+      L.push(`<li>f(a + ${h}) − f(a) = ${Q('1','a+'+h)} − ${Q('1','a')}</li>`);
+      L.push(sub(`f(a + ${h}) − f(a) = ${Q('a','a(a+'+h+')')} − ${Q('a+'+h,'a(a+'+h+')')}`));
+      L.push(sub(`f(a + ${h}) − f(a) = ${Q('a − a − '+h,'a(a+'+h+')')}`));
+      L.push(sub(`f(a + ${h}) − f(a) = ${Q(UMINUS+h,'a(a+'+h+')')}`));
+
+      L.push(`<li>Pour ${h} ≠ 0,</li>`);
+      L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q(UMINUS+h,'a(a+'+h+')')} × ${Q('1','h')}`));
+L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q('−1','a(a+'+h+')')}`));
+limRHS = `${Q('−1','a(a+'+h+')')}`;
+      break;
+    }
+
+    case 'affine': {
+  const m = st.params.m, p = st.params.p;
+  const UMINUS = '−';
+  const u = n => String(n).replace(/-/g, UMINUS);
+
+  // 1) k·sym sans jamais 1/−1 visibles
+  const term = (k, sym) => (k===1 ? sym : k===-1 ? UMINUS + sym : u(k) + sym);
+  // 2) " +/− k·sym" (rien si k=0), jamais 1/−1
+  const sVar = (k, sym) => !k ? '' : (k>0 ? ' + ' : ' ' + UMINUS + ' ')
+                             + (Math.abs(k)===1 ? sym : u(Math.abs(k)) + sym);
+  // 3) " +/− p" (numérique simple)
+  const sNum = k => !k ? '' : (k>0 ? ' + ' + u(k) : ' ' + UMINUS + ' ' + u(-k));
+  // 4) k·( … ) sans 1/−1 visibles
+  const par = (k, inner) => k===1 ? `(${inner})`
+                       : k===-1 ? UMINUS + `(${inner})`
+                                : u(k) + `(${inner})`;
+
+  // f(a)
+  const f_a = term(m,'a') + sNum(p);
+  L.push(`<li>f(a) = ${f_a}</li>`);
+
+  // f(a+h) (tête puis développement)
+  const head = par(m, `a + ${h}`) + sNum(p);
+  L.push(`<li>f(a + ${h}) = ${head}</li>`);
+  L.push(sub(`f(a + ${h}) = ${term(m,'a')}${sVar(m,h)}${sNum(p)}`));
+
+  // Différence
+  L.push(`<li>f(a + ${h}) − f(a) = ${term(m,'a')}${sVar(m,h)}${sNum(p)} − ( ${term(m,'a')}${sNum(p)} )</li>`);
+  L.push(sub(`f(a + ${h}) − f(a) = ${term(m,h)}`));
+
+  // Taux de variation
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q(term(m,h),'h')} `));
+L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${u(m)}`));
+limRHS = `${u(m)}`;
+  break;
+}
+
+
+    // f(x) = A a² + B a + C
+case 'quad': {
+  const A = st.params.a, B = st.params.b, C = st.params.c;
+
+  // f(a)
+  const f0_terms = [];
+  if (A) f0_terms.push({ txt: termSquare(A,'a'), valSign: A });
+  if (B) f0_terms.push({ txt: termVar(B,'a'),    valSign: B });
+  if (C) f0_terms.push({ txt: absu(Math.abs(C)), valSign: C });
+  const f0 = f0_terms.length ? joinTerms(f0_terms) : '0';
+
+  L.push(`<li>f(a) = ${f0}</li>`);
+
+  // f(a+h) (tête)
+  const head =
+      `${factorParen(A, `a + ${h}`)}<sup>2</sup>`
+    + (B ? (B<0?` ${UMINUS} `:` + `) + absu(B) + factorParen(1, `a + ${h}`) : '')
+    + (C ? (C<0?` ${UMINUS} `:` + `) + absu(C) : '');
+  L.push(`<li>f(a + ${h}) = ${head}</li>`);
+
+  // Étape intermédiaire : A( a² + 2ah + h² ) ± Ba ± Bh ± C
+  {
+    const poly = `a<sup>2</sup> + 2a${h} + ${h}<sup>2</sup>`;
+    let mid = factorParen(A, poly); // 1/−1 masqués automatiquement
+    if (B) {
+      mid += (B<0?` ${UMINUS} `:` + `) + (Math.abs(B)===1 ? 'a' : absu(Math.abs(B))+'a');
+      mid += (B<0?` ${UMINUS} `:` + `) + (Math.abs(B)===1 ? h   : absu(Math.abs(B))+h);
+    }
+    if (C) mid += (C<0?` ${UMINUS} `:` + `) + absu(Math.abs(C));
+    L.push(sub(`f(a + ${h}) = ${mid}`));
+  }
+
+  // Développement propre (jamais 1/−1 devant lettres)
+  const dev_terms = [];
+  if (A)    dev_terms.push({ txt: termSquare(A,'a'),      valSign: A });        // A a²
+  if (2*A)  dev_terms.push({ txt: termVar(2*A, 'a'+h),    valSign: 2*A });      // 2A a h
+  if (A)    dev_terms.push({ txt: termSquare(A,'h'),      valSign: A });        // A h²
+  if (B)    dev_terms.push({ txt: termVar(B,'a'),         valSign: B });        // B a
+  if (B)    dev_terms.push({ txt: termVar(B,h),           valSign: B });        // B h
+  if (C)    dev_terms.push({ txt: absu(Math.abs(C)),      valSign: C });        // C
+  L.push(sub(`f(a + ${h}) = ${joinTerms(dev_terms)}`));
+
+  // Regroupement par puissances de h : A h² + (2Aa ± |B|) h + (A a² ± |B| a ± |C|)
+  const H2 = A ? termSquare(A,'h') : '';
+  const H1_terms = [];
+  if (2*A) H1_terms.push({ txt: termVar(Math.abs(2*A),'a'), valSign: 2*A });
+  if (B)   H1_terms.push({ txt: absu(Math.abs(B)),          valSign: B });
+  const H1 = H1_terms.length ? '(' + joinTerms(H1_terms) + ')'+h : '';
+
+  const H0_terms = [];
+  if (A) H0_terms.push({ txt: termSquare(A,'a'), valSign: A });
+  if (B) H0_terms.push({ txt: termVar(B,'a'),    valSign: B });
+  if (C) H0_terms.push({ txt: absu(Math.abs(C)), valSign: C });
+  const H0 = H0_terms.length ? '(' + joinTerms(H0_terms) + ')' : '';
+
+  const regroup = [H2, H1, H0].filter(Boolean).join(' + ').replace(/\+\s+−/g,' − ');
+  L.push(sub(`f(a + ${h}) = ${regroup}`));
+
+  // Différence
+  const diff_terms = [];
+  if (A) diff_terms.push({ txt: termSquare(A,'h'), valSign: A });
+  if (H1) diff_terms.push({ txt: '('+joinTerms(H1_terms)+')'+h, valSign: +1 }); // toujours + ( … )h
+  const diff = diff_terms.length ? joinTerms(diff_terms) : '0';
+
+  L.push(`<li>f(a + ${h}) − f(a) = ${regroup} − ( ${f0} )</li>`);
+  L.push(sub(`f(a + ${h}) − f(a) = ${diff}`));
+
+  // Factorisation par h (6e ligne voulue) : h( Ah + 2Aa ± |B| )
+  const inside_parts = [];
+  if (A)    inside_parts.push({ txt: termVar(Math.abs(A), h),  valSign: A });    // Ah (sans 1/−1)
+  if (2*A)  inside_parts.push({ txt: termVar(Math.abs(2*A),'a'),valSign: 2*A }); // 2Aa
+  if (B)    inside_parts.push({ txt: absu(Math.abs(B)),        valSign: B });    // ±|B|
+  const insideStr = joinTerms(inside_parts);
+
+  L.push(sub(`f(a + ${h}) − f(a) = ${h}( ${insideStr} )`));
+
+  L.push(`<li>Pour ${h} ≠ 0,</li>`);
+  L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${Q('h('+insideStr+')','h')}`));
+L.push(sub(`${Q('f(a+'+h+') − f(a)','h')} = ${insideStr}`));
+limRHS = `${insideStr}`;
+  break;
+}
+}
+pushConclusionLines(L, st, limRHS);
+  return wrapUL(L);
+}
+
+// ---------- Helpers d’affichage pour les puces "lim" ----------
+function expectedExprToHTML(st, expr){
+  const UMINUS = '−';
+  const h = 'h';
+
+  function supPowers(s){ return s.replace(/(\^)(\d+)/g, (_,a,b)=>'<sup>'+b+'</sup>'); }
+  function prettyStars(s){
+    // × seulement entre nombres
+    s = s.replace(/(\d)\*(\d)/g, '$1×$2');   // 3*1 -> 3×1
+    // supprimer * ailleurs (nombre*lettre, lettre*lettre, lettre*(...))
+    s = s.replace(/\*(?=[a-zA-Z(])/g, '');   // 3*h -> 3h, a*h -> ah, a*(...) -> a(...)
+    s = s.replace(/([a-zA-Z)])\*(?=[a-zA-Z(])/g, '$1'); // sécurité
+
+    // petites simplifications : ×1h -> h ; ×1 en fin -> (rien)
+    s = s.replace(/×1(?=[a-zA-Z])/g, '');    // 3×1h -> 3h
+    s = s.replace(/×1(?![a-zA-Z0-9])/g, ''); // 3×1 -> 3
+    // 1^2 -> 1 (avant passage en <sup>)
+    s = s.replace(/\b1\^2\b/g, '1');
+    return s;
+  }
+  function uminus(s){ return s.replace(/-/g, UMINUS); }
+
+  if(st.type==='inverse'){
+    const den = (st.kind==='ex1') ? (String(st.n)+'('+String(st.n)+'+'+h+')') : 'a(a+'+h+')';
+    return Q(UMINUS+'1', den);
+  }
+
+  let s = expr;
+  s = prettyStars(s);
+  s = supPowers(s);
+  s = uminus(s);
+  s = s.replace(/\+/g,' + ').replace(/−/g,' − ').replace(/\s+/g,' ').trim();
+  return s;
+}
+
+
+function finalLimitHTML(st){
+  const UMINUS = '−';
+  if(st.kind==='ex1'){
+    const n = st.n;
+    switch(st.type){
+      case 'carre':  return String(2*n).replace(/-/g, UMINUS);
+      case 'cube':   return String(3*n*n).replace(/-/g, UMINUS);
+      case 'inverse': {
+  const d = Math.abs(st.n*st.n);        // n² > 0
+  return Q(UMINUS+'1', String(d));      // ex. −1/9
+}
+      case 'affine': return String(st.params.m).replace(/-/g, UMINUS);
+      case 'quad': {
+        const A=st.params.a, B=st.params.b;
+        return String(2*A*n + (B||0)).replace(/-/g, UMINUS);
+      }
+    }
+  } else {
+    switch(st.type){
+      case 'carre':  return '2a';
+      case 'cube':   return '3a<sup>2</sup>';
+      case 'inverse':return Q('−1', 'a<sup>2</sup>');
+      case 'affine': return String(st.params.m).replace(/-/g,'−');
+      case 'quad': {
+        const A=st.params.a, B=st.params.b;
+        const k = String(2*A).replace(/-/g,'−');
+        const sB = B ? (B>0 ? ' + '+B : ' − '+Math.abs(B)) : '';
+        return `${k}a${sB}`;
+      }
+    }
+  }
+  return '';
+}
+
+/* ---- Expression attendue pour la vérification (après f′( … ) =) ---- */
+function expectedFinalForCheck(st){
+  if(st.kind==='ex1'){                     // dérivée en x = n (valeur numérique)
+    switch(st.type){
+      case 'carre':   return String(2*st.n);
+      case 'cube':    return String(3*st.n*st.n);
+      case 'inverse': return `-1/${st.n*st.n}`;            // ex. -1/9
+      case 'affine':  return String(st.params.m);
+      case 'quad':    return String(2*st.params.a*st.n + (st.params.b||0));
+    }
+  }else{                                    // dérivée en x = a (fonction de a)
+    const A = st.params.a, B = st.params.b, m = st.params.m;
+    switch(st.type){
+      case 'carre':   return `2*a`;
+      case 'cube':    return `3*a^2`;
+      case 'inverse': return `-1/a^2`;
+      case 'affine':  return String(m);
+      case 'quad':    return `${2*A}*a${B? (B>0? ' + '+B : ' - '+Math.abs(B)) : ''}`;
+    }
+  }
+  return '';
+}
+
+
+
+/* ---- Solution "attendue" pour le check (corrigée pour le trinôme) ---- */
+function expectedExpression(st){
+  const h='h';
+  if(st.kind==='ex1'){
+    const n=st.n;
+    switch(st.type){
+      case 'carre':   return `h + ${2*n}`;
+      case 'cube':    return `3*${n}^2 + 3*${n}*h + h^2`;
+      case 'inverse': return `-1/(${n}*(${n}+h))`;
+      case 'affine':  return String(st.params.m);
+      case 'quad': {
+        const a=st.params.a, b=st.params.b;
+        return `${a}*h + ( ${2*a*n}${b? (b>0? ' + '+b : ' - '+Math.abs(b)) : ''} )`;
+      }
+    }
+  } else {
+    switch(st.type){
+      case 'carre':   return `h + 2*a`;
+      case 'cube':    return `h^2 + 3*a*h + 3*a^2`;
+      case 'inverse': return `-1/(a*(a+h))`;
+      case 'affine':  return String(st.params.m);
+      case 'quad': {
+        const a=st.params.a, b=st.params.b;
+        return `${a}*h + ( ${2*a}*a${b? (b>0? ' + '+b : ' - '+Math.abs(b)) : ''} )`;
+      }
+    }
+  }
+  return '';
+}
+
+
+// ---- Evaluation & vérification ----
+function safeEval(expr){
+  // Normalisations d'entrée
+  let s = String(expr)
+    .trim()
+    .replace(/\u00A0/g, ' ')      // espaces insécables → espace normal
+    .replace(/\u2212/g, '-')      // "−" Unicode → "-"
+    .replace(/(\d),(\d)/g, '$1.$2'); // décimales FR "12,5" → "12.5"
+
+  // Exposants Unicode → ^n (puis sera converti en **)
+  const SUP = {'\u2070':'0','\u00B9':'1','\u00B2':'2','\u00B3':'3',
+               '\u2074':'4','\u2075':'5','\u2076':'6','\u2077':'7',
+               '\u2078':'8','\u2079':'9'};
+  s = s.replace(/([0-9a-zA-Z\)])\s*([⁰¹²³⁴⁵⁶⁷⁸⁹²³])/g, (_, base, sup) => {
+    const d = SUP[sup] || '2'; // (² et ³ inclus)
+    return `${base}^${d}`;
+  });
+
+  // Puissances ^ → ** (JS)
+  s = s.replace(/\^/g, '**');
+
+  // Multiplications implicites
+  s = s
+    .replace(/(\d)\s*(?=[a-zA-Z(])/g, '$1*')   // 2h, 3(a+h)
+    .replace(/([a-zA-Z])\s*(?=\d)/g, '$1*')    // a2 -> a*2
+    .replace(/([a-zA-Z])\s*(?=\()/g, '$1*')    // a(h) -> a*(h)
+    .replace(/\)\s*(?=[a-zA-Z(])/g, ')*')      // )h, )(
+    .replace(/([a-zA-Z])\s*(?=[a-zA-Z])/g, '$1*'); // ah -> a*h
+
+  // Sécurité : caractères autorisés
+  if(!/^[0-9a-zA-Z\s\+\-\*\/\.\(\)]+$/.test(s)) throw new Error('caractères interdits');
+
+  const f = new Function('h','a','n',`return (${s});`);
+  return function(h,a,n){ return f(h,a,n); };
+}
+
+
+function verify(st){
+  const inp = $('#ans'); const msg=$('#msg');
+  const user = (inp.value||'').trim();
+  if(!user){ msg.textContent='Entrez une expression.'; msg.className='msg ko'; return false; }
+
+  // 1) On parse la saisie élève
+  let fuser;
+  try{ fuser = safeEval(user,{}); }
+  catch(e){ msg.textContent='Expression invalide.'; msg.className='msg ko'; return false; }
+
+  // 2) Cible : la dérivée finale (après f′(…)=)
+  const exp = expectedFinalForCheck(st);
+  if(!exp){ msg.textContent='Erreur interne.'; msg.className='msg ko'; return false; }
+
+  let ftrue;
+  try{ ftrue = safeEval(exp,{}); }
+  catch(e){ msg.textContent='Erreur interne.'; msg.className='msg ko'; return false; }
+
+  // 3) Jeux de tests :
+  //    - ex1 : valeur numérique → on évalue pour n'importe quels a,h (ignorés)
+  //    - ex2 : fonction de a → on teste plusieurs valeurs de a (en évitant 0 pour 1/x)
+  let testsA;
+  if(st.kind==='ex1'){
+    testsA = [1]; // a n'est pas utilisé pour une valeur numérique ; un seul test suffit
+  }else{
+    testsA = [-3,-2,-1,-0.5,0.5,1,2,3].filter(a=>{
+      if(st.type==='inverse') return Math.abs(a) > 1e-9; // éviter a=0
+      return true;
+    });
+  }
+
+  for(const a0 of testsA){
+    let u,v;
+    try{
+      // h et n sont inutiles ici (on valide la DERNIÈRE ligne, indépendante de h)
+      u = fuser(0, a0, st.n);
+      v = ftrue(0, a0, st.n);
+    }catch(e){
+      msg.textContent='Expression invalide.'; msg.className='msg ko'; return false;
+    }
+    if(!isFinite(u) || !isFinite(v)) continue;
+    if(Math.abs(u - v) > 1e-6){
+      msg.textContent='Incorrect.'; msg.className='msg ko'; return false;
+    }
+  }
+
+  msg.textContent='Correct !'; msg.className='msg ok'; return true;
+}
+
+
+// ---- REGISTRY ----
+const REG = [
+  {
+    id:'ex1',
+    title:'Exercice 1 — Entre n et n+h',
+
+    // ✅ gen : supporte l’appel sans host (PDF) et retourne l’état
+    gen(host){
+      const st = genState_ex1();
+      if (host) {
+        host.dataset.state = JSON.stringify(st);
+        renderEnonce(host, st);
+      }
+      return st;
+    },
+
+    // ✅ render : utilisé par le PDF pour “rendre” l’énoncé hors écran
+    render(host, st){
+      const S = st || genState_ex1();
+      host.dataset.state = JSON.stringify(S);
+      renderEnonce(host, S);
+    },
+
+    // ✅ solution : accepte st si fourni (PDF) sinon lit dataset (UI)
+    solution(host, st){
+      const S = st || JSON.parse(host.dataset.state || '{}');
+      const box = $('#solution', host);
+      box.style.display = 'block';
+      box.innerHTML = solHTML_ex1(S);
+    },
+
+    reset(host){
+      const box = $('#solution', host);
+      box.style.display = 'none';
+      box.innerHTML = '';
+      $('#ans', host).value = '';
+      $('#msg', host).textContent = '';
+    }
+  },
+
+  {
+    id:'ex2',
+    title:'Exercice 2 — Entre a et a+h (général)',
+
+    gen(host){
+      const st = genState_ex2();
+      if (host) {
+        host.dataset.state = JSON.stringify(st);
+        renderEnonce(host, st);
+      }
+      return st;
+    },
+
+    render(host, st){
+      const S = st || genState_ex2();
+      host.dataset.state = JSON.stringify(S);
+      renderEnonce(host, S);
+    },
+
+    solution(host, st){
+      const S = st || JSON.parse(host.dataset.state || '{}');
+      const box = $('#solution', host);
+      box.style.display = 'block';
+      box.innerHTML = solHTML_ex2(S);
+    },
+
+    reset(host){
+      const box = $('#solution', host);
+      box.style.display = 'none';
+      box.innerHTML = '';
+      $('#ans', host).value = '';
+      $('#msg', host).textContent = '';
+    }
+  }
+];
+
+window.REGISTRY = REG;
+
+
+function mount(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REG.map((e,i)=>`<option value="${e.id}">${i+1}. ${e.title}</option>`).join('');
+
+  function get(){ const id=sel.value||REG[0].id; return REG.find(e=>e.id===id)||REG[0]; }
+  function render(){ const ex=get(); ex.gen($('#host')); }
+  function sol(){ const ex=get(); ex.solution($('#host')); }
+  function reset(){ const ex=get(); ex.reset($('#host')); }
+
+  function check(){
+    const st=JSON.parse($('#host').dataset.state||'{}');
+    if(!st || !st.type){ $('#msg').textContent=''; return; }
+    const ok = verify(st);
+    const sc = $('#score');
+    const [a,b] = sc.textContent.split('/').map(s=>+s.trim());
+    sc.textContent = (a + (ok?1:0)) + ' / ' + (b+1);
+  }
+
+  sel.onchange=render; $('#btn-new').onclick=render;
+  $('#btn-solution').onclick=sol;
+  $('#btn-reset').onclick=reset;
+  $('#btn-check').onclick=check;
+
+  // 🔽🔽🔽 AJOUT : le changement de fonction régénère l’énoncé courant
+  const fnSel = $('#fn-select');
+  if(fnSel){ fnSel.onchange = render; }
+  // 🔼🔼🔼 FIN AJOUT
+
+  // Enter triggers verify
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const a=$('#ans'); if(a && document.activeElement===a) { e.preventDefault(); $('#btn-check').click(); } } });
+  render();
+}
+document.addEventListener('DOMContentLoaded', mount);
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    ExoPDF.init({ mountAfterSelector: '#info-saisie' });
+  });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+
 </body>
 </html>

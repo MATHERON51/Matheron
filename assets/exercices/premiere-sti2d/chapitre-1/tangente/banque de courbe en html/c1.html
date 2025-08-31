@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Spline cubique C² contrainte — A,B,C visibles</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{--ink:#111;--bg:#fafafa;--grid:#cfe6ff;--axes:#222;--curve:#e11}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:22px auto;padding:0 16px}
+  canvas{background:#fff;border:1px solid #e6e6e6;border-radius:10px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);min-width:280px}
+  button{border:1px solid #ccc;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row">
+    <canvas id="cv" width="1000" height="600"></canvas>
+    <div class="card">
+      <p><b>Contraintes</b> : A(−5,2) avec f′(−5)=3, B(−1,−1) avec f′(−1)=0, C(3,2) avec f′(3)=−2.</p>
+      <p><button id="dl">Télécharger le PNG</button></p>
+      <p style="font-size:13px;opacity:.85">Courbe rouge : spline cubique <b>C²</b> (naturelle) dont on force les pentes en A, B, C ⇒ maximum près de −3,8 bien arrondi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 1) Données ===== */
+const pts = [
+  {x:-5.74, y:-1.44},
+  {x:-5.00, y: 2.00},   // A
+  {x:-4.55, y: 3.18},
+  {x:-4.07, y: 3.91},
+  {x:-3.59, y: 3.91},
+  {x:-3.12, y: 3.23},
+  {x:-2.64, y: 1.86},
+  {x:-2.17, y: 0.59},
+  {x:-1.69, y:-0.49},
+  {x:-1.00, y:-1.00},   // B
+  {x:-0.50, y:-0.75},
+  {x:-0.02, y:-0.03},
+  {x: 0.45, y: 0.92},
+  {x: 0.93, y: 1.86},
+  {x: 1.41, y: 2.68},
+  {x: 1.88, y: 2.96},
+  {x: 2.36, y: 2.85},
+  {x: 3.00, y: 2.00},   // C
+  {x: 3.70, y: 0.19},
+  {x: 4.18, y:-1.44}
+];
+const idxA = 1, idxB = 9, idxC = 17;
+const forced = new Map([[idxA,3],[idxB,0],[idxC,-2]]); // dérivées imposées
+
+/* ===== 2) Outils repère ===== */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+const xMin = Math.floor(Math.min(...xs))-1, xMax = Math.ceil(Math.max(...xs))+1;
+const yMin = Math.floor(Math.min(...ys))-1, yMax = Math.ceil(Math.max(...ys))+1;
+const pad=40, W=cv.width, H=cv.height;
+const sx=(W-2*pad)/(xMax-xMin), sy=(H-2*pad)/(yMax-yMin);
+const X=x=>pad+(x-xMin)*sx, Y=y=>H-pad-(y-yMin)*sy;
+
+function drawGrid(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.lineWidth=1; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--grid');
+  ctx.beginPath();
+  for(let x=Math.ceil(xMin);x<=Math.floor(xMax);x++){const xp=X(x);ctx.moveTo(xp,pad);ctx.lineTo(xp,H-pad);}
+  for(let y=Math.ceil(yMin);y<=Math.floor(yMax);y++){const yp=Y(y);ctx.moveTo(pad,yp);ctx.lineTo(W-pad,yp);}
+  ctx.stroke();
+  ctx.lineWidth=2; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--axes');
+  ctx.beginPath();
+  if(xMin<=0&&0<=xMax){const X0=X(0);ctx.moveTo(X0,pad);ctx.lineTo(X0,H-pad);}
+  if(yMin<=0&&0<=yMax){const Y0=Y(0);ctx.moveTo(pad,Y0);ctx.lineTo(W-pad,Y0);}
+  ctx.stroke();
+  ctx.fillStyle='#444'; ctx.font='12px system-ui';
+  for(let x=Math.ceil(xMin);x<=Math.floor(xMax);x++) ctx.fillText(String(x),X(x)+3,Y(0)+14);
+  for(let y=Math.ceil(yMin);y<=Math.floor(yMax);y++) ctx.fillText(String(y),X(0)+6,Y(y)-3);
+}
+
+/* ===== 3) Spline cubique C² avec contraintes de pente =====
+   Système tridiagonal pour les pentes m[i]:
+   - i=1..n-2:  h_{i-1} m_{i-1} + 2(h_{i-1}+h_i) m_i + h_i m_{i+1} = 3(h_i d_{i-1} + h_{i-1} d_i)
+   - i=0:       2 m_0 + m_1 = 3 d_0     (naturel)
+   - i=n-1:     m_{n-2} + 2 m_{n-1} = 3 d_{n-2}
+   On remplace la ligne i par m_i = valeur si i est contraint.
+*/
+function cubicSlopesConstrained(xs, ys, forcedMap){
+  const n = xs.length;
+  const h = Array(n-1), d = Array(n-1);
+  for(let i=0;i<n-1;i++){ h[i]=xs[i+1]-xs[i]; d[i]=(ys[i+1]-ys[i])/h[i]; }
+
+  const a = Array(n).fill(0), b = Array(n).fill(0), c = Array(n).fill(0), r = Array(n).fill(0);
+
+  // lignes "naturelles"
+  b[0]=2; c[0]=1; r[0]=3*d[0];
+  for(let i=1;i<=n-2;i++){
+    a[i]=h[i-1]; b[i]=2*(h[i-1]+h[i]); c[i]=h[i]; r[i]=3*(h[i]*d[i-1]+h[i-1]*d[i]);
+  }
+  a[n-1]=1; b[n-1]=2; r[n-1]=3*d[n-2];
+
+  // imposer pentes
+  forcedMap.forEach((val,idx)=>{
+    a[idx]=0; b[idx]=1; c[idx]=0; r[idx]=val;
+  });
+
+  // Thomas
+  for(let i=1;i<n;i++){
+    const w = a[i]/b[i-1];
+    b[i] -= w*c[i-1];
+    r[i] -= w*r[i-1];
+  }
+  const m = Array(n).fill(0);
+  m[n-1]=r[n-1]/b[n-1];
+  for(let i=n-2;i>=0;i--) m[i]=(r[i]-c[i]*m[i+1])/b[i];
+  return m;
+}
+
+/* Hermite par morceaux (passe exactement par les nœuds) */
+function sampleHermite(xs, ys, m, step=0.005){
+  const out=[];
+  for(let i=0;i<xs.length-1;i++){
+    const x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1], h=x1-x0, m0=m[i], m1=m[i+1];
+    for(let t=0; t<1; t+=step){
+      const t2=t*t, t3=t2*t;
+      const h00= 2*t3-3*t2+1, h10=t3-2*t2+t, h01=-2*t3+3*t2, h11=t3-t2;
+      const x=x0+t*h, y=h00*y0+h10*h*m0+h01*y1+h11*h*m1;
+      out.push({x,y});
+    }
+  }
+  out.push({x:xs.at(-1), y:ys.at(-1)});
+  return out;
+}
+
+/* ===== 4) Dessin ===== */
+function drawABC(){
+  // croix noires pour A,B,C
+  function cross(px,py,r=8,lw=3){
+    ctx.save(); ctx.translate(px,py); ctx.lineWidth=lw; ctx.strokeStyle='#000';
+    ctx.beginPath(); ctx.moveTo(-r,-r); ctx.lineTo(r,r); ctx.moveTo(-r,r); ctx.lineTo(r,-r); ctx.stroke(); ctx.restore();
+  }
+  const A=pts[idxA], B=pts[idxB], C=pts[idxC];
+  cross(X(A.x),Y(A.y)); cross(X(B.x),Y(B.y)); cross(X(C.x),Y(C.y));
+  ctx.fillStyle='#000'; ctx.font='14px system-ui';
+  ctx.fillText('A', X(A.x)-12, Y(A.y)-8);
+  ctx.fillText('B', X(B.x)-12, Y(B.y)-8);
+  ctx.fillText('C', X(C.x)-12, Y(C.y)-8);
+}
+
+function drawCurve(){
+  const m = cubicSlopesConstrained(xs, ys, forced);
+  const curve = sampleHermite(xs, ys, m, 0.004); // pas fin → rendu très lisse
+  ctx.lineWidth=4; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--curve');
+  ctx.beginPath(); ctx.moveTo(X(curve[0].x), Y(curve[0].y));
+  for (const q of curve) ctx.lineTo(X(q.x), Y(q.y));
+  ctx.stroke();
+}
+
+function render(){
+  drawGrid();
+  drawCurve();
+  drawABC(); // uniquement A, B, C visibles
+}
+render();
+
+/* ===== 5) Export PNG ===== */
+document.getElementById('dl').addEventListener('click', ()=>{
+  const a=document.createElement('a');
+  a.download='courbe_spline_contrainte.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+});
+</script>
+</body>
+</html>

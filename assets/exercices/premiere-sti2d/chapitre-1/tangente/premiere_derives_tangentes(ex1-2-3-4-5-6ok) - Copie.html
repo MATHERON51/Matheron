@@ -7,8 +7,6 @@
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/mobile.css">
-
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
@@ -48,63 +46,7 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
 .frac{display:inline-flex;flex-direction:column;vertical-align:middle;line-height:1}
 .frac>.num{border-bottom:1px solid #000;padding:0 .15em;text-align:center}
 .frac>.den{padding:0 .15em;text-align:center}
-/* PDF/print : éviter la disparition des barres de fraction */
-@media print {
-  .frac>.num{ border-bottom-width: 2px !important; }
-}
-
-/* Bonus : un peu plus visible aussi à l'écran sans être agressif */
-.frac>.num{ border-bottom-width: 1.5px; }
 @media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
-/* Fraction plus robuste (ligne sous le numérateur) */
-.frac{ display:inline-flex; flex-direction:column; align-items:stretch; line-height:1; }
-.frac>.num,
-.frac>.den{ display:block; text-align:center; padding:0 .2em; position:relative; }
-.frac>.num{ border-bottom:1.5px solid currentColor; } /* écran : plus lisible */
-
-/* Impression/PDF : certaines pipelines "mangent" les hairlines -> pseudo-ligne solide */
-@media print{
-  .frac>.num{ border-bottom:0 !important; }
-  .frac>.num::after{
-    content:"";
-    position:absolute;
-    left:0; right:0; bottom:-1px;
-    height:2px;                    /* trait épais et visible */
-    background:currentColor;
-  }
-}
-@media print{
-  /* transforme les champs en grands traits (si jamais ExoPDF n'est pas utilisé) */
-  input, textarea, select{
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 2px solid #000 !important;  /* ← grand trait */
-    color: transparent !important;             /* cache le texte/placeholder */
-    caret-color: transparent !important;
-    outline: none !important;
-    height: 1.4em !important;
-  }
-  input::placeholder, textarea::placeholder{ color: transparent !important; }
-
-  /* nettoie l'UI */
-  .tick, .optionline, button, select, .kbd-host, .header, .controls{ 
-    display: none !important; 
-  }
-}
-/* Fallback universel : si l'input existe encore au moment du rendu PDF,
-   on le masque et on montre un "grand trait" de même largeur. */
-.blank-wrap{ display:inline-block; vertical-align:baseline }
-.blank-wrap .blank{
-  display:none; height:1.4em; border-bottom:2px solid #000; vertical-align:baseline;
-}
-
-/* Impression / PDF (html2canvas, etc.) */
-@media print{
-  .blank-wrap input{ display:none !important; }
-  .blank-wrap .blank{ display:inline-block !important; }
-}
-@media print{ .controls{display:none !important;} }
-
 </style>
 
 <!-- Librairies communes MatHeron -->
@@ -264,14 +206,15 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
 
     <div id="host" class="card" data-active="" data-state=""></div>
 
-<div class="card small" id="info-saisie">
-  <strong>Saisie & réponses acceptées :</strong>
-
+    <div class="card">
+      <h3>Saisie & réponses acceptées</h3>
+      <ul class="small">
 	    <li>Attention : Si vous voyez une ligne horizontale rouge : Cliquez sur nouvel énoncé</li>
         <li>Division : saisir en <span class="code">a/b</span> ; puissances : <span class="code">x^2</span> (affichage en <span class="code">x²</span>).</li>
         <li>Équations de droites : vous pouvez écrire <span class="code">y = mx + p</span> ou <span class="code">y - y_A = m(x - x_A)</span>. Les formes algébriquement équivalentes sont acceptées.</li>
         <li>Le signe <b>−</b> affiché est le « grand moins » (Unicode). La saisie accepte <span class="code">-</span> classique.</li>
-        </div>
+      </ul>
+    </div>
 
     <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
 
@@ -286,29 +229,12 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
 const UMINUS = '−'; // (déjà défini chez toi, laissé ici pour clarté)
 
 /* 1) Normalise les suites de signes */
-/* 1) Normalise les suites de signes (sans --, -+, +- etc.) */
 function normalizeSignsStr(s){
-  const U = UMINUS; // '−'
-  s = String(s)
-    // 0) Unifie tous les tirets en « grand moins »
-    .replace(/[–—\-]/g, U)
-
-    // 1) Réduit les doubles signes (indépendant des espaces)
-    .replace(/\+\s*\+/g, ' + ')
-    .replace(/−\s*−/g, ' + ')
-    .replace(/\+\s*−/g, ` ${U} `)
-    .replace(/−\s*\+/g, ` ${U} `)
-
-    // 2) Nettoyage autour de "=" et parenthèses (évite "= +", "( +", etc.)
-    .replace(/=\s*\+/g, '= ')
-    .replace(/\(\s*\+/g, '(')
-
-    // 3) Espaces propres
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([\)\],;:])/g,'$1')
-    .replace(/([\(\[])\s+/g,'$1');
-
-  return s;
+  return String(s)
+    .replace(/\+\s*−/g, ` ${UMINUS} `)   // "+ −" -> " − "
+    .replace(/−\s*\+/g, ` ${UMINUS} `)   // "− +" -> " − "
+    .replace(/−\s*−/g, ' + ')            // "− −" -> " + "
+    .replace(/\s+/g, ' ');
 }
 
 /* 2) Forçage des multiplications explicites "×" là où nécessaire */
@@ -1071,17 +997,9 @@ function pick3DistinctInts(pool=[-5,-4,-3,-2,-1,0,1,2,3,4,5]){
 function fmtSlopeHTML(m){ const vh=toVH(m); return vh? fracHTML(vh[0],vh[1]) : fmtNum(m); }
 
 /* === Inputs & ticks helpers (globaux) === */
-function mkInput(id, w=120, ph='', pdfw=null){
-  const W = Number(pdfw ?? w); // largeur du trait en PDF
-  return `
-    <span class="blank-wrap" data-w="${W}">
-      <input id="${id}" style="width:${w}px" autocomplete="off" inputmode="text" placeholder="${ph}">
-      <span class="blank" aria-hidden="true" style="width:${W}px">&nbsp;</span>
-    </span>
-  `.trim();
+function mkInput(id, w=120, ph=''){
+  return `<input id="${id}" style="width:${w}px" autocomplete="off" inputmode="text" placeholder="${ph}">`;
 }
-
-
 function setVal(host,id,val){
   // ne pas auto-remplir pendant l'affichage de la solution
   if(host && host._noFillSolution) return;
@@ -1092,10 +1010,6 @@ function getVal(host,id){
   const el = host.querySelector('#'+id);
   return el ? String(el.value||'').trim() : '';
 }
-
-
-  // Cache des derniers paramètres générés par exercice
-  window.__EXO_PARAMS_CACHE = window.__EXO_PARAMS_CACHE || {};
 
 
 /* ================== Exercices ================== */
@@ -1201,194 +1115,33 @@ verify(host){
     render(host, st){
   const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
   const ui=renderWithRepere(host, s.R);
-  // Segment visible de la tangente dans [xmin,xmax]×[ymin,ymax]
-function segmentInBox_throughPointSlope(x0,y0,m,R){
-  const cand=[];
-  const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
-  const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
-  if (Math.abs(m)>1e-12){
-    const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
-    const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
-  } else { cand.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0}); }
-  const u=[]; for(const p of cand){ if(!u.some(q=>Math.abs(q.x-p.x)<1e-9&&Math.abs(q.y-p.y)<1e-9)) u.push(p); }
-  while(u.length<2) u.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0});
-  return u.slice(0,2);
-}
-
-// Duplique une tangente en "PDF-safe" (un simple <line> en PIXELS, dans un groupe dédié)
-function addPdfSafeLine(rep, Q1, Q2, color){
-  const NS = rep.el.namespaceURI;
-  let g = rep.el.querySelector('g.tangent-pdf-safe');
-  if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','tangent-pdf-safe'); rep.el.appendChild(g); }
-  // on dessine en coordonnées écran (pixels)
-  const A = rep.coordToScreen(Q1.x, Q1.y);
-  const B = rep.coordToScreen(Q2.x, Q2.y);
-  const L = document.createElementNS(NS,'line');
-  L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
-  L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
-  L.setAttribute('stroke', color);
-  L.setAttribute('stroke-width', '2.5');
-  L.setAttribute('stroke-dasharray', '6 6');     // pointillés
-  L.setAttribute('stroke-linecap', 'round');
-  // IMPORTANT: pas de "vector-effect", ça passe mieux en PDF
-  g.appendChild(L);
-}
-
-// Supprime le cercle d’un point nommé (pour ne garder QUE le texte)
-function stripDotForLabel(rep, labelText){
-  const texts = Array.from(rep.el.querySelectorAll('text')).filter(t=>t.textContent===labelText);
-  texts.forEach(t=>{
-    const g = t.closest('g');
-    if(!g) return;
-    const c = g.querySelector('circle');
-    if(c) c.remove();
-  });
-}
-
-     // --- Tangentes colorées + labels visibles
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
-  const SUB    = ['₁','₂','₃'];
-
   ui.rep.drawCurve(s.f,'#e53935',2.5);
-  ui.rep.drawLineThroughPointSlope(s.A.x, s.A.y, s.A.m, COLORS[0], true);
-{ const m = Math.abs(s.A.m)<1e-12?0:s.A.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.A.x,s.A.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[0]);
-  // ton label écran (SVG) reste comme tu l’avais (pas nécessaire pour le PDF)
-}
-// B
-ui.rep.drawLineThroughPointSlope(s.B.x, s.B.y, s.B.m, COLORS[1], true);
-{ const m = Math.abs(s.B.m)<1e-12?0:s.B.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.B.x,s.B.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[1]);
-}
-// D
-ui.rep.drawLineThroughPointSlope(s.D.x, s.D.y, s.D.m, COLORS[2], true);
-{ const m = Math.abs(s.D.m)<1e-12?0:s.D.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.D.x,s.D.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[2]);
-}
-    drawTangentWithLabel(s.A, COLORS[0], 'T'+SUB[0]);
-drawTangentWithLabel(s.B, COLORS[1], 'T'+SUB[1]);
-drawTangentWithLabel(s.D, COLORS[2], 'T'+SUB[2]);
-
+  ui.rep.drawPoint('A',s.A.x,s.A.y,'#e53935');
+  ui.rep.drawPoint('B',s.B.x,s.B.y,'#e53935');
+  ui.rep.drawPoint('D',s.D.x,s.D.y,'#e53935');
+  ui.rep.drawLineThroughPointSlope(s.A.x,s.A.y,s.A.m,'#2e7d32',true);
+  ui.rep.drawLineThroughPointSlope(s.B.x,s.B.y,s.B.m,'#2e7d32',true);
+  ui.rep.drawLineThroughPointSlope(s.D.x,s.D.y,s.D.m,'#2e7d32',true);
   ui.rep.drawPoint('E',s.E.x,s.E.y,'#1565c0');
- 
-  function segmentInBox_throughPointSlope(x0,y0,m,R){
-  const cand=[];
-  const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
-  const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
-  if (Math.abs(m)>1e-12){
-    const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
-    const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
-  } else { cand.push({x:s.R.xmin,y:y0}, {x:s.R.xmax,y:y0}); }
-  const uniq=[]; for(const p of cand){ if(!uniq.some(q=>Math.abs(q.x-p.x)<1e-9 && Math.abs(q.y-p.y)<1e-9)) uniq.push(p); }
-  while(uniq.length<2) uniq.push({x:s.R.xmin,y:y0},{x:s.R.xmax,y:y0});
-  return uniq.slice(0,2);
-}
-// Place le label près d'une extrémité visible du segment, en restant dans la vue.
-// Retourne des coordonnées ÉCRAN [sx, sy] avec décalage le long de la tangente et perpendiculaire.
-function placeLabelAtSegmentEnd(rep, Q1, Q2, anchor /* {x,y} */, opts = {}){
-  const insetPx = opts.insetPx ?? 22;   // recul depuis l'extrémité (px)
-  const normalPx = opts.normalPx ?? 9;  // décalage perpendiculaire (px)
-
-  // Écran
-  const A = rep.coordToScreen(Q1.x, Q1.y);
-  const B = rep.coordToScreen(Q2.x, Q2.y);
-  const C = rep.coordToScreen(anchor.x, anchor.y);
-
-  // Choisir l'extrémité la PLUS ÉLOIGNÉE du point de tangence
-  const dA = Math.hypot(A.x - C.x, A.y - C.y);
-  const dB = Math.hypot(B.x - C.x, B.y - C.y);
-  const E  = (dA >= dB) ? A : B;              // extrémité cible
-  const O  = (E === A) ? B : A;               // l'autre point
-
-  // Vecteur unitaire le long du segment, orienté vers l'intérieur du segment
-  let ux = E.x - O.x, uy = E.y - O.y;
-  const len = Math.hypot(ux, uy) || 1;
-  ux /= len; uy /= len;
-
-  // Recul vers l'intérieur (on s'éloigne du bord)
-  let sx = E.x - insetPx * ux;
-  let sy = E.y - insetPx * uy;
-
-  // Décalage perpendiculaire (choisir le côté "vers le centre" pour la lisibilité)
-  // Perpendiculaire en écran : n = (-uy, ux)
-  let nx = -uy, ny = ux;
-  const center = { x: (rep.R.xmin + rep.R.xmax)/2, y: (rep.R.ymin + rep.R.ymax)/2 };
-  const Scoord = rep.screenToCoord(sx, sy);
-  // signe pour pousser le label vers le centre du repère
-  const toCenter = { x: center.x - Scoord.x, y: center.y - Scoord.y };
-  // passer toCenter en écran pour cohérence du signe
-  const TC = rep.coordToScreen(Scoord.x + toCenter.x, Scoord.y + toCenter.y);
-  const vCenter = { x: TC.x - sx, y: TC.y - sy };
-  const sign = (nx * vCenter.x + ny * vCenter.y) >= 0 ? 1 : -1;
-
-  sx += sign * normalPx * nx;
-  sy += sign * normalPx * ny;
-
-  return [sx, sy];
-}
-
-  function drawTangentWithLabel(P, color, labelText){
-  // 1) LIGNE → confiée au repère (compatible PDF, pointillés natifs)
-  ui.rep.drawLineThroughPointSlope(P.x, P.y, P.m, color, true);
-
-  // 2) LABEL → SVG, placé à l’extrémité visible
-  const NS = ui.rep.el.namespaceURI;
-  let g = ui.rep.gUser.querySelector('g.initial-tangent-labels');
-  if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','initial-tangent-labels'); ui.rep.gUser.appendChild(g); }
-
-  const m = (Math.abs(P.m)<1e-12)? 0 : P.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,m,s.R);
-
-  const [sx, sy] = placeLabelAtSegmentEnd(ui.rep, Q1, Q2, {x:P.x, y:P.y}, {insetPx:22, normalPx:9});
-  const T = document.createElementNS(NS,'text');
-  T.textContent = labelText;
-  T.setAttribute('x', sx); T.setAttribute('y', sy);
-  T.setAttribute('font-size','12'); T.setAttribute('font-weight','700');
-  T.setAttribute('fill', color);
-  T.setAttribute('stroke', '#fff'); T.setAttribute('stroke-width', '3');
-  T.setAttribute('paint-order', 'stroke'); T.setAttribute('pointer-events','none');
-  g.appendChild(T);
-  if (typeof ui.rep._placeLabel === 'function') ui.rep._placeLabel(T, sx, sy);
-}
-
-   
-  
-
 
   // ordre aléatoire pour images & dérivées (A,B,D ~ 0,1,2)
   const orderVals=[0,1,2].sort(()=>Math.random()-0.5);
   const orderDer =[0,1,2].sort(()=>Math.random()-0.5);
   const P=[s.A,s.B,s.D], LAB=['A','B','D'];
-  // valeurs : grands blancs ~140 px
-const valRow = orderVals.map(k =>
-  `f(${fmtNum(P[k].x)}) = ${mkInput('f'+LAB[k], 80, '', 140)} <span id="tf${LAB[k]}" class="tick"></span>`
-).join(' ; ');
+  const valRow = orderVals.map(k=>`f(${fmtNum(P[k].x)}) = ${mkInput('f'+LAB[k],80)} <span id="tf${LAB[k]}" class="tick"></span>`).join(' ; ');
+  const derRow = orderDer .map(k=>`f'(${fmtNum(P[k].x)}) = ${mkInput('df'+LAB[k],80)} <span id="tdf${LAB[k]}" class="tick"></span>`).join(' ; ');
 
-// dérivées : idem ~140 px
-const derRow = orderDer.map(k =>
-  `f'(${fmtNum(P[k].x)}) = ${mkInput('df'+LAB[k], 80, '', 140)} <span id="tdf${LAB[k]}" class="tick"></span>`
-).join(' ; ');
   ui.equ.innerHTML = `
-    <p>Soit une fonction <b>f</b>. Les droites
-      <b style="color:${COLORS[0]}">T${SUB[0]}</b>, <b style="color:${COLORS[1]}">T${SUB[1]}</b> et
-      <b style="color:${COLORS[2]}">T${SUB[2]}</b> sont les tangentes à <b>C<sub>f</sub></b> aux points <b>A</b>, <b>B</b> et <b>D</b>.
-    </p>
+    <p>Soit une fonction <b>f</b>. Les droites <b>T₁</b>, <b>T₂</b> et <b>T₃</b> (en vert) sont les tangentes à <b>C<sub>f</sub></b> aux points <b>A</b>, <b>B</b> et <b>D</b>.</p>
     <p>Le point <b>E(${fmtNum(s.E.x)} ; ${fmtNum(s.E.y)})</b> est choisi de sorte que <b>(DE)</b> soit la tangente à <b>C<sub>f</sub></b> au point <b>D</b>.</p>
     <ol>
       <li>Déterminer : ${valRow}.</li>
       <li>Déterminer : ${derRow}.</li>
-            <li>Donner une équation des tangentes :<br>
-        <span style="font-weight:700;color:${COLORS[0]}">T${SUB[0]}</span> :
-        ${mkInput('t1', 220, 'y = ...', 320)} <span id="tt1" class="tick"></span><br>
-        <span style="font-weight:700;color:${COLORS[1]}">T${SUB[1]}</span> :
-        ${mkInput('t2', 220, 'y = ...', 320)} <span id="tt2" class="tick"></span><br>
-        <span style="font-weight:700;color:${COLORS[2]}">T${SUB[2]}</span> :
-        ${mkInput('t3', 220, 'y = ...', 320)} <span id="tt3" class="tick"></span>
+      <li>Donner une équation des tangentes :<br>
+        T₁ : ${mkInput('t1',220,'y = ...')} <span id="tt1" class="tick"></span><br>
+        T₂ : ${mkInput('t2',220,'y = ...')} <span id="tt2" class="tick"></span><br>
+        T₃ : ${mkInput('t3',220,'y = ...')} <span id="tt3" class="tick"></span>
       </li>
-
     </ol>
     <div class="steps" id="steps2"></div>
   `;
@@ -1493,102 +1246,6 @@ setVal(host,'t3', eq3);
   L.push(`<div class="step">T₃ : ${eq3}</div>`);
 
   st.innerHTML = L.join('');
-    // --- Colorer les lignes "T" dans le texte de correction
-  (function colorTextBadges(){
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
-  const SUB    = ['₁','₂','₃'];
-  const steps = $('#steps2', host);
-  if(!steps) return;
-  steps.innerHTML = steps.innerHTML
-    .replace(/T₁/g, `<span style="font-weight:700;color:${COLORS[0]}">T${SUB[0]}</span>`)
-    .replace(/T₂/g, `<span style="font-weight:700;color:${COLORS[1]}">T${SUB[1]}</span>`)
-    .replace(/T₃/g, `<span style="font-weight:700;color:${COLORS[2]}">T${SUB[2]}</span>`);
-})();
-
-
-// === Helper coordonné : position "extrémité visible" en COORDONNÉES (robuste PDF) ===
-function placeLabelAtSegmentEndCoord(R, Q1, Q2, anchor /* {x,y} */, opts = {}){
-  const insetFrac  = opts.insetFrac  ?? 0.06; // recul depuis le bord (6% de la longueur visible)
-  const normalFrac = opts.normalFrac ?? 0.03; // décalage perpendiculaire (3% de l’échelle)
-
-  // choisir l’extrémité la plus éloignée du point de tangence
-  const d1 = Math.hypot(Q1.x - anchor.x, Q1.y - anchor.y);
-  const d2 = Math.hypot(Q2.x - anchor.x, Q2.y - anchor.y);
-  const E  = (d1 >= d2 ? Q1 : Q2);
-  const O  = (E === Q1 ? Q2 : Q1);
-
-  // vecteur le long du segment (coord)
-  let vx = E.x - O.x, vy = E.y - O.y;
-  const L = Math.hypot(vx, vy) || 1;
-  // reculer vers l’intérieur
-  let x = E.x - insetFrac * vx;
-  let y = E.y - insetFrac * vy;
-
-  // décalage perpendiculaire vers le centre du repère
-  let nx = -vy / L, ny = vx / L;                       // normal unitaire
-  const cx = (R.xmin + R.xmax)/2, cy = (R.ymin + R.ymax)/2;
-  const toCdot = nx*(cx - x) + ny*(cy - y);            // signe pour pousser vers le centre
-  if (toCdot < 0){ nx = -nx; ny = -ny; }
-  const scale = normalFrac * Math.min(R.xmax - R.xmin, R.ymax - R.ymin);
-  x += scale * nx; y += scale * ny;
-
-  return [x, y];
-}
-
-// === Tangentes "solution" 100% compatibles PDF : lignes via repère + labels via drawPoint ===
-(function drawSolutionTangents(){
-  const ui = host._ui, R = ui.rep.R;
-  const COLORS = ['#1e40af', '#7c3aed', '#16a34a'];
-  const SUB    = ['₁','₂','₃'];
-  const Ps     = [s.A, s.B, s.D];
-
-  // Nettoyage anti-doublons
-  ui.rep.gUser.querySelectorAll('g.initial-tangent-labels, g.solution-tangent-labels').forEach(n => n.remove());
-  const svgTexts = ui.rep.el.querySelectorAll('g.tangent-pdf-safe text');
-  svgTexts.forEach(n => n.remove());
-
-  // Groupe (facultatif) si tu veux des labels SVG d’écran en plus
-  const NS = ui.rep.el.namespaceURI;
-  let gLab = ui.rep.gUser.querySelector('g.solution-tangent-labels');
-  if(!gLab){ gLab = document.createElementNS(NS,'g'); gLab.setAttribute('class','solution-tangent-labels'); ui.rep.gUser.appendChild(gLab); }
-
-  Ps.forEach((P,i)=>{
-    const color = COLORS[i];
-    const m = (Math.abs(P.m)<1e-12)? 0 : P.m;
-
-    // 1) Lignes (écran) + copie PDF-safe
-    ui.rep.drawLineThroughPointSlope(P.x, P.y, m, color, true);
-    const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,m,R);
-    addPdfSafeLine(ui.rep, Q1, Q2, color);
-
-    // 2) Nom en PDF : drawPoint + suppression du cercle ⇒ il ne reste que le texte
-    ui.rep.drawPoint('T'+SUB[i], ... (function(){  // position près d'une extrémité visible
-      // petit placement côté extrémité la plus éloignée de P, avec un léger recul
-      const d1 = Math.hypot(Q1.x - P.x, Q1.y - P.y);
-      const d2 = Math.hypot(Q2.x - P.x, Q2.y - P.y);
-      const E  = (d1>=d2)? Q1 : Q2;
-      // recul de 6% du segment + léger décalage perpendiculaire (coordonnées)
-      const O  = (E===Q1)? Q2 : Q1;
-      const vx = E.x - O.x, vy = E.y - O.y, L = Math.hypot(vx,vy)||1;
-      let x = E.x - 0.06*vx, y = E.y - 0.06*vy;   // recul
-      let nx = -vy/L, ny = vx/L;
-      const cx=(R.xmin+R.xmax)/2, cy=(R.ymin+R.ymax)/2;
-      if (nx*(cx-x)+ny*(cy-y) < 0){ nx=-nx; ny=-ny; }
-      const s=0.03*Math.min(R.xmax-R.xmin, R.ymax-R.ymin);
-      x += s*nx; y += s*ny;
-      return [x,y];
-    })(), color);
-
-    // supprimer le disque → label texte seul (capturé en PDF)
-    stripDotForLabel(ui.rep, 'T'+SUB[i]);
-  });
-})();
-
-
-
-
-
-
 }
 
   });
@@ -1648,7 +1305,7 @@ L.push({
     setVal(host,'mB', B);
 	const nDisp = (s.n < 0) ? `(${fmtNum(s.n)})` : fmtNum(s.n);
     $('#steps3',host).innerHTML = `
-      <div class="step"><b>f'(0) = ${s.a}×0 ${s.b>=0?'+':''}${s.b} = ${A}</b>.</div>
+      <div class="step">Par définition, <b>f'(0) = ${s.a}×0 ${s.b>=0?'+':''}${s.b} = ${A}</b>.</div>
 <div class="step"><b>f'(${fmtNum(s.n)}) = ${s.a}×${nDisp} ${s.b>=0?'+':''}${s.b} = ${B}</b>.</div>
       <div class="step">Le coefficient directeur de la tangente en x=a vaut <code>f'(a)</code> :
         m<sub>A</sub> = f'(0) = ${A}, m<sub>B</sub> = f'(${fmtNum(s.n)}) = ${B}.
@@ -2152,437 +1809,103 @@ const dSub = prettyExprHTML( substXWithMul(s.dfx, X) );
 });
 
 
-/* ===== Ex. 7 — Tracer T avec f′(a) (2 clics : 1er clic affiche A/B/C) ===== */
-L.push({
-  id:'ex7_graph_mix',
-  title:"Ex. 7 — Tangentes à partir du nombre dérivé (2 clics, A/B/C au 1er clic)",
+  /* ===== Ex. 7 — Lecture graphique mixte ===== */
+  L.push({
+    id:'ex7_graph_mix',
+    title:"Ex. 7 — Lecture graphique & tangentes",
+    gen(){
+  const RVIS={xmin:-8,xmax:8,ymin:-8,ymax:8};
+  const g=HERMITE5.generate({mag:5, denMax:4, R:HERMITE5.RDEF});
+  return {R:RVIS, f:g.f, df:g.df, A:g.A, B:g.B, C:g.C, pts20:g.pts20};
+},
+    render(host, st){
+      const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
+      const ui=renderWithRepere(host, s.R);
+      ui.rep.drawCurve(s.f,'#000',2.5);
+      ui.rep.drawPoint('A',s.A.x,s.A.y,'#1565c0');
+      ui.rep.drawPoint('B',s.B.x,s.B.y,'#1565c0');
+      ui.rep.drawLineThroughPointSlope(s.A.x,s.A.y,s.A.m,'#1565c0',true);
+      // horizontales aux x=-3 et x=0 (df=0)
+      const yM1=s.f(-3), yM0=s.f(0);
+      ui.rep.drawLineThroughPointSlope(-3,yM1,0,'#9e9e9e',true);
+      ui.rep.drawLineThroughPointSlope(0,yM0,0,'#9e9e9e',true);
 
-  gen(){
-    // Courbe C¹ lisible issue de ton générateur (A: f'(x)=0 ; B: pente entière ; C: pente rationnelle)
-    const RVIS = {xmin:-8,xmax:8,ymin:-8,ymax:8};
-    const g = HERMITE5.generate({mag:5, denMax:4, R:HERMITE5.RDEF});
-    const items = [
-      { kind: (Math.abs(g.A.m)<1e-12?'horiz':'gen'), x:g.A.x, y:g.A.y, m:g.A.m },
-      { kind: (Math.abs(g.B.m)<1e-12?'horiz':'gen'), x:g.B.x, y:g.B.y, m:g.B.m },
-      { kind: (Math.abs(g.C.m)<1e-12?'horiz':'gen'), x:g.C.x, y:g.C.y, m:g.C.m }
-    ];
-    items.forEach(t => t.VH = slopeVH(t.m));               // pente attendue sous forme [V,H] réduite
-    const order = [0,1,2].sort(()=>Math.random()-0.5);     // ordre aléatoire des 3 tâches
-    const tasks = order.map(i => items[i]);
-    // libellés affichés A,B,C dans l'ordre des questions (et pas des points internes)
-    const labels = ['A','B','C'];
-    return { R:RVIS, f:g.f, df:g.df, tasks, labels };
-  },
-
-  render(host, st){
-    const s = st.params || this.gen();
-    host.dataset.state = JSON.stringify({params:s});
-    const ui = renderWithRepere(host, s.R);
-
-    // Courbe seule au départ
-    ui.rep.drawCurve(s.f,'#212121',2.5);
-
-    // Texte d'énoncé + champ d'équation à côté de Tᵢ
-    const mHTML = ([V,H]) => (H===1 ? fmtNum(V) : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`);
-    const bloc = s.tasks.map((t,i)=>{
-	const SUB = ['₁','₂','₃']; // juste au-dessus du template map si besoin
-      const a = fmtNum(t.x), lab = s.labels[i];
-      return `
-        <li style="margin:.6rem 0">
-          On admet que <b>f’(${a}) = ${mHTML(t.VH)}</b>.
-          Tracer sur la courbe la tangente <b>T<sub>${i+1}</sub></b> à la courbe C<sub>f</sub> au point d’abscisse <b>${a}</b>.
-          <i>On appellera ce point ${lab}.</i><br>
-          <span class="small">Clic 1 : sur le point de la courbe d’abscisse ${a} (affiche «&nbsp;${lab}&nbsp;»). Clic 2 : second point (sans étiquette) pour fixer la tangente.</span><br>
-<button class="btn" data-start="${i}">🎯 Activer T${SUB[i]}</button>
-          &nbsp; T<sub>${i+1}</sub> : <input id="eq${i}" style="width:240px" placeholder="y = ..." autocomplete="off"> <span id="teq${i}" class="tick"></span>
-          <span id="tbuild${i}" class="tick" style="margin-left:.4rem"></span>
-        </li>`;
-    }).join('');
-
-    ui.equ.innerHTML = `
-      <p><b>Consigne.</b> Pour chaque tangente T<sub>i</sub> : <b>cliquez d’abord</b> sur le point de la courbe d’abscisse demandée (le point <b>A/B/C</b> apparaît), puis <b>cliquez un second point</b> pour tracer T<sub>i</sub>. Écrivez ensuite l’<b>équation de T<sub>i</sub></b> dans la barre à côté.</p>
-      <ol>${bloc}</ol>
-      <div class="steps" id="steps7"></div>
-    `;
-
-    // État d’interaction
-    host._state = {
-      ...s,
-      active: null,                      // indice de la question activée (0..2)
-      anchors: [null,null,null],         // 1er clic (point A/B/C)
-      secondPts: [null,null,null]        // 2e clic (point sans étiquette)
-    };
-    host._ui = ui;
-
-    // Helpers de dessin
-    function drawDot(rep,x,y,color){
-      const c = document.createElementNS(rep.el.namespaceURI,'circle');
-      const p = rep.coordToScreen(x,y);
-      c.setAttribute('cx',p.x); c.setAttribute('cy',p.y);
-      c.setAttribute('r',4); c.setAttribute('fill',color);
-      rep.gUser.appendChild(c);
-    }
-    function drawLabel(rep, x,y, txt, color='#f57c00'){
-      const t = document.createElementNS(rep.el.namespaceURI,'text');
-      const p = rep.coordToScreen(x,y);
-      t.setAttribute('x',p.x); t.setAttribute('y',p.y);
-      t.setAttribute('font-size','12'); t.setAttribute('fill',color); t.setAttribute('font-weight','700');
-      t.textContent = txt;
-      rep.gUser.appendChild(t);
-      rep._placeLabel(t, p.x, p.y);
-    }
-    function drawLine(rep, x0,y0, x1,y1, color='#2e7d32'){
-      if(x0===x1) return; // on évite la verticale (non demandée ici)
-      const m = (y1-y0)/(x1-x0);
-      const xa=rep.R.xmin, xb=rep.R.xmax;
-      const ya = m*(xa-x0)+y0, yb = m*(xb-x0)+y0;
-      const A=rep.coordToScreen(xa,ya), B=rep.coordToScreen(xb,yb);
-      const L=document.createElementNS(rep.el.namespaceURI,'line');
-      L.setAttribute('x1',A.x); L.setAttribute('y1',A.y);
-      L.setAttribute('x2',B.x); L.setAttribute('y2',B.y);
-      L.setAttribute('stroke',color); L.setAttribute('stroke-width','2'); L.setAttribute('stroke-dasharray','6 6');
-      rep.gUser.appendChild(L);
-    }
-    function redrawUser(){
-      ui.rep.gUser.innerHTML='';
-      for(let i=0;i<3;i++){
-        const A = host._state.anchors[i], E = host._state.secondPts[i];
-        if(A){ drawDot(ui.rep, A.x, A.y, '#f57c00'); drawLabel(ui.rep, A.x, A.y, s.labels[i], '#f57c00'); }
-        if(A && E){ drawDot(ui.rep, E.x, E.y, '#2e7d32'); drawLine(ui.rep, A.x, A.y, E.x, E.y, '#2e7d32'); }
-      }
-    }
-
-    // Activation par bouton
-    ui.right.querySelectorAll('button[data-start]').forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        host._state.active = parseInt(e.currentTarget.dataset.start,10);
-      });
-    });
-
-    // Clics : 1) ancre à (a,f(a))–exact → étiquette A/B/C  2) second point → ligne
-    ui.rep.el.addEventListener('click', (ev)=>{
-      if(host._state.active===null) return;
-      const rect = ui.rep.el.getBoundingClientRect();
-      const X = ev.clientX - rect.left, Y = ev.clientY - rect.top;
-      const p = ui.rep.screenToCoord(X,Y);
-      const xi = Math.round(p.x), yi = Math.round(p.y);
-
-      const i = host._state.active;
-      const task = host._state.tasks[i];
-
-      // 1er clic : doit être exactement sur (a, f(a)) — ici (task.x, task.y) sont entiers
-      if(!host._state.anchors[i]){
-        if(xi===task.x && yi===task.y){
-          host._state.anchors[i] = {x:task.x, y:task.y};
-          redrawUser();
-        }
-        return;
-      }
-
-      // 2e clic : second point entier
-      host._state.secondPts[i] = {x:xi, y:yi};
-      redrawUser();
-
-      // Vérification de construction (colinéarité à (V,H) ou horizontale)
-      const A = host._state.anchors[i], E = host._state.secondPts[i];
-      let ok = false;
-      if(E && !(E.x===A.x && E.y===A.y)){
-        if(Math.abs(task.m)<1e-12){ ok = (E.y===A.y) && (E.x!==A.x); }
-        else if(E.x!==A.x){
-          const r1 = reduce(E.y-A.y, E.x-A.x), r2 = reduce(...task.VH);
-          ok = (r1[0]*r2[1] === r2[0]*r1[1]);
-        }
-      }
-      setTick($('#tbuild'+i,host), ok);
-    });
-
-    redrawUser();
-  },
-
-  verify(host){
-    // Valide si : construction correcte + équation correcte, pour chaque question
-    const s = host._state;
-    const allOK = [0,1,2].map(i=>{
-      const t = s.tasks[i], A = s.anchors[i], E = s.secondPts[i];
-      if(!A || !E){ setTick($('#tbuild'+i,host), null); return false; }
-
-      // construction
-      let okBuild=false;
-      if(Math.abs(t.m)<1e-12){ okBuild = (E.y===A.y) && (E.x!==A.x); }
-      else if(E.x!==A.x){
-        const r1 = reduce(E.y-A.y, E.x-A.x), r2 = reduce(...t.VH);
-        okBuild = (r1[0]*r2[1] === r2[0]*r1[1]);
-      }
-      setTick($('#tbuild'+i,host), okBuild);
-
-      // équation attendue : y = (V/H)x + p  avec p = yA - (V/H)a
-      const mVH = t.VH;
-      const pVH = pFromPoint(...mVH, t.x, t.y);
-      const okEq = lineOKStrict(getVal(host, 'eq'+i), mVH, pVH);
-      setTick($('#teq'+i,host), okEq);
-
-      return okBuild && okEq;
-    });
-    return allOK.every(Boolean);
-  },
-
-  solution(host){
-    const s = host._state;
-    const steps = $('#steps7',host);
-    let html = '';
-
-    s.tasks.forEach((t,i)=>{
-      const lab = s.labels[i];
-      const [V,H] = t.VH;
-      const a = fmtNum(t.x), ya = fmtNum(t.y);
-      const mText = (H===1)? fmtNum(V) : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`;
-      const eq = eqHTML([V,H], pFromPoint(V,H, t.x, t.y));
-      setVal(host,'eq'+i, eq); // on pré-remplit la barre d’équation
-
-      if(Math.abs(t.m)<1e-12){
-        // — modèle "tangente horizontale" —
-        html += `
-          <div class="step">
-            <b>T<sub>${i+1}</sub></b> — f'(${a}) = 0 donc la tangente est <b>horizontale</b>.<br>
-            Elle passe par le point <b>${lab}(${a} ; ${ya})</b> donc l'équation de la tangente <b>T<sub>${i+1}</sub></b> est :<br>
-            <b>y = ${ya}</b>
-          </div>
-        `;
-          }else{
-  // — cas général : m ≠ 0 —
-  const [V,H] = t.VH;
-  const aNum = t.x;
-  const yA   = t.y;
-
-  // m en joli (entier ou fraction)
-  const mText = (H===1)
-    ? fmtNum(V)
-    : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`;
-
-  // terme (−m·a) = (−V·a)/H en fraction réduite
-  const [TN, TD] = reduce(-V * aNum, H);
-  const termAbsHTML = (TD===1)
-    ? fmtNum(Math.abs(TN))
-    : `<span class="frac"><span class="num">${Math.abs(TN)}</span><span class="den">${TD}</span></span>`;
-  const termSign = (TN < 0) ? ' − ' : ' + ';
-
-  // p pour la ligne finale
-  const pVH = pFromPoint(V, H, aNum, yA);
-  const eq  = eqHTML([V,H], pVH);
-
-  // pré-remplissage du champ équation
-  setVal(host, 'eq'+i, eq);
-
-  html += `
-    <div class="step">
-      <b>T<sub>${i+1}</sub></b><br>
-      f' (${fmtNum(aNum)}) = ${mText}<br>
-      Par lecture graphique on a : f(${fmtNum(aNum)}) = ${fmtNum(yA)} car <b>${lab}(${fmtNum(aNum)} ; ${fmtNum(yA)})</b><br>
-      L’équation de la tangente <b>T<sub>${i+1}</sub></b> est :<br><br>
-      y = f' (${fmtNum(aNum)})(x − ${fmtNum(aNum)}) + f(${fmtNum(aNum)})<br>
-      y = ${mText}(x − ${fmtNum(aNum)}) + ${fmtNum(yA)}<br>
-      y = ${mText}x${termSign}${termAbsHTML} ${yA>=0 ? '+ ' : ''}${fmtNum(yA)}<br>
-      <b>${eq}</b>
-    </div>
-  `;
-}
-
-    });
-
-    steps.innerHTML = html;
-	// --- Amélioration : couleurs distinctes + labels toujours visibles ---
-(function drawSolutionTangents(){
-  const ui = host._ui;
-  const rep = ui.rep, R = rep.R;
-  const NS = rep.el.namespaceURI;
-
-  // Nettoyage d'une ancienne couche
-  const old = rep.gUser.querySelector('g.solution-tangents');
-  if (old) old.remove();
-
-  const g = document.createElementNS(NS,'g');
-  g.setAttribute('class','solution-tangents');
-  rep.gUser.appendChild(g);
-
-  // Couleurs distinctes pour T1, T2, T3 (tu peux changer si besoin)
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
-  const SUB    = ['₁','₂','₃'];
-
-  // Renvoie les deux points d'intersection de la tangente avec la fenêtre [xmin,xmax]×[ymin,ymax]
-  function segmentInBox_throughPointSlope(x0,y0,m,R){
-    const cand = [];
-
-    // x = xmin / xmax
-    const yL = m*(R.xmin - x0) + y0;
-    if (yL >= R.ymin && yL <= R.ymax) cand.push({x:R.xmin, y:yL});
-    const yR = m*(R.xmax - x0) + y0;
-    if (yR >= R.ymin && yR <= R.ymax) cand.push({x:R.xmax, y:yR});
-
-    // y = ymin / ymax
-    if (Math.abs(m) > 1e-12){
-      const xB = x0 + (R.ymin - y0)/m;
-      if (xB >= R.xmin && xB <= R.xmax) cand.push({x:xB, y:R.ymin});
-      const xT = x0 + (R.ymax - y0)/m;
-      if (xT >= R.xmin && xT <= R.xmax) cand.push({x:xT, y:R.ymax});
-    } else {
-      // horizontale
-      cand.push({x:R.xmin, y:y0}, {x:R.xmax, y:y0});
-    }
-
-    // Dédupliquer et ne garder que 2 points
-    const uniq = [];
-    for (const p of cand){
-      if (!uniq.some(q => Math.abs(q.x - p.x) < 1e-9 && Math.abs(q.y - p.y) < 1e-9)) uniq.push(p);
-    }
-    // Au pire, compléter avec les bords horizontaux
-    while (uniq.length < 2){
-      uniq.push({x:R.xmin, y:y0}, {x:R.xmax, y:y0});
-    }
-    return uniq.slice(0,2);
-  }
-
-  s.tasks.forEach((t,i)=>{
-    const x0 = t.x, y0 = t.y;
-    const m  = (Math.abs(t.m) < 1e-12) ? 0 : (t.VH[0] / t.VH[1]);
-    const color = COLORS[i % COLORS.length];
-
-    // Segment visible dans la fenêtre
-    const [P1, P2] = segmentInBox_throughPointSlope(x0, y0, m, R);
-
-    // Dessin de la tangente "solution"
-    const A = rep.coordToScreen(P1.x, P1.y);
-    const B = rep.coordToScreen(P2.x, P2.y);
-
-    const L = document.createElementNS(NS,'line');
-    L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
-    L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
-    L.setAttribute('stroke', color);
-    L.setAttribute('stroke-width', '2.5');
-    L.setAttribute('vector-effect','non-scaling-stroke');
-    g.appendChild(L);
-
-    // Position du label : au milieu du segment visible (léger décalage),
-    // puis "clamp" dans la vue via _placeLabel ; halo blanc pour la lisibilité
-    const tMid = 0.55; // 55% du segment, évite souvent le point A
-    const xL = P1.x + tMid*(P2.x - P1.x);
-    const yL = P1.y + tMid*(P2.y - P1.y);
-    const S  = rep.coordToScreen(xL, yL);
-
-    const T = document.createElementNS(NS,'text');
-    T.textContent = 'T' + SUB[i];
-    T.setAttribute('x', S.x + 6);
-    T.setAttribute('y', S.y - 6);
-    T.setAttribute('font-size', '12');
-    T.setAttribute('font-weight', '700');
-    T.setAttribute('fill', color);
-    T.setAttribute('stroke', '#fff');              // halo blanc pour contraste
-    T.setAttribute('stroke-width', '3');
-    T.setAttribute('paint-order', 'stroke');       // dessine d'abord le halo
-    T.setAttribute('pointer-events', 'none');      // n'intercepte pas les clics
-    g.appendChild(T);
-
-    // Place intelligemment le label pour rester visible dans le repère
-    if (typeof rep._placeLabel === 'function'){
-      rep._placeLabel(T, S.x + 6, S.y - 6);
+      ui.equ.innerHTML = `
+        <p>La droite (AB) est la tangente à la courbe C<sub>f</sub> au point <b>A</b> d’abscisse −2. De plus, la courbe admet des tangentes horizontales aux points d’abscisses −3 et 0.</p>
+        <ol>
+          <li>Déterminer : f(−2) = ${mkInput('fa',80)} <span id="tfa" class="tick">—</span> ; f(0) = ${mkInput('f0',80)} <span id="tf0" class="tick">—</span> ; f'(−2) = ${mkInput('dfa',80)} <span id="tdfa" class="tick">—</span> ; f'(0) = ${mkInput('df0',80)} <span id="tdf0" class="tick">—</span>.</li>
+          <li>Donner graphiquement une équation de la tangente au point d’abscisse −3 : ${mkInput('t-3',220,'y = ...')} <span id="ttm3" class="tick">—</span>.</li>
+          <li>Donner graphiquement une équation de la tangente au point d’abscisse −2 : ${mkInput('t-2',220,'y = ...')} <span id="ttm2" class="tick">—</span>.</li>
+          <li>On admet que f'(2)=3. Donner l’équation de la tangente T à la courbe C<sub>f</sub> au point d’abscisse 2 : ${mkInput('t2',220,'y = ...')} <span id="tt2" class="tick">—</span>.</li>
+        </ol>
+        <div class="steps" id="steps7"></div>`;
+      host._state={...s, yM1, yM0}; host._ui=ui;
+    },
+    verify(host){
+      const s=host._state;
+      const ok1=eqNum(parseNum(getVal(host,'fa')), s.A.y,1e-2);
+      const ok2=eqNum(parseNum(getVal(host,'f0')), s.f(0),1e-2);
+      const ok3=eqNum(parseNum(getVal(host,'dfa')), s.A.m,1e-2);
+      const ok4=eqNum(parseNum(getVal(host,'df0')), 0,1e-6);
+      setTick($('#tfa',host), ok1); setTick($('#tf0',host), ok2); setTick($('#tdfa',host), ok3); setTick($('#tdf0',host), ok4);
+      const okm3 = isSameLine(getVal(host,'t-3'), 0, s.yM1);
+      const okm2 = isSameLine(getVal(host,'t-2'), s.A.m, s.A.y - s.A.m*s.A.x);
+      const m2=3, p2=s.f(2) - 3*2;
+      const okm22 = isSameLine(getVal(host,'t2'), m2, p2);
+      setTick($('#ttm3',host), okm3); setTick($('#ttm2',host), okm2); setTick($('#tt2',host), okm22);
+      return ok1&&ok2&&ok3&&ok4&&okm3&&okm2&&okm22;
+    },
+    solution(host){
+      const s=host._state;
+      setVal(host,'fa',s.A.y); setVal(host,'f0',s.f(0)); setVal(host,'dfa',s.A.m); setVal(host,'df0',0);
+      setVal(host,'t-3',`y = ${s.yM1}`);
+      const pA = s.A.y - s.A.m*s.A.x; setVal(host,'t-2',`y = ${s.A.m}x ${pA>=0?'+':''}${pA}`);
+      const m2=3, p2=s.f(2) - 3*2; setVal(host,'t2',`y = 3x ${p2>=0?'+':''}${p2}`);
+      $('#steps7',host).innerHTML = `
+        <div class="step">En x=−3 et x=0, la tangente est <b>horizontale</b> : pente 0, donc <code>y = f(−3)</code> et <code>y = f(0)</code>.</div>
+        <div class="step">En x=−2, (AB) est tangente donc <code>m=f'(−2)=${fmtNum(s.A.m)}</code> et <code>p=y_A − m x_A = ${fmtNum(s.A.y)} − ${fmtNum(s.A.m)}×(−2) = ${fmtNum(s.A.y - s.A.m*s.A.x)}</code>.</div>
+        <div class="step">Si <code>f'(2)=3</code>, alors <code>T : y = 3(x−2)+f(2)</code> ⇒ <code>y = 3x ${ (s.f(2)-6)>=0?'+':''}${fmtNum(s.f(2)-6)}</code>.</div>`;
     }
   });
-})();
-
-    canonizeAllSteps(host);  // nettoyage affichage (×, grands moins, etc.)
-  }
-});
-
-
 
   return L;
 }
 
-
-/* ===== REGISTRY & UI glue — VERSION FINALE ===== */
+/* ======== REGISTRY & UI glue ======== */
 const REGISTRY = makeExos();
-window.REGISTRY = REGISTRY; // requis par le kit PDF
-
-function populateSelectSafe(){
-  const sel = document.querySelector('#exo-select');
-  if(!sel || !window.REGISTRY) return;
-  const current = sel.value;
-  sel.innerHTML = '';
-  for(const e of window.REGISTRY){
-    const opt = document.createElement('option');
-    opt.value = e.id;
-    opt.textContent = e.title;
-    sel.appendChild(opt);
+function populateSelect(){
+  const sel=$('#exo-select'); sel.innerHTML='';
+  for(const e of REGISTRY){
+    const opt=document.createElement('option'); opt.value=e.id; opt.textContent=e.title; sel.appendChild(opt);
   }
-  if (current && Array.from(sel.options).some(o => o.value === current)){
-    sel.value = current;
-  } else {
-    sel.selectedIndex = 0;
-  }
+  sel.value=REGISTRY[0].id;
 }
-
-function renderActiveSafe(source=''){
-  const host = document.querySelector('#host');
-  const sel  = document.querySelector('#exo-select');
-  try{
-    const def = window.REGISTRY.find(e => e.id === sel.value);
-    if(!def) throw new Error('Exercice introuvable: ' + sel.value);
-    host.dataset.active = def.id;
-    def.render(host, {});
-	// -- PATCH: mémorise les paramètres tirés pour cet exo --
-try {
-  const st = JSON.parse(host.dataset.state || '{}');
-  if (def.id && st && st.params) {
-    window.__EXO_PARAMS_CACHE[def.id] = st; // ex: {params: ...}
-  }
-} catch(e){ /* no-op */ }
-
-  }catch(e){
-    console.error('renderActive failed from', source, e);
-    host.innerHTML = `<div class="steps" style="color:#b00020">
-      <b>Erreur d’affichage :</b> ${e.message}<br>Ouvre la console pour le détail.
-    </div>`;
-  }
+function renderActive(){
+  const host=$('#host'); const sel=$('#exo-select'); const def=REGISTRY.find(e=>e.id===sel.value);
+  host.dataset.active=def.id; def.render(host,{});
 }
-
-function scoreSet(a,b){ const s=document.querySelector('#score'); if(s) s.textContent = `Score : ${a} / ${b}`; }
+function scoreSet(a,b){ $('#score').textContent = `Score : ${a} / ${b}`; }
 let SCORE=[0,0];
 
-function attachSelectHandlers(){
-  const sel = document.querySelector('#exo-select');
-  if(!sel || sel.__BOUND__) return;
-  const rerender = (src)=>{ SCORE=[0,0]; scoreSet(0,0); renderActiveSafe(src); };
-  sel.addEventListener('change', ()=>rerender('select.change'));
-  sel.addEventListener('input',  ()=>rerender('select.input'));
-  sel.__BOUND__ = true;
-}
-
-window.addEventListener('load', ()=>{
-  // init UI exercices
-  populateSelectSafe();
-  attachSelectHandlers();
-  renderActiveSafe('boot');
-  scoreSet(0,0);
-
-  // boutons
-  document.querySelector('#btn-new')  ?.addEventListener('click', ()=>renderActiveSafe('btn-new'));
-  document.querySelector('#btn-reset')?.addEventListener('click', ()=>renderActiveSafe('btn-reset'));
-
-  document.querySelector('#btn-sol')?.addEventListener('click', ()=>{
-    const host=document.querySelector('#host');
-    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+window.addEventListener('load', function(){
+  populateSelect(); renderActive(); scoreSet(0,0);
+  $('#exo-select').addEventListener('change', ()=>{ renderActive(); });
+  $('#btn-new').addEventListener('click', ()=>{ renderActive(); });
+  $('#btn-reset').addEventListener('click', ()=>{ renderActive(); });
+  $('#btn-sol').addEventListener('click', ()=>{
+    const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active);
     host._noFillSolution = true;
-    try{ def.solution(host); }catch(e){ console.error(e); }
+    def.solution(host);
+    // 👉 post-traitement : × explicites, signes normalisés, anti "= v = v"
     canonizeAllSteps(host);
     host._noFillSolution = false;
   });
-
-  document.querySelector('#btn-check')?.addEventListener('click', ()=>{
-    const host=document.querySelector('#host');
-    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+  $('#btn-check').addEventListener('click', ()=>{
+    const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active);
+    // Ne pas compter faux si des champs sont vides
     const inputs = Array.from(host.querySelectorAll('input'));
-    const allFilled = inputs.every(i => String(i.value||'').trim()!=='');
-    let ok=false;
-    try{ ok = def.verify(host); }catch(e){ console.error(e); }
+    const allFilled = inputs.every(i=>String(i.value||'').trim()!=='');
+    const ok = def.verify(host);
     if(allFilled){
       if(ok){ SCORE[0]++; SCORE[1]++; } else { SCORE[1]++; }
       scoreSet(...SCORE);
@@ -2591,254 +1914,25 @@ window.addEventListener('load', ()=>{
 });
 
 
-</script>
 
-<script>
-window.addEventListener('load', function () {
-  if (!(window.ExoPDF && ExoPDF.init)) return;
-
+/* ======== PDF (hooks) ======== */
+window.addEventListener('load', function(){
+  if(!(window.ExoPDF && ExoPDF.init)) return;
   ExoPDF.init({
     title: 'Première — Nombres dérivés & tangentes',
     max: 50,
-    mountAfterSelector: '#info-saisie',
     leadByDefId: {
       ex1_deriv_graph: "Lire sur la courbe la valeur du nombre dérivé f'(a).",
       ex2_tangentes_triple: "Lecture de valeurs et d’équations de tangentes.",
       ex3_derivee_lineaire: "Calculer f'(a) et les pentes des tangentes.",
       ex4_tangent_par_deux_points: "Retrouver f'(a) à partir d’une tangente donnée par deux points.",
-      ex5_eq_tangente_point_pente: "Donner l’équation de la tangente connaissant le point et la pente.",
+      ex5_eq_tangente_point_pente: "Donner l’équation d’une tangente connaissant le point et la pente.",
       ex6_eq_tangente_f_fx: "Donner l’équation de la tangente à partir de f et f'.",
       ex7_graph_mix: "Lecture graphique : valeurs, pentes et tangentes."
     },
-
-    beforeRender(def, st, withSolutions){
-      // Exos "à courbe" : 2 colonnes (gauche: repère | droite: texte)
-      const TWO_COL = new Set(['ex1_deriv_graph','ex2_tangentes_triple','ex7_graph_mix']);
-
-      // Renforce la barre de fraction pour le PDF
-      const FRAC_FIX = `<style>
-        .frac>.num{ border-bottom:0!important; position:relative; }
-        .frac>.num::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:currentColor; }
-      .pdf-blank{ line-height:1.2 }
-@media print { .pdf-blank{ border-bottom-width:2px !important } }
-.pdf-blank{ font-family: ui-monospace, Menlo, Consolas, monospace; }
-	  </style>`;
-
-      // Table 2 colonnes
-      const twoCol = (L,R)=>`
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-          <tr>
-            <td style="width:54%;vertical-align:top;padding:0 12px 0 0">${L||''}</td>
-            <td style="width:46%;vertical-align:top;padding:0">${R||''}</td>
-          </tr>
-        </table>`;
-
-      // Nettoyage des éléments interactifs (inputs, boutons, ticks…)
-      function stripInteractive(root){
-  const $$ = sel => Array.from(root.querySelectorAll(sel));
-  const pxPerCh = 9;
-
-  $$('input, textarea').forEach(el=>{
-  const id  = (el.id||'').toLowerCase();
-  const ph  = (el.getAttribute('placeholder')||'').toLowerCase();
-
-  const isEq  = /^t\d/.test(id) || /^eq/.test(id) || /y\s*=|tangente|droite/.test(ph);
-  const isVal = /^f[a-z]/i.test(el.id||'');   // fA, fB, fD…
-  const isDer = /^df[a-z]/i.test(el.id||'');  // dfA, dfB, dfD…
-
-  const pxPerCh = 9;
-  const sw    = parseInt((el.style.width||'').replace('px','')) || 0;
-  const sz    = el.getAttribute('size') ? parseInt(el.getAttribute('size'),10)*pxPerCh : 0;
-  const phw   = ph.length * pxPerCh;
-  const force = parseInt(el.dataset.pdfw || el.dataset.printWidth || '') || 0;
-
-  // Si l'input est dans un wrapper .blank-wrap, on récupère sa largeur déclarée
-  const wrapper = el.parentElement && el.parentElement.classList.contains('blank-wrap') ? el.parentElement : null;
-  const wrapW   = wrapper ? parseInt(wrapper.dataset.w||'0',10) : 0;
-
-  const W = force || (isEq ? 320 : (isVal||isDer ? 140 : 180));
-  const width = Math.max(W, sw, sz, phw, 80, wrapW);
-
-  const span = document.createElement('span');
-span.className = 'pdf-blank';
-
-// largeur “typographique” ≈ 8 px par underscore en police monospace
-const nUnders = Math.max(10, Math.round(width / 8));
-span.textContent = '_'.repeat(nUnders);
-
-// style (monospace, hauteur correcte). On garde aussi une bordure au cas où.
-span.style.cssText =
-  'display:inline-block;vertical-align:baseline;' +
-  'font-family: ui-monospace, Menlo, Consolas, monospace;' +
-  'line-height:1.2; height:1.4em;' +
-  `min-width:${width}px;` +                  // garantit la largeur
-  'border-bottom:2px solid #000;';           // si les _ ne plaisent pas au moteur
-
-
-  // Si on a un jumeau .blank déjà présent, on l'enlève pour éviter le double-trait
-  if(wrapper){
-    const b = wrapper.querySelector('.blank'); if(b) b.remove();
-    wrapper.replaceWith(span);
-  }else{
-    el.replaceWith(span);
-  }
-});
-
-
-  // Nettoyage UI
-  $$('button, select, option, .tick, .optionline, [data-math-kbd], .kbd-host').forEach(n=>n.remove());
-  $$('[contenteditable]').forEach(n=>n.removeAttribute('contenteditable'));
-  return root;
-}
-
-
-      // Clone inline du premier <svg> pour une impression fiable
-      function svgInline(root, opts={}){
-        const svg = root.querySelector('svg');
-        if(!svg) return '';
-        const c = svg.cloneNode(true);
-        if(!c.getAttribute('viewBox')){
-          const vb = svg.viewBox && svg.viewBox.baseVal
-            ? svg.viewBox.baseVal
-            : {x:0,y:0,width:(svg.width?.baseVal?.value||420),height:(svg.height?.baseVal?.value||420)};
-          c.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
-        }
-        c.setAttribute('xmlns','http://www.w3.org/2000/svg');
-        c.setAttribute('preserveAspectRatio','xMidYMid meet');
-        c.setAttribute('width',  String(opts.widthPx || 360));
-        c.setAttribute('height', String(opts.heightPx || 360));
-        // petits allégements
-        c.querySelectorAll('path, polyline, line').forEach(el=>{
-          const sw = parseFloat(el.getAttribute('stroke-width')||'2');
-          el.setAttribute('stroke-width', String(Math.max(0.9, sw*0.85)));
-        });
-        return `<div style="display:block;width:${opts.blockWidth||'100%'}">${c.outerHTML}</div>`;
-      }
-
-      // Rendu hors-écran à taille non nulle (sinon getBBox flanche)
-      const tmp = document.createElement('div');
-      Object.assign(tmp.style, {
-        position:'fixed', left:'-10000px', top:'-10000px',
-        width:'420px', height:'420px', overflow:'hidden'
-      });
-      document.body.appendChild(tmp);
-
-      try{
-        // >>>>>>>>>>>> CLÉ : toujours passer {params: …} à render/solution <<<<<<<<<<<<
-        const stForRender = (st && st.params) ? st : { params: st || {} };
-
-        // 1) Rendu de l’énoncé
-        def.render(tmp, stForRender);
-
-        // Mémoriser le tirage pour que la solution retombe sur le même état
-        try{
-          const just = JSON.parse(tmp.dataset.state || '{}');
-          if (def.id && just && just.params) window.__EXO_PARAMS_CACHE[def.id] = just;
-        }catch(e){/* no-op */ }
-
-        // Pas d’artefacts interactifs/clics sur le PDF
-        const userLayer = tmp.querySelector('g[data-layer="user"]');
-        if (userLayer) userLayer.innerHTML = '';
-
-        if(!withSolutions){
-          const equ = tmp.querySelector('.equ');
-          const right = equ ? equ.cloneNode(true) : tmp.cloneNode(true);
-          stripInteractive(right);
-          try{ if (window.canonMathHTML) right.innerHTML = canonMathHTML(right.innerHTML); }catch(e){}
-          const left = TWO_COL.has(def.id) ? svgInline(tmp, {widthPx:360, heightPx:360}) : '';
-          // On renvoie UNIQUEMENT l’énoncé ; le kit s’occupe du cartouche
-          return FRAC_FIX + (TWO_COL.has(def.id) ? twoCol(left, right.innerHTML)
-                                                 : `<div>${right.innerHTML}</div>`);
-        }
-
-        // 2) Rendu du corrigé (sur le même état)
-        const saved = (window.__EXO_PARAMS_CACHE && window.__EXO_PARAMS_CACHE[def.id]) || stForRender;
-        try { def.solution(tmp, saved); } catch(e){}
-        try { if (window.canonizeAllSteps) canonizeAllSteps(tmp); } catch(e){}
-        stripInteractive(tmp);
-
-        const steps = tmp.querySelector('.steps') || tmp.querySelector('.solution');
-        const right = steps ? (steps.outerHTML || steps.innerHTML) : '';
-        const left  = TWO_COL.has(def.id) ? svgInline(tmp, {widthPx:360, heightPx:360}) : '';
-        // On renvoie le contenu du corrigé SANS l’en-tête (le kit l’ajoute)
-        return FRAC_FIX + (TWO_COL.has(def.id) ? twoCol(left, right) : right);
-
-      }catch(e){
-        // Laisse le kit faire son fallback (évite "indisponible" en double)
-        return '';
-      }finally{
-        tmp.remove();
-      }
-    }
+    mount:'#pdf-ui'
   });
 });
 </script>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const coarse = matchMedia('(pointer:coarse)').matches;
-
-  // 1) Barre d’actions mobile (clones des boutons existants)
-  if (window.innerWidth <= 760) {
-    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
-    if (actions) {
-      const bar = document.createElement('div');
-      bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
-[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-  const src = document.querySelector(sel);
-  if (src) {
-    const clone = src.cloneNode(true);
-    clone.classList.add('btn');
-    clone.type = 'button';
-    clone.removeAttribute('id');        // id doit rester unique
-    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-    bar.appendChild(clone);
-  } else {
-    // fallback si jamais l’original est absent (rare)
-    const fallback = document.createElement('button');
-    fallback.className = 'btn';
-    fallback.type = 'button';
-    fallback.textContent = label;
-    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-    bar.appendChild(fallback);
-  }
-});
-      document.body.appendChild(bar);
-    }
-  }
-
-  // 2) Clavier math repliable (si présent)
-  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
-  if (kbdHost && window.innerWidth <= 760) {
-    kbdHost.setAttribute('data-collapsible','');
-    const tg = document.createElement('button');
-    tg.className='kbd-toggle'; tg.type='button';
-    tg.textContent='Clavier math';
-    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
-    document.body.appendChild(tg);
-  }
-
-  // 3) Confort de saisie
-  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
-    el.setAttribute('autocomplete','off');
-    el.setAttribute('autocapitalize','off');
-    el.setAttribute('autocorrect','off');
-    el.setAttribute('spellcheck','false');
-    // Scroll au centre quand le clavier s’ouvre
-    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
-  });
-
-  // 4) Points à déplacer : rayon + touche
-  if (coarse) {
-    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
-      const r = parseFloat(c.getAttribute('r')||'5');
-      if (r < 10) c.setAttribute('r', String(12));
-      c.style.touchAction='none';
-    });
-  }
-}, {passive:true});
-</script>
-
 </body>
 </html>

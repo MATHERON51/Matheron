@@ -1,0 +1,1050 @@
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Proportion & pourcentages</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+/* Layout: en colonne (saisie en dessous) */
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    'lab'
+    'inp'
+    'res';
+  gap:10px; align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.row .res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+#host .steps .step{white-space:nowrap}
+
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Table exo 1 & 6 */
+.tbl{border-collapse:collapse}
+.tbl td,.tbl th{border:1px solid #ddd;padding:6px; text-align:center}
+.tbl input[type=text]{width:90px;text-align:center}
+
+/* petit espace garanti autour des lettres en italique (A, E, p) dans les équations */
+.eq em { margin: 0 .28em; }
+
+/* variante si tu préfères encapsuler (voir JS plus bas) */
+.mx { display:inline-block; margin:0 .28em; }
+
+/* indices lisibles, même si un reset CSS les neutralise */
+sub { font-size: .8em; vertical-align: -0.25em; }
+
+/* air autour des fractions dans une équation */
+.eq .frac{ margin: 0 .2em; }
+/* espace visible après "1)" / "2)" dans les solutions */
+/* n° de question : espace garanti */
+.qno{ display:inline-block; margin-right:.45em }
+
+/* "ainsi" souligné + espace de chaque côté */
+.ainsi{
+  text-decoration: underline;
+  display:inline-block;
+  margin: 0 .45em;
+}
+
+/* petit air autour des fractions quand elles sont dans une équation */
+.eq .frac{ margin: 0 .2em; }
+
+/* lignes de solution plus lisibles */
+#res .sol p{ margin:.25rem 0; }
+
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  .equ-offscreen .c-label{display:none !important;}
+}
+
+
+/* Variante : saisie à droite de la question (pour ex6 & ex7) */
+.row.right{
+  display:grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-areas:
+    "lab inp"
+    "res res";
+  gap:10px 14px;
+  align-items:center;
+}
+.row.right .col-label{ grid-area:lab; }
+.row.right .input-line{ grid-area:inp; display:flex; justify-content:flex-end; }
+.row.right .input-line input[type=text]{ width:100% }
+
+/* Mobile : repasse en colonne */
+@media (max-width:680px){
+  .row.right{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "lab"
+      "inp"
+      "res";
+  }
+}
+
+/* Tick à droite de chaque champ */
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}   /* V vert */
+.tick.ko{color:#dc2626}   /* X rouge */
+
+
+
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="wrap" style="padding:0 18px">
+      <div class="controls">
+        <label for="exo-select">Type d’exercice :</label>
+        <select id="exo-select"></select>
+        <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+        <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+        <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+        <div class="score" id="score">Score : 0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="card small">
+      <div><strong>Saisie & réponses acceptées :</strong></div>
+      <ul class="tips">
+        <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,175</code> ou <code>0.175</code>).</li>
+        <li>Pourcentages : avec « % » (ex. <code>43%</code> ou <code>43 %</code>).</li>
+        <li>Fractions : forme <code>a/b</code>. On accepte les proportions au format <code>a/b</code>, décimal <code>0,7</code> ou pourcentage <code>70%</code>.</li>
+        <li>Quand la question demande un <strong>nombre de personnes/objets</strong>, le résultat attendu est un <strong>entier</strong>.</li>
+        <li>Entrée ⏎ déclenche « Vérifier » si le curseur est dans la barre de saisie standard ; pour les tableaux, utilisez le bouton « Vérifier ».</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div id="host"></div>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+
+  </div>
+
+<script>
+(() => {
+/* ===== Outils génériques ===== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = L => L[rnd(0,L.length-1)];
+const UMINUS = '−';
+
+function innerHost(host){ if(!host.dataset.active){ host.dataset.active=''; host.innerHTML='<div class="inner"></div>'; } return host.querySelector('.inner'); }
+
+/* formatages */
+const fmtDecFR = (x, digits=3) => {
+  const s = String(Math.round(x*10**digits)/10**digits);
+  return s.replace('.',',');
+};
+const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s = stripSignUnicode(String(s||'').trim()).replace(/\s+/g,' ');
+  if(!s) return NaN;
+  const pct = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(pct) return parseFloat(pct[1].replace(',', '.'))/100;
+  return parseFloat(s.replace(',', '.'));
+}
+function parsePercent(s){
+  const v = parseNumberFR(s);
+  return isFinite(v) ? v*100 : NaN;
+}
+function sameFloat(a,b,eps=1e-6){ return Math.abs(a-b) <= eps; }
+
+/* outils PDF (copie consigne+énoncé) */
+function renderRow(host, consigneText, labelHTML, hasInput=true, placeholder=''){
+  const root=innerHost(host); root.innerHTML='';
+  const hint=document.createElement('div'); hint.className='hint consigne';
+  hint.innerHTML='<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  const off=document.createElement('div'); off.className='equ-offscreen';
+  off.innerHTML='<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div><div class="equation">'+labelHTML+'</div>';
+  root.appendChild(off);
+
+  const row=document.createElement('div'); row.className='row';
+  const lab=document.createElement('div'); lab.className='col-label equ'; lab.innerHTML=labelHTML; row.appendChild(lab);
+  const incol=document.createElement('div'); incol.className='input-line'; 
+  if(hasInput){
+    incol.innerHTML='<input id="reponse" type="text" placeholder="'+placeholder+'">';
+  } else {
+    incol.innerHTML='';
+  }
+  row.appendChild(incol);
+  row.appendChild(Object.assign(document.createElement('div'),{className:'res', id:'res'}));
+  root.appendChild(row);
+}
+// === Nouveau helper : une rangée par question, avec saisie sous la question ===
+function renderRowsUnderQuestions(host, consigneText, blocks){
+  const root = innerHost(host); root.innerHTML = '';
+
+  // Bandeau consigne (à l'écran)
+  const hint = document.createElement('div');
+  hint.className = 'hint consigne';
+  hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  // Version "offscreen" pour le PDF (sans barres de saisie)
+  const off = document.createElement('div');
+  off.className = 'equ-offscreen';
+  off.innerHTML =
+    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+    + blocks.map(b => '<div class="equation">'+b.labelHTML+'</div>').join('');
+  root.appendChild(off);
+
+  // Une rangée par question
+  blocks.forEach(b => {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
+    lab.innerHTML = b.labelHTML;
+    row.appendChild(lab);
+
+    const incol = document.createElement('div'); incol.className = 'input-line';
+    if (b.id) incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+    row.appendChild(incol);
+
+    root.appendChild(row);
+  });
+
+  // Zone de résultat unique de l’exercice
+  root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+}
+// Rend une fraction empilée: n/d
+function fracHTML(n, d){
+  return `<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
+}
+
+/* ===== Exact vs Approx helpers ===== */
+const gcd = (a,b)=> b ? gcd(b, a%b) : Math.abs(a);
+
+function intRat(x, den=1){
+  // transforme x (nombre ou chaîne "26,7") en rationnel entier / entier
+  const s = String(x).replace(',', '.').trim();
+  if (/^[-+]?\d+$/.test(s)) return { n: parseInt(s,10), d: den };
+  const k = (s.split('.')[1]||'').length;
+  return { n: Math.round(parseFloat(s)*10**k), d: den*10**k };
+}
+function reduceRat(n,d){
+  const g = gcd(n,d)||1; return { n:n/g, d:d/g };
+}
+function minTerminatingDecimals(n,d){
+  ({n,d} = reduceRat(n,d));
+  let a=0,b=0;
+  while(d%2===0){ d/=2; a++; }
+  while(d%5===0){ d/=5; b++; }
+  return d===1 ? Math.max(a,b) : Infinity; // ∞ → décimal non-terminant
+}
+function eqOrApproxSymbol(n,d,digits){
+  // "=" si le décimal exact se termine en ≤ digits décimales, sinon "≈"
+  return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈';
+}
+function eqOrApproxPercentSymbol(n,d,digits){
+  // pour n/d * 100 affiché avec "digits" décimales
+  return eqOrApproxSymbol(n*100, d, digits);
+}
+
+
+// N° de question avec espace garanti à droite.
+// Exemples : Q(1) -> "1)" ; Q('1a') -> "1a)" ; Q(1,'a') -> "1a)"
+function Q(n, sub){
+  let s;
+  if (typeof n === 'number') {
+    s = String(n) + (sub ? String(sub) : '');
+  } else {
+    s = String(n || '');
+  }
+  s = s.trim().replace(/\)$/, ''); // on enlève un éventuel ')' final déjà présent
+  return `<span class="qno">${s})</span>`;
+}
+
+
+const EMX = s => `<span class="mx"><em>${s}</em></span>`;   // italique avec marge
+
+// décimal FR sans zéros inutiles
+// Remplace l'ancien tidy(...) qui faisait s = s.replace(/0+$/,'') (trop agressif)
+function tidyDecFR(v, digits=3){
+  // garde 30 → "30"; ne supprime des zéros que s'il y a une virgule
+  let s = fmtDecFR(v, digits);
+  if (s.includes(',')) {
+    s = s.replace(/0+$/,'').replace(/[,]$/,'');
+  }
+  return s;
+}
+
+// Affiche un entier sans décimales, sinon décimal FR propre
+function fmtIntOrDec(v, digits=3){
+  return Number.isInteger(v) ? String(v) : tidyDecFR(v, digits);
+}
+
+// === Rendu : une ligne par question, INPUT à DROITE ===
+function renderRowsInputRight(host, consigneText, blocks){
+  const root = innerHost(host); root.innerHTML = '';
+
+  // Bandeau consigne (écran)
+  const hint = document.createElement('div');
+  hint.className = 'hint consigne';
+  hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  // Version PDF (sans inputs)
+  const off = document.createElement('div');
+  off.className = 'equ-offscreen';
+  off.innerHTML =
+    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+    + blocks.map(b => '<div class="equation">'+(b.labelHTML||'')+'</div>').join('');
+  root.appendChild(off);
+
+  // Une rangée par question (input à droite)
+  blocks.forEach(b => {
+    const row = document.createElement('div'); row.className = 'row right';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
+    lab.innerHTML = b.labelHTML || '';
+    row.appendChild(lab);
+
+    const incol = document.createElement('div'); incol.className = 'input-line';
+    if (b.rightHTML !== undefined) {
+      incol.innerHTML = b.rightHTML;         // contenu personnalisé à droite
+    } else if (b.id) {
+      incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+    } // sinon colonne vide
+    row.appendChild(incol);
+
+    root.appendChild(row);
+  });
+
+  // Zone résultat unique
+  root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+}
+
+
+// Convertit x (nombre ou "26,7") avec dénominateur den en rationnel entier/entier
+function intRat(x, den=1){
+  const s = String(x).replace(',', '.').trim();
+  if (/^[-+]?\d+$/.test(s)) return { n: parseInt(s,10), d: den };
+  const k = (s.split('.')[1]||'').length;
+  return { n: Math.round(parseFloat(s)*10**k), d: den*10**k };
+}
+function reduceRat(n,d){ const g=gcd(n,d)||1; return {n:n/g, d:d/g}; }
+function minTerminatingDecimals(n,d){
+  ({n,d}=reduceRat(n,d)); let a=0,b=0;
+  while(d%2===0){d/=2;a++;} while(d%5===0){d/=5;b++; }
+  return d===1 ? Math.max(a,b) : Infinity; // ∞ : non terminant
+}
+// "=" si la valeur peut s’écrire exactement avec ≤ digits décimales, sinon "≈"
+function eqOrApproxSymbol(n,d,digits){ return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈'; }
+function eqOrApproxPercentSymbol(n,d,digits){ return eqOrApproxSymbol(n*100, d, digits); }
+
+
+
+/* Chaîne sans “×100” :
+   digitsPct = décimales du % (0 → au % près, 1 → 0,1 %, 2 → 0,01 %, etc.)
+   le décimal sera affiché avec digitsPct+2 décimales. */
+function chainFracDecPct(numDisplay, denDisplay, digitsPct){
+  const decDigits = digitsPct + 2;
+  const numVal = parseFloat(String(numDisplay).replace(',', '.'));
+  const denVal = parseFloat(String(denDisplay).replace(',', '.'));
+  const {n,d} = intRat(numDisplay, denVal);  // pour décider “=”/“≈”
+  const sDec = eqOrApproxSymbol(n, d, decDigits);
+  const sPct = eqOrApproxPercentSymbol(n, d, digitsPct);
+  const frac = fracHTML(String(numDisplay).replace('.',','), String(denDisplay));
+  const dec  = fmtDecFR(numVal/denVal, decDigits);
+  const pct  = fmtDecFR(100*numVal/denVal, digitsPct)+' %';
+  return `${frac} ${sDec} ${dec} ${sPct} ${pct}`;
+}
+
+/* ===== TICKS : ajout & gestion ===== */
+
+/* Ajoute un span.tick juste après chaque input texte visible dans #host */
+function addTicks(host){
+  $$('#host input[type=text]').forEach(inp=>{
+    // ignorer inputs "offscreen" utilisés pour le PDF
+    if(inp.closest('.equ-offscreen')) return;
+    // si pas encore de tick juste après, on l'ajoute
+    const next = inp.nextElementSibling;
+    if(!next || !next.classList || !next.classList.contains('tick')){
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+    }
+  });
+}
+
+/* Met à jour le tick d’un champ : true -> V ; false -> X ; null -> rien (champ vide) */
+function setTickForInput(inp, state){
+  const tick = inp.nextElementSibling && inp.nextElementSibling.classList.contains('tick')
+    ? inp.nextElementSibling
+    : null;
+  if(!tick) return;
+  if(state===null){ tick.textContent=''; tick.classList.remove('ok','ko'); return; }
+  if(state===true){ tick.textContent='✔'; tick.classList.add('ok'); tick.classList.remove('ko'); }
+  else            { tick.textContent='✘'; tick.classList.add('ko'); tick.classList.remove('ok'); }
+}
+
+/* Utilitaires parsing déjà existants : parseNumberFR, parsePercent, sameFloat, stripSignUnicode, fmtDecFR ... */
+
+/* ===== Validation par champ (retourne true/false/null) =====
+   null -> champ vide (ne pas pénaliser, ne pas afficher de symbole)
+*/
+function validateOneInput(inp, st, exId){
+  const valRaw = (inp.value||'').trim();
+  if(valRaw==='') return null;
+
+  function asInt(s){ s = stripSignUnicode(String(s||'').trim()); const n=parseInt(s,10); return Number.isInteger(n)?n:NaN; }
+  const id = inp.id||'';
+  const valPct = parsePercent(valRaw);
+  const valNum = parseNumberFR(valRaw);
+
+  switch(exId){
+    /* ===== Ex.1 : .ans (data-kind dec/pct ; data-i p0.. / q0..) ===== */
+    case 'pct_tableaux':{
+      if(!inp.classList.contains('ans')) return false;
+      const kind = inp.dataset.kind;
+      const ident = inp.dataset.i||'';
+      let expected;
+      if(ident.startsWith('p')){ expected = (JSON.parse($("#host").dataset.state).P)[+ident.slice(1)].sol; }
+      else{                      expected = (JSON.parse($("#host").dataset.state).Q)[+ident.slice(1)].sol; }
+      if(kind==='dec'){ const v=parseNumberFR(valRaw); return isFinite(v)&&sameFloat(v, expected, 1e-3); }
+      else{             const v=parsePercent(valRaw);  return isFinite(v)&&sameFloat(v, expected, 1e-3); }
+    }
+
+    /* ===== Ex.2 : q1 (%), q2 (%) ===== */
+    case 'frac_to_pct':{
+      const A = st.A, B = st.B;
+      if(id==='q1'){ return Number.isFinite(valPct) && sameFloat(valPct, A.pct, 1e-3); }
+      if(id==='q2'){ return Number.isFinite(valPct) && sameFloat(valPct, B.pct, 1e-3); }
+      return false;
+    }
+
+    /* ===== Ex.3 : p1 (proportion have/N), p2 (entier usbCount) ===== */
+    case 'sondage':{
+      if(id==='p1'){
+        // accepte fraction / décimal / %
+        let v=NaN; const m=valRaw.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(valRaw); v=Number.isFinite(d)?d:(Number.isFinite(valPct)?valPct/100:NaN); }
+        return Number.isFinite(v) && sameFloat(v, st.have/st.N, 1e-3);
+      }
+      if(id==='p2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.usbCount; }
+      return false;
+    }
+
+    /* ===== Ex.4 : r1 (p = nA1/nE1 ; tolérance 10^-3), r2 (nA2), r3 (nE3) ===== */
+    case 'souspop':{
+      if(id==='r1'){
+        let v=NaN; const m=valRaw.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(valRaw); v=Number.isFinite(d)?d:(Number.isFinite(valPct)?valPct/100:NaN); }
+        const tgt = st.nA1/st.nE1;
+        const okExact = Number.isFinite(v) && sameFloat(v, tgt, 1e-6);
+        const okRounded = Number.isFinite(v) && (Math.round(v*1000)===Math.round(tgt*1000));
+        return okExact || okRounded;
+      }
+      if(id==='r2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nA2; }
+      if(id==='r3'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nE3; }
+      return false;
+    }
+
+    /* ===== Ex.5 : m1 (% à 0,01 %), m2 (entier arrondi q2) ===== */
+    case 'masses':{
+      if(id==='m1'){ const exp=100*st.c1/st.M; return Number.isFinite(valPct) && (Math.round(valPct*100)===Math.round(exp*100)); }
+      if(id==='m2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===Math.round(st.q2); }
+      return false;
+    }
+
+    /* ===== Ex.6 : .c-ans (table), q2a/b/c (entiers), q3/q4 (% au % près) ===== */
+    case 'pme':{
+      if(inp.classList.contains('c-ans')){
+        const k=inp.dataset.k, exp = {CT:st.CT, TH:st.TH, TF:st.TF, TT:st.TT, TOT_F:st.TOT_F}[k];
+        const n=asInt(valRaw); return Number.isInteger(n) && n===exp;
+      }
+      if(id==='q2a'){ const n=asInt(valRaw); const exp=(st.gAsk==='H'?st.TOT_H:st.TOT_F); return Number.isInteger(n)&&n===exp; }
+      if(id==='q2b'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CT; }
+      if(id==='q2c'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CH; }
+      if(id==='q3a'){ const p=valPct; const exp=Math.round(100*(st.gAsk==='H'?st.TOT_H:st.TOT_F)/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q3b'){ const p=valPct; const exp=Math.round(100*st.CT/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4a'){ const p=valPct; const exp=Math.round(100*st.CH/st.TOT_H); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4b'){ const p=valPct; const exp=Math.round(100*st.CF/st.TOT_F); return Number.isFinite(p)&&Math.round(p)===exp; }
+      return false;
+    }
+
+    /* ===== Ex.7 : b1a (4 déc), b1b (0,01%), b2a (4 déc), b2b (0,01%), b3 (texte), b4a (entier), b4b (% au % près) ===== */
+    case 'bilan':{
+      function sameDec4(a,b){return Math.round(a*1e4)===Math.round(b*1e4);}
+      function samePct2(a,b){return Math.round(a*100)===Math.round(b*100);}
+      if(id==='b1a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G/st.N); }
+      if(id==='b1b'){ const p=valPct; return Number.isFinite(p) && samePct2(p, 100*st.G/st.N); }
+      if(id==='b2a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G17/st.G); }
+      if(id==='b2b'){ const p=valPct; return Number.isFinite(p) && samePct2(p, 100*st.G17/st.G); }
+      if(id==='b3'){
+        const a=valRaw.toLowerCase().replace(/\s+/g,' ').trim();
+        return a.includes(st.group.split(' ')[0].toLowerCase()) && a.includes('fille');
+      }
+      if(id==='b4a'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.n18; }
+      if(id==='b4b'){
+        const exp = 100 - Math.round(100*st.N17/st.N) - st.U18; // attendu avant arrondi final
+        const p=valPct; return Number.isFinite(p) && Math.round(p)===Math.round(exp);
+      }
+      return false;
+
+      function parsePropFlexible(s){
+        let v=NaN; const m=s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(s); v=Number.isFinite(d)?d:(Number.isFinite(parsePercent(s))?parsePercent(s)/100:NaN); }
+        return v;
+      }
+    }
+
+    default:
+      return false;
+  }
+}
+
+/* Valide tous les champs remplis du host (sans toucher au score) */
+function progressiveValidate(host){
+  const exId = host.dataset.active;
+  const st = JSON.parse(host.dataset.state||'{}');
+  let blanks=0;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    const state = validateOneInput(inp, st, exId);
+    setTickForInput(inp, state);
+    if(state===null) blanks++;
+  });
+  return blanks; // nb de champs vides
+}
+
+/* Tout est-il rempli ? */
+function allInputsFilled(host){
+  let ok=true;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if((inp.value||'').trim()==='') ok=false;
+  });
+  return ok;
+}
+/* === après buildOne(), ajoute les ticks et une première validation à blanc === */
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  $('#res',host).textContent='';
+
+  // NEW: ticks et validation partielle
+  addTicks(host);
+  progressiveValidate(host); // n’affiche rien tant que les champs sont vides
+}
+
+/* === Validation progressive à la sortie de champ === */
+document.addEventListener('blur', function(ev){
+  if(ev.target && ev.target.matches('#host input[type=text]')){
+    const host=$('#host');
+    addTicks(host);                      // au cas où nouveau champ inséré
+    // Valide uniquement ce champ
+    const exId = host.dataset.active;
+    const st = JSON.parse(host.dataset.state||'{}');
+    const state = validateOneInput(ev.target, st, exId);
+    setTickForInput(ev.target, state);
+  }
+}, true);
+
+/* === Remplace la fonction check() ===
+   - Valide tout ce qui est rempli (ticks V/X).
+   - Si TOUT est rempli -> appelle def.correct(...) et met à jour le score.
+   - Sinon -> n’augmente pas le score ; message d’info. */
+function check(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  addTicks(host);
+  const blanks = progressiveValidate(host);
+
+  if(!allInputsFilled(host)){
+    $('#res',host).innerHTML = 'ℹ️ Certaines réponses sont vides : les cases remplies ont été vérifiées (✔ / ✘).';
+    $('#res',host).className = 'res';
+    return; // pas de score tant que tout n’est pas rempli
+  }
+
+  // Tout est rempli → correction officielle + score
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+
+/* ====== Exercice 1 — pourcentages à l’unité + Venn ====== */
+const EX1_CONTEXTS = [
+  (N)=>{const p1=rchoice([30,35,40,45,50]); const p2=rchoice([50,60,65,70,75,80]); return {
+    type:'classe', text:`Dans une classe, il y a ${p1}% de garçons dont ${p2}% ont 16 ans.
+Quelle est la proportion de garçons ayant 16 ans parmi les élèves de la classe ?`,
+    p1, p2, answer:p1*p2/100
+  }},
+  (N)=>{const p1=rchoice([25,30,35,40,45]); const p2=rchoice([40,50,60,70,80]); return {
+    type:'boisson', text:`Dans une boisson au jus de fruits, on trouve ${p1}% de pur jus d’agrumes,
+dont ${p2}% de pur jus d’orange. Quel est le pourcentage de pur jus d’orange dans cette boisson ?`,
+    p1, p2, answer:p1*p2/100
+  }},
+  (N)=>{const p1=rchoice([30,40,50,60]); const p2=rchoice([30,40,50,60]); return {
+    type:'entreprise', text:`Dans une entreprise, ${p1}% des salariés sont des femmes, et ${p2}% des femmes sont cadres.
+Quelle est la proportion de femmes cadres dans l’entreprise ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([20,25,30,35,40]); const p2=rchoice([40,50,60,70]); return {
+    type:'parc', text:`Dans un parc, ${p1}% des arbres sont des conifères et, parmi eux, ${p2}% sont des pins.
+Quelle est la proportion de pins dans le parc ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([30,35,40,45]); const p2=rchoice([30,40,50,60]); return {
+    type:'bibli', text:`Dans une bibliothèque, ${p1}% des livres sont des romans. Parmi ces romans, ${p2}% sont des policiers.
+Quel pourcentage de la bibliothèque représentent les romans policiers ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([30,40,50]); const p2=rchoice([20,30,40,50,60]); return {
+    type:'site', text:`Sur un site web, ${p1}% des visiteurs sont sur mobile, dont ${p2}% sont des visiteurs réguliers.
+Quel est le pourcentage de visiteurs réguliers sur mobile parmi tous les visiteurs ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([30,40,50]); const p2=rchoice([30,40,50,60]); return {
+    type:'ville', text:`Dans une ville, ${p1}% des habitants ont moins de 25 ans. Parmi eux, ${p2}% sont étudiants.
+Quel est le pourcentage d’étudiants dans la ville ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([20,25,30,35,40]); const p2=rchoice([40,50,60,70]); return {
+    type:'alliance', text:`Un alliage contient ${p1}% de cuivre. Parmi cette part de cuivre, ${p2}% est recyclé.
+Quelle est la proportion de cuivre recyclé dans l’alliage ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([25,30,35,40]); const p2=rchoice([50,60,70,80]); return {
+    type:'club', text:`Dans un club de sport, ${p1}% des membres pratiquent le tennis ; parmi eux, ${p2}% font aussi de la compétition.
+Quelle est la proportion de compétiteurs en tennis dans le club ?`, p1,p2, answer:p1*p2/100}},
+  (N)=>{const p1=rchoice([30,35,40,45,50]); const p2=rchoice([40,50,60,70]); return {
+    type:'école', text:`Dans une école, ${p1}% des élèves sont demi-pensionnaires et ${p2}% des demi-pensionnaires prennent le menu végétarien.
+Quelle est la proportion d’élèves prenant le menu végétarien ?`, p1,p2, answer:p1*p2/100}},
+];
+
+function genVennState(){
+  const N = rnd(200,600);
+  // On tire directement les 7 régions pour garantir la cohérence
+  const regions = {abc:0,ab:0,ac:0,bc:0,aOnly:0,bOnly:0,cOnly:0};
+  let left = N;
+  regions.abc = rchoice([0,5,10,15,20]);
+  left -= regions.abc;
+  regions.ab = rchoice([10,15,20,25]); left -= regions.ab;
+  regions.ac = rchoice([5,10,15,20]);  left -= regions.ac;
+  regions.bc = rchoice([5,10,15,20]);  left -= regions.bc;
+  // répartir le reste entre les seuls
+  const a=rnd(10, Math.max(10,left-20)); const b=rnd(5, Math.max(5,left-a-10)); const c = Math.max(0,left-a-b);
+  regions.aOnly = a; regions.bOnly=b; regions.cOnly=c;
+  const sizeA = regions.aOnly + regions.ab + regions.ac + regions.abc;
+  const sizeB = regions.bOnly + regions.ab + regions.bc + regions.abc;
+  const sizeC = regions.cOnly + regions.ac + regions.bc + regions.abc;
+  return {N, regions, sizeA, sizeB, sizeC};
+}
+
+const ex1 = {
+  id:'ex1',
+  title:"Ex. 1 — Pourcentages à l’unité (+ diagramme d’ensembles)",
+  gen(){
+    // deux contextes distincts parmi 10
+    let i=rnd(0,EX1_CONTEXTS.length-1), j=i;
+    while(j===i){ j=rnd(0,EX1_CONTEXTS.length-1); }
+    const c1 = EX1_CONTEXTS[i](), c2 = EX1_CONTEXTS[j]();
+    const venn = genVennState();
+    return {c1,c2,venn};
+  },
+  render(host, st){
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div class="consigne"><span class="c-label">Exercice 1.</span> Proportions échelonnées (pourcentages à l’unité). Répondre en pourcentage.</div>
+      <div class="row">
+        <div class="col-label">
+          <div style="margin:.2rem 0 6px"><strong>Q1.</strong> ${st.c1.text.replaceAll('\\n','<br>')}</div>
+        </div>
+        <div class="input-line"><input type="text" id="q1" placeholder="Réponse en % (ex. 24 %)" autocomplete="off"></div>
+        <div class="res" id="r1"></div>
+      </div>
+
+      <div class="row">
+        <div class="col-label">
+          <div style="margin:.2rem 0 6px"><strong>Q2.</strong> ${st.c2.text.replaceAll('\\n','<br>')}</div>
+        </div>
+        <div class="input-line"><input type="text" id="q2" placeholder="Réponse en % (ex. 24 %)" autocomplete="off"></div>
+        <div class="res" id="r2"></div>
+      </div>
+
+      <div class="row">
+        <div class="col-label">
+          <div style="margin:.2rem 0 6px"><strong>Q3.</strong> Diagramme d’ensembles : dans un groupe de <strong>${st.venn.N}</strong> personnes,
+          on a |A|=${st.venn.sizeA}, |B|=${st.venn.sizeB}, |C|=${st.venn.sizeC}, |A∩B|=${st.venn.regions.ab + st.venn.regions.abc},
+          |A∩C|=${st.venn.regions.ac + st.venn.regions.abc}, |B∩C|=${st.venn.regions.bc + st.venn.regions.abc}, et |A∩B∩C|=${st.venn.regions.abc}.
+          Compléter le schéma en indiquant les <em>effectifs</em> dans chaque zone.</div>
+        </div>
+        <div class="input-line">
+          <div class="venn" id="venn">
+            <svg viewBox="0 0 420 240" aria-hidden="true">
+              <defs><style>.c{fill:#fff;stroke:#555;stroke-width:2}</style></defs>
+              <circle class="c" cx="160" cy="120" r="90"></circle>
+              <circle class="c" cx="260" cy="120" r="90"></circle>
+              <circle class="c" cx="210" cy="80"  r="90"></circle>
+              <text x="110" y="210" font-size="12">A</text>
+              <text x="300" y="210" font-size="12">B</text>
+              <text x="205" y="30" font-size="12">C</text>
+            </svg>
+            <!-- positions (à peu près) -->
+            <input id="va"   style="left:80px; top:120px"  placeholder="A seul">
+            <input id="vb"   style="left:290px; top:120px" placeholder="B seul">
+            <input id="vc"   style="left:200px; top:20px"  placeholder="C seul">
+            <input id="vab"  style="left:165px; top:140px" placeholder="AB">
+            <input id="vac"  style="left:140px; top:70px"  placeholder="AC">
+            <input id="vbc"  style="left:240px; top:70px"  placeholder="BC">
+            <input id="vabc" style="left:200px; top:95px"  placeholder="ABC">
+          </div>
+        </div>
+        <div class="res" id="r3"></div>
+      </div>
+    `;
+    host.innerHTML = ''; host.appendChild(root);
+  },
+  check(host, st){
+    let ok=0, tot=0;
+    const samePct = (a,b)=>Math.round(a*100)===Math.round(b*100);
+    const p1 = parsePercentStrict($('#q1',host).value);
+    const p2 = parsePercentStrict($('#q2',host).value);
+    tot+=2;
+    const ok1 = Number.isFinite(p1) && samePct(p1, st.c1.answer);
+    const ok2 = Number.isFinite(p2) && samePct(p2, st.c2.answer);
+    if(ok1){ $('#r1',host).textContent='✅ Correct'; $('#r1',host).className='res res-ok'; ok++; }
+    else { $('#r1',host).textContent='❌ À corriger.'; $('#r1',host).className='res res-ko'; }
+    if(ok2){ $('#r2',host).textContent='✅ Correct'; $('#r2',host).className='res res-ok'; ok++; }
+    else { $('#r2',host).textContent='❌ À corriger.'; $('#r2',host).className='res res-ko'; }
+
+    // Venn
+    const g = st.venn.regions;
+    const vals = {
+      aOnly: parseInt(stripSignUnicode($('#va',host).value||'').trim(),10),
+      bOnly: parseInt(stripSignUnicode($('#vb',host).value||'').trim(),10),
+      cOnly: parseInt(stripSignUnicode($('#vc',host).value||'').trim(),10),
+      ab:    parseInt(stripSignUnicode($('#vab',host).value||'').trim(),10),
+      ac:    parseInt(stripSignUnicode($('#vac',host).value||'').trim(),10),
+      bc:    parseInt(stripSignUnicode($('#vbc',host).value||'').trim(),10),
+      abc:   parseInt(stripSignUnicode($('#vabc',host).value||'').trim(),10),
+    };
+    const corr = g;
+    const good = ['aOnly','bOnly','cOnly','ab','ac','bc','abc'].every(k => vals[k]===corr[k]);
+    tot+=1;
+    if(good){ $('#r3',host).textContent='✅ Diagramme correct.'; $('#r3',host).className='res res-ok'; ok++; }
+    else { $('#r3',host).textContent='❌ Il faut compléter correctement toutes les zones.'; $('#r3',host).className='res res-ko'; }
+
+    return {ok, tot};
+  },
+  solution(host, st){
+    const L=[];
+    L.push(`<span class="qno">Q1</span>${st.c1.p1}% × ${st.c1.p2}% = ${fmtDecFR(st.c1.p1*st.c1.p2/100,0)} %`);
+    L.push(`<span class="qno">Q2</span>${st.c2.p1}% × ${st.c2.p2}% = ${fmtDecFR(st.c2.p1*st.c2.p2/100,0)} %`);
+    const g=st.venn.regions;
+    L.push(`<span class="qno">Q3</span>Rappels : |A|=${st.venn.sizeA}, |B|=${st.venn.sizeB}, |C|=${st.venn.sizeC}, |A∩B∩C|=${g.abc}.`);
+    L.push(`Zones : A seul=${g.aOnly}, B seul=${g.bOnly}, C seul=${g.cOnly}, AB=${g.ab}, AC=${g.ac}, BC=${g.bc}, ABC=${g.abc}.`);
+    $('#r1',host).innerHTML = stepsHTML(L);
+    $('#r1',host).className='res res-ok';
+    $('#r2',host).innerHTML = '';
+    $('#r3',host).innerHTML = '';
+  },
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ====== Exercice 2 — Tableau deux entrées (entiers) ====== */
+function genTableState(){
+  const N = rchoice([24,28,30,32,36,40,44,48]);
+  const pB = rchoice([25,30,35,40,45,50,55]);
+  const B = Math.round(N*pB/100);
+  const F = N - B;
+  const pFg = rchoice([25,30,40,50,60,75]);
+  const pBg = rchoice([25,30,40,50,60,75]);
+  const EF = Math.round(F*pFg/100);
+  const EB = Math.round(B*pBg/100);
+  const NF = F - EF;
+  const NB = B - EB;
+  return {N,B,F,pFg,pBg,EF,EB,NF,NB};
+}
+
+const ex2 = {
+  id:'ex2',
+  title:"Ex. 2 — Tableau à double entrée (entiers uniquement)",
+  gen(){ return genTableState(); },
+  render(host, st){
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div class="consigne"><span class="c-label">Exercice 2.</span> Compléter le tableau puis répondre à la question.</div>
+      <div class="row">
+        <div class="col-label">
+          Dans la classe de Brian formée de <strong>${st.N}</strong> élèves, il y a <strong>${fmtDecFR(Math.round(100*st.B/st.N),0)} %</strong> de garçons.
+          Dans cette classe, <strong>${st.pFg}%</strong> des filles et <strong>${st.pBg}%</strong> des garçons étudient l’anglais.
+        </div>
+        <div class="input-line">
+          <table class="tbl" id="t2">
+            <tr><th></th><th>Filles</th><th>Garçons</th><th>Total</th></tr>
+            <tr><th>Anglais</th>
+              <td><input id="tEF" type="text" placeholder="EF"></td>
+              <td><input id="tEB" type="text" placeholder="EB"></td>
+              <td><input id="tEA" type="text" placeholder="Total A"></td>
+            </tr>
+            <tr><th>Non anglais</th>
+              <td><input id="tNF" type="text" placeholder="NF"></td>
+              <td><input id="tNB" type="text" placeholder="NB"></td>
+              <td><input id="tNE" type="text" placeholder="Total NA"></td>
+            </tr>
+            <tr><th>Total</th>
+              <td><input id="tF" type="text" placeholder="F"></td>
+              <td><input id="tB" type="text" placeholder="B"></td>
+              <td>${st.N}</td>
+            </tr>
+          </table>
+          <div style="margin-top:8px"><strong>Q.</strong> Quel est le pourcentage d’élèves de la classe de Brian qui étudient l’anglais ?</div>
+          <input type="text" id="tPct" placeholder="Réponse en % (ex. 62 %)">
+        </div>
+        <div class="res" id="r2"></div>
+      </div>
+    `;
+    host.innerHTML=''; host.appendChild(root);
+  },
+  check(host, st){
+    let ok=0, tot=0;
+    const val = id => parseInt(stripSignUnicode($(id,host).value||'').trim(),10);
+    const eq = (a,b)=> a===b;
+    const EF=val('#tEF'), EB=val('#tEB'), EA=val('#tEA'), NF=val('#tNF'), NB=val('#tNB'), NE=val('#tNE'), F=val('#tF'), B=val('#tB');
+    tot += 7;
+    const C=[
+      eq(EF,st.EF), eq(EB,st.EB), eq(EA,st.EF+st.EB),
+      eq(NF,st.NF), eq(NB,st.NB), eq(NE,st.NF+st.NB),
+      eq(F,st.F)&&eq(B,st.B)
+    ];
+    ok += C.filter(Boolean).length;
+    const p = parsePercentStrict($('#tPct',host).value);
+    tot += 1;
+    const pOk = Number.isFinite(p) && Math.round(p)===Math.round(100*(st.EF+st.EB)/st.N);
+    if(pOk) ok++;
+    $('#r2',host).textContent = `${ok}/${tot} éléments corrects`;
+    $('#r2',host).className = (ok===tot)?'res res-ok':'res res-ko';
+    return {ok, tot};
+  },
+  solution(host, st){
+    const L=[];
+    L.push(`<span class="qno">1)</span>Filles : ${st.F}, Garçons : ${st.B}.`);
+    L.push(`<span class="qno">2)</span>Anglais : EF=${st.EF}, EB=${st.EB} ⇒ total A : ${st.EF+st.EB}.`);
+    L.push(`<span class="qno">3)</span>Non anglais : NF=${st.NF}, NB=${st.NB} ⇒ total NA : ${st.NF+st.NB}.`);
+    L.push(`<span class="qno">4)</span>Pourcentage d’élèves qui étudient l’anglais : ${fmtDecFR(100*(st.EF+st.EB)/st.N,0)} %.`);
+    $('#r2',host).innerHTML = stepsHTML(L);
+    $('#r2',host).className='res res-ok';
+  },
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ====== Exercice 3 — Arbre pondéré (unités) ====== */
+function genTree(){
+  const N = rchoice([400,500,600,700,800,900,1000,1200]);
+  const pV = rchoice([30,35,40,45,50,55,60]);
+  const pS_v = rchoice([1,2,3,4,5]);
+  const pS_nv = rchoice([20,25,30,35,40]);
+  return {N,pV,pS_v,pS_nv};
+}
+const ex3 = {
+  id:'ex3',
+  title:"Ex. 3 — Arbre pondéré (pourcentages entiers)",
+  gen(){ return genTree(); },
+  render(host, st){
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div class="consigne"><span class="c-label">Exercice 3.</span> Compléter l’arbre puis répondre.</div>
+      <div class="row">
+        <div class="col-label">
+          Face à une épidémie touchant un troupeau de <strong>${st.N}</strong> bovins, une vaccination est organisée.
+          <strong>${st.pV}%</strong> des animaux ont été vaccinés.
+          Les experts estiment que <strong>${st.pS_nv}%</strong> des non vaccinés tomberont malades
+          tandis que <strong>${st.pS_v}%</strong> des vaccinés tomberont malades.
+        </div>
+        <div class="input-line">
+          <div>
+            <div style="margin:6px 0"><em>Arbre pondéré (compléter les pourcentages)</em></div>
+            <div>
+              <div>Vaccinés : <input id="pV" type="text" style="width:70px" placeholder="${st.pV} %"> — Non vaccinés : <input id="pNV" type="text" style="width:70px" placeholder="${100-st.pV} %"></div>
+              <div style="margin-top:6px">
+                Chez les vaccinés : Malades <input id="pSv" type="text" style="width:70px" placeholder="${st.pS_v} %"> — Non malades <input id="pNSv" type="text" style="width:70px" placeholder="${100-st.pS_v} %">
+              </div>
+              <div style="margin-top:6px">
+                Chez les non vaccinés : Malades <input id="pSnv" type="text" style="width:70px" placeholder="${st.pS_nv} %"> — Non malades <input id="pNSnv" type="text" style="width:70px" placeholder="${100-st.pS_nv} %">
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <div><strong>Q2.</strong> Calculer le pourcentage estimé de bovins malades.</div>
+              <input id="pTot" type="text" placeholder="Réponse en % (ex. 23 %)" style="width:160px">
+            </div>
+            <div style="margin-top:10px">
+              <div><strong>Q3.</strong> Calculer le nombre estimé de bovins malades.</div>
+              <input id="nTot" type="text" placeholder="Entier (ex. 184)" style="width:160px">
+            </div>
+          </div>
+        </div>
+        <div class="res" id="r3"></div>
+      </div>
+    `;
+    host.innerHTML=''; host.appendChild(root);
+  },
+  check(host, st){
+    let ok=0, tot=0;
+    const pV  = parsePercentStrict($('#pV',host).value);
+    const pNV = parsePercentStrict($('#pNV',host).value);
+    const pSv = parsePercentStrict($('#pSv',host).value);
+    const pNSv= parsePercentStrict($('#pNSv',host).value);
+    const pSnv= parsePercentStrict($('#pSnv',host).value);
+    const pNSnv=parsePercentStrict($('#pNSnv',host).value);
+    const pct = (x)=>Number.isFinite(x)?Math.round(x):NaN;
+    const A=[pct(pV)===st.pV, pct(pNV)===100-st.pV, pct(pSv)===st.pS_v, pct(pNSv)===100-st.pS_v, pct(pSnv)===st.pS_nv, pct(pNSnv)===100-st.pS_nv];
+    tot += A.length; ok += A.filter(Boolean).length;
+
+    const pTot = parsePercentStrict($('#pTot',host).value);
+    const targetP = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
+    tot += 1; if(Number.isFinite(pTot) && Math.round(pTot)===Math.round(targetP)) ok++;
+
+    const nTot = parseInt(stripSignUnicode($('#nTot',host).value||'').trim(),10);
+    tot += 1; if(nTot === Math.round(st.N*targetP/100)) ok++;
+
+    $('#r3',host).textContent = `${ok}/${tot} éléments corrects`;
+    $('#r3',host).className = (ok===tot)?'res res-ok':'res res-ko';
+    return {ok, tot};
+  },
+  solution(host, st){
+    const pTot = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
+    const nTot = Math.round(st.N*pTot/100);
+    const L=[];
+    L.push(`<span class="qno">Arbre</span> Bloc 1 : ${st.pV}% / ${100-st.pV}% ; chez vaccinés : ${st.pS_v}% malades / ${100-st.pS_v}% non ; chez non vaccinés : ${st.pS_nv}% malades / ${100-st.pS_nv}% non.`);
+    L.push(`<span class="qno">Q2</span> Pourcentage de malades : ${fmtDecFR(pTot,0)} %`);
+    L.push(`<span class="qno">Q3</span> Nombre de malades : ${nTot}`);
+    $('#r3',host).innerHTML = stepsHTML(L);
+    $('#r3',host).className='res res-ok';
+  },
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ===== Glue & UI ===== */
+const REGISTRY = [ex1, ex2, ex3];
+window.REGISTRY = REGISTRY;
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function innerHost(host){ return host; }
+
+function renderActive(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  const resEls = $$('.row .res',host); resEls.forEach(el=>{el.textContent=''; el.className='res';});
+}
+
+function state(){ try{ return JSON.parse($('#host').dataset.state||'{}'); }catch(e){ return {}; } }
+
+function check(){
+  const host=$('#host'); const defId = host.dataset.active;
+  const def = REGISTRY.find(e=>e.id===defId); if(!def) return;
+  const st = state();
+  const r = def.check(host, st) || {ok:0,tot:0};
+  scoreOK += r.ok; scoreTot += r.tot; updateScore();
+}
+
+function showSolution(){
+  const host=$('#host'); const defId = host.dataset.active;
+  const def = REGISTRY.find(e=>e.id===defId); if(!def) return;
+  def.solution(host, state());
+}
+
+function resetAll(){
+  const host=$('#host'); const defId = host.dataset.active;
+  const def = REGISTRY.find(e=>e.id===defId); if(!def) return;
+  scoreOK=0; scoreTot=0; updateScore();
+  def.reset(host); renderActive();
+}
+
+function ensureSelectorReady(){
+  const sel = $('#exo-select');
+  if (!sel) return;
+  // (nothing specific; already filled)
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  ensureSelectorReady(); renderActive(); updateScore();
+  $('#btn-new').addEventListener('click', renderActive);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-sol').addEventListener('click', showSolution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  document.addEventListener('keydown', function(ev){
+    if(ev.key==='Enter' && document.activeElement && document.activeElement.closest('#host input[type=text]')){
+      ev.preventDefault(); try{ check(); }catch(e){}
+    }
+  });
+
+  // === PDF (utilise exo-pdf-kit si dispo) ===
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title:'Seconde – Proportions échelonnées',
+      max:50,
+      mountAfterSelector:'.card.small',
+      beforeRender(def, st, withSolutions){
+        const tmp = document.createElement('div');
+        tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+        tmp.innerHTML=''; document.body.appendChild(tmp);
+        const host=document.createElement('div'); tmp.appendChild(host);
+        def.render(host, st);
+        // Nettoyage des inputs si on ne veut que l’énoncé
+        if(!withSolutions){
+          $$('.input-line input',host).forEach(inp=>{inp.value=''; inp.setAttribute('placeholder','');});
+        } else {
+          // Affiche la solution dans la zone .steps dédiée
+          const sol=document.createElement('div'); sol.className='steps'; def.solution(host, st);
+        }
+        return host.innerHTML;
+      }
+    });
+  }
+});
+</script>
+
+<!-- JS fournis -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+</body>
+</html>
+

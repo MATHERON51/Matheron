@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Générateur Hermite (5 points) — robuste, repère fixe [-6,6]×[-6,6]</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:#111;font:16px/1.5 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .card{border:1px solid #e6e6e6;border-radius:14px;padding:14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn{border:1px solid #c9c9c9;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .btn.primary{background:#111;color:#fff;border-color:#111}
+  label{display:flex;align-items:center;gap:6px}
+  input[type=number]{width:84px;padding:6px 8px;border:1px solid #ccc;border-radius:8px}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#f5f5f5;border-radius:8px;padding:2px 6px}
+  .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre-wrap;background:#f8f8f8;border:1px dashed #ddd;border-radius:10px;padding:10px}
+  .canvas-wrap{position:relative;background:#fafafa;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;height:560px}
+  .meta{font-size:14px;color:#333}
+  .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+  @media (max-width:980px){.cols{grid-template-columns:1fr}}
+  .list{font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#fcfcfc;border:1px solid #eee;border-radius:10px;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <button id="randBtn" class="btn primary">🎲 Générer un nouvel énoncé</button>
+      <button id="pointsBtn" class="btn">20 points de la courbe</button>
+      <span class="kbd">Repère fixe : x,y ∈ [-6,6] (origine visible)</span>
+      <label>|valeurs|max :
+        <input id="valMag" type="number" step="1" value="5" title="Borne pour k,l,m,n,p">
+      </label>
+      <label>|pente int|max :
+        <input id="slopeIntMag" type="number" step="1" value="4" title="Borne pour r et t (entiers)">
+      </label>
+      <label>Denom frac (1…N) :
+        <input id="denMax" type="number" step="1" value="4" title="H ∈ [1..N] pour s=V/H et u=V/H">
+      </label>
+      <label>|num frac|max :
+        <input id="numMag" type="number" step="1" value="4" title="|V| ≤ numMag pour s=V/H et u=V/H">
+      </label>
+      <label>Écart min. nœuds :
+        <input id="minGap" type="number" step="1" value="2" title="Distance minimale en x entre deux nœuds (entier)">
+      </label>
+    </div>
+    <div class="meta" id="desc"></div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="code" id="polyOut">—</div>
+      <div class="list" id="checks">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Rational arithmetic (BigInt) ----------
+const ZERO = {n:0n, d:1n};
+function rat(n, d=1n){
+  n = BigInt(n); d = BigInt(d);
+  if(d===0n) throw Error('den=0');
+  if(d<0n){ n=-n; d=-d; }
+  const g = gcd(abs(n), d);
+  return {n:n/g, d:d/g};
+}
+const abs = x => (x<0n? -x : x);
+function gcd(a,b){ while(b){ const t=a%b; a=b; b=t; } return a; }
+
+function add(a,b){ return rat(a.n*b.d + b.n*a.d, a.d*b.d); }
+function mul(a,b){ return rat(a.n*b.n, a.d*b.d); }
+function div(a,b){ return rat(a.n*b.d, a.d*b.n); }
+function toNum(a){ return Number(a.n) / Number(a.d); }
+function toStr(a){ return a.d===1n ? a.n.toString() : (a.n.toString()+"/"+a.d.toString()); }
+
+// ---------- Polynomials with Rational coeffs (low→high) ----------
+function trim(p){ for(let i=p.length-1;i>0;i--){ if(p[i].n===0n) p.pop(); else break; } return p; }
+function pZero(){ return [rat(0n)]; }
+function pConst(c){ return [c]; }
+function pAdd(a,b){ const n=Math.max(a.length,b.length); const out=Array.from({length:n},(_,i)=> add(a[i]||ZERO,b[i]||ZERO)); return trim(out); }
+function pScale(a, s){ return trim(a.map(c => mul(c,s))); }
+function pMul(a,b){ const out=Array.from({length:a.length+b.length-1},()=>rat(0n)); for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++){ out[i+j]=add(out[i+j], mul(a[i],b[j])); } return trim(out); }
+function pEval(a, x){ let acc=rat(0n), X=rat(1n); for(let i=0;i<a.length;i++){ acc=add(acc, mul(a[i],X)); X=mul(X,x);} return acc; }
+function pDer(a){ if(a.length<=1) return [rat(0n)]; const out=[]; for(let i=1;i<a.length;i++) out.push( mul(a[i], rat(i,1n)) ); return trim(out); }
+
+function xMinus(t){ return [rat(-BigInt(t),1n), rat(1n,1n)]; }
+
+// General Lagrange basis for nodes X (array of integers)
+function lagrangeBasis(i, X){
+  const xi = X[i];
+  let num = [rat(1n)];
+  let den = rat(1n);
+  for(let j=0;j<X.length;j++){
+    if(j===i) continue;
+    num = pMul(num, xMinus(X[j]));
+    den = mul(den, rat(BigInt(xi - X[j]), 1n));
+  }
+  return pScale(num, div(rat(1n), den));
+}
+
+// Sum of reciprocals S_i = Σ_{j≠i} 1/(xi - xj) (as rational)
+function sumInv(i, X){
+  const xi = X[i];
+  let s = rat(0n);
+  for(let j=0;j<X.length;j++){
+    if(j===i) continue;
+    s = add(s, div( rat(1n), rat(BigInt(xi - X[j]),1n) ));
+  }
+  return s;
+}
+
+// Hermite cardinal polynomials for node i
+function hermiteCardinals(i, X){
+  const L = lagrangeBasis(i, X);
+  const L2 = pMul(L, L);
+  const Si = sumInv(i, X);
+  const Hi0 = pMul( pAdd(pConst(rat(1n)), pScale(xMinus(X[i]), mul(rat(-2n), Si))), L2 );
+  const Hi1 = pMul( xMinus(X[i]), L2 );
+  return {Hi0, Hi1};
+}
+
+// Build Hermite polynomial with value+derivative constraints at each node
+function buildPolyHermite(X, Y, Yp){
+  let P = pZero();
+  for(let i=0;i<X.length;i++){
+    const {Hi0, Hi1} = hermiteCardinals(i, X);
+    P = pAdd(P, pScale(Hi0, rat(BigInt(Y[i]))));
+    P = pAdd(P, pScale(Hi1, Yp[i])); // Yp[i] is rational already
+  }
+  return trim(P); // degree ≤ 2*5 - 1 = 9
+}
+
+// ---------- Random generation bounded to [-6,6] with heuristics ----------
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+function pickNodesWithGap(rangeMin, rangeMax, count, gap){
+  const pool = []; for(let v=rangeMin; v<=rangeMax; v++) pool.push(v);
+  const triesMax = 2000;
+  for(let t=0;t<triesMax;t++){
+    const cand = shuffle(pool.slice()).slice(0, count).sort((a,b)=>a-b);
+    let ok = true;
+    for(let i=1;i<cand.length;i++){ if(cand[i]-cand[i-1] < gap){ ok=false; break; } }
+    if(ok) return cand;
+  }
+  // fallback evenly spaced
+  const step = Math.max(1, gap);
+  const start = Math.ceil((rangeMin+rangeMax - step*(count-1))/2);
+  const out = []; for(let i=0;i<count;i++) out.push(start + i*step);
+  return out;
+}
+
+function reduceFrac(V,H){
+  const sgn = (V<0) !== (H<0) ? -1 : 1;
+  V = Math.abs(V); H = Math.abs(H);
+  let a=V, b=H; while(b){ const t=a%b; a=b; b=t; }
+  V = sgn* (V/a); H = H/a;
+  return [V,H];
+}
+
+const VIEW_MIN=-6, VIEW_MAX=6;
+
+function fitsInView(P){
+  // multi-resolution sampling on [-6,6]
+  const passes = [300, 900, 1600];
+  for(const steps of passes){
+    for(let i=0;i<=steps;i++){
+      const x = VIEW_MIN + i*(VIEW_MAX-VIEW_MIN)/steps;
+      let y=0; for(let j=P.length-1;j>=0;j--) y = y*x + (Number(P[j].n)/Number(P[j].d));
+      if(!Number.isFinite(y)) return false;
+      if(y<VIEW_MIN-1e-9 || y>VIEW_MAX+1e-9) return false;
+    }
+  }
+  return true;
+}
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+function generate(){
+  const baseValMag  = parseInt(document.getElementById('valMag').value,10);
+  const baseSlopeMag  = parseInt(document.getElementById('slopeIntMag').value,10);
+  const baseDenMax  = Math.max(1, parseInt(document.getElementById('denMax').value,10));
+  const baseNumMag  = Math.max(1, parseInt(document.getElementById('numMag').value,10));
+  const minGap      = Math.max(1, parseInt(document.getElementById('minGap').value,10));
+
+  let tries=0, P=null, X,Y, rInt,tInt, sFrac,uFrac;
+
+  while(tries++<1200){
+    // Adaptive “cooling”: shrink bounds & tighten spacing as tries increase
+    const phase = tries<300 ? 0 : tries<600 ? 1 : tries<900 ? 2 : 3;
+    const valMag  = [baseValMag, 4, 3, 2][phase];
+    const slopeMag= [baseSlopeMag, 3, 2, 1][phase];
+    const denMax  = [baseDenMax, 4, 3, 2][phase];
+    const numMag  = [baseNumMag, 4, 3, 2][phase];
+    const gap     = [minGap, Math.max(minGap,2), Math.max(minGap,2), Math.max(minGap,2)][phase];
+    const range   = phase<2 ? [-5,5] : [-4,4];
+
+    // nodes a<b<c<d<e
+    X = pickNodesWithGap(range[0], range[1], 5, gap);
+
+    // values
+    Y = X.map(_ => clamp(randInt(-valMag, valMag), -5, 5));
+
+    // derivatives
+    function rndIntNonZero(M){ let v=0; while(v===0) v = randInt(-M, M); return v; }
+    rInt = rndIntNonZero(Math.min(slopeMag,5));
+    tInt = rndIntNonZero(Math.min(slopeMag,5));
+
+    function rndFrac(){
+      let H = randInt(1, Math.min(denMax,6));
+      let V = 0; while(V===0) V = randInt(-Math.min(numMag,5), Math.min(numMag,5));
+      return reduceFrac(V,H);
+    }
+    sFrac = rndFrac();
+    uFrac = rndFrac();
+
+    const Yp = [
+      rat(0n),
+      rat(BigInt(rInt), 1n),
+      rat(BigInt(sFrac[0]), BigInt(sFrac[1])),
+      rat(BigInt(tInt), 1n),
+      rat(BigInt(uFrac[0]), BigInt(uFrac[1]))
+    ];
+
+    const Ptry = buildPolyHermite(X, Y, Yp);
+    if(fitsInView(Ptry)){ P=Ptry; break; }
+  }
+
+  if(!P){
+    alert("Échec du bornage après essais. Astuces : baissez les bornes (|valeurs|max, |pente int|max, |num frac|max) et/ou augmentez l’écart min. des nœuds.");
+    return;
+  }
+
+  describeScenario({X,Y, rInt,tInt, sFrac,uFrac});
+  setCurrent({P, X,Y, rInt,tInt, sFrac,uFrac});
+  draw();
+  showOutputs({P, X,Y, rInt,tInt, sFrac,uFrac});
+}
+
+let CURRENT=null;
+function setCurrent(obj){ CURRENT=obj; }
+
+function describeScenario({X,Y, rInt,tInt, sFrac,uFrac}){
+  const [a,b,c,d,e] = X;
+  const [k,l,m,n,p] = Y;
+  const dEl = document.getElementById('desc');
+  dEl.innerHTML = `Contraintes :
+  A=<span class="kbd">${a}</span>→<span class="kbd">${k}</span>, 
+  B=<span class="kbd">${b}</span>→<span class="kbd">${l}</span>, 
+  C=<span class="kbd">${c}</span>→<span class="kbd">${m}</span>, 
+  D=<span class="kbd">${d}</span>→<span class="kbd">${n}</span>, 
+  E=<span class="kbd">${e}</span>→<span class="kbd">${p}</span>. 
+  Dérivées : f'(A)=0 ; f'(B)=<span class="kbd">${rInt}</span> ; f'(C)=<span class="kbd">${sFrac[0]}/${sFrac[1]}</span> ; f'(D)=<span class="kbd">${tInt}</span> ; f'(E)=<span class="kbd">${uFrac[0]}/${uFrac[1]}</span>.`;
+}
+
+function showOutputs({P,X,Y, rInt,tInt, sFrac,uFrac}){
+  const polyStr = P.slice().reverse().map((r,idx,arr)=>{
+    const deg = arr.length-1-idx;
+    const s = toStr(r);
+    return `${s}${deg>0?"·x"+(deg>1?"^"+deg:""):""}`;
+  }).join(" + ").replace(/\+\s-\s/g,"- ");
+
+  const out = document.getElementById('polyOut');
+  const lines = [
+    "Polynôme Hermite (degré ≤ 9) — coefficients rationnels réduits:",
+    "",
+    "f(x) = " + polyStr,
+    "",
+    "Coefficients (du terme constant à x^9):",
+    ...P.map((r,i)=>`  a${i} = ${toStr(r)}`)
+  ];
+  out.textContent = lines.join("\\n");
+
+  // checks exact
+  const Pd = pDer(P);
+  function eq(a,b){ return a.n===b.n && a.d===b.d; }
+  const [a,b,c,d,e] = X;
+  const [k,l,m,n,p] = Y;
+  const checks = [];
+  const fA = pEval(P, rat(BigInt(a)));    checks.push(`f(${a}) = ${toStr(fA)}  ${eq(fA,rat(BigInt(k)))?"✓":"✗ attendu "+k}`);
+  const fB = pEval(P, rat(BigInt(b)));    checks.push(`f(${b}) = ${toStr(fB)}  ${eq(fB,rat(BigInt(l)))?"✓":"✗ attendu "+l}`);
+  const fC = pEval(P, rat(BigInt(c)));    checks.push(`f(${c}) = ${toStr(fC)}  ${eq(fC,rat(BigInt(m)))?"✓":"✗ attendu "+m}`);
+  const fD = pEval(P, rat(BigInt(d)));    checks.push(`f(${d}) = ${toStr(fD)}  ${eq(fD,rat(BigInt(n)))?"✓":"✗ attendu "+n}`);
+  const fE = pEval(P, rat(BigInt(e)));    checks.push(`f(${e}) = ${toStr(fE)}  ${eq(fE,rat(BigInt(p)))?"✓":"✗ attendu "+p}`);
+
+  const dA = pEval(Pd, rat(BigInt(a)));   checks.push(`f'(${a}) = ${toStr(dA)}  ${eq(dA,rat(0n))?"✓":"✗ attendu 0"}`);
+  const dB = pEval(Pd, rat(BigInt(b)));   checks.push(`f'(${b}) = ${toStr(dB)}  ${eq(dB,rat(BigInt(rInt)))?"✓":"✗ attendu "+rInt}`);
+  const dC = pEval(Pd, rat(BigInt(c)));   checks.push(`f'(${c}) = ${toStr(dC)}  ${eq(dC,rat(BigInt(sFrac[0]), BigInt(sFrac[1])))?"✓":"✗ attendu "+sFrac[0]+"/"+sFrac[1]}`);
+  const dD = pEval(Pd, rat(BigInt(d)));   checks.push(`f'(${d}) = ${toStr(dD)}  ${eq(dD,rat(BigInt(tInt)))?"✓":"✗ attendu "+tInt}`);
+  const dE = pEval(Pd, rat(BigInt(e)));   checks.push(`f'(${e}) = ${toStr(dE)}  ${eq(dE,rat(BigInt(uFrac[0]), BigInt(uFrac[1])))?"✓":"✗ attendu "+uFrac[0]+"/"+uFrac[1]}`);
+
+  document.getElementById('checks').textContent = checks.join("\\n");
+}
+</script>
+
+<script>
+// ---------- Drawing on fixed viewport [-6,6]×[-6,6] ----------
+const $cv = document.getElementById('cv');
+const ctx = $cv.getContext('2d');
+const XMIN=-6, XMAX=6, YMIN=-6, YMAX=6;
+
+function pxW(){ return $cv.clientWidth; }
+function pxH(){ return $cv.clientHeight; }
+function scaleCanvasForDPI(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = pxW(), h = pxH();
+  $cv.width = Math.round(w*dpr);
+  $cv.height = Math.round(h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function x2px(x){ return (x - XMIN) * (pxW()/(XMAX - XMIN)); }
+function y2px(y){ return (YMAX - y) * (pxH()/(YMAX - YMIN)); }
+
+function evalPolyNum(P, x){
+  let y = 0;
+  for(let i=P.length-1;i>=0;i--) y = y*x + (Number(P[i].n)/Number(P[i].d));
+  return y;
+}
+
+function draw(){
+  if(!CURRENT) return;
+  const {P, X} = CURRENT;
+  scaleCanvasForDPI();
+  ctx.clearRect(0,0,pxW(),pxH());
+
+  // grid
+  ctx.lineWidth = 1;
+  for(let gx=Math.ceil(XMIN); gx<=Math.floor(XMAX); gx++){
+    ctx.strokeStyle = (gx===0)? '#888' : '#e8e8e8';
+    ctx.beginPath(); ctx.moveTo(x2px(gx), y2px(YMIN)); ctx.lineTo(x2px(gx), y2px(YMAX)); ctx.stroke();
+  }
+  for(let gy=Math.ceil(YMIN); gy<=Math.floor(YMAX); gy++){
+    ctx.strokeStyle = (gy===0)? '#888' : '#e8e8e8';
+    ctx.beginPath(); ctx.moveTo(x2px(XMIN), y2px(gy)); ctx.lineTo(x2px(XMAX), y2px(gy)); ctx.stroke();
+  }
+
+  // labels
+  ctx.fillStyle = '#444';
+  ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+  ctx.textAlign = 'center';
+  for(let gx=Math.ceil(XMIN); gx<=Math.floor(XMAX); gx++){ if(gx===0) continue; ctx.fillText(String(gx), x2px(gx), y2px(0)+14); }
+  ctx.textAlign = 'right';
+  for(let gy=Math.ceil(YMIN); gy<=Math.floor(YMAX); gy++){ if(gy===0) continue; ctx.fillText(String(gy), x2px(0)-6, y2px(gy)+4); }
+
+  // curve
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#d12c2c';
+  ctx.beginPath();
+  const steps=1200;
+  for(let i=0;i<=steps;i++){
+    const x = XMIN + i*(XMAX-XMIN)/steps;
+    const y = evalPolyNum(P, x);
+    const px = x2px(x), py = y2px(y);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // plot the five nodes (x,f(x))
+  ctx.fillStyle = '#111';
+  for(const x0 of X){
+    const y0 = evalPolyNum(P, x0);
+    ctx.beginPath(); ctx.arc(x2px(x0), y2px(y0), 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillText(`(${x0}; ${Math.round(y0*1000)/1000})`, x2px(x0)+6, y2px(y0)-8);
+  }
+
+  // store 20 points
+  window._points = ptsList(P, XMIN, XMAX, 20);
+}
+
+function ptsList(P, XMIN, XMAX, N){
+  const xs = [];
+  for(let i=0;i<N;i++){
+    const t = i/(N-1);
+    const x = XMIN + t*(XMAX - XMIN);
+    const y = evalPolyNum(P, x);
+    xs.push([round(x), round(y)]);
+  }
+  return xs;
+}
+const round = x => Math.round(x*1000)/1000;
+
+document.getElementById('randBtn').addEventListener('click', generate);
+document.getElementById('pointsBtn').addEventListener('click', () => {
+  if(!CURRENT) return;
+  const list = window._points || [];
+  const lines = list.map((p,i)=> `${i+1}. (${p[0]} ; ${p[1]})`).join("\\n");
+  alert("20 points de gauche à droite:\\n\\n"+lines);
+});
+new ResizeObserver(draw).observe($cv);
+generate(); // initial
+</script>
+</body>
+</html>

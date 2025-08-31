@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Seconde – Chapitre 1 – Intervalles (exercices)</title>
+<link href="../../../../css/math-kbd.css" rel="stylesheet"/>
+<style>
+  :root{ --card-bg:#fff; --card-bd:#e6e6e6; --muted:#6b7280; }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:system-ui, Segoe UI, Roboto, Arial, sans-serif; background:#fafafa; color:#111; line-height:1.55}
+
+  .header{position:sticky; top:0; background:#fff; border-bottom:1px solid #eee}
+  .header .wrap{padding:12px 16px}
+
+  .wrap{max-width:1100px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:12px}
+  .card{background:var(--card-bg); border:1px solid var(--card-bd); border-radius:12px; padding:14px}
+
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  #exo-select{min-width:320px}
+  select,button,input[type=text]{font-size:15px}
+  .btn{padding:8px 12px; border:1px solid #dadada; border-radius:10px; background:#f7f7f7; cursor:pointer}
+  .btn:hover{background:#efefef}
+
+  .row{display:grid; grid-template-columns:1fr; gap:12px; align-items:start}
+  .statement .consigne{opacity:.85; margin-bottom:6px}
+  .ans-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .ans-row input[type=text]{flex:1; min-width:240px}
+  .steps{background:#f6f7f8; border:1px dashed #cfd3d7; border-radius:10px; padding:.7rem .8rem; min-height:52px}
+  .steps .line{white-space:pre-wrap; color:var(--muted)}
+
+  .accept .title{font-weight:600}
+  .kbd-wrap{display:flex; justify-content:center}
+</style>
+<style>
+:root{--gap:16px}
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;line-height:1.5;margin:0;background:#fafafa;color:#111}
+.header{padding:16px 20px;border-bottom:1px solid #eee;background:#fff;position:sticky;top:0;z-index:10}
+.header h1{font-size:1.1rem;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card{border:1px solid #e6e6e6;border-radius:12px;padding:16px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer}
+.btn:hover{background:#efefef}
+select, input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.row{display:grid;grid-template-columns:1fr auto 120px;gap:8px;align-items:center;margin:6px 0}
+.row .col-label{font-weight:600;color:#333}
+.hint{font-size:.95rem;color:#444;line-height:1.6}
+.score{font-weight:700}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.small{font-size:.9rem;color:#666}
+kbd{background:#f1f1f1;border:1px solid #e4e4e4;border-bottom-width:2px;border-radius:6px;padding:0 6px}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:6px 8px}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+
+/* Correctif discret clavier (sans casser les onglets) */
+.math-kbd .math-kbd-tab,
+.math-kbd .math-kbd-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:8px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:#fff;
+  color:#111;
+}
+
+/* Laisse le JS gérer quel panneau est visible */
+.math-kbd .math-kbd-grid{display:none;}
+.math-kbd .math-kbd-grid.active{display:grid;}
+</style></head>
+<body>
+<!-- En-tête -->
+<div class="header">
+<div class="wrap">
+<div class="controls">
+<label for="exo-select"><strong>Type d’exercice :</strong></label>
+<select id="exo-select"></select>
+<button class="btn" id="btn-new">🔄 Nouvel énoncé</button>
+<button class="btn" id="btn-check">✅ Vérifier</button>
+<button class="btn" id="btn-solution">💡 Solution</button>
+<button class="btn" id="btn-reset">🧹 Réinitialiser</button>
+<span class="score">Score : <span id="score">0 / 0</span></span><span class="small" id="status"></span></div>
+</div>
+</div>
+<!-- Corps -->
+<div class="wrap">
+<!-- Énoncé + saisie + corrigé -->
+<div class="card" id="host"><div class="card" data-active="" id="exo-host"></div><div class="hint card">
+<strong>Rappels de saisie :</strong>
+<ul>
+<li>Intervalles : <code class="code">[a;b[</code>, <code class="code">]-oo;b]</code>, unions avec <code class="code">∪</code> (ou <code class="code">U</code>).</li>
+<li>Inégalités (chaînes uniquement, jamais d’infini dans une chaîne) : <code class="code">x &lt; b</code>, <code class="code">x ≤ b</code>, <code class="code">x &gt; a</code>, <code class="code">x ≥ a</code>, <code class="code">a ≤ x &lt; b</code>, etc. Tu peux taper <code class="code">&lt;=</code> → <code>≤</code> et <code class="code">&gt;=</code> → <code>≥</code>.</li>
+<li>Infinis : <code class="code">-oo</code> et <code class="code">+oo</code> (normalisés en <code>−∞</code> et <code>+∞</code>).</li>
+<li>Ensemble vide : <code class="code">∅</code> (acceptés aussi : <code class="code">Ø</code>, <code class="code">vide</code>, <code class="code">empty</code>).</li>
+</ul>
+</div></div>
+<!-- Saisie & réponses acceptées (volontairement vide) -->
+<div class="card accept" id="accept"><div class="title">Saisie &amp; réponses acceptées :</div></div>
+<!-- L’UI PDF se montera ici (après #accept) -->
+<!-- Clavier math (auto-mount par la lib) -->
+<div class="card kbd-wrap">
+<div data-math-kbd=""></div>
+</div>
+</div>
+<!-- JS (versions *.multiplicatif uniquement) -->
+<script defer="" src="../../../../js/ch0-mul-clean.multiplicatif.js"></script>
+<script defer="" src="../../../../js/dev-rules-clean.dedup.js"></script>
+<script defer="" src="../../../../js/algebra-eval-patch.multiplicatif.js"></script>
+<script defer="" src="../../../../js/exo-pdf-kit.multiplicatif.js"></script>
+<script defer="" src="../../../../js/math-kbd.multiplicatif.js"></script>
+<!-- Orchestration minimale (sans exercices) -->
+<script>
+  (function(){
+    'use strict';
+    const $ = (s,r=document)=>r.querySelector(s);
+
+    /* Cadre générique Énoncé/Saisie/Corrigé */
+    function mkFrame(host, {consigneHTML='', enonceHTML='', placeholder='…'}={}){
+      host.innerHTML = `
+        <div class="row">
+          <div class="statement">
+            ${consigneHTML ? `<div class="consigne">${consigneHTML}</div>` : ''}
+            ${enonceHTML ? `<div class="equ">${enonceHTML}</div>` : ''}
+            <div class="ans-row" style="margin-top:.5rem">
+              <label for="reponse"><strong>Réponse :</strong></label>
+              <input type="text" id="reponse" placeholder="${placeholder}">
+            </div>
+            <div id="res" class="small" aria-live="polite"></div>
+          </div>
+          <div id="sol" class="steps"><div class="line">Le corrigé s’affichera ici.</div></div>
+        </div>`;
+      const ip=$("#reponse",host);
+      ip && ip.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+    }
+
+    /* Catalogue vide (à remplir plus tard) */
+    const REGISTRY = (window.REGISTRY = []);
+
+    /* Actions boutons */
+    function buildOne(){
+      const sel=$("#exo-select"), host=$("#host");
+      const def = REGISTRY.find(e=>e.id===sel.value);
+      if(!def){
+        mkFrame(host,{consigneHTML:'Sélectionnez un type d’exercice.', placeholder:'…'});
+        $("#res",host).textContent = 'Aucun exercice chargé (squelette).';
+        return;
+      }
+      const st = def.gen ? def.gen() : {};
+      host.dataset.active = def.id;
+      host.dataset.state = JSON.stringify(st);
+      (def.render || mkFrame)(host, st);
+    }
+    function check(){
+      const host=$("#host");
+      const def = REGISTRY.find(e=>e.id===host.dataset.active);
+      if(def && typeof def.correct==='function'){
+        const st = JSON.parse(host.dataset.state||'{}');
+        def.correct(host, st);
+      }
+    }
+    function solution(){
+      const host=$("#host");
+      const def = REGISTRY.find(e=>e.id===host.dataset.active);
+      if(def && typeof def.solution==='function'){
+        const st = JSON.parse(host.dataset.state||'{}');
+        def.solution(host, st);
+      }
+    }
+    function resetAll(){
+      const host=$("#host");
+      const ip=$("#reponse",host); if(ip) ip.value='';
+      $("#res",host).textContent='';
+      $("#sol",host).innerHTML='<div class="line">Le corrigé s’affichera ici.</div>';
+    }
+
+    /* Init */
+    document.addEventListener('DOMContentLoaded', function(){
+      // sélecteur (reste vide si REGISTRY vide)
+      $("#exo-select").innerHTML = REGISTRY.map(e=>`<option value="${e.id}">${e.title}</option>`).join('');
+      $("#exo-select").addEventListener('change', buildOne);
+
+      $("#btn-new").addEventListener('click', buildOne);
+      $("#btn-check").addEventListener('click', check);
+      $("#btn-solution").addEventListener('click', solution);
+      $("#btn-reset").addEventListener('click', resetAll);
+
+      // Pas d'appel à MathKbd.autoMount() -> évite le double clavier
+
+      // PDF (UI après #accept)
+      if (window.ExoPDF?.init){
+        ExoPDF.init({
+          title: 'Seconde — Squelette d’exercices',
+          mountAfterSelector: '#accept',
+          max: 50,
+          lead: ''
+        });
+      }
+
+      buildOne(); // cadre “prêt”
+    });
+  })();
+  </script>
+<script>
+(function(){'use strict';
+
+/* ===== Utils ===== */
+function $(s,root=document){return root.querySelector(s);}
+function $$(s,root=document){return Array.from(root.querySelectorAll(s));}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function choice(a){return a[Math.floor(Math.random()*a.length)];}
+
+function normIntervalText(s){
+  if(!s) return "";
+  let out = s.trim()
+    .replace(/\s+/g,'')
+    .replace(/,/g,';')
+    .replace(/[Uu]/g,'∪')
+    // 🔥 accepter toutes les formes avec ∞ :
+    // "-∞", "−∞", "+∞", "∞" → normalisées en "−∞"/"+∞"
+    .replace(/([+\-−])?\s*∞/g, (_m, sign) =>
+      sign ? ((sign==='-' || sign==='−') ? '−∞' : '+∞') : '+∞'
+    )
+    // alias historiques
+    .replace(/-oo/gi,'−∞').replace(/\+oo/gi,'+∞')
+    .replace(/-inf/gi,'−∞').replace(/\+inf/gi,'+∞')
+    // parenthèses tolérées
+    .replace(/\(/g,']').replace(/\)/g,'[')
+    // variantes de l'ensemble vide
+    .replace(/Ø/g,'∅').replace(/\b(vide|empty|null)\b/gi,'∅');
+  return out;
+}
+
+function normIneq(s){
+  return s.trim()
+    .replace(/\s+/g,' ')
+    .replace(/<=/g,'≤').replace(/>=/g,'≥')
+    .replace(/\s*<\s*/g,' < ').replace(/\s*>\s*/g,' > ')
+    .replace(/\s*≤\s*/g,' ≤ ').replace(/\s*≥\s*/g,' ≥ ')
+    .replace(/\s+/g,' ').trim();
+}
+
+function parseVal(x){
+  if(x==='+∞') return Infinity;
+  if(x==='−∞') return -Infinity;
+  return parseFloat(String(x).replace(',','.'));
+}
+function leftInclusive(I){ return (I.a !== '−∞') && (!I.aOpen); }
+function rightInclusive(I){ return (I.b !== '+∞') && (I.bClose); }
+
+function intervalLabel(L){
+  const left = (L.a==='−∞' || L.aOpen) ? ']' : '[';
+  const right = (L.b==='+∞' || !L.bClose) ? '[' : ']';
+  return left + L.a + ';' + L.b + right;
+}
+
+/* Inégalité CHAÎNÉE (sans « et », jamais d’infini en chaîne) */
+function intervalToIneqChain(I){
+  if(I.a==='−∞' && I.b!=='+∞'){           // x < b  ou  x ≤ b
+    return I.bClose ? ('x ≤ ' + I.b) : ('x < ' + I.b);
+  } else if(I.a!=='−∞' && I.b==='+∞'){    // x > a  ou  x ≥ a
+    return I.aOpen ? ('x > ' + I.a) : ('x ≥ ' + I.a);
+  } else {                                 // a..b (bornes finies)
+    const left = I.aOpen ? (I.a+' < x') : (I.a+' ≤ x');
+    const rightOp = I.bClose ? ' ≤ ' : ' < ';
+    return left + rightOp + I.b;          // a < x < b, etc.
+  }
+}
+
+/* ===== Générateurs d'intervalles ===== */
+function randomBounds(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return [a,b]; }
+function randomIntervalFinite(){           // a et b FINIS
+  const [a,b]=randomBounds();
+  return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };
+}
+function randomLeftSimple(){               // x < b  /  x ≤ b
+  const b = rnd(-4,10);
+  return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };
+}
+function randomRightSimple(){              // x > a  /  x ≥ a
+  const a = rnd(-6,6);
+  return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };
+}
+
+/* ===== Opérations ensemblistes ===== */
+function intersectIntervals(A,B){
+  const a1=parseVal(A.a), b1=parseVal(A.b), a2=parseVal(B.a), b2=parseVal(B.b);
+  const a=Math.max(a1,a2), b=Math.min(b1,b2);
+  if(a>b) return null;
+
+  let aIncl;
+  if(a1>a2) aIncl = leftInclusive(A);
+  else if(a2>a1) aIncl = leftInclusive(B);
+  else aIncl = leftInclusive(A) && leftInclusive(B);
+
+  let bIncl;
+  if(b1<b2) bIncl = rightInclusive(A);
+  else if(b2<b1) bIncl = rightInclusive(B);
+  else bIncl = rightInclusive(A) && rightInclusive(B);
+
+  if(a===b && !(aIncl && bIncl)) return null;
+
+  return {
+    aOpen: (a!==-Infinity) ? !aIncl : true,
+    a: (a===-Infinity?'−∞':String(a).replace('.',',')),
+    b: (b===Infinity?'+∞':String(b).replace('.',',')),
+    bClose: (b!==Infinity) ? bIncl : true
+  };
+}
+function unionIntervals(A,B){
+  const a1=parseVal(A.a), b1=parseVal(A.b), a2=parseVal(B.a), b2=parseVal(B.b);
+  const overlap = !(b1 < a2 || b2 < a1)
+    || (b1===a2 && (rightInclusive(A) || leftInclusive(B)))
+    || (b2===a1 && (rightInclusive(B) || leftInclusive(A)));
+  if(overlap){
+    const a = Math.min(a1,a2), b = Math.max(b1,b2);
+    const aFrom = (a1<a2)?A:(a2<a1?B:(A.a==='−∞'?A:B));
+    const bFrom = (b1>b2)?A:(b2>b1?B:(A.b==='+∞'?A:B));
+    return [{
+      aOpen: (a!==-Infinity) ? aFrom.aOpen : true,
+      a: (a===-Infinity?'−∞':String(a).replace('.',',')),
+      b: (b===Infinity?'+∞':String(b).replace('.',',')),
+      bClose: (b!==Infinity) ? bFrom.bClose : true
+    }];
+  }
+  return (a1<a2)? [A,B] : [B,A];
+}
+
+/* ===== Exercices ===== */
+// 1) Inégalité → Intervalle
+const ex1 = {
+  id: "ineq_to_interval",
+  title: "Inégalité → Intervalle",
+  gen(){
+    const family = choice(["double","left","right"]);
+    if(family==="double"){                // a < x < b, etc. (bornes finies)
+      const I = randomIntervalFinite();
+      return { I, shown: intervalToIneqChain(I), answer: intervalLabel(I) };
+    } else if(family==="left"){           // x < b  /  x ≤ b
+      const I = randomLeftSimple();
+      return { I, shown: intervalToIneqChain(I), answer: intervalLabel(I) };
+    } else {                              // x > a  /  x ≥ a
+      const I = randomRightSimple();
+      return { I, shown: intervalToIneqChain(I), answer: intervalLabel(I) };
+    }
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label"; lab.textContent="Donne l’intervalle des x tels que " + st.shown + "."; row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="[a;b[  ou  ]-oo;b]"; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIntervalText($("#reponse",host).value);
+    const exp = normIntervalText(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+// 2) Intervalle → Inégalité(s)
+const ex2 = {
+  id: "interval_to_ineq",
+  title: "Intervalle → Inégalité(s)",
+  gen(){
+    const family = choice(["double","left","right"]);
+    let I;
+    if(family==="double"){ I = randomIntervalFinite(); }
+    else if(family==="left"){ I = randomLeftSimple(); }
+    else { I = randomRightSimple(); }
+    return { I, shown: intervalLabel(I), answer: intervalToIneqChain(I) };
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label";
+    lab.innerHTML = "Soit l’intervalle <strong>"+st.shown+"</strong>. Écrire la condition sur x (chaîne, sans « et ») :";
+    row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="ex: x ≤ 3  ou  x > -2  ou  2 ≤ x < 5"; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIneq($("#reponse",host).value);
+    const exp = normIneq(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+// 3) Appartenance (∈ / ∉)
+const ex3 = {
+  id: "belongs",
+  title: "Appartenance (∈ / ∉)",
+  gen(){
+    const family = choice(["double","left","right"]);
+    const I = family==="double" ? randomIntervalFinite()
+            : (family==="left" ? randomLeftSimple() : randomRightSimple());
+    const cand=[];
+    if(I.a!=='−∞'){ const a=parseVal(I.a); cand.push(a, a+(I.aOpen?0.5:0), a-1); }
+    if(I.b!=='+∞'){ const b=parseVal(I.b); cand.push(b, b-(I.bClose?0:0.5), b+1); }
+    cand.push(rnd(-8,8));
+    const x = Math.round(choice(cand)*2)/2;
+
+    const a = (I.a==='−∞')? -Infinity : parseVal(I.a);
+    const b = (I.b==='+∞')? +Infinity : parseVal(I.b);
+    const leftOK = (I.a==='−∞') ? true : (I.aOpen ? (x>a) : (x>=a));
+    const rightOK = (I.b==='+∞') ? true : (I.bClose ? (x<=b) : (x<b));
+    return { I, x, truth: leftOK && rightOK, shown: intervalLabel(I) };
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label";
+    lab.innerHTML = "Dire si <strong>x = "+st.x+"</strong> appartient à <strong>"+st.shown+"</strong>.";
+    row.appendChild(lab);
+    const box=document.createElement("div");
+    box.innerHTML = '<label><input type="radio" name="m" value="in"> ∈</label> <label style="margin-left:8px"><input type="radio" name="m" value="out"> ∉</label>';
+    row.appendChild(box);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const v = ($("input[name=m]:checked",host)||{value:""}).value;
+    const ok = ( (st.truth && v==="in") || (!st.truth && v==="out") );
+    $("#res",host).textContent = ok ? "✔" : "✘";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    $("#res",host).textContent = "Réponse : " + (st.truth ? "∈" : "∉");
+    $("#res",host).className = "small";
+  },
+  reset(host){ $$("input[type=radio]",host).forEach(r=>r.checked=false); $("#res",host).textContent=""; }
+};
+
+// 4) Intersection A ∩ B
+const ex4 = {
+  id: "intersect",
+  title: "Intersection A ∩ B",
+  gen(){
+    const A = choice([randomIntervalFinite(), randomLeftSimple(), randomRightSimple()]);
+    const B = choice([randomIntervalFinite(), randomLeftSimple(), randomRightSimple()]);
+    const I = intersectIntervals(A,B);
+    return { A,B, I, shownA: intervalLabel(A), shownB: intervalLabel(B), answer: (I?intervalLabel(I):"∅") };
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label";
+    lab.innerHTML = "Soient A = <strong>"+st.shownA+"</strong> et B = <strong>"+st.shownB+"</strong>. Donner <strong>A ∩ B</strong>.";
+    row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="[a;b[ ou ∅"; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIntervalText($("#reponse",host).value);
+    const exp = normIntervalText(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+// 5) Union A ∪ B
+const ex5 = {
+  id: "union",
+  title: "Union A ∪ B",
+  gen(){
+    const A = choice([randomIntervalFinite(), randomLeftSimple(), randomRightSimple()]);
+    const B = choice([randomIntervalFinite(), randomLeftSimple(), randomRightSimple()]);
+    const U = unionIntervals(A,B);
+    const shown = (U.length===1) ? intervalLabel(U[0]) : (intervalLabel(U[0])+" ∪ "+intervalLabel(U[1]));
+    return { A,B, U, shownA: intervalLabel(A), shownB: intervalLabel(B), answer: shown };
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label";
+    lab.innerHTML = "Soient A = <strong>"+st.shownA+"</strong> et B = <strong>"+st.shownB+"</strong>. Donner <strong>A ∪ B</strong>.";
+    row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="[a;b[  ou  ]-oo;a] ∪ [b;+oo["; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIntervalText($("#reponse",host).value);
+    const exp = normIntervalText(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+// 6) Complémentaire dans ℝ
+const ex6 = {
+  id: "complement",
+  title: "Complémentaire dans ℝ",
+  gen(){
+    const I = choice([randomIntervalFinite(), randomLeftSimple(), randomRightSimple()]);
+    const left = (I.a==='−∞') ? null : { aOpen:true, a:'−∞', b:I.a, bClose: !I.aOpen };
+    const right = (I.b==='+∞') ? null : { aOpen: !I.bClose, a:I.b, b:'+∞', bClose:true };
+    const answer = [left?intervalLabel(left):null, right?intervalLabel(right):null].filter(Boolean).join(' ∪ ') || "∅";
+    return { I, shown: intervalLabel(I), answer };
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("div"); lab.className="col-label";
+    lab.innerHTML = "Dans ℝ, donner le complémentaire de <strong>"+st.shown+"</strong>.";
+    row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="ex : ]-oo;a[ ∪ ]b;+oo["; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIntervalText($("#reponse",host).value);
+    const exp = normIntervalText(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+
+// ==== EXERCICES – Droite graduée (lecture) ====
+function drawEndCircle(ctx, x, y, filled){
+  ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
+  if(filled){ ctx.fill(); } else { ctx.lineWidth=2; ctx.strokeStyle='#1976d2'; ctx.stroke(); }
+}
+function drawIntervalCanvas(hostEl, I) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 920; canvas.height = 160;
+  canvas.style.width='100%'; canvas.style.maxWidth='920px';
+  canvas.style.border='1px dashed #ddd'; canvas.style.borderRadius='10px';
+  canvas.style.background='#fff';
+  hostEl.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  if(dpr!==1){
+    const w=canvas.width, h=canvas.height;
+    canvas.width=w*dpr; canvas.height=h*dpr;
+    canvas.style.width=w+'px'; canvas.style.height=h+'px';
+    ctx.scale(dpr,dpr);
+  }
+
+  const W=920, H=160, pad=40; const y0=Math.round(H*0.55);
+
+  // Domaine affiché
+  let minX, maxX;
+  if(I.a==='−∞' && I.b!=='+∞'){ const b=parseVal(I.b); minX=Math.floor(b-8); maxX=Math.ceil(b+4); }
+  else if(I.a!=='−∞' && I.b==='+∞'){ const a=parseVal(I.a); minX=Math.floor(a-4); maxX=Math.ceil(a+8); }
+  else { const a=parseVal(I.a), b=parseVal(I.b); minX=Math.floor(a-3); maxX=Math.ceil(b+3); }
+  minX = Math.min(minX,-10); maxX = Math.max(maxX,10);
+  const span = maxX - minX;
+  const xOf = x => pad + (W-2*pad) * ((x - minX) / span);
+
+  // Droite graduée (flèche à droite uniquement)
+  ctx.lineWidth=2; ctx.strokeStyle='#222'; ctx.fillStyle='#222';
+  ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W-pad, y0); ctx.lineTo(W-pad-10, y0-6); ctx.lineTo(W-pad-10, y0+6); ctx.closePath(); ctx.fill();
+
+  // Graduations
+  ctx.fillStyle='#222'; ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let k=minX;k<=maxX;k++){
+    const x = xOf(k);
+    ctx.lineWidth=1; ctx.strokeStyle='#666';
+    ctx.beginPath(); ctx.moveTo(x, y0-8); ctx.lineTo(x, y0+8); ctx.stroke();
+    if(k%2===0){ ctx.fillText(String(k), x, y0+10); }
+  }
+
+  // Colorie l'intervalle (aucune flèche au bout)
+  ctx.lineWidth=6; ctx.strokeStyle='#1976d2'; ctx.fillStyle='#1976d2';
+  if(I.a==='−∞' && I.b!=='+∞'){
+    const xb = xOf(parseVal(I.b));
+    ctx.beginPath(); ctx.moveTo(pad, y0); ctx.lineTo(xb, y0); ctx.stroke();
+    drawEndCircle(ctx, xb, y0, I.bClose);
+  } else if(I.a!=='−∞' && I.b==='+∞'){
+    const xa = xOf(parseVal(I.a));
+    ctx.beginPath(); ctx.moveTo(xa, y0); ctx.lineTo(W-pad, y0); ctx.stroke();
+    drawEndCircle(ctx, xa, y0, !I.aOpen);
+  } else {
+    const xa = xOf(parseVal(I.a)), xb = xOf(parseVal(I.b));
+    ctx.beginPath(); ctx.moveTo(xa, y0); ctx.lineTo(xb, y0); ctx.stroke();
+    drawEndCircle(ctx, xa, y0, !I.aOpen);
+    drawEndCircle(ctx, xb, y0, I.bClose);
+  }
+}
+
+const ex7 = {
+  id: "graph_to_interval",
+  title: "Droite graduée → écrire l’intervalle",
+  gen(){
+    const family = choice(["finite","left","right","finite","finite"]);
+    let I;
+    if(family==="finite") I = randomIntervalFinite();
+    else if(family==="left") I = randomLeftSimple();
+    else I = randomRightSimple();
+    return { I, answer: intervalLabel(I) };
+  },
+  render(host, st){
+    host.innerHTML="";
+    drawIntervalCanvas(host, st.I);
+    const row=document.createElement("div"); row.className="row"; row.style.marginTop="10px";
+    const lab=document.createElement("div"); lab.className="col-label"; lab.textContent="Lire l’intervalle représenté et le saisir :"; row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="ex : ]-oo;b]  ou  [a;b[  ou  [a;+oo["; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIntervalText($("#reponse",host).value);
+    const exp = normIntervalText(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+const ex8 = {
+  id: "graph_to_ineq",
+  title: "Droite graduée → écrire l’inégalité",
+  gen(){
+    const family = choice(["finite","left","right","finite"]);
+    let I;
+    if(family==="finite") I = randomIntervalFinite();
+    else if(family==="left") I = randomLeftSimple();
+    else I = randomRightSimple();
+    return { I, answer: intervalToIneqChain(I) };
+  },
+  render(host, st){
+    host.innerHTML="";
+    drawIntervalCanvas(host, st.I);
+    const row=document.createElement("div"); row.className="row"; row.style.marginTop="10px";
+    const lab=document.createElement("div"); lab.className="col-label"; lab.textContent="Lire le graphique et écrire la condition sur x (chaîne, sans « et ») :"; row.appendChild(lab);
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="ex : x ≤ b  ou  x > a  ou  a ≤ x < b"; row.appendChild(inp);
+    const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+    host.appendChild(row);
+  },
+  correct(host, st){
+    const got = normIneq($("#reponse",host).value);
+    const exp = normIneq(st.answer);
+    const ok = (got===exp);
+    $("#res",host).textContent = ok ? "✔" : "✘  (attendu : "+st.answer+")";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){ $("#reponse",host).value = st.answer; },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5, ex6, ex7, ex8];
+window.REGISTRY = REGISTRY; // expose REGISTRY pour exo-pdf-kit
+
+
+let ACTIVE_INPUT = null;
+
+function setActiveInput(el){ ACTIVE_INPUT = el; }
+
+function insertAtCursor(el, text, caretFromEnd=0){
+  if(!el) return;
+  el.focus();
+  const start = el.selectionStart ?? el.value.length;
+  const end   = el.selectionEnd ?? el.value.length;
+  const before = el.value.slice(0,start);
+  const after  = el.value.slice(end);
+  el.value = before + text + after;
+  const pos = before.length + text.length - (caretFromEnd||0);
+  el.setSelectionRange(pos, pos);
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+}
+
+function kbdAction(act){
+  const el = ACTIVE_INPUT || $("#reponse") || $$("input[type=text]")[0];
+  if(!el) return;
+  if(act==="backspace"){
+    const s = el.selectionStart, e = el.selectionEnd;
+    if(s!==e){ // delete selection
+      insertAtCursor(el, "");
+    } else if(s>0){
+      el.setSelectionRange(s-1,e);
+      insertAtCursor(el,"");
+    }
+  } else if(act==="space"){
+    insertAtCursor(el," ");
+  } else if(act==="left"){
+    const p = (el.selectionStart||0)-1; el.setSelectionRange(Math.max(0,p),Math.max(0,p));
+    el.focus();
+  } else if(act==="right"){
+    const p = (el.selectionEnd||0)+1; el.setSelectionRange(p,p); el.focus();
+  } else if(act==="clear"){
+    el.value=""; el.focus();
+  }
+}
+
+function buildKeyboard(){
+  const tabs = $("#kbd-tabs");
+  const panels = $("#kbd-panels");
+  KBD_GROUPS.forEach((grp, idx)=>{
+    const t = document.createElement("button");
+    t.type="button"; t.className="kbd-tab"+(idx===0?" active":"");
+    t.textContent = grp.name;
+    t.addEventListener("click", ()=>{
+      $$(".kbd-tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      $$(".kbd-grid").forEach(x=>x.classList.remove("active"));
+      panels.querySelectorAll(".kbd-grid")[idx].classList.add("active");
+    });
+    tabs.appendChild(t);
+
+    const grid = document.createElement("div");
+    grid.className = "kbd-grid"+(idx===0?" active":"");
+    grp.keys.forEach(k=>{
+      const b = document.createElement("button");
+      b.type="button"; b.className="kbd-btn"+((k.text==="||"||k.text==="^")?" mono":"");
+      b.textContent = k.label;
+      b.addEventListener("click", ()=>{
+        const el = ACTIVE_INPUT || $("#reponse") || $$("input[type=text]")[0];
+        insertAtCursor(el, k.text, k.caretFromEnd||0);
+      });
+      grid.appendChild(b);
+    });
+    panels.appendChild(grid);
+  });
+
+  // Foot controls
+  $("#math-kbd").querySelectorAll(".kbd-foot .kbd-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>kbdAction(btn.dataset.act));
+  });
+
+  // track focus on inputs for insertion target
+  document.addEventListener("focusin", (e)=>{
+    const t = e.target;
+    if(t && t.tagName==="INPUT" && t.type==="text"){ setActiveInput(t); }
+  });
+}
+
+/* ===== Bootstrap Exercices ===== */
+let scoreOK=0, scoreTot=0;
+
+function buildOne(){
+  const sel = $("#exo-select");
+  const host = $("#exo-host");
+  const def = REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const state = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(state);
+  def.render(host, state);
+  // after rendering, capture new input as active
+  const newInput = $("#reponse", host) || $("input[type=text]", host);
+  if(newInput){ setActiveInput(newInput); }
+}
+window.__buildOne = buildOne;
+
+function check(){
+  const host=$("#exo-host");
+  const def = REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
+  const state = JSON.parse(host.dataset.state||"{}");
+  const r = def.correct(host, state);
+  if(r){ scoreOK += r.ok?1:0; scoreTot += (r.total||1); updateScore(); }
+}
+function showSolution(){
+  const host=$("#exo-host");
+  const def = REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
+  const state = JSON.parse(host.dataset.state||"{}");
+  def.solution(host, state);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#exo-host");
+  const def = REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def) def.reset(host);
+}
+function updateScore(){ $("#score").textContent = scoreOK + " / " + scoreTot; }
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{
+    const opt=document.createElement("option");
+    opt.value=e.id; opt.textContent=e.title;
+    sel.appendChild(opt);
+  });
+
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", showSolution);
+  $("#btn-reset").addEventListener("click", resetAll);
+
+  // build keyboard once
+  // buildKeyboard(); // désactivé : on utilise le clavier réutilisable
+  sel.value = REGISTRY[0].id;
+  buildOne();
+  updateScore();
+});
+
+})();
+
+</script><script defer="" src="../../../../js/math-kbd.js"></script><script defer="" src="../../../../js/exo-pdf-kit.js"></script><script>
+document.addEventListener('DOMContentLoaded', function(){
+  ExoPDF.init({
+    title: 'Seconde – Chapitre 1 – Intervalles',
+    lead:  'Compléter :',   // défaut
+    max: 50,
+    leadByDefId: {
+      ineq_to_interval:   'Écrire sous forme d’intervalle :',
+      interval_to_ineq:   'Écrire sous forme d’inégalités :',
+      union_intervals:    'Donner la réunion :',
+      inter_intervals:    'Donner l’intersection :',
+      read_interval:      'Lire et écrire l’intervalle représenté :',
+      read_ineq:          'Lire et écrire l’inéquation représentée :'
+    }
+  });
+});
+</script><script defer="" src="../../../../js/algebra-eval-patch.js"></script></body>
+</html>

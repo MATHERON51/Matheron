@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Seconde — Représentation graphique</title>
+<!-- dépendances -->
+<link href="../../../../css/math-kbd.css" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:12px 16px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+
+  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .btn{padding:6px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+
+  .row{display:grid;grid-template-columns:560px 1fr;gap:12px;align-items:start}
+  .row.single{grid-template-columns:1fr}
+  @media (max-width:980px){ .row{grid-template-columns:1fr} }
+
+  .statement{font-size:18px}
+  .consigne{opacity:.9;margin-bottom:6px}
+
+  /* SVGs */
+  svg.repere{display:block;margin:.25rem auto;width:min(560px,100%);height:auto;aspect-ratio:560/360}
+  body.solution-active svg.repere{width:min(520px,100%)}
+
+  .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
+  .qmark{min-width:1.2em;text-align:center;font-weight:700}
+
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  .tbl{border-collapse:collapse;margin:.3rem 0;max-width:100%}
+  .tbl th,.tbl td{border:1px solid #000;padding:3px 4px;text-align:center}
+  .tbl input{width:6ch}
+
+  @media print{ 
+    .header,.controls{display:none !important}
+    .wrap{max-width:100%}
+    .card{border:none;box-shadow:none;padding:0}
+    .row{grid-template-columns:1fr}
+    svg.repere{height:auto}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+<h1 style="margin:0;font-size:1.05rem">Seconde — <strong>Représentation graphique</strong></h1>
+</div>
+<div class="wrap">
+<!-- barre de contrôles -->
+<div class="controls card">
+<label for="exo-select"><strong>Type d’exercice :</strong></label>
+<select id="exo-select"></select>
+<button class="btn" id="btn-new">🔄 Nouvel énoncé</button>
+<button class="btn" id="btn-check">✅ Vérifier</button>
+<button class="btn" id="btn-solution">💡 Solution</button>
+<button class="btn" id="btn-reset">🧹 Réinitialiser</button>
+<span class="score">Score : <span id="score">0 / 0</span></span>
+</div>
+<!-- amplitude et paramètres -->
+<div class="controls card" id="ampbar">
+<strong>Amplitude (max ±12) :</strong>
+      x ∈ [ <input id="xmin" max="12" min="-12" step="1" type="number" value="-6"/> ; 
+      <input id="xmax" max="12" min="-12" step="1" type="number" value="6"/> ],
+      y ∈ [ <input id="ymin" max="12" min="-12" step="1" type="number" value="-6"/> ; 
+      <input id="ymax" max="12" min="-12" step="1" type="number" value="6"/> ]
+      <button class="btn" id="amp-apply">↴ Appliquer</button>
+<span style="margin-left:12px"></span>
+<label><small># images</small> <input id="cfg-img" max="10" min="1" style="width:64px" type="number" value="2"/></label>
+<label><small># antécédents</small> <input id="cfg-ant" max="10" min="1" style="width:64px" type="number" value="2"/></label>
+<label class="small" style="margin-left:12px"><input id="pdfRandAmp" type="checkbox"/> PDF : amplitude aléatoire</label>
+<label class="small" style="margin-left:10px"><input id="pdfRandNA" type="checkbox"/> PDF : # images/antécédents aléatoire</label>
+<label class="small" style="margin-left:10px"><input id="pdfRandTheme" type="checkbox"/> PDF : thème aléatoire (exo 3)</label>
+</div>
+<!-- conteneur exercice -->
+<div class="card" id="host"></div>
+<!-- emplacement pour bouton PDF -->
+<div class="card small"></div>
+<!-- Clavier maths -->
+<div class="card" data-math-kbd=""></div>
+</div>
+<script>
+  // On veut que le nettoyeur n’agisse QUE sur les inputs/textarea
+  window.DEVRULES_MODE = 'inputs-only';
+</script>
+<!-- librairies -->
+<script defer="" src="../../../../js/dev-rules-clean.dedup.vB.inputs-only.js"></script>
+<script defer="" src="../../../../js/math-kbd.multiplicatif.js"></script>
+<script defer="" src="../../../../js/exo-pdf-kit.multiplicatif.js"></script>
+<script defer="" src="../../../../js/algebra-eval-patch.multiplicatif.js"></script>
+<script>
+'use strict';
+
+// Helpers globaux
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+const FRfmt = new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2, useGrouping:false});
+const fmtFR = n => FRfmt.format(n).replace('-', '−');
+const fmtNum = n => `<span class="num">${fmtFR(n)}</span>`;
+
+// Amplitude globale
+let AMP={ xmin:-6,xmax:6,ymin:-6,ymax:6 };
+function applyAMP(){
+  let xi=+$('#xmin').value, xa=+$('#xmax').value, yi=+$('#ymin').value, ya=+$('#ymax').value;
+  if(!(xi<=xa)) [xi,xa]=[xa,xi];
+  if(!(yi<=ya)) [yi,ya]=[ya,yi];
+  xi=clamp(xi,-12,12); xa=clamp(xa,-12,12);
+  yi=clamp(yi,-12,12); ya=clamp(ya,-12,12);
+  if(xi===xa) xa=xi+1; if(yi===ya) ya=yi+1;
+  AMP={ xmin:xi,xmax:xa,ymin:yi,ymax:ya };
+  document.body.classList.remove('solution-active');
+  buildOne();
+}
+
+</script>
+<script>
+// ========== Helpers graphiques pour les courbes ==========
+function catmullRomPath(points){
+  if(points.length < 2) return '';
+  const P=i=>points[Math.max(0,Math.min(points.length-1,i))];
+  let d=`M ${points[0].x} ${points[0].y}`;
+  for(let i=0;i<points.length-1;i++){
+    const p0=P(i-1), p1=P(i), p2=P(i+1), p3=P(i+2);
+    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+    d+=` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+function addPath(g,d,st){
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',d);
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke',st?.stroke||'#000');
+  p.setAttribute('stroke-width',st?.['stroke-width']||2.2);
+  if(st?.['stroke-dasharray']) p.setAttribute('stroke-dasharray',st['stroke-dasharray']);
+  g.appendChild(p);
+  return p;
+}
+function addLine(g,x1,y1,x2,y2,st){
+  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+  l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+  l.setAttribute('stroke',st?.stroke||'#000');
+  l.setAttribute('stroke-width',st?.['stroke-width']||2);
+  if(st?.['stroke-dasharray']) l.setAttribute('stroke-dasharray',st['stroke-dasharray']);
+  g.appendChild(l);
+  return l;
+}
+function genCurveIntegerGrid(R){
+  const xs=[], ys=[];
+  for(let x=R.xmin; x<=R.xmax; x++){
+    ys.push(rnd(R.ymin+1,R.ymax-1));
+    xs.push(x);
+  }
+  return {Xs:xs, Ys:ys};
+}
+function pathFromGrid(rep, grid){
+  const pts=grid.Xs.map((x,i)=>({x:rep.X(x), y:rep.Y(grid.Ys[i])}));
+  return catmullRomPath(pts);
+}
+function interpAtGrid(grid, x){
+  const {Xs,Ys}=grid;
+  if(x<Xs[0] || x> Xs[Xs.length-1]) return null;
+  const i=Math.floor(x - Xs[0]);
+  if(Math.abs(x - Math.round(x))<1e-9) return Ys[i];
+  const k=Math.floor(x), idx=k - Xs[0];
+  const y1=Ys[idx], y2=Ys[idx+1];
+  return y1 + 0.5*(y2-y1);
+}
+function antecedentsOfGrid(grid, y){
+  const out=[];
+  for(let i=0;i<grid.Xs.length-1;i++){
+    const x1=grid.Xs[i], x2=grid.Xs[i+1], y1=grid.Ys[i], y2=grid.Ys[i+1];
+    if(y===y1) out.push(x1);
+    if(y===y2) out.push(x2);
+    if((y1<y && y<y2) || (y2<y && y<y1)){
+      const t=(y-y1)/((y2-y1)||1e-9);
+      const x=x1+t*(x2-x1);
+      out.push(x);
+    }
+  }
+  return Array.from(new Set(out.map(v=>Math.round(v*100)/100)));
+}
+</script>
+<script>
+'use strict';
+
+/* ========= REGISTRY + moteur ========== */
+window.REGISTRY = {};   // <— le registre d’exercices
+
+function populateMenu(){
+  const sel = $('#exo-select');
+  sel.innerHTML = '';
+  Object.values(REGISTRY).forEach(exo=>{
+    const opt=document.createElement('option');
+    opt.value = exo.id;
+    opt.textContent = exo.title || exo.id;
+    sel.appendChild(opt);
+  });
+}
+
+function buildOne(id){
+  const sel = $('#exo-select');
+  const targetId = id || sel.value || Object.keys(REGISTRY)[0];
+  if(!targetId) return;
+  sel.value = targetId;
+
+  const exo = REGISTRY[targetId];
+  const host = $('#host');
+  const st = exo.gen();
+  exo.render(host, st);
+  document.body.classList.remove('solution-active');
+}
+
+function currentExo(){
+  const id = $('#host')?.dataset?.active;
+  return REGISTRY[id];
+}
+
+/* ========= Boutons & évènements UI ========== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // coches PDF décochées par défaut
+  const c1=$('#pdfRandAmp'), c2=$('#pdfRandNA'), c3=$('#pdfRandTheme');
+  if(c1) c1.checked=false; if(c2) c2.checked=false; if(c3) c3.checked=false;
+
+  $('#amp-apply')?.addEventListener('click', applyAMP);
+  $('#btn-new')?.addEventListener('click', ()=>buildOne());
+  $('#btn-reset')?.addEventListener('click', ()=>{
+    const exo=currentExo(); if(exo) exo.reset($('#host'));
+  });
+  $('#btn-solution')?.addEventListener('click', ()=>{
+    const host=$('#host'); const exo=currentExo(); if(!exo) return;
+    const st=JSON.parse(host.dataset.state);
+    document.body.classList.add('solution-active');
+    exo.solution(host, st);
+  });
+  $('#btn-check')?.addEventListener('click', ()=>{
+    const host=$('#host'); const exo=currentExo(); if(!exo) return;
+    const st=JSON.parse(host.dataset.state);
+    exo.correct(host, st);
+  });
+  $('#exo-select')?.addEventListener('change', ()=>buildOne());
+});
+
+
+// === Repère stylisé complet ===
+function buildRepereSVG(opts) {
+  const { xmin, xmax, ymin, ymax, grid=true, arrows=true } = opts;
+  const W = 560, H = 360;
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  svg.classList.add("repere");
+
+  const gGrid = document.createElementNS(svgNS, "g"); gGrid.classList.add("grid");
+  const gAxes = document.createElementNS(svgNS, "g"); gAxes.classList.add("axes");
+  const gPlot = document.createElementNS(svgNS, "g"); gPlot.classList.add("plot");
+  const gText = document.createElementNS(svgNS, "g"); gText.classList.add("labels");
+  svg.appendChild(gGrid); svg.appendChild(gAxes); svg.appendChild(gPlot); svg.appendChild(gText);
+
+  const X = x => (x - xmin) * W / (xmax - xmin);
+  const Y = y => H - (y - ymin) * H / (ymax - ymin);
+
+  // quadrillage
+  if (grid) {
+    for (let x = Math.ceil(xmin); x <= xmax; x++) {
+      const l = document.createElementNS(svgNS,"line");
+      l.setAttribute("x1", X(x)); l.setAttribute("y1", Y(ymin));
+      l.setAttribute("x2", X(x)); l.setAttribute("y2", Y(ymax));
+      l.setAttribute("stroke", "#000"); l.setAttribute("stroke-width", 0.5);
+      gGrid.appendChild(l);
+    }
+    for (let y = Math.ceil(ymin); y <= ymax; y++) {
+      const l = document.createElementNS(svgNS,"line");
+      l.setAttribute("x1", X(xmin)); l.setAttribute("y1", Y(y));
+      l.setAttribute("x2", X(xmax)); l.setAttribute("y2", Y(y));
+      l.setAttribute("stroke", "#000"); l.setAttribute("stroke-width", 0.5);
+      gGrid.appendChild(l);
+    }
+  }
+
+  // axes gras
+  const axeX = document.createElementNS(svgNS,"line");
+  axeX.setAttribute("x1", X(xmin)); axeX.setAttribute("y1", Y(0));
+  axeX.setAttribute("x2", X(xmax)); axeX.setAttribute("y2", Y(0));
+  axeX.setAttribute("stroke", "#000"); axeX.setAttribute("stroke-width", 2);
+  gAxes.appendChild(axeX);
+
+  const axeY = document.createElementNS(svgNS,"line");
+  axeY.setAttribute("x1", X(0)); axeY.setAttribute("y1", Y(ymin));
+  axeY.setAttribute("x2", X(0)); axeY.setAttribute("y2", Y(ymax));
+  axeY.setAttribute("stroke", "#000"); axeY.setAttribute("stroke-width", 2);
+  gAxes.appendChild(axeY);
+
+  // flèches au bout
+  if (arrows) {
+    const mkArrow = (x,y,dx,dy) => {
+      const p = document.createElementNS(svgNS,"path");
+      p.setAttribute("d",`M${x} ${y} l${-dy*8} ${dx*8} l${dy*8} ${-dx*8} Z`);
+      p.setAttribute("fill","#000");
+      return p;
+    };
+    // X+
+    gAxes.appendChild(mkArrow(X(xmax), Y(0), 1, 0));
+    // Y+
+    gAxes.appendChild(mkArrow(X(0), Y(ymax), 0, -1));
+  }
+
+  // graduations entières
+  for (let x = Math.ceil(xmin); x <= xmax; x++) {
+    if (x !== 0) {
+      const t = document.createElementNS(svgNS,"text");
+      t.setAttribute("x", X(x));
+      t.setAttribute("y", Y(0)+15);
+      t.setAttribute("text-anchor","middle");
+      t.setAttribute("font-size","12");
+      t.textContent = x;
+      gText.appendChild(t);
+    }
+  }
+  for (let y = Math.ceil(ymin); y <= ymax; y++) {
+    if (y !== 0) {
+      const t = document.createElementNS(svgNS,"text");
+      t.setAttribute("x", X(0)-10);
+      t.setAttribute("y", Y(y)+4);
+      t.setAttribute("text-anchor","end");
+      t.setAttribute("font-size","12");
+      t.textContent = y;
+      gText.appendChild(t);
+    }
+  }
+
+  return {svg, plot:gPlot, X, Y};
+}
+</script>
+<script>
+// Registry global pour stocker tous les exercices
+const REGISTRY = {};
+
+// fonction pour remplir le menu
+function fillMenu() {
+  const sel = document.getElementById("exo-select");
+  sel.innerHTML = "";
+  Object.values(REGISTRY).forEach(ex => {
+    const opt = document.createElement("option");
+    opt.value = ex.id;
+    opt.textContent = ex.title;
+    sel.appendChild(opt);
+  });
+}
+
+// fonction pour générer un exo selon le menu
+function buildOne() {
+  const id = document.getElementById("exo-select").value;
+  const exo = REGISTRY[id];
+  if (!exo) return;
+  const st = exo.gen();
+  const host = document.getElementById("host");
+  exo.render(host, st);
+  host.dataset.state = JSON.stringify(st);
+  host.dataset.active = id;
+}
+</script>
+<script>
+// ===== Helpers random & parsing (définis si absents) =====
+(function(){
+  if (typeof clamp === 'undefined') {
+    window.clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+  }
+  if (typeof rnd === 'undefined') {
+    // entier aléatoire dans [a,b]
+    window.rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  }
+  if (typeof uniq === 'undefined') {
+    window.uniq = arr => Array.from(new Set(arr));
+  }
+  if (typeof shuffle === 'undefined') {
+    // Fisher–Yates robuste
+    window.shuffle = function(arr){
+      const a=[...arr];
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    };
+  }
+  if (typeof parseNumFR === 'undefined') {
+    // "−3,5" -> -3.5 ; tolère espaces
+    window.parseNumFR = function(s){
+      if (s==null) return NaN;
+      const t=String(s).trim().replace(/\s+/g,'')
+        .replace(/\u2212/g,'-')     // signe moins Unicode
+        .replace(',', '.');
+      const v=Number(t);
+      return Number.isFinite(v)?v:NaN;
+    };
+  }
+  if (typeof parseListFR === 'undefined') {
+    // "1,5 ; −2 ; 3" -> [1.5,-2,3]
+    window.parseListFR = function(s){
+      if (!s) return [];
+      return String(s).split(/[;,]/).map(parseNumFR).filter(Number.isFinite);
+    };
+  }
+})();
+</script>
+<script>
+// === Repère stylisé avec quadrillage noir, axes gras et flèches ===
+function buildRepereSVG(opts) {
+  const { xmin, xmax, ymin, ymax, grid=true, arrows=true } = opts;
+  const W = 560, H = 360;
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  svg.classList.add("repere");
+
+  // conteneurs
+  const gGrid = document.createElementNS(svgNS, "g"); gGrid.classList.add("grid");
+  const gAxes = document.createElementNS(svgNS, "g"); gAxes.classList.add("axes");
+  const gPlot = document.createElementNS(svgNS, "g"); gPlot.classList.add("plot");
+  svg.appendChild(gGrid); svg.appendChild(gAxes); svg.appendChild(gPlot);
+
+  // conversion repère -> pixel
+  const X = x => (x - xmin) * W / (xmax - xmin);
+  const Y = y => H - (y - ymin) * H / (ymax - ymin);
+
+  // quadrillage fin
+  if (grid) {
+    for (let x = Math.ceil(xmin); x <= xmax; x++) {
+      const l = document.createElementNS(svgNS,"line");
+      l.setAttribute("x1", X(x)); l.setAttribute("y1", Y(ymin));
+      l.setAttribute("x2", X(x)); l.setAttribute("y2", Y(ymax));
+      l.setAttribute("stroke", "#000"); l.setAttribute("stroke-width", 0.5);
+      gGrid.appendChild(l);
+    }
+    for (let y = Math.ceil(ymin); y <= ymax; y++) {
+      const l = document.createElementNS(svgNS,"line");
+      l.setAttribute("x1", X(xmin)); l.setAttribute("y1", Y(y));
+      l.setAttribute("x2", X(xmax)); l.setAttribute("y2", Y(y));
+      l.setAttribute("stroke", "#000"); l.setAttribute("stroke-width", 0.5);
+      gGrid.appendChild(l);
+    }
+  }
+
+  // axes en gras
+  const axeX = document.createElementNS(svgNS,"line");
+  axeX.setAttribute("x1", X(xmin)); axeX.setAttribute("y1", Y(0));
+  axeX.setAttribute("x2", X(xmax)); axeX.setAttribute("y2", Y(0));
+  axeX.setAttribute("stroke", "#000"); axeX.setAttribute("stroke-width", 2);
+  gAxes.appendChild(axeX);
+
+  const axeY = document.createElementNS(svgNS,"line");
+  axeY.setAttribute("x1", X(0)); axeY.setAttribute("y1", Y(ymin));
+  axeY.setAttribute("x2", X(0)); axeY.setAttribute("y2", Y(ymax));
+  axeY.setAttribute("stroke", "#000"); axeY.setAttribute("stroke-width", 2);
+  gAxes.appendChild(axeY);
+
+  // flèches au bout des axes
+  if (arrows) {
+    const mkArrow = (x,y,dx,dy) => {
+      const p = document.createElementNS(svgNS,"path");
+      p.setAttribute("d",`M${x} ${y} l${-dy*6} ${dx*6} l${dy*6} ${-dx*6} Z`);
+      p.setAttribute("fill","#000");
+      return p;
+    };
+    // flèche X+
+    gAxes.appendChild(mkArrow(X(xmax), Y(0), 1, 0));
+    // flèche Y+
+    gAxes.appendChild(mkArrow(X(0), Y(ymax), 0, -1));
+  }
+
+  return {svg, plot:gPlot, X, Y};
+}
+</script>
+<script>
+// ========================== EXERCICE 1 (fidèle + repère stylisé) ==========================
+REGISTRY["rg1"] = {
+  id: "rg1",
+  title: "Lecture graphique (x entiers)",
+  gen() {
+    const R = { ...AMP };
+    const grid = genCurveIntegerGrid(R);
+
+    const needI = clamp(parseInt($('#cfg-img').value || 2, 10), 1, 10);
+    const needA = clamp(parseInt($('#cfg-ant').value || 2, 10), 1, 10);
+
+    const Xs = grid.Xs.filter(x => x > R.xmin && x < R.xmax);
+    const YsUniq = uniq(grid.Ys).filter(y => y > R.ymin && y < R.ymax);
+
+    const Ximg = uniq(shuffle([...Xs])).slice(0, needI).sort((a, b) => a - b);
+
+    let Yask = uniq(shuffle([...YsUniq])).slice(0, Math.max(1, needA - 1)).sort((a, b) => a - b);
+    if (needA > Yask.length) {
+      const yMin = Math.min(...grid.Ys), yMax = Math.max(...grid.Ys);
+      const yNone = (Math.random() < 0.5 ? yMax + 1 : yMin - 1);
+      Yask = [...Yask, yNone];
+    }
+
+    return { R, grid, Ximg, Yask };
+  },
+
+  render(host, st) {
+    host.innerHTML = "";
+    const row = document.createElement("div"); row.className = "row";
+
+    // --------- ÉNONCÉ (gauche) ---------
+    const stDiv = document.createElement("div"); stDiv.className = "statement";
+    stDiv.innerHTML = `<div class="consigne">Lire sur le graphique l’ensemble de définition, les images et les antécédents demandés.</div>`;
+
+    // repère stylisé
+    const rep = buildRepereSVG({
+      xmin: st.R.xmin, xmax: st.R.xmax,
+      ymin: st.R.ymin, ymax: st.R.ymax,
+      grid: true, arrows: true
+    });
+    addPath(rep.plot, pathFromGrid(rep, st.grid), { stroke: "#c00", "stroke-width": 3.2 });
+    stDiv.appendChild(rep.svg);
+
+    // --------- QUESTIONS (droite) ---------
+    const form = document.createElement("div"); form.className = "input-wrap";
+    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f','#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
+
+    let html = "";
+    // Ensemble de définition
+    html += `<div class="qa">
+               <div class="qmark">1.</div>
+               <div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="aD" type="text" placeholder="[${st.R.xmin};${st.R.xmax}]">
+               <span id="aDm" class="qmark"></span></div>
+             </div>`;
+
+    // Images
+    st.Ximg.forEach((x, i) => {
+      const col = paletteI[i % paletteI.length];
+      html += `<div class="qa">
+                 <div class="qmark">${i + 2}.</div>
+                 <div class="a">Image de <span style="color:${col};font-weight:600">${fmtNum(x)}</span>&nbsp;:
+                   <input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span>
+                 </div>
+               </div>`;
+    });
+
+    // Antécédents
+    st.Yask.forEach((y, j) => {
+      const k = 2 + st.Ximg.length + j;
+      const col = paletteA[j % paletteA.length];
+      html += `<div class="qa">
+                 <div class="qmark">${k}.</div>
+                 <div class="a">Antécédent(s) de <span style="color:${col};font-weight:600">${fmtNum(y)}</span>&nbsp;:
+                   <input id="aA${j}" type="text" placeholder="séparer par ; si plusieurs">
+                   <span id="aA${j}m" class="qmark"></span>
+                 </div>
+               </div>`;
+    });
+
+    form.innerHTML = html;
+    row.appendChild(stDiv); row.appendChild(form);
+    host.appendChild(row);
+
+    host.dataset.state = JSON.stringify(st);
+    host.dataset.active = "rg1";
+  },
+
+  // (solution, correct, reset identiques à la version précédente)
+  solution(host, st) { /* ... inchangé ... */ },
+  correct(host, st) { /* ... inchangé ... */ },
+  reset(host) { /* ... inchangé ... */ }
+};
+</script>
+<script>
+// ========================== EXERCICE 1 (fidèle + repère stylisé) ==========================
+REGISTRY["rg1"] = {
+  id: "rg1",
+  title: "Lecture graphique (x entiers)",
+  gen() {
+    const R = { ...AMP };
+    const grid = genCurveIntegerGrid(R);
+
+    const needI = clamp(parseInt($('#cfg-img').value || 2, 10), 1, 10);
+    const needA = clamp(parseInt($('#cfg-ant').value || 2, 10), 1, 10);
+
+    const Xs = grid.Xs.filter(x => x > R.xmin && x < R.xmax);
+    const YsUniq = uniq(grid.Ys).filter(y => y > R.ymin && y < R.ymax);
+
+    const Ximg = uniq(shuffle([...Xs])).slice(0, needI).sort((a, b) => a - b);
+
+    let Yask = uniq(shuffle([...YsUniq])).slice(0, Math.max(1, needA - 1)).sort((a, b) => a - b);
+    if (needA > Yask.length) {
+      const yMin = Math.min(...grid.Ys), yMax = Math.max(...grid.Ys);
+      const yNone = (Math.random() < 0.5 ? yMax + 1 : yMin - 1);
+      Yask = [...Yask, yNone];
+    }
+
+    return { R, grid, Ximg, Yask };
+  },
+
+  render(host, st) {
+    host.innerHTML = "";
+    const row = document.createElement("div"); row.className = "row";
+
+    // --------- ÉNONCÉ (gauche) ---------
+    const stDiv = document.createElement("div"); stDiv.className = "statement";
+    stDiv.innerHTML = `<div class="consigne">Lire sur le graphique l’ensemble de définition, les images et les antécédents demandés.</div>`;
+
+    // repère stylisé
+    const rep = buildRepereSVG({
+      xmin: st.R.xmin, xmax: st.R.xmax,
+      ymin: st.R.ymin, ymax: st.R.ymax,
+      grid: true, arrows: true
+    });
+    addPath(rep.plot, pathFromGrid(rep, st.grid), { stroke: "#c00", "stroke-width": 3.2 });
+    stDiv.appendChild(rep.svg);
+
+    // --------- QUESTIONS (droite) ---------
+    const form = document.createElement("div"); form.className = "input-wrap";
+    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f','#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
+
+    let html = "";
+    // Ensemble de définition
+    html += `<div class="qa">
+               <div class="qmark">1.</div>
+               <div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="aD" type="text" placeholder="[${st.R.xmin};${st.R.xmax}]">
+               <span id="aDm" class="qmark"></span></div>
+             </div>`;
+
+    // Images
+    st.Ximg.forEach((x, i) => {
+      const col = paletteI[i % paletteI.length];
+      html += `<div class="qa">
+                 <div class="qmark">${i + 2}.</div>
+                 <div class="a">Image de <span style="color:${col};font-weight:600">${fmtNum(x)}</span>&nbsp;:
+                   <input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span>
+                 </div>
+               </div>`;
+    });
+
+    // Antécédents
+    st.Yask.forEach((y, j) => {
+      const k = 2 + st.Ximg.length + j;
+      const col = paletteA[j % paletteA.length];
+      html += `<div class="qa">
+                 <div class="qmark">${k}.</div>
+                 <div class="a">Antécédent(s) de <span style="color:${col};font-weight:600">${fmtNum(y)}</span>&nbsp;:
+                   <input id="aA${j}" type="text" placeholder="séparer par ; si plusieurs">
+                   <span id="aA${j}m" class="qmark"></span>
+                 </div>
+               </div>`;
+    });
+
+    form.innerHTML = html;
+    row.appendChild(stDiv); row.appendChild(form);
+    host.appendChild(row);
+
+    host.dataset.state = JSON.stringify(st);
+    host.dataset.active = "rg1";
+  },
+
+  solution(host, st) {
+    const rep = host.querySelector("svg.repere");
+    if (!rep) return;
+    const plot = rep.querySelector(".plot");
+    const X = x => (x - st.R.xmin) * 560 / (st.R.xmax - st.R.xmin);
+    const Y = y => 360 - (y - st.R.ymin) * 360 / (st.R.ymax - st.R.ymin);
+
+    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f','#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
+
+    // images → traits verticaux
+    st.Ximg.forEach((x, i) => {
+      const y = interpAtGrid(st.grid, x);
+      const col = paletteI[i % paletteI.length];
+      addLine(plot, X(x), Y(y), X(x), Y(st.R.ymin), { stroke: col, "stroke-dasharray": "6 5", "stroke-width": 2 });
+    });
+
+    // antécédents → horizontales
+    st.Yask.forEach((y, j) => {
+      const xs = antecedentsOfGrid(st.grid, y);
+      const col = paletteA[j % paletteA.length];
+      addLine(plot, X(st.R.xmin), Y(y), X(st.R.xmax), Y(y), { stroke: col, "stroke-dasharray": "6 5", "stroke-width": 2 });
+      xs.forEach(x => addLine(plot, X(x), Y(y)-8, X(x), Y(y)+8, { stroke: col, "stroke-width": 2 }));
+    });
+
+    showSteps(host, [`Les pointillés colorés indiquent où lire les images et les antécédents.`]);
+  },
+
+  correct(host, st) {
+    let okAll = true;
+
+    const D = (host.querySelector('#aD')?.value || '').trim();
+    const wantL = String(st.R.xmin), wantR = String(st.R.xmax);
+    let okD = false;
+    if (D) {
+      const s = D.replace(/\s/g,'').replace(/\u2212/g,'-').replace(',', '.');
+      okD = /^\[?-?\d+(\.\d+)?;?-?\d+(\.\d+)?\]?$/.test(s) && s.includes(wantL) && s.includes(wantR);
+    }
+    const Dm = host.querySelector('#aDm'); if (Dm) { Dm.textContent = okD ? '✔' : '✘'; Dm.style.color = okD ? '#14532d' : '#991b1b'; }
+    okAll = okAll && okD;
+
+    st.Ximg.forEach((x, i) => {
+      const y = interpAtGrid(st.grid, x);
+      const got = parseNumFR(host.querySelector('#aI'+i)?.value);
+      const ok = Number.isFinite(got) && Math.abs(got - y) < 0.05;
+      const m = host.querySelector('#aI'+i+'m'); if (m) { m.textContent = ok ? '✔' : '✘'; m.style.color = ok ? '#14532d' : '#991b1b'; }
+      okAll = okAll && ok;
+    });
+
+    st.Yask.forEach((y, j) => {
+      const want = antecedentsOfGrid(st.grid, y).map(v => Math.round(v*100)/100);
+      let ok=false;
+      const raw = String(host.querySelector('#aA'+j)?.value || '').trim().toLowerCase();
+      if (raw === 'aucun') {
+        ok = (want.length === 0);
+      } else {
+        const got = parseListFR(raw).map(v => Math.round(v*100)/100);
+        const A = Array.from(new Set(got)).sort((a,b)=>a-b);
+        const W = Array.from(new Set(want)).sort((a,b)=>a-b);
+        ok = (A.length === W.length) && A.every((v,idx)=> v === W[idx]);
+      }
+      const m = host.querySelector('#aA'+j+'m'); if (m) { m.textContent = ok ? '✔' : '✘'; m.style.color = ok ? '#14532d' : '#991b1b'; }
+      okAll = okAll && ok;
+    });
+
+    return { ok: okAll, total: 1 };
+  },
+
+  reset(host) {
+    host.querySelectorAll('input').forEach(i => i.value = "");
+    const rep = host.querySelector('svg.repere'); if (rep) { rep.querySelectorAll('.plot line,.plot path').forEach(n=>n.remove()) }
+    document.body.classList.remove('solution-active');
+  }
+};
+</script>
+<script>
+// ================== EXERCICE 2 ==================
+REGISTRY["rg2"] = {
+  id: "rg2",
+  title: "Lecture graphique (abscisses décimales)",
+  gen() {
+    const R = { ...AMP };
+    const grid = genCurveIntegerGrid(R);
+
+    // ici on choisit 2 abscisses décimales (x à 0.5 près) et 1 ordonnée
+    const Ximg = [R.xmin + 0.5, rnd(R.xmin+1, R.xmax-1) + 0.5];
+    const Yask = [rnd(R.ymin+1, R.ymax-1)];
+
+    return { R, grid, Ximg, Yask };
+  },
+  render(host, st) {
+    host.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "row";
+
+    // bloc énoncé
+    const stDiv = document.createElement("div");
+    stDiv.className = "statement";
+    stDiv.innerHTML = `<div class="consigne">Lire sur le graphique les images et antécédents demandés (abscisses à 0,5 près).</div>`;
+
+    // repère
+    const rep = buildRepereSVG({
+      xmin: st.R.xmin, xmax: st.R.xmax,
+      ymin: st.R.ymin, ymax: st.R.ymax,
+      grid: true, arrows: true
+    });
+    addPath(rep.plot, pathFromGrid(rep, st.grid), { stroke: "#c00", "stroke-width": 3.2 });
+    stDiv.appendChild(rep.svg);
+
+    // bloc questions
+    const form = document.createElement("div");
+    form.className = "input-wrap";
+    let html = "";
+    st.Ximg.forEach((x, i) => {
+      html += `<div class="qa"><div class="qmark">${i+1}.</div><div class="a">Image de ${fmtNum(x)} : <input id="II${i}" type="text"></div></div>`;
+    });
+    st.Yask.forEach((y, j) => {
+      html += `<div class="qa"><div class="qmark">${st.Ximg.length+j+1}.</div><div class="a">Antécédent(s) de ${fmtNum(y)} : <input id="AA${j}" type="text"></div></div>`;
+    });
+    form.innerHTML = html;
+
+    row.appendChild(stDiv);
+    row.appendChild(form);
+    host.appendChild(row);
+
+    host.dataset.state = JSON.stringify(st);
+    host.dataset.active = "rg2";
+  },
+  solution(host, st) {
+    const rep = host.querySelector("svg.repere");
+    const X = x => (x - st.R.xmin) * 560 / (st.R.xmax - st.R.xmin);
+    const Y = y => 360 - (y - st.R.ymin) * 360 / (st.R.ymax - st.R.ymin);
+
+    // pointillés verticaux pour les images
+    st.Ximg.forEach(x => {
+      const y = interpAtGrid(st.grid, x);
+      addLine(rep.querySelector(".plot"), X(x), Y(y), X(x), Y(st.R.ymin),
+        { stroke: "#00f", "stroke-dasharray": "6 5" });
+    });
+
+    // pointillés horizontaux pour l'antécédent
+    st.Yask.forEach(y => {
+      const xs = antecedentsOfGrid(st.grid, y);
+      xs.forEach(x => {
+        addLine(rep.querySelector(".plot"), X(x), Y(y), X(st.R.xmin), Y(y),
+          { stroke: "#0a0", "stroke-dasharray": "6 5" });
+      });
+    });
+
+    showSteps(host, [`Les pointillés montrent où lire les images et antécédents.`]);
+  },
+  correct(host, st) {
+    // TODO : logique de correction exacte
+    return { ok: true, total: 1 };
+  },
+  reset(host) {
+    host.querySelectorAll("input").forEach(i => i.value = "");
+  }
+};
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  populateMenu();                 // remplit le sélecteur depuis REGISTRY
+  buildOne(Object.keys(REGISTRY)[0]); // affiche le 1er exo
+});
+</script>
+<script>
+function populateMenu() {
+  const sel = document.getElementById("selector");
+  sel.innerHTML = "";
+  Object.keys(REGISTRY).forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = REGISTRY[k].title || k;
+    sel.appendChild(opt);
+  });
+}
+</script>
+<script>
+window.onload = function() {
+populateMenu();
+  // Remplir le menu avec les exercices du REGISTRY
+  fillMenu();
+
+  // Sélectionner le premier exercice par défaut
+  const sel = document.getElementById("exo-select");
+  if (sel.options.length > 0) {
+    sel.value = sel.options[0].value;
+    buildOne();
+  }
+
+  // Bouton : nouvel énoncé
+  document.getElementById("btn-new").onclick = () => buildOne();
+
+  // Bouton : vérifier
+  document.getElementById("btn-check").onclick = () => {
+    const id = sel.value;
+    const exo = REGISTRY[id];
+    if (!exo) return;
+    const host = document.getElementById("host");
+    const st = JSON.parse(host.dataset.state);
+    const result = exo.correct(host, st);
+    alert(`Résultat provisoire : ${result.ok ? "OK" : "À revoir"} (${result.total} attendu)`);
+  };
+
+  // Bouton : solution
+  document.getElementById("btn-solution").onclick = () => {
+    const id = sel.value;
+    const exo = REGISTRY[id];
+    if (!exo) return;
+    const host = document.getElementById("host");
+    const st = JSON.parse(host.dataset.state);
+    exo.solution(host, st);
+    document.body.classList.add("solution-active");
+  };
+
+  // Bouton : réinitialiser
+  document.getElementById("btn-reset").onclick = () => {
+    const id = sel.value;
+    const exo = REGISTRY[id];
+    if (!exo) return;
+    const host = document.getElementById("host");
+    exo.reset(host);
+    document.body.classList.remove("solution-active");
+  };
+};
+</script>
+</body></html>

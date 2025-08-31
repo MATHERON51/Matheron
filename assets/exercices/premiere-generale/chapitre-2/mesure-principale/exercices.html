@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Mesure principale d’un angle</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1280px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button{font:inherit}
+select{padding:6px 8px;border:1px solid #ddd;border-radius:10px;background:#fff}
+.btn{padding:8px 10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.score{margin-left:auto;font-weight:600}
+
+/* ===== Deux colonnes (énoncé / visuel) ===== */
+.grid-two{display:grid;grid-template-columns:auto 1fr;column-gap:140px;align-items:start}
+.visu{display:grid;grid-template-columns:auto auto;column-gap:0;align-items:center}
+.svgbox{background:#fff;border:1px solid #e5e5e5;border-right:none;border-radius:12px 0 0 12px;padding:8px 0;display:flex;justify-content:center;align-items:center;overflow:visible}
+.linebox{background:#fff;border:1px solid #e5e5e5;border-left:none;border-radius:0 12px 12px 0;padding:10px 12px}
+.statement{padding-left:0}
+
+/* === Blocs texte & marques ✓ ✗ === */
+.row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:10px 0}
+.row .q{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:10px;padding:10px}
+.input-line{display:flex;gap:8px;align-items:center}
+.solution-box{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-top:10px}
+li{position:relative}
+.mark{margin-left:6px;font-weight:700}
+.mark.ok{color:#16a34a}.mark.ko{color:#dc2626}
+.mark.hide{visibility:hidden}
+.ok{color:#0b7f36;font-weight:600}.ko{color:#b91c1c;font-weight:600}
+
+/* === Fractions jolies (pile) — utile à l’écran ; le PDF a aussi du inline === */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+
+/* === Tableau (bordures visibles) === */
+.radtab{border-collapse:collapse;width:100%}
+.radtab th,.radtab td{border:2px solid #111;padding:6px 8px;text-align:center;vertical-align:middle}
+.radtab th.lab{font-weight:700;text-align:left;background:#f7f7f7}
+.radtab input{width:100%;padding:6px;border:1px solid #dcdcdc;border-radius:8px;text-align:center}
+
+/* === Cercle & labels === */
+.svgbox svg{display:block;max-width:none}
+.ptlbl{font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:4px}
+.ptlbl .prime { font-size: 1.45em; font-weight: 900; }  /* dans le SVG */
+.vec .prime, .statement .prime, .solution-box .prime { font-size: 1.25em; font-weight: 900; } /* dans le texte HTML */
+.badge{display:inline-block;border:1px solid #e5e7eb;border-radius:999px;padding:.1rem .5rem;background:#f8fafc}
+
+/* ===== Vecteurs (flèche au-dessus) ===== */
+.vec{position:relative;display:inline-block;line-height:1;padding:0 .18em .05em;}
+.vec::before{content:"";position:absolute;left:.10em;right:.52em;top:-.22em;border-top:1.8px solid currentColor;}
+.vec::after{content:"";position:absolute;right:0;top:-.36em;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;}
+
+/* === Palette lettres (Ex.1) === */
+.letter{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:32px;padding:0 10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.letter.active{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.2)}
+.small{color:#555}
+kbd{padding:.05rem .35rem;border:1px solid #ccc;border-bottom-width:3px;border-radius:6px;background:#fff}
+.helpwhite{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:12px;margin-top:10px}
+.radtab th.lab.nowrap { white-space: nowrap; }
+
+/* Rendre la prime bien visible dans le SVG */
+.ptlbl{
+  font-weight:800;
+  paint-order: stroke;
+  stroke:#fff;
+  stroke-width:4px;
+}
+.ptlbl .prime{ font-size:1.45em; font-weight:900; }
+
+/* Ex.5 : code couleur */
+.kturn{ color:#1d4ed8; font-weight:700; }   /* bleu */
+.twopi{ color:#e11d48; font-weight:700; }   /* rouge */
+.mpv  { color:#16a34a; font-weight:700; }   /* vert  */
+/* Rappel formule de décomposition */
+.mp-formula{
+  margin-top:6px;
+  font-style: italic;
+  white-space: nowrap;
+}
+.mp-formula .nt{ color:#2563eb; font-weight:600; }  /* nombre de tours (bleu) */
+.mp-formula .tw{ color:#ef4444; font-weight:600; }  /* (±2π) (rouge)         */
+.mp-formula .mp{ color:#16a34a; font-weight:600; }  /* MP (vert)             */
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Seconde — <strong>Mesure principale d’un angle</strong></h1>
+  <div class="wrap" style="padding:0 18px">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card" id="mount-here"></div>
+  <div class="card small"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+</div>
+
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script>
+/* ====== Outils communs ====== */
+const $=(s,r=document)=>r.querySelector(s);
+const PI=Math.PI, TAU=2*Math.PI;
+const UMIN='−';
+const VALIDATE_LIVE = false;
+
+/* Ticks ✓ ✗ */
+function setMark(el, state){
+  if(!el) return;
+  el.classList.remove('ok','ko','hide'); el.textContent = '';
+  if(state===null){ el.classList.add('hide'); return; }
+  if(state){ el.textContent='✓'; el.classList.add('ok'); }
+  else { el.textContent='✗'; el.classList.add('ko'); }
+}
+
+/* Fractions inline (autonomes → PDF fidèle) */
+function fracHTMLInline(numHTML, denHTML){
+  return `<span class="frac" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1">
+    <span class="num" style="padding:0 .2em;white-space:nowrap">${numHTML}</span>
+    <span class="bar" style="border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0"></span>
+    <span class="den" style="padding:0 .2em;white-space:nowrap">${denHTML}</span>
+  </span>`;
+}
+
+/* π → HTML (pile) */
+function fmtPiHTML(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? UMIN : '';
+  const an = Math.abs(k);
+  const P=Math.round(an*12), Q=12;
+  const g=(a,b)=>b?g(b,a%b):a, gg=g(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));
+  if (p===1) return sgn+fracHTMLInline('π', String(q));
+  return sgn+fracHTMLInline(p+'π', String(q));
+}
+function fmtPiText(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? '-' : '';
+  const an = Math.abs(k);
+  const P=Math.round(an*12), Q=12;
+  const g=(a,b)=>b?g(b,a%b):a, gg=g(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));
+  if (p===1) return sgn+'π/'+q;
+  return sgn+p+'π/'+q;
+}
+
+/* pπ/q → HTML (pile) */
+function igcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function piFracHTML(p, q, {reduce=false, color=null} = {}){
+  if(q===0) return '?';
+  let sign = '';
+  if(p<0){ sign = UMIN; p = -p; }
+  if(reduce){ const gg = igcd(p,q); p/=gg; q/=gg; }
+  if(p===0) return color? `<span style="color:${color}">0</span>` : '0';
+  if(q===1){
+    const txt = (p===1? 'π' : (p+'π'));
+    return color ? `<span style="color:${color}">${sign}${txt}</span>` : sign+txt;
+  }
+  const num = (p===1? 'π' : (p+'π'));
+  const frac = fracHTMLInline(num, String(q));
+  return color ? `<span style="color:${color}">${sign}${frac}</span>` : sign+frac;
+}
+
+/* Parsing utilisateur */
+function parseAngleRad(str){
+  if (typeof str!=='string') return NaN;
+  let s=str.trim().replace(/\s+/g,'').replace(/,/,'.').replace(/−/g,'-');
+  if (s.includes('°')) return NaN;
+  if (/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)) return parseFloat(s);
+  s=s.replace(/pi/ig,'π');
+  let m;
+  if ((m=s.match(/^([-+]?\d*)π$/))) {
+    const k = m[1]===''||m[1]==='+'? 1 : (m[1]==='-'? -1 : parseFloat(m[1]));
+    return k*PI;
+  }
+  if ((m=s.match(/^([-+]?\d*)π\/(\d+)$/))) {
+    const k = m[1]===''||m[1]==='+'? 1 : (m[1]==='-'? -1 : parseFloat(m[1]));
+    const q = parseInt(m[2],10);
+    return k*PI/q;
+  }
+  if ((m=s.match(/^([-+]?\d+)\/(\d+)π$/))) {
+    return (parseInt(m[1],10)/parseInt(m[2],10))*PI;
+  }
+  return NaN;
+}
+function principalMP(a){ let t=((a+PI)%TAU+TAU)%TAU-PI; if (t<=-PI+1e-12) t+=TAU; return t; }
+function principal02(a){ let t=((a%TAU)+TAU)%TAU; if (t>=TAU-1e-12) t=0; return t; }
+
+/* Vecteurs & primes */
+function vec(t){ return '<span class="vec">'+t+'</span>'; }
+function prettyLbl(L){ return String(L).replace(/['’′]/g,'<span class="prime">′</span>'); }
+
+/* Cercle remarquable */
+function circleWithPointsSVG({R=110, showLabels=true}={}){
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function setSVGTextWithBigPrimes(textEl, raw){
+    const s = String(raw).replace(/’|′/g,"'");
+    const parts = s.split("'");
+    parts.forEach((chunk, i) => {
+      if (chunk) {
+        const t1 = document.createElementNS(SVGNS,'tspan'); t1.textContent = chunk; textEl.appendChild(t1);
+      }
+      if (i < parts.length - 1) {
+        const tp = document.createElementNS(SVGNS,'tspan'); tp.setAttribute('class','prime'); tp.setAttribute('dy','-0.15em'); tp.textContent = '′';
+        textEl.appendChild(tp);
+        const reset = document.createElementNS(SVGNS,'tspan'); reset.setAttribute('dy','0.15em'); reset.textContent = ''; textEl.appendChild(reset);
+      }
+    });
+  }
+  const pad=22, W=2*R+2*pad, H=2*R+2*pad, cx=pad+R, cy=pad+R;
+  const g=(n,a={})=>{const e=document.createElementNS(SVGNS,n); for(const k in a) e.setAttribute(k,a[k]); return e;};
+  const svg=g('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H});
+  [['-0.5'],['0.5']].forEach(([k])=>{
+    const dx=R*parseFloat(k), dy=R*parseFloat(k);
+    svg.appendChild(g('line',{x1:cx+dx,y1:cy-R,x2:cx+dx,y2:cy+R,stroke:'#bbb','stroke-width':'1','stroke-dasharray':'4,4'}));
+    svg.appendChild(g('line',{x1:cx-R,y1:cy+dy,x2:cx+R,y2:cy+dy,stroke:'#bbb','stroke-width':'1','stroke-dasharray':'4,4'}));
+  });
+  svg.appendChild(g('circle',{cx,cy,r:R,fill:'#fff',stroke:'#111','stroke-width':'2'}));
+  svg.appendChild(g('line',{x1:cx-R,y1:cy,x2:cx+R,y2:cy,stroke:'#111','stroke-width':'1.4'}));
+  svg.appendChild(g('line',{x1:cx,y1:cy+R,x2:cx,y2:cy-R,stroke:'#111','stroke-width':'1.4'}));
+  for(let d=0; d<360; d+=30){
+    const a=d*Math.PI/180, x1=cx+(R-6)*Math.cos(a), y1=cy-(R-6)*Math.sin(a);
+    const x2=cx+R*Math.cos(a), y2=cy-R*Math.sin(a);
+    svg.appendChild(g('line',{x1,y1,x2,y2,stroke:'#333','stroke-width':'1'}));
+  }
+  const PTS=[
+    ['I',0], ['A',PI/6], ['B',PI/4], ['C',PI/3], ['J',PI/2], ['D',2*PI/3], ['E',3*PI/4], ['F',5*PI/6],
+    ['K',PI], ["F'",7*PI/6], ["E'",5*PI/4], ["D'",4*PI/3], ['L',3*PI/2], ["C'",5*PI/3], ["B'",7*PI/4], ["A'",11*PI/6]
+  ];
+  const coords={};
+  const labelR=R+12;
+  for(const [name,a] of PTS){
+    const xp=cx+R*Math.cos(a), yp=cy-R*Math.sin(a);
+    coords[name]={x:xp,y:yp,a};
+    svg.appendChild(g('circle',{cx:xp,cy:yp,r:3,fill:'#111'}));
+    // labels conditionnels via showLabels
+    if(showLabels){
+      const anchor = Math.abs(Math.cos(a))<0.2 ? 'middle' : (Math.cos(a)>0 ? 'start' : 'end');
+      const dy = (Math.abs(Math.sin(a))<0.2) ? 4 : 1;
+      const t = g('text',{x: cx+labelR*Math.cos(a), y: cy-labelR*Math.sin(a)+dy,
+                          'text-anchor': anchor, 'dominant-baseline': 'middle', class: 'ptlbl'});
+      setSVGTextWithBigPrimes(t, name);
+      svg.appendChild(t);
+    }
+  }
+  const LINKS=[ ['C',"C'"], ['D',"D'"], ['F','A'], ["F'","A'"], ["E'","B"], ['E',"B'"] ];
+  for(const [L,R] of LINKS){
+    const p=coords[L], q=coords[R];
+    if(p&&q) svg.appendChild(g('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:'#999','stroke-width':'1.4','stroke-dasharray':'4,4'}));
+  }
+  const tO=g('text',{x:cx-10,y:cy+16,class:'ptlbl'}); tO.textContent='O'; svg.appendChild(tO);
+  return {svg,coords};
+}
+
+/* =================== EXERCICES =================== */
+
+/* ===== Ex.1 ===== */
+function EXO_place_points(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+
+  const visu = document.createElement('div'); visu.className = 'visu'; visu.style.gridTemplateColumns = 'auto'; grid.appendChild(visu);
+  const svgbox = document.createElement('div'); svgbox.className = 'svgbox'; visu.appendChild(svgbox);
+  const {svg, coords} = circleWithPointsSVG({R:110, showLabels:false});
+  svgbox.appendChild(svg);
+
+  const markbox = document.createElement('div');
+  markbox.className = 'small'; markbox.style.marginTop = '6px'; markbox.style.textAlign = 'center';
+  markbox.innerHTML = `<b>Placement :</b>
+    M <span class="mark hide" id="mk-pl-M"></span> •
+    N <span class="mark hide" id="mk-pl-N"></span> •
+    P <span class="mark hide" id="mk-pl-P"></span> •
+    Q <span class="mark hide" id="mk-pl-Q"></span>`;
+  visu.appendChild(markbox);
+
+  const pick = a=>a[(Math.random()*a.length)|0];
+  const bank3 = [4*PI/3, 5*PI/3, 7*PI/3, 8*PI/3, -4*PI/3, -5*PI/3, -7*PI/3, -8*PI/3];
+  const bank4 = [5*PI/4, 7*PI/4, 9*PI/4, 11*PI/4, -5*PI/4, -7*PI/4, -9*PI/4, -11*PI/4];
+  const bank6 = [7*PI/6, 11*PI/6, 13*PI/6, 17*PI/6, -7*PI/6, -11*PI/6, -13*PI/6, -17*PI/6];
+  const bank2 = [3*PI/2, 5*PI/2, 7*PI/2, -3*PI/2, -5*PI/2, -7*PI/2];
+  const vals = [ pick(bank3), pick(bank4), pick(bank6), pick(bank2) ];
+  const letters = ['M','N','P','Q'];
+  const data = letters.map((L,i)=>({L, a:vals[i]}));
+
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+  const line = (L,ang)=>`(${vec('OI')} , ${vec('O'+prettyLbl(L))}) mesure <b class="eq">${fmtPiHTML(ang)}</b>`;
+  statement.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 1 —</strong> On considère les points <b>M</b>, <b>N</b>, <b>P</b> et <b>Q</b> tels que : </div>
+      <div>${line('M',data[0].a)}, ${line('N',data[1].a)}, ${line('P',data[2].a)} et ${line('Q',data[3].a)}.</div>
+      <ol style="margin-top:.4rem">
+        <li>Placer <b>M</b>, <b>N</b>, <b>P</b>, <b>Q</b> sur le cercle trigonométrique.</li>
+        <li>Pour chacun, donner la <b>mesure principale</b> dans <b>] −π ; π ]</b>.</li>
+      </ol>
+      <div class="input-line" style="flex-wrap:wrap;gap:6px;margin-top:8px">
+        <span>Cliquer une lettre puis le point correspondant :</span>
+        <div id="letters"></div>
+      </div>
+      <table class="radtab" style="margin-top:6px">
+        <tbody>
+          <tr><th class="lab">Lettre</th><td><b>M</b></td><td><b>N</b></td><td><b>P</b></td><td><b>Q</b></td></tr>
+          <tr><th class="lab">Réel donné</th><td>${fmtPiHTML(data[0].a)}</td><td>${fmtPiHTML(data[1].a)}</td><td>${fmtPiHTML(data[2].a)}</td><td>${fmtPiHTML(data[3].a)}</td></tr>
+          <tr><th class="lab">Mesure principale</th>
+            <td><div class="input-line"><input type="text" id="mpM"><span class="mark hide" id="mk-mpM"></span></div></td>
+            <td><div class="input-line"><input type="text" id="mpN"><span class="mark hide" id="mk-mpN"></span></div></td>
+            <td><div class="input-line"><input type="text" id="mpP"><span class="mark hide" id="mk-mpP"></span></div></td>
+            <td><div class="input-line"><input type="text" id="mpQ"><span class="mark hide" id="mk-mpQ"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+
+  /* Interaction écran (inchangé) */
+  const placed = new Map(), placedNodes=new Map(), letterBtn=new Map();
+  const placeMarks = { 'M': $('#mk-pl-M', markbox), 'N': $('#mk-pl-N', markbox), 'P': $('#mk-pl-P', markbox), 'Q': $('#mk-pl-Q', markbox) };
+  function updatePlacementTick(L){ const st = placed.has(L) ? placed.get(L) : null; setMark(placeMarks[L], st===null ? null : !!st); }
+  const lettersBox=$('#letters', statement);
+  let active=null; letters.forEach(L=>{ const b=document.createElement('button'); b.className='letter'; b.innerHTML=prettyLbl(L); b.onclick=()=>{ active=L; lettersBox.querySelectorAll('.letter').forEach(x=>x.classList.remove('active')); b.classList.add('active'); }; lettersBox.appendChild(b); letterBtn.set(L,b); });
+  svg.addEventListener('click', (ev)=>{
+    if(!active) return;
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y=ev.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let best=null, bestd=1e9, bestName=null;
+    for(const [name,xy] of Object.entries(coords)){
+      const d=Math.hypot(p.x-xy.x, p.y-xy.y);
+      if(d<bestd){ bestd=d; best=xy; bestName=name; }
+    }
+    if(best && bestd<=12){
+      // visuel posé + label
+      const prev = placedNodes.get(active);
+      if (prev){ prev.dot.remove(); prev.label.remove(); placedNodes.delete(active); }
+      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx', best.x); dot.setAttribute('cy', best.y); dot.setAttribute('r', 7);
+      dot.setAttribute('fill', '#2563eb'); dot.setAttribute('fill-opacity','.25'); dot.setAttribute('stroke','#2563eb');
+      svg.appendChild(dot);
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x', best.x); t.setAttribute('y', best.y);
+      t.setAttribute('class','ptlbl'); t.setAttribute('dominant-baseline','middle');
+      t.innerHTML = prettyLbl(active);
+      svg.appendChild(t);
+      placedNodes.set(active, { dot, label: t, name: bestName });
+    }
+  });
+
+  const inputs = [ $('#mpM'), $('#mpN'), $('#mpP'), $('#mpQ') ];
+  const inputMarks = [ $('#mk-mpM'), $('#mk-mpN'), $('#mk-mpP'), $('#mk-mpQ') ];
+  function check(){
+    let ok=0, total=0;
+    inputs.forEach((inp, i)=>{
+      const raw=(inp.value||'').trim(); if(!raw){ setMark(inputMarks[i], null); inp.style.borderColor='#dcdcdc'; return; }
+      total++;
+      const got=parseAngleRad(raw); const need=principalMP(data[i].a);
+      const good = !isNaN(got) && Math.abs(principalMP(got)-need)<1e-9;
+      if(good){ ok++; } inp.style.borderColor = good? '#16a34a' : '#dc2626'; setMark(inputMarks[i], good);
+    });
+    return {ok,total};
+  }
+  function solutionHTML(){
+  const rowL = '<tr><th class="lab">Lettre</th><td><b>M</b></td><td><b>N</b></td><td><b>P</b></td><td><b>Q</b></td></tr>';
+  const rowG = '<tr><th class="lab">Réel donné</th>' + data.map(o=>`<td>${fmtPiHTML(o.a)}</td>`).join('') + '</tr>';
+  const rowM = '<tr><th class="lab">Mesure principale</th>' + data.map(o=>`<td>${fmtPiHTML(principalMP(o.a))}</td>`).join('') + '</tr>';
+  return `<div>Réponses :</div>
+    <table class="radtab" style="margin-top:6px">
+      <tbody>${rowL}${rowG}${rowM}</tbody>
+    </table>`;
+}
+
+  function solution(){ const s=$('#solution', statement); s.style.display='block'; s.innerHTML = solutionHTML(); }
+  function reset(){ $('#solution',statement).style.display='none'; inputs.forEach((i,idx)=>{ i.value=''; i.style.borderColor='#dcdcdc'; setMark(inputMarks[idx], null); }); for (const v of placedNodes.values()){ v.dot.remove(); v.label.remove(); } placedNodes.clear(); }
+
+  /* === PDF : ENONCÉ = cercle gauche + énoncé/tableau droite (cases blanches, sans « Cliquer… »)
+          CORRECTION = uniquement le tableau de réponses (pas d’énoncé) === */
+  return {check, solution, reset, pdf:{
+    gen(){ return {angles:data.map(o=>o.a)}; },
+    render(st,isSol){
+      const A = st.angles || [];
+      if(!isSol){
+        const rowL = '<tr><th class="lab">Lettre</th>'+['M','N','P','Q'].map(L=>`<td><b>${L}</b></td>`).join('')+'</tr>';
+        const rowG = '<tr><th class="lab">Réel donné</th>'+A.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+        const rowM = '<tr><th class="lab">Mesure principale</th>'+A.map(()=>`<td></td>`).join('')+'</tr>';
+        const enonceText = `
+          <div><strong>Exercice 1 —</strong> On considère les points <b>M</b>, <b>N</b>, <b>P</b> et <b>Q</b> tels que :</div>
+          <div>(${vec('OI')} , ${vec('OM')}) mesure <b class="eq">${fmtPiHTML(A[0])}</b>,
+               (${vec('OI')} , ${vec('ON')}) mesure <b class="eq">${fmtPiHTML(A[1])}</b>,
+               (${vec('OI')} , ${vec('OP')}) mesure <b class="eq">${fmtPiHTML(A[2])}</b> et
+               (${vec('OI')} , ${vec('OQ')}) mesure <b class="eq">${fmtPiHTML(A[3])}</b>.</div>
+          <ol style="margin-top:.4rem">
+            <li>Placer <b>M</b>, <b>N</b>, <b>P</b>, <b>Q</b> sur le cercle trigonométrique.</li>
+            <li>Pour chacun, donner la <b>mesure principale</b> dans <b>] −π ; π ]</b>.</li>
+          </ol>`;
+        return `<div style="display:grid;grid-template-columns:auto 1fr;column-gap:18mm;align-items:start">
+          <div>${circleWithPointsSVG({R:110, showLabels:false}).svg.outerHTML}</div>
+          <div>
+            ${enonceText}
+            <table class="radtab" style="margin-top:6px"><tbody>${rowL}${rowG}${rowM}</tbody></table>
+          </div>
+        </div>`;
+      }
+      // Correction seule (pas d'énoncé)
+const rowL = '<tr><th class="lab">Lettre</th><td><b>M</b></td><td><b>N</b></td><td><b>P</b></td><td><b>Q</b></td></tr>';
+const rowG = '<tr><th class="lab">Réel donné</th>' + A.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('') + '</tr>';
+const rowM = '<tr><th class="lab">Mesure principale</th>' + A.map(v=>`<td>${fmtPiHTML(principalMP(v))}</td>`).join('') + '</tr>';
+return `<div>Réponses :</div>
+  <table class="radtab" style="margin-top:6px">
+    <tbody>${rowL}${rowG}${rowM}</tbody>
+  </table>`;
+
+    }
+  }};
+}
+
+/* Utils communs Ex.3–4 */
+const POINTS_MAP_ALL={
+  'I':0,'A':PI/6,'B':PI/4,'C':PI/3,'J':PI/2,'D':2*PI/3,'E':3*PI/4,'F':5*PI/6,'K':PI,
+  "F'":7*PI/6,"E'":5*PI/4,"D'":4*PI/3,'L':3*PI/2,"C'":5*PI/3,"B'":7*PI/4,"A'":11*PI/6
+};
+function labelOf(a){ let t=((a%TAU)+TAU)%TAU; for(const L of Object.keys(POINTS_MAP_ALL)){ const Lr=POINTS_MAP_ALL[L]; if(Math.abs(t-Lr)<1e-9||Math.abs(Math.abs(t-Lr)-TAU)<1e-9) return L; if(Math.abs(t-PI)<1e-9 && L==='K') return 'K'; } return null; }
+
+/* ===== Ex.2 ===== */
+function EXO_appartenance(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const box=document.createElement('div'); host.appendChild(box);
+
+  const pool=[-PI/4, PI/4, 3*PI/2, -7*PI/6, 5*PI/6, -2*PI/3, 7*PI/3, -5*PI/4, PI, -PI, 0, -PI/2, 2*PI/5, 5*PI/3, 11*PI/6, 13*PI/6];
+  const set=[]; const seen=new Set();
+  while(set.length<8){ const v=pool[(Math.random()*pool.length)|0]; const k=Math.round(v*1e6); if(!seen.has(k)){ seen.add(k); set.push(v);} }
+
+  box.innerHTML=`
+    <div class="q">
+      <div><strong>Exercice 2 — Mesures (principales) d’angles orientés</strong></div>
+      <div>Sans calculatrice, indiquer, parmi les nombres réels suivants, ceux qui appartiennent à l’intervalle <b>] −π ; π ]</b>.</div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px" id="grid"></div>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>`;
+
+  const grid=$('#grid',box); const picks=[];
+  set.forEach(v=>{
+    const d=document.createElement('label');
+    d.style.display='flex'; d.style.justifyContent='center'; d.style.alignItems='center'; d.style.gap='6px';
+    d.innerHTML='<input type="checkbox"><span class="eq">'+fmtPiHTML(v)+'</span><span class="mark hide"></span>';
+    const ck=d.querySelector('input'), mk=d.querySelector('.mark');
+    ck.addEventListener('change', ()=>{
+      if(!VALIDATE_LIVE) return;
+      const isin = Math.abs(principalMP(v)-v)<1e-12;
+      setMark(mk, (ck.checked&&isin) || (!ck.checked&&!isin));
+    });
+    grid.appendChild(d); picks.push({v,ck, mk});
+  });
+
+  function check(){
+    let ok=0,tot=picks.length;
+    picks.forEach(o=>{
+      const isin = Math.abs(principalMP(o.v)-o.v)<1e-12;
+      if( (o.ck.checked&&isin) || (!o.ck.checked&&!isin) ) ok++;
+      if(o.ck.indeterminate===false){ setMark(o.mk, (o.ck.checked&&isin) || (!o.ck.checked&&!isin)); }
+    });
+    return {ok,total:tot};
+  }
+  function solutionHTML(){ return 'Appartiennent à ] −π ; π ] : '+picks.filter(o=>Math.abs(principalMP(o.v)-o.v)<1e-12).map(o=>fmtPiHTML(o.v)).join(' ; '); }
+  function solution(){ const s=$('#solution',box); s.style.display=''; s.innerHTML=solutionHTML(); }
+  function reset(){ $('#solution',box).style.display='none'; grid.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=false;}); grid.querySelectorAll('.mark').forEach(m=>setMark(m,null)); }
+
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:set}; },
+  render(st,isSol){
+    const vals = st.vals || [];
+    if(!isSol){
+      const enonce = `
+        <div><strong>Exercice 2 — Mesures (principales) d’angles orientés</strong></div>
+        <div>Sans calculatrice, indiquer, parmi les nombres réels suivants, ceux qui appartiennent à l’intervalle <b>] −π ; π ]</b>.</div>`;
+      const cells = vals.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('');
+      return `${enonce}
+        <table class="radtab" style="margin-top:6px"><tbody><tr>${cells}</tr></tbody></table>`;
+    }
+    const its = vals.filter(v=>Math.abs(principalMP(v)-v)<1e-12);
+    return `<div>Appartiennent à ] −π ; π ] : ${its.map(fmtPiHTML).join(' ; ')}</div>`;
+  }
+  }};
+}
+
+/* ===== Ex.3 ===== (] −π ; π ]) */
+function EXO_table_mp(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg}=circleWithPointsSVG({R:110,showLabels:true}); svgbox.appendChild(svg);
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  const bank=[PI/2,3*PI/2,3*PI/4,-5*PI/2,20*PI,5*PI/4,-7*PI/6,5*PI/6,-PI/6,11*PI/3];
+  const vals=[]; const seen=new Set(); while(vals.length<5){ const v=bank[(Math.random()*bank.length)|0]; const k=Math.round(v*1e6); if(!seen.has(k)){seen.add(k); vals.push(v);}}
+
+  statement.innerHTML=`
+    <div class="q">
+      <div><strong>Exercice 3 — Points images et mesures d’angles orientés</strong></div>
+      <div>Compléter le tableau puis s’aider du cercle. Mesures principales dans <b>] −π ; π ]</b>.</div>
+      <table class="radtab" style="margin-top:6px">
+        <tbody>
+          <tr id="rowR"><th class="lab nowrap">Réel</th></tr>
+          <tr id="rowP"><th class="lab nowrap">Point image</th></tr>
+          <tr id="rowM"><th class="lab nowrap">∈ ] −π ; π ]</th></tr>
+        </tbody>
+      </table></div>
+    <div class="solution-box" id="solution" style="display:none"></div>`;
+
+  const rowR=$('#rowR',statement), rowP=$('#rowP',statement), rowM=$('#rowM',statement);
+  const inputs=[];
+  vals.forEach(v=>{
+    const tdR=document.createElement('td'); tdR.innerHTML=`<div class="eq">${fmtPiHTML(v)}</div>`; rowR.appendChild(tdR);
+    const tdP=document.createElement('td'); tdP.innerHTML=`<div class="input-line"><input type="text"><span class="mark hide"></span></div>`; rowP.appendChild(tdP);
+    const tdM=document.createElement('td'); tdM.innerHTML=`<div class="input-line"><input type="text"><span class="mark hide"></span></div>`; rowM.appendChild(tdM);
+    const p=tdP.querySelector('input'), m=tdM.querySelector('input');
+    const mkp=tdP.querySelector('.mark'), mkm=tdM.querySelector('.mark');
+    inputs.push({v,p,m,mkp,mkm});
+  });
+
+  function check(){
+    let ok=0,tot=0;
+    for(const o of inputs){
+      const v1=(o.p.value||'').trim(); if(v1){ tot++; /* validation désactivée */ }
+      const v2=(o.m.value||'').trim(); if(v2){ tot++; /* validation désactivée */ }
+    }
+    return {ok:0,total:tot};
+  }
+  function solutionHTML(){
+    const row1='<tr>'+vals.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2='<tr>'+vals.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3='<tr>'+vals.map(v=>`<td>${fmtPiHTML(principalMP(v))}</td>`).join('')+'</tr>';
+    return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  function solution(){ const s=$('#solution',statement); s.style.display=''; s.innerHTML=solutionHTML(); }
+  function reset(){ $('#solution',statement).style.display='none'; statement.querySelectorAll('input').forEach(i=>{i.value=''; i.style.borderColor='#dcdcdc';}); statement.querySelectorAll('.mark').forEach(m=>setMark(m,null)); }
+
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:vals}; },
+  render(st,isSol){
+    const vs = st.vals || [];
+    if(!isSol){
+      const enonce = `
+        <div><strong>Exercice 3 — Points images et mesures d’angles orientés</strong></div>
+        <div>Compléter le tableau puis s’aider du cercle. Mesures principales dans <b>] −π ; π ]</b>.</div>`;
+      const rowR = '<tr><th class="lab nowrap">Réel</th>' + vs.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('') + '</tr>';
+      const rowP = '<tr><th class="lab nowrap">Point image</th>' + vs.map(()=>'<td></td>').join('') + '</tr>';
+      const rowM = '<tr><th class="lab nowrap">∈ ] −π ; π ]</th>' + vs.map(()=>'<td></td>').join('') + '</tr>';
+      return `<div style="display:grid;grid-template-columns:auto 1fr;column-gap:18mm;align-items:start">
+        <div>${circleWithPointsSVG({R:110, showLabels:true}).svg.outerHTML}</div>
+        <div>
+          ${enonce}
+          <table class="radtab" style="margin-top:6px"><tbody>${rowR}${rowP}${rowM}</tbody></table>
+        </div>
+      </div>`;
+    }
+    const row1='<tr>'+vs.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2='<tr>'+vs.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3='<tr>'+vs.map(v=>`<td>${fmtPiHTML(principalMP(v))}</td>`).join('')+'</tr>';
+    return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  }};
+}
+
+/* ===== Ex.4 ===== ([0 ; 2π[) */
+function EXO_table_02(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg}=circleWithPointsSVG({R:110,showLabels:true}); svgbox.appendChild(svg);
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  const bank=[-4*PI/3,5*PI/2,-PI/6,-PI/4,PI/3,PI/4,7*PI/3,5*PI/4,11*PI/6,-7*PI/6];
+  const vals=[]; const seen=new Set(); while(vals.length<5){ const v=bank[(Math.random()*bank.length)|0]; const k=Math.round(v*1e6); if(!seen.has(k)){seen.add(k); vals.push(v);}}
+
+  statement.innerHTML=`
+    <div class="q">
+      <div><strong>Exercice 4 — Points images et mesures d’angles orientés</strong></div>
+      <div>Compléter le tableau puis s’aider du cercle. Mesures principales dans <b>[ 0 ; 2π [</b>.</div>
+      <table class="radtab" style="margin-top:6px">
+        <tbody>
+          <tr id="rowR"><th class="lab nowrap">Réel</th></tr>
+          <tr id="rowP"><th class="lab nowrap">Point image</th></tr>
+          <tr id="rowM"><th class="lab nowrap">∈ [ 0 ; 2π [</th></tr>
+        </tbody>
+      </table></div>
+    <div class="solution-box" id="solution" style="display:none"></div>`;
+
+  const rowR=$('#rowR',statement), rowP=$('#rowP',statement), rowM=$('#rowM',statement);
+  const inputs=[];
+  vals.forEach(v=>{
+    const tdR=document.createElement('td'); tdR.innerHTML=`<div class="eq">${fmtPiHTML(v)}</div>`; rowR.appendChild(tdR);
+    const tdP=document.createElement('td'); tdP.innerHTML=`<div class="input-line"><input type="text"><span class="mark hide"></span></div>`; rowP.appendChild(tdP);
+    const tdM=document.createElement('td'); tdM.innerHTML=`<div class="input-line"><input type="text"><span class="mark hide"></span></div>`; rowM.appendChild(tdM);
+    const p=tdP.querySelector('input'), m=tdM.querySelector('input');
+    const mkp=tdP.querySelector('.mark'), mkm=tdM.querySelector('.mark');
+    inputs.push({v,p,m,mkp,mkm});
+  });
+
+  function check(){ return {ok:0,total:0}; }
+  function solutionHTML(){
+    const row1='<tr>'+vals.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2='<tr>'+vals.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3='<tr>'+vals.map(v=>`<td>${fmtPiHTML(principal02(v))}</td>`).join('')+'</tr>';
+    return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  function solution(){ const s=$('#solution',statement); s.style.display=''; s.innerHTML=solutionHTML(); }
+  function reset(){ $('#solution',statement).style.display='none'; statement.querySelectorAll('input').forEach(i=>{i.value=''; i.style.borderColor='#dcdcdc';}); statement.querySelectorAll('.mark').forEach(m=>setMark(m,null)); }
+
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:vals}; },
+  render(st,isSol){
+    const vs = st.vals || [];
+    if(!isSol){
+      const enonce = `
+        <div><strong>Exercice 4 — Points images et mesures d’angles orientés</strong></div>
+        <div>Compléter le tableau puis s’aider du cercle. Mesures principales dans <b>[ 0 ; 2π [</b>.</div>`;
+      const rowR = '<tr><th class="lab nowrap">Réel</th>' + vs.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('') + '</tr>';
+      const rowP = '<tr><th class="lab nowrap">Point image</th>' + vs.map(()=>'<td></td>').join('') + '</tr>';
+      const rowM = '<tr><th class="lab nowrap">∈ [ 0 ; 2π [</th>' + vs.map(()=>'<td></td>').join('') + '</tr>';
+      return `<div style="display:grid;grid-template-columns:auto 1fr;column-gap:18mm;align-items:start">
+        <div>${circleWithPointsSVG({R:110, showLabels:true}).svg.outerHTML}</div>
+        <div>
+          ${enonce}
+          <table class="radtab" style="margin-top:6px"><tbody>${rowR}${rowP}${rowM}</tbody></table>
+        </div>
+      </div>`;
+    }
+    const row1='<tr>'+vs.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2='<tr>'+vs.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3='<tr>'+vs.map(v=>`<td>${fmtPiHTML(principal02(v))}</td>`).join('')+'</tr>';
+    return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  }};
+}
+
+/* ===== Ex.5 ===== */
+function EXO_une_mesure(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const box=document.createElement('div'); host.appendChild(box);
+
+  const DEN=[2,3,4,5,6,7,12];
+  const pick = a=>a[(Math.random()*a.length)|0];
+  const ri = (a,b)=> (a + ((Math.random()*(b-a+1))|0));
+
+  const isMP = Math.random() < 0.10;
+  let p, q;
+  if(isMP){
+    q = pick(DEN);
+    do{ p = ri(-q+1, q); }while(p===0 || p===-q || igcd(Math.abs(p),q)!==1);
+  }else{
+    if(Math.random() < 0.25){
+      q = 1;
+      do{ p = ri(-9,9); }while(p===0 || p===1);
+      if(p===-1) p = -3;
+    }else{
+      q = pick(DEN);
+      let p0;
+      do{ p0 = ri(-q+1, q); }while(p0===0 || p0===-q || igcd(Math.abs(p0),q)!==1);
+      const t = ri(1,4) * (Math.random()<0.5? -1:1);
+      p = p0 + 2*q*t;
+    }
+  }
+
+  const p_mp = (function mpNumeratorSameDen(p, q){
+    let r = ((p % (2*q)) + 2*q) % (2*q);
+    if (r > q) r -= 2*q;
+    if (r === -q) r += 2*q;
+    return r;
+  })(p,q);
+
+  const givenHTML = piFracHTML(p,q,{reduce:false});
+  const mpHTML_irred = piFracHTML(p_mp,q,{reduce:true, color:'#16a34a;font-weight:600'});
+  const nTours = (p - p_mp) / (2*q);
+  const blueN = `<span style="color:#2563eb;font-weight:600">${Math.abs(nTours)}</span>`;
+  const red2pi = piFracHTML((nTours<0? -1:1)*2*q, q, {reduce:false, color:'#ef4444;font-weight:600'});
+  const redTerm = (nTours<0? `(${red2pi})` : red2pi);
+  const signColored = (p_mp<0) ? `<span style="color:#16a34a;font-weight:600">${UMIN}</span>` : '+';
+  const greenMP_unred = piFracHTML(Math.abs(p_mp), q, {reduce:false, color:'#16a34a;font-weight:600'});
+
+  box.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 5 —</strong> Donner la <em>mesure principale</em> de l’angle orienté dont une mesure en radians est :</div>
+      <div style="margin-top:10px;font-size:1.15rem"><b class="eq">${givenHTML}</b></div>
+      <div class="input-line" style="margin-top:8px"><label>Réponse&nbsp;:</label><input id="ans5" type="text" style="width:220px"><span class="mark hide" id="mk-ans5"></span></div>
+      <div class="small" style="margin-top:6px">On attend une valeur dans <b>] −π ; π ]</b> (π autorisé, −π exclu). <span class="badge">Entrée = Vérifier</span></div>
+    </div>
+    <div class="solution-box" id="sol5" style="display:none"></div>
+  `;
+
+  const inp = $('#ans5'); const m5  = $('#mk-ans5');
+  function check(){ const raw=(inp.value||'').trim(); if(!raw){ setMark(m5,null); return {ok:0,total:0}; } return {ok:0,total:1}; }
+  function solutionHTML(){
+    if(isMP){
+      return `${piFracHTML(p,q,{reduce:true})} ∈ ] −π ; π ] ; ainsi la mesure principale est ${mpHTML_irred}.`;
+    }else{
+      const formulaHTML = `<div class="mp-formula"><span class="nt">nombre de tour</span> × <span class="tw">(±2π)</span> <span class="mp">± MP</span></div>`;
+      return `${formulaHTML}
+      <div>${givenHTML} = ${blueN} × ${redTerm} ${signColored} ${greenMP_unred}
+      ; ainsi la mesure principale est ${mpHTML_irred}.</div>`;
+    }
+  }
+  function solution(){ const s=$('#sol5'); s.style.display=''; s.innerHTML = solutionHTML(); }
+  function reset(){ $('#sol5').style.display='none'; inp.value=''; setMark(m5,null); }
+
+  return {check, solution, reset, pdf:{
+    gen(){ return {p,q,p_mp,isMP}; },
+    render(st,isSol){
+      const {p,q,p_mp,isMP}=st;
+      if(!isSol){
+        const given = piFracHTML(p,q,{reduce:false});
+        return `<div><strong>Exercice 5 —</strong> Donner la <em>mesure principale</em> de l’angle orienté dont une mesure en radians est :
+          <div style="margin-top:6px;font-size:1.15rem"><b class="eq">${given}</b></div>
+          <div style="margin-top:6px"><b>Réponse :</b> </div>
+        </div>`;
+      }
+      const mpTxt = piFracHTML(p_mp,q,{reduce:true});
+      const n = (p-p_mp)/(2*q);
+      const nBlue   = `<span style="color:#2563eb;font-weight:600">${Math.abs(n)}</span>`;
+      const red     = piFracHTML((n<0?-1:1)*2*q,q,{reduce:false, color:'#ef4444;font-weight:600'});
+      const mpUn    = piFracHTML(Math.abs(p_mp),q,{reduce:false, color:'#16a34a;font-weight:600'});
+      const signStr = (p_mp<0) ? `<span style="color:#16a34a;font-weight:600">${UMIN}</span>` : '+';
+      if(isMP){
+        return `${piFracHTML(p,q,{reduce:true})} ∈ ] −π ; π ] ; ainsi la mesure principale est <b>${mpTxt}</b>.`;
+      }
+      return `<div style="font-style:italic;white-space:nowrap;margin-bottom:2mm">
+          <span style="color:#2563eb;font-weight:600">nombre de tour</span> ×
+          <span style="color:#ef4444;font-weight:600">(±2π)</span>
+          <span style="color:#16a34a;font-weight:600">± MP</span>
+        </div>
+        <div>${piFracHTML(p,q,{reduce:false})} = ${nBlue} × ${(n<0? '('+red+')' : red)} ${signStr} ${mpUn}
+        ; ainsi la mesure principale est <b>${mpTxt}</b>.</div>`;
+    }
+  }};
+}
+
+/* =================== REGISTRY & UI =================== */
+const REGISTRY=[
+  {id:'place', title:'Ex.1 — Placer les points sur le cercle', gen:EXO_place_points},
+  {id:'inint', title:'Ex.2 — Appartenance à ]−π ; π]', gen:EXO_appartenance},
+  {id:'tabmp', title:'Ex.3 — Tableau + cercle (]−π ; π])', gen:EXO_table_mp},
+  {id:'tab02', title:'Ex.4 — Tableau + cercle ([0 ; 2π[)', gen:EXO_table_02},
+  {id:'oneshot', title:'Ex.5 — Mesure principale (1 réel)', gen:EXO_une_mesure}
+];
+window.REGISTRY = REGISTRY;
+
+let API=null, scoreOK=0, scoreTOT=0;
+function insertHelpPanel(){
+  const host=$('#mount-here'); if(!host) return;
+  if(host.querySelector('#help-panel')) return;
+  const hp = document.createElement('div'); hp.id='help-panel'; hp.className='helpwhite';
+  hp.innerHTML = `<b>Saisie & réponses acceptées :</b>
+    <ul style="margin:.3rem 0 .1rem 1.1rem">
+      <li>En radians : écrire <code>pi</code> ou <code>π</code>; formats acceptés : <code>kπ/q</code>, <code>kπ</code>, <code>k</code> (réel); signes <code>−</code>/<code>-</code>.</li>
+    </ul>`;
+  host.appendChild(hp);
+}
+function populateSelect(){ const sel=$('#exo-select'); sel.innerHTML=''; for(const e of REGISTRY){ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o);} }
+function renderActive(){ const sel=$('#exo-select'); const exo=REGISTRY.find(e=>e.id===sel.value)||REGISTRY[0]; API=exo.gen(); }
+function buildOne(){ if($('#mount-here')) $('#mount-here').innerHTML=''; renderActive(); insertHelpPanel(); }
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTOT}`; }
+function check(){ if(!API) return; const r=API.check(); scoreOK += r.ok||0; scoreTOT += (r.total ?? r.tot ?? 0); updateScore(); }
+function solution(){ if(API) API.solution(); }
+function resetAll(){ scoreOK=0; scoreTOT=0; updateScore(); if(API) API.reset(); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  populateSelect(); renderActive(); insertHelpPanel();
+  $('#exo-select').addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  updateScore();
+  document.addEventListener('keydown',(ev)=>{
+    const a=document.activeElement;
+    if(a && a.tagName==='INPUT' && ev.key==='Enter'){ ev.preventDefault(); check(); }
+  });
+});
+</script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.ExoPDF) return;
+
+  ExoPDF.init({
+    title: document.title || 'Fiche — Mesure principale',
+    mountAfterSelector: '.wrap .card:first-child',
+    max: 50,
+
+    // 1) On tente d'utiliser l'instance écran (mêmes données)
+    // 2) Sinon, on reconstruit une instance à partir de def.gen()
+    // Dans tous les cas on renvoie un objet (jamais null/undefined).
+    beforeGen(def, st, meta) {
+      try {
+        if (window.API && window.API.pdf && typeof window.API.pdf.gen === 'function') {
+          const g = window.API.pdf.gen();
+          if (g) return g;
+        }
+        const inst = (typeof def.gen === 'function') ? def.gen() : null;
+        if (inst && inst.pdf && typeof inst.pdf.gen === 'function') {
+          return inst.pdf.gen();
+        }
+      } catch (e) { console.warn('beforeGen error:', e); }
+      return { __empty: true }; // objet inoffensif
+    },
+
+    // Même logique que ci-dessus, et on renvoie toujours une chaîne non vide.
+    beforeRender(def, st, isSolution) {
+      try {
+        if (window.API && window.API.pdf && typeof window.API.pdf.render === 'function') {
+          const html = window.API.pdf.render(st, isSolution);
+          if (html && typeof html === 'string' && html.trim()) return html;
+        }
+        const inst = (typeof def.gen === 'function') ? def.gen() : null;
+        if (inst && inst.pdf && typeof inst.pdf.render === 'function') {
+          const html = inst.pdf.render(st, isSolution);
+          if (html && typeof html === 'string' && html.trim()) return html;
+        }
+      } catch (e) { console.warn('beforeRender error:', e); }
+      // Filet de sécurité : on renvoie une petite boîte plutôt que rien
+      return '<div style="font-style:italic;color:#555">Contenu non disponible (rendu par défaut).</div>';
+    }
+  });
+});
+</script>
+
+
+</body>
+</html>

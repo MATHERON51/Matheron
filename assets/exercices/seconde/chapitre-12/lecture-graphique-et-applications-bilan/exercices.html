@@ -1,0 +1,1562 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seconde – Droites : coefficient directeur & équations</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.controls .btn:hover{background:#f7f7f7}
+#host .btn{border:1px solid #bbb;background:#fff;border-radius:8px;padding:.25rem .6rem;cursor:pointer}
+.score{font-weight:700}
+.small{font-size:.92rem;color:#666}
+.row{display:grid;grid-template-columns:420px 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.svgbox{width:420px;height:420px;border:1px solid #ddd;border-radius:8px;background:#fff}
+.optionline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chips{display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.chip{border:1px solid #bbb;border-radius:999px;padding:.2rem .55rem;user-select:none}
+.chip .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
+.chip.active{ border-color:#222; background:#eef }
+
+.field-ok{outline:2px solid #11823b33}
+.field-ko{outline:2px solid #b0002033}
+.perline{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.expr{cursor:pointer}
+.expr.focus{background:#fff3;border:1px solid #bbb;border-radius:8px}
+@media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
+
+/* Fractions en pile (inline) */
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;line-height:1}
+.frac>.num{border-bottom:1px solid #000;padding:0 .15em;text-align:center}
+.frac>.den{padding:0 .15em;text-align:center}
+.sp{display:inline-block;min-width:.25em}
+
+/* Ticks de validation */
+.tick{margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b}
+.tick.ko{color:#b00020}
+/* Ticks de validation */
+.tick{
+  display:none;           /* ← caché au départ */
+  margin-left:.35rem;
+  font-weight:700;
+}
+.tick.ok{ color:#11823b }
+.tick.ko{ color:#b00020 }
+
+svg text{pointer-events:none}
+</style>
+
+  <!-- DevRules in inputs-only mode -->
+  <script>window.DEVRULES_MODE='inputs-only';</script>
+  <script src="../../../../js/dev-rules-clean.dedup.vB.inputs-only.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+  <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+  <script src="../../../../js/repere_patch_0813.js" defer></script>
+
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – <strong>Droites</strong> : coefficient directeur & équations</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+      <span id="status" class="small"></span>
+    </div>
+
+    <!-- Amplitude globale -->
+    <div class="controls card" id="ampbar">
+      <strong>Amplitude du repère (max ±12) :</strong>
+      <span>x ∈ [</span><input id="xmin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
+      <input id="xmax" type="number" value="6"  min="-12" max="12" step="1"><span>],</span>
+      <span>y ∈ [</span><input id="ymin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
+      <input id="ymax" type="number" value="6"  min="-12" max="12" step="1"><span>]</span>
+      <button id="amp-apply" class="btn">↴ Appliquer</button>
+      <label class="small" style="margin-left:10px"><input id="pdf-amp-random" type="checkbox"> PDF : amplitude aléatoire (par énoncé)</label>
+    </div>
+
+    <div id="host" class="card"></div>
+
+    <div class="card kbd-host"><div data-math-kbd></div></div>
+  </div>
+
+<script>
+(function(){'use strict';
+
+/* ============ Utils ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const UMINUS='−';
+const normalizeMinus = s => String(s||'').split('-').join(UMINUS).replace(/\s+/g,' ').trim();
+const uminusStr = n => (n<0?UMINUS:'')+Math.abs(n);
+const coordToText = (x,y) => `(${uminusStr(x)};${uminusStr(y)})`;
+const clip12 = v => Math.max(-12, Math.min(12, v));
+const PALETTE = ['#1565c0','#d32f2f','#2e7d32','#6a1b9a','#ef6c00','#00897b'];
+const dot = c => `<span class="dot" style="background:${c}"></span>`;
+
+/* Fractions */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=b; b=a%b; a=t; } return a||1; }
+function simp(p,q){ if(q<0){p=-p;q=-q;} const g=gcd(p,q); return {p:p/g,q:q/g}; }
+function parseFrac(txt){
+  txt = normalizeMinus(String(txt||'').trim());
+  if(!txt) return null;
+  // enlever d'éventuelles parenthèses englobantes
+  txt = txt.replace(/^\((.*)\)$/,'$1');
+  if(/^[\u2212-]?\d+$/.test(txt)){
+    const n=parseInt(txt.replace(UMINUS,'-'),10);
+    return {p:n,q:1};
+  }
+  const m = txt.replace(UMINUS,'-').match(/^([+\-]?\d+)\s*[\/⁄]\s*([+\-]?\d+)$/);
+  if(m){ const p=parseInt(m[1],10), q=parseInt(m[2],10); if(q===0) return null; return simp(p,q); }
+  return null;
+}
+function fracToText(fr){ if(!fr) return ''; const {p,q}=simp(fr.p,fr.q); return q===1 ? String(p).replace('-',UMINUS) : ( (p<0?'−':'')+Math.abs(p)+'/'+q ); }
+function fracToFloat(fr){ return fr.p/fr.q; }
+
+/* Affichages */
+function eqIntText(m,b){
+  const mtxt = (m===1?'':(m===-1?UMINUS: String(m).replace('-',UMINUS))) + 'x';
+  const btxt = (b===0)?'':( (b>0?' + ':' '+UMINUS+' ') + Math.abs(b) );
+  return 'y = ' + mtxt + btxt;
+}
+function fracHTML(p,q){
+  const s = simp(p,q);
+  const sign = s.p<0?UMINUS:'';
+  const P = Math.abs(s.p), Q = s.q;
+  return `${sign}<span class="frac"><span class="num">${P}</span><span class="den">${Q}</span></span>`;
+}
+function eqFracHTML(p,q,b){
+  const mtxt = `${fracHTML(p,q)}<span class="sp"></span>x`;
+  const btxt = (b===0)?'' : (b>0 ? ' + '+Math.abs(b) : ' '+UMINUS+' '+Math.abs(b));
+  return 'y = ' + mtxt + btxt;
+}
+
+/* ====== Repère ====== */
+const AMP = { xmin:-6, xmax:6, ymin:-6, ymax:6 };
+
+class Repere{
+  constructor(R={xmin:-6,xmax:6,ymin:-6,ymax:6}){
+    this.R={...R};
+    this.points=[]; this.user=[]; this.clickable=false; this.onClick=null;
+    this.el=this._makeSVG(); this.redraw();
+  }
+  _makeSVG(){
+    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
+    const defs=document.createElementNS(s.namespaceURI,'defs');
+    const marker=document.createElementNS(s.namespaceURI,'marker');
+    marker.setAttribute('id','arrow'); marker.setAttribute('orient','auto');
+    marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8');
+    marker.setAttribute('refX','0'); marker.setAttribute('refY','3');
+    const path=document.createElementNS(s.namespaceURI,'path');
+    path.setAttribute('d','M0,0 L0,6 L8,3 z'); path.setAttribute('fill','#000');
+    marker.appendChild(path); defs.appendChild(marker); s.appendChild(defs);
+    this.gGrid=document.createElementNS(s.namespaceURI,'g');
+    this.gAxes=document.createElementNS(s.namespaceURI,'g');
+    this.gPts=document.createElementNS(s.namespaceURI,'g');
+    this.gUser=document.createElementNS(s.namespaceURI,'g');
+    [this.gGrid,this.gAxes,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
+    s.addEventListener('click',ev=>{
+      if(!this.clickable||!this.onClick) return;
+      const r=s.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
+      const c=this.screenToCoord(x,y);
+      const lim=this.innerLimits(), xi=Math.round(c.x), yi=Math.round(c.y);
+      if(xi<lim.xmin||xi>lim.xmax||yi<lim.ymin||yi>lim.ymax) return;
+      this.onClick({x:xi,y:yi});
+    });
+    return s;
+  }
+  innerLimits(){ return { xmin:this.R.xmin+1, xmax:this.R.xmax-1, ymin:this.R.ymin+1, ymax:this.R.ymax-1 }; }
+  set(R){ this.R={...this.R,...R}; this.redraw(); }
+  coordToScreen(x,y){
+    const R=this.R, w=420, h=420;
+    const X = (x-R.xmin)/(R.xmax-R.xmin)*w;
+    const Y = h - (y-R.ymin)/(R.ymax-R.ymin)*h;
+    return {x:X,y:Y};
+  }
+  screenToCoord(X,Y){
+    const R=this.R, w=420, h=420;
+    const x = R.xmin + X/w*(R.xmax-R.xmin);
+    const y = R.ymin + (h-Y)/h*(R.ymax-R.ymin);
+    return {x,y};
+  }
+  clearUser(){ this.user=[]; this.gUser.innerHTML=''; }
+  placeUser(label,x,y,color='#0a84ff'){
+    let g=this.gUser.querySelector(`g[data-label="${label}"]`);
+    if(!g){
+      g=document.createElementNS(this.el.namespaceURI,'g'); g.dataset.label=label;
+      const c=document.createElementNS(this.el.namespaceURI,'circle'); c.setAttribute('r','5'); c.setAttribute('fill',color);
+      const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('font-size','11'); t.setAttribute('fill',color); t.textContent=label;
+      g.appendChild(c); g.appendChild(t); this.gUser.appendChild(g);
+    }
+    const P=this.coordToScreen(x,y), c=g.querySelector('circle'), t=g.querySelector('text');
+    c.setAttribute('cx',P.x); c.setAttribute('cy',P.y); t.setAttribute('x',P.x+6); t.setAttribute('y',P.y-6);
+    const i=this.user.findIndex(p=>p.label===label); if(i>=0) this.user[i]={label,x,y}; else this.user.push({label,x,y});
+  }
+  drawGivenLine(id,color,pts){
+    let L=this.gPts.querySelector(`line[data-id="${id}"]`);
+    if(!L){ L=document.createElementNS(this.el.namespaceURI,'line'); L.dataset.id=id; this.gPts.appendChild(L); }
+    const a=this.coordToScreen(pts[0].x,pts[0].y), b=this.coordToScreen(pts[1].x,pts[1].y);
+    L.setAttribute('x1',a.x); L.setAttribute('y1',a.y); L.setAttribute('x2',b.x); L.setAttribute('y2',b.y);
+    L.setAttribute('stroke',color||'#000'); L.setAttribute('stroke-width','3');
+  }
+  drawUserLine(id,color,pts){
+    let L=this.gUser.querySelector(`line[data-id="${id}"]`);
+    if(!L){ L=document.createElementNS(this.el.namespaceURI,'line'); L.dataset.id=id; this.gUser.appendChild(L); }
+    const a=this.coordToScreen(pts[0].x,pts[0].y), b=this.coordToScreen(pts[1].x,pts[1].y);
+    L.setAttribute('x1',a.x); L.setAttribute('y1',a.y); L.setAttribute('x2',b.x); L.setAttribute('y2',b.y);
+    L.setAttribute('stroke',color||'#0a84ff'); L.setAttribute('stroke-width','2.5');
+  }
+  drawUserInfiniteLine(id,color,P,Q){
+    if(P.x===Q.x){
+      this.drawUserLine(id,color,[{x:P.x,y:this.R.ymin},{x:P.x,y:this.R.ymax}]);
+      return;
+    }
+    const m=(Q.y-P.y)/(Q.x-P.x), b=P.y - m*P.x;
+    const x1=this.R.xmin, y1=m*x1+b;
+    const x2=this.R.xmax, y2=m*x2+b;
+    this.drawUserLine(id,color,[{x:x1,y:y1},{x:x2,y:y2}]);
+  }
+  redraw(){
+    const R=this.R; this.gGrid.innerHTML=''; this.gAxes.innerHTML=''; this.gPts.innerHTML='';
+    const mkLine=(x1,y1,x2,y2,thick=false)=>{ const L=document.createElementNS(this.el.namespaceURI,'line'); L.setAttribute('x1',x1);L.setAttribute('y1',y1);L.setAttribute('x2',x2);L.setAttribute('y2',y2); L.setAttribute('stroke','#000'); L.setAttribute('stroke-width',thick?2.5:1); return L; };
+    for(let t=R.xmin;t<=R.xmax;t++){ const p1=this.coordToScreen(t,R.ymin), p2=this.coordToScreen(t,R.ymax); this.gGrid.appendChild(mkLine(p1.x,p1.y,p2.x,p2.y)); }
+    for(let t=R.ymin;t<=R.ymax;t++){ const q1=this.coordToScreen(R.xmin,t), q2=this.coordToScreen(R.xmax,t); this.gGrid.appendChild(mkLine(q1.x,q1.y,q2.x,q2.y)); }
+    const axX=mkLine(this.coordToScreen(R.xmin,0).x,this.coordToScreen(R.xmin,0).y,this.coordToScreen(R.xmax,0).x,this.coordToScreen(R.xmax,0).y,true);
+    const axY=mkLine(this.coordToScreen(0,R.ymin).x,this.coordToScreen(0,R.ymin).y,this.coordToScreen(0,R.ymax).x,this.coordToScreen(0,R.ymax).y,true);
+    axX.setAttribute('marker-end','url(#arrow)'); axY.setAttribute('marker-end','url(#arrow)'); this.gAxes.appendChild(axX); this.gAxes.appendChild(axY);
+    // graduations & labels
+    for(let t=R.xmin;t<=R.xmax;t++){
+      const u=this.coordToScreen(t,(R.ymin+R.ymax)/2+0.15), v=this.coordToScreen(t,(R.ymin+R.ymax)/2-0.15);
+      this.gAxes.appendChild(mkLine(u.x,u.y,v.x,v.y));
+      if(t!==0 && t!==1){ const tx=document.createElementNS(this.el.namespaceURI,'text'); tx.setAttribute('x',this.coordToScreen(t,0).x+2); tx.setAttribute('y',this.coordToScreen(t,0).y-2); tx.setAttribute('font-size','11'); tx.textContent=uminusStr(t); this.gAxes.appendChild(tx); }
+    }
+    for(let t=R.ymin;t<=R.ymax;t++){
+      const u=this.coordToScreen((R.xmin+R.xmax)/2+0.15,t), v=this.coordToScreen((R.xmin+R.xmax)/2-0.15,t);
+      this.gAxes.appendChild(mkLine(u.x,u.y,v.x,v.y));
+      if(t!==0 && t!==1){ const ty=document.createElementNS(this.el.namespaceURI,'text'); ty.setAttribute('x',this.coordToScreen(0,t).x+4); ty.setAttribute('y',this.coordToScreen(0,t).y-2); ty.setAttribute('font-size','11'); ty.textContent=uminusStr(t); this.gAxes.appendChild(ty); }
+    }
+    // O, I, J
+    const O=this.coordToScreen(0,0), I=this.coordToScreen(1,0), J=this.coordToScreen(0,1);
+    const mkTxt=(pt,label)=>{ const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',pt.x+4); t.setAttribute('y',pt.y-4); t.setAttribute('font-size','12'); t.textContent=label; return t; };
+    const mkPt=(pt)=>{ const c=document.createElementNS(this.el.namespaceURI,'circle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r','3.5'); c.setAttribute('fill','#000'); return c; };
+    this.gAxes.appendChild(mkPt(O)); this.gAxes.appendChild(mkTxt(O,'O'));
+    this.gAxes.appendChild(mkPt(I)); this.gAxes.appendChild(mkTxt(I,'I'));
+    this.gAxes.appendChild(mkPt(J)); this.gAxes.appendChild(mkTxt(J,'J'));
+  }
+}
+
+/* UI helpers */
+function renderWithRepere(host,opts){
+  host.innerHTML='';
+  const row=document.createElement('div'); row.className='row';
+  const left=document.createElement('div'); const right=document.createElement('div');
+  row.appendChild(left); row.appendChild(right); host.appendChild(row);
+  const rep=new Repere(opts.R||AMP,{}); left.appendChild(rep.el);
+const equ=document.createElement('div');
+equ.className = 'equ';   // ← aide le kit à reconnaître le bloc énoncé
+right.appendChild(equ);
+  const actions=document.createElement('div'); actions.className='optionline'; right.appendChild(actions);
+  const res=document.createElement('div'); res.id='res'; right.appendChild(res);
+  return {rep,left,right,equ,actions,res};
+}
+
+function mkInput(id,w=120,ph=''){ return `<input id="${id}" style="width:${w}px" placeholder="${ph}">`; }
+function setVal(host,id,val){ const i=$('#'+id,host); if(i) i.value=val; }
+function getVal(host,id){ const i=$('#'+id,host); return i ? String(i.value||'').trim() : ''; }
+function setTick(el, val){
+  if(!el) return;
+  if(val===true){
+    el.textContent = '✓';
+    el.classList.add('ok');
+    el.classList.remove('ko');
+    el.style.display = 'inline';   // ← on affiche seulement maintenant
+  }else if(val===false){
+    el.textContent = '✘';
+    el.classList.add('ko');
+    el.classList.remove('ok');
+    el.style.display = 'inline';   // ← on affiche seulement maintenant
+  }else{
+    // état “non vérifié” → totalement invisible (et pas de '—')
+    el.textContent = '';
+    el.classList.remove('ok','ko');
+    el.style.display = 'none';
+  }
+}
+
+
+/* Amplitude */
+function applyAMPInputs(){
+  AMP.xmin = clip12(parseInt($('#xmin').value||-6,10));
+  AMP.xmax = clip12(parseInt($('#xmax').value|| 6,10));
+  AMP.ymin = clip12(parseInt($('#ymin').value||-6,10));
+  AMP.ymax = clip12(parseInt($('#ymax').value|| 6,10));
+  if(AMP.xmin>=AMP.xmax) AMP.xmax=AMP.xmin+1;
+  if(AMP.ymin>=AMP.ymax) AMP.ymax=AMP.ymin+1;
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def){
+    const st=JSON.parse(host.dataset.state||'{}'); st.R = {...AMP};
+    def.render(host, st);
+  }
+}
+
+/* ================== Exercices ================== */
+function makeExos(){ const L=[];
+
+/* ========== Ex 1: Coefficient directeur entier ========== */
+L.push({
+  id:'cd_entier',
+  title:'Ex. 1 — Coefficient directeur entier',
+  gen(){
+    const R={...AMP};
+    const lim = { xmin:R.xmin+1,xmax:R.xmax-1,ymin:R.ymin+1,ymax:R.ymax-1 };
+    const slopes=[-5,-4,-3,-2,-1,1,2,3,4,5];
+    let tries=0;
+    while(true){
+      const m = slopes[rnd(0,slopes.length-1)];
+      const bmin = Math.max(lim.ymin, lim.ymin - m);
+      const bmax = Math.min(lim.ymax, lim.ymax - m);
+      if(bmin<=bmax){
+        const b = rnd(bmin,bmax);
+        return {R,m,b};
+      }
+      if(++tries>100) return {R,m:1,b:0};
+    }
+  },
+  render(host,s){
+  const ui=renderWithRepere(host,{R:s.R});
+  host._ui=ui;
+
+  // HTML avec placeholders de ticks (—), mais pas de mise à jour "live"
+  ui.equ.innerHTML = `
+    <p>On considère la droite <b>D</b> d’équation :
+      <span class="code">${eqIntText(s.m,s.b)}</span>. Tracer la droite <b>D</b>.
+    </p>
+    <p>L’ordonnée à l’origine p est ${mkInput('b',80)} <span id="t_b" class="tick">—</span> ;
+    la droite coupe donc l’axe des ordonnées au point d’ordonnée ${mkInput('b2',80)} <span id="t_b2" class="tick">—</span>.<br>
+    On place donc le point <b>A</b>${mkInput('A',120,'(0;?)')} <span id="t_A" class="tick">—</span>.</p>
+    <p>La pente m est égale à ${mkInput('m',80)} <span id="t_m" class="tick">—</span> ;
+    on part du point <b>A</b>, on se déplace « verticalement » de ${mkInput('dv',60)} <span id="t_dv" class="tick">—</span> unités vers le ${mkInput('dirv',80,'haut/bas')} <span id="t_dirv" class="tick">—</span>
+    (car la pente m ${mkInput('car',120,'>0 ou <0')} <span id="t_car" class="tick">—</span>) et « horizontalement » d’une unité vers la droite.
+    On obtient un deuxième point <b>B</b>.</p>
+    <div class="hint">Clique dans le repère : 1<sup>er</sup> clic on place <b>A</b> ; 2<sup>e</sup> clic on place <b>B</b> et on trace la <b>droite (AB)</b>.</div>
+  `;
+
+  // Petit panneau "A / B" à gauche (pas de bouton local)
+  const tickBox1 = document.createElement('div');
+  tickBox1.className = 'small';
+  tickBox1.innerHTML = `Points : A <span id="tickA" class="tick">—</span> · B <span id="tickB" class="tick">—</span>`;
+  ui.left.appendChild(tickBox1);
+
+  // ✅ Clics RÉELS : A puis B où l’élève clique (arrondi entier)
+ui.rep.clickable = true;
+let step = 0, Apos = null;
+
+ui.rep.onClick = (P)=>{
+  if(step===0){
+    Apos = {x:P.x, y:P.y};
+    ui.rep.placeUser('A', Apos.x, Apos.y, '#1565c0');
+    step = 1;
+  }else if(step===1){
+    const Bpos = {x:P.x, y:P.y};
+    ui.rep.placeUser('B', Bpos.x, Bpos.y, '#d32f2f');
+    // 🔥 droite (infinie), pas segment :
+    ui.rep.drawUserInfiniteLine('AB', '#333', Apos, Bpos);
+    step = 2;
+  }
+};
+
+
+  host.dataset.state=JSON.stringify(s);
+},
+  correct(host,s){
+  const has = id => getVal(host,id)!=='';
+  const b1 = has('b')  ? parseFrac(getVal(host,'b'))  : null;
+  const b2 = has('b2') ? parseFrac(getVal(host,'b2')) : null;
+  const A   = has('A') ? getVal(host,'A') : null;
+  const mIn = has('m') ? parseFrac(getVal(host,'m')) : null;
+  const dv  = has('dv')? parseFrac(getVal(host,'dv')): null;
+  const dirv=(getVal(host,'dirv')||'').toLowerCase();
+  const car = (getVal(host,'car')||'').trim();
+
+  // Points posés ?
+  const hasA = host._ui?.rep?.user?.some(p=>p.label==='A');
+  const hasB = host._ui?.rep?.user?.some(p=>p.label==='B');
+
+  // Vérifs
+  const okb   = b1 && b1.p/b1.q===s.b;
+  const okb2  = b2 && b2.p/b2.q===s.b;
+  const okA   = A  && normalizeMinus(A)===normalizeMinus(`(${0};${s.b})`).replace(/-/g,UMINUS);
+  const okm   = mIn&& (mIn.p/mIn.q)===s.m;
+  const okdv  = dv && Math.abs(dv.p/dv.q)===Math.abs(s.m);
+  const okdir = dirv && ((s.m>=0 && (dirv.includes('haut')||dirv.includes('monte'))) || (s.m<0 && (dirv.includes('bas')||dirv.includes('desc'))));
+  const okcar = car && ((s.m>=0 && car=='>0') || (s.m<0 && car=='<0'));
+
+  const Aok = host._ui?.rep?.user?.some(p=>p.label==='A' && p.x===0 && p.y===s.b);
+  const Bok = host._ui?.rep?.user?.some(p=>p.label==='B' && p.x===1 && p.y===s.b+s.m);
+
+  // ✅ Afficher les ticks MAINTENANT (pas en live)
+  setTick($('#t_b',  host._ui.equ), b1? !!okb : null);
+  setTick($('#t_b2', host._ui.equ), b2? !!okb2: null);
+  setTick($('#t_A',  host._ui.equ), A ? !!okA : null);
+  setTick($('#t_m',  host._ui.equ), mIn?!!okm : null);
+  setTick($('#t_dv', host._ui.equ), dv? !!okdv: null);
+  setTick($('#t_dirv',host._ui.equ), dirv?!!okdir:null);
+  setTick($('#t_car', host._ui.equ), car?!!okcar: null);
+
+  setTick($('#tickA', host._ui.left), hasA ? !!Aok : null);
+  setTick($('#tickB', host._ui.left), hasB ? !!Bok : null);
+
+  // Règle "pas de pénalisation si vide" + réussite uniquement si TOUT rempli et correct
+  const allAnswered = ['b','b2','A','m','dv','dirv','car'].every(id=>getVal(host,id)!=='') && hasA && hasB;
+  const ok = allAnswered && okb && okb2 && okA && okm && okdv && okdir && okcar && Aok && Bok;
+
+  host._ui.res.className = ok? 'res-ok' : '';
+  host._ui.res.textContent = ok ? '✔' : '';
+  return {ok,total:1};
+},
+
+  solution(host,s){
+    host._ui.res.innerHTML = `<div class="steps">
+      <div class="step"><b>Ordonnée à l’origine :</b> p = ${s.b} : on obtient A${coordToText(0,s.b)}.</div>
+      <div class="step"><b>Pente :</b> m = ${s.m} : déplacement vertical de ${Math.abs(s.m)} ${s.m>=0?'vers le haut':'vers le bas'} et horizontal de 1 vers la droite pour atteindre B${coordToText(1,s.b+s.m)}.</div>
+      <div class="step"><b>Traçage :</b> tracer la droite (AB).</div>
+    </div>`;
+  },
+  reset(host){
+    if(host._ui){
+      host._ui.rep.clearUser();
+      const L = host._ui.left;
+      setTick($('#tickA', L), null); setTick($('#tickB', L), null);
+    }
+    $('#res',host).textContent='';
+    $$('input',host).forEach(i=>i.value='');
+  },
+  pdfStatement(s){
+    return `<div><div class="hint">On considère la droite D d’équation : ${eqIntText(s.m,s.b)}</div>
+      <div>Compléter les pointillés et placer les deux points A et B, puis tracer la droite.</div></div>`;
+  },
+  pdfSolution(s){
+    return `<div class="steps">
+      <div class="step">b = ${s.b} → A = ${coordToText(0,s.b)}</div>
+      <div class="step">m = ${s.m} → déplacement vertical de ${Math.abs(s.m)} vers le ${s.m>=0?'haut':'bas'}, horizontal de 1 vers la droite → B = ${coordToText(1,s.b+s.m)}</div>
+      <div class="step">Tracer la droite (AB).</div>
+    </div>`;
+  }
+});
+
+/* ========== Ex 2: Coefficient directeur fractionnaire ========== */
+L.push({
+  id:'cd_fraction',
+  title:'Ex. 2 — Coefficient directeur avec fraction',
+  gen(){
+    const R={...AMP};
+    const lim = { xmin:R.xmin+1,xmax:R.xmax-1,ymin:R.ymin+1,ymax:R.ymax-1 };
+    let tries=0;
+    while(true){
+      let q = rnd(2, Math.max(2, Math.min(5, lim.xmax)));
+      let p = rnd(1,5) * (Math.random()<.5?-1:1);
+      const g=gcd(Math.abs(p),q); p/=g; q/=g;
+      if(q===1) continue; // empêcher un dénominateur 1
+      const bmin = Math.max(lim.ymin, lim.ymin - p);
+      const bmax = Math.min(lim.ymax, lim.ymax - p);
+      if(bmin<=bmax){
+        const b = rnd(bmin,bmax);
+        return {R,p,q,b};
+      }
+      if(++tries>100) return {R,p:1,q:2,b:0};
+    }
+  },
+  render(host,s){
+  const ui=renderWithRepere(host,{R:s.R}); host._ui=ui;
+
+  ui.equ.innerHTML = `
+    <p>On considère la droite <b>D</b> d’équation :
+      <span class="code">${eqFracHTML(s.p,s.q,s.b)}</span>. Tracer la droite <b>D</b>.
+    </p>
+    <p>L’ordonnée à l’origine est ${mkInput('b',80)} <span id="t_b" class="tick">—</span> ;
+    la droite coupe donc l’axe des ordonnées au point d’ordonnée ${mkInput('b2',80)} <span id="t_b2" class="tick">—</span>.<br>
+    On place donc le point <b>A</b>${mkInput('A',120,'(0;?)')} <span id="t_A" class="tick">—</span>.</p>
+    <p>La pente est égale à ${mkInput('m',90,'p/q')} <span id="t_m" class="tick">—</span> ;
+    on part du point <b>A</b>, on se déplace « verticalement » de ${mkInput('dv',60)} <span id="t_dv" class="tick">—</span> unités vers le ${mkInput('dirv',80,'haut/bas')} <span id="t_dirv" class="tick">—</span>
+    (car ${mkInput('car',140,'signe de m')} <span id="t_car" class="tick">—</span>) et « horizontalement » de ${mkInput('dh',60)} <span id="t_dh" class="tick">—</span> unités vers la droite.
+    On obtient un deuxième point <b>B</b>.</p>
+    <div class="hint">Clique dans le repère : 1<sup>er</sup> clic : on place <b>A</b> ; 2<sup>e</sup> clic : on place <b>B</b> et on trace la <b>droite (AB)</b>.</div>
+  `;
+
+  const tickBox2 = document.createElement('div');
+  tickBox2.className = 'small';
+  tickBox2.innerHTML = `Points : A <span id="tickA" class="tick">—</span> · B <span id="tickB" class="tick">—</span>`;
+  ui.left.appendChild(tickBox2);
+
+  // (à l'intérieur de render(host,s) …)
+ui.rep.clickable = true;
+let step = 0, Apos = null;
+
+ui.rep.onClick = (P)=>{
+  if(step===0){
+    Apos = {x:P.x, y:P.y};
+    ui.rep.placeUser('A', Apos.x, Apos.y, '#1565c0');
+    step = 1;
+  }else if(step===1){
+    const Bpos = {x:P.x, y:P.y};
+    ui.rep.placeUser('B', Bpos.x, Bpos.y, '#d32f2f');
+    // 🔥 droite (infinie), pas segment :
+    ui.rep.drawUserInfiniteLine('AB', '#333', Apos, Bpos);
+    step = 2;
+  }
+};
+
+
+  host.dataset.state=JSON.stringify(s);
+},
+
+  correct(host,s){
+  const has=id=>getVal(host,id)!=='';
+  const b1=has('b')?parseFrac(getVal(host,'b')):null;
+  const b2=has('b2')?parseFrac(getVal(host,'b2')):null;
+  const A =has('A')?getVal(host,'A'):null;
+  const m =has('m')?parseFrac(getVal(host,'m')):null;
+  const dv=has('dv')?parseFrac(getVal(host,'dv')):null;
+  const dh=has('dh')?parseFrac(getVal(host,'dh')):null;
+  const dirv=(getVal(host,'dirv')||'').toLowerCase();
+  const car = (getVal(host,'car')||'').trim();
+
+  // Points posés ?
+  const hasA = host._ui?.rep?.user?.some(p=>p.label==='A');
+  const hasB = host._ui?.rep?.user?.some(p=>p.label==='B');
+
+  // Vérifs
+  const okb   = b1 && b1.p/b1.q===s.b;
+  const okb2  = b2 && b2.p/b2.q===s.b;
+  const okA   = A  && normalizeMinus(A)===normalizeMinus(`(${0};${s.b})`).replace(/-/g,UMINUS);
+  const okm   = m  && Math.abs(m.p/m.q - (s.p/s.q))<1e-9;
+  const okdv  = dv && Math.abs(dv.p/dv.q)===Math.abs(s.p);
+  const okdh  = dh && Math.abs(dh.p/dh.q)===Math.abs(s.q);
+  const okdir = dirv && ((s.p>=0 && (dirv.includes('haut')||dirv.includes('monte'))) || (s.p<0 && (dirv.includes('bas')||dirv.includes('desc'))));
+  const okcar = car && ((s.p>=0 && car=='>0') || (s.p<0 && car=='<0'));
+
+  const Aok = host._ui?.rep?.user?.some(p=>p.label==='A' && p.x===0 && p.y===s.b);
+  const Bok = host._ui?.rep?.user?.some(p=>p.label==='B' && p.x===s.q && p.y===s.b+s.p);
+
+  // ✅ Ticks seulement au "Vérifier"
+  setTick($('#t_b',  host._ui.equ), b1? !!okb : null);
+  setTick($('#t_b2', host._ui.equ), b2? !!okb2: null);
+  setTick($('#t_A',  host._ui.equ), A ? !!okA : null);
+  setTick($('#t_m',  host._ui.equ), m ? !!okm : null);
+  setTick($('#t_dv', host._ui.equ), dv? !!okdv: null);
+  setTick($('#t_dh', host._ui.equ), dh? !!okdh: null);
+  setTick($('#t_dirv',host._ui.equ), dirv?!!okdir:null);
+  setTick($('#t_car', host._ui.equ), car?!!okcar: null);
+
+  setTick($('#tickA', host._ui.left), hasA ? !!Aok : null);
+  setTick($('#tickB', host._ui.left), hasB ? !!Bok : null);
+
+  const allAnswered = ['b','b2','A','m','dv','dh','dirv','car'].every(id=>getVal(host,id)!=='') && hasA && hasB;
+  const ok = allAnswered && okb && okb2 && okA && okm && okdv && okdh && okdir && okcar && Aok && Bok;
+
+  host._ui.res.className = ok? 'res-ok' : '';
+  host._ui.res.textContent = ok ? '✔' : '';
+  return {ok,total:1};
+},
+
+  solution(host,s){
+    const mhtml = fracHTML(s.p,s.q);
+    host._ui.res.innerHTML = `<div class="steps">
+      <div class="step"><b>Ordonnée à l’origine :</b> p = ${s.b} : A${coordToText(0,s.b)}.</div>
+      <div class="step"><b>Pente :</b> m = ${mhtml} : déplacement vertical de ${Math.abs(s.p)} ${s.p>=0?'vers le haut':'vers le bas'} et horizontal de ${Math.abs(s.q)} vers la droite pour atteindre B${coordToText(s.q,s.b+s.p)}.</div>
+      <div class="step"><b>Traçage :</b> tracer la droite (AB).</div>
+    </div>`;
+  },
+  reset(host){
+    if(host._ui){
+      host._ui.rep.clearUser();
+      const L = host._ui.left;
+      setTick($('#tickA', L), null); setTick($('#tickB', L), null);
+    }
+    $('#res',host).textContent=''; $$('input',host).forEach(i=>i.value='');
+  },
+  pdfStatement(s){
+    return `<div><div class="hint">On considère la droite D d’équation : ${eqFracHTML(s.p,s.q,s.b)}</div>
+      <div>Compléter les pointillés et placer les deux points A et B, puis tracer la droite.</div></div>`;
+  },
+  pdfSolution(s){
+    const mhtml = fracHTML(s.p,s.q);
+    return `<div class="steps">
+      <div class="step">b = ${s.b} → A = ${coordToText(0,s.b)}</div>
+      <div class="step">m = ${mhtml} → déplacement vertical de ${Math.abs(s.p)} vers le ${s.p>=0?'haut':'bas'} et horizontal de ${Math.abs(s.q)} vers la droite → B = ${coordToText(s.q,s.b+s.p)}</div>
+      <div class="step">Tracer la droite (AB).</div>
+    </div>`;
+  }
+});
+
+/* ========== Ex 3: Tracer 6 droites à partir de leurs équations ========== */
+L.push({
+  id:'placer_6_droites',
+  title:'Ex. 3 — Tracer 6 droites à partir de leurs équations',
+  gen(){
+  const R={...AMP};
+  const inner = { xmin:R.xmin+1, xmax:R.xmax-1, ymin:R.ymin+1, ymax:R.ymax-1 };
+  const lines=[]; const seen=new Set();
+  const slopesInt=[-5,-4,-3,-2,-1,1,2,3,4,5];
+
+  const add=(obj)=>{
+    const sig = obj.type==='h' ? 'h'+obj.k
+             : obj.type==='v' ? 'v'+obj.k
+             : obj.type==='aff' ? 'a'+obj.m+':'+obj.b
+             : 'f'+obj.p+'/'+obj.q+':'+obj.b;
+    if(seen.has(sig)) return false;
+    seen.add(sig); lines.push(obj); return true;
+  };
+
+  const originOK      = (inner.xmin <= 0 && inner.xmax >= 0);
+  const step1OK       = (inner.xmin <= 1 && inner.xmax >= 1);
+  const stepQOK = q => (inner.xmin <= 0 && inner.xmax >= q);
+
+  const tryObliqueInt = (tries=200)=>{
+    if(!(originOK && step1OK)) return false;
+    while(tries--){
+      const m = slopesInt[Math.floor(Math.random()*slopesInt.length)];
+      const bmin = Math.max(inner.ymin, inner.ymin - m);
+      const bmax = Math.min(inner.ymax, inner.ymax - m);
+      if(bmin>bmax) continue;
+      const b = rnd(bmin, bmax);
+      if(add({type:'aff', m, b})) return true;
+    }
+    return false;
+  };
+
+  const tryObliqueFrac = (tries=400)=>{
+    if(!originOK) return false;
+    while(tries--){
+      let q = rnd(2,5);
+      let p = rnd(1,5) * (Math.random()<.5?-1:1);
+      const S = simp(p,q);
+      if(S.q===1) continue;
+      if(!stepQOK(S.q)) continue;
+      const bmin = Math.max(inner.ymin, inner.ymin - S.p);
+      const bmax = Math.min(inner.ymax, inner.ymax - S.p);
+      if(bmin>bmax) continue;
+      const b = rnd(bmin, bmax);
+      if(add({type:'frac', p:S.p, q:S.q, b})) return true;
+    }
+    return false;
+  };
+
+  // On conserve l’esprit : 1 horizontale, 1 verticale, 2 entières, 2 fractionnaires
+  add({type:'h', k: rnd(inner.ymin, inner.ymax)});
+  add({type:'v', k: rnd(inner.xmin, inner.xmax)});
+
+  let cntInt=0, guard=80;
+  while(cntInt<2 && guard--) if(tryObliqueInt()) cntInt++;
+
+  let cntFrac=0; guard=160;
+  while(cntFrac<2 && guard--) if(tryObliqueFrac()) cntFrac++;
+
+  // Complétion pragmatique si nécessaire
+  while(lines.length<6){
+    if(!tryObliqueInt()){
+      if(Math.random()<.5) add({type:'h', k: rnd(inner.ymin, inner.ymax)});
+      else add({type:'v', k: rnd(inner.xmin, inner.xmax)});
+    }
+  }
+  lines.splice(6);
+
+  // Mélange + nommage
+  for(let i=lines.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [lines[i],lines[j]]=[lines[j],lines[i]]; }
+  lines.forEach((L,i)=>L.name='D'+(i+1));
+  return {R,lines};
+},
+  render(host,s){
+  const ui=renderWithRepere(host,{R:s.R}); host._ui=ui;
+  ui.rep.clickable=true;
+
+  // Lettres par droite (uniques globalement) : A,B ; C,D ; E,F ; G,H ; I,J ; K,L
+  const labelPairs = [['A','B'],['C','D'],['E','F'],['G','H'],['I','J'],['K','L']];
+  s.lines.forEach((L,i)=>{ L.labels = labelPairs[i]; });
+
+  // 👉 État : points par droite, point en attente, ticks
+  const state = { clicks: {}, byLabel:{}, done: {}, focus: s.lines[0].name, awaitLabel:null };
+  s.lines.forEach((L)=>{ state.clicks[L.name]=[]; state.byLabel[L.name]={}; state.done[L.name]=false; });
+  host._perline = state;
+
+  // Liste des droites (on garde le tick par ligne ; il n’apparaît qu’à "Valider")
+  const list = s.lines.map((L,i)=>{
+    let txt='';
+    if(L.type==='h') txt = `y = ${uminusStr(L.k)}`;
+    else if(L.type==='v') txt = `x = ${uminusStr(L.k)}`;
+    else if(L.type==='aff') txt = eqIntText(L.m,L.b);
+    else txt = eqFracHTML(L.p,L.q,L.b);
+    const c = PALETTE[i%PALETTE.length];
+    return `<div class="perline" data-line="${L.name}">
+      <div class="expr code" data-focus="${L.name}">${dot(c)} <b>${L.name}</b> : <span>${txt}</span></div>
+      <button class="btn" data-validate="${L.name}">Valider</button>
+      <span class="tick" id="tick_${L.name}">—</span>
+    </div>`;
+  }).join('');
+  ui.equ.innerHTML = `
+    <div><b>Consigne :</b> Cliquer sur une <b>expression</b> pour la sélectionner, choisir <b>le point (lettre)</b> à placer, puis cliquer dans le repère pour le poser. Tracer la droite choisie en plaçant 2 points, puis cliquer sur <em>Valider</em> pour cette droite.</div>
+<div class="hint">
+  Rappel : <b>x=k</b> verticale ; <b>y=k</b> horizontale ; <b>y=mx+p</b> :
+  placer le point d’ordonnée <b>p</b>, puis compter un déplacement
+  <span class="frac"><span class="num">V</span><span class="den">H</span></span>
+  tel que <b>m=</b>
+  <span class="frac"><span class="num">V</span><span class="den">H</span></span>.
+</div>
+    <div style="margin-top:8px;display:grid;gap:6px">${list}</div>
+  `;
+
+  // Panneau sélecteur de point (apparaît sous la liste)
+  const picker = document.createElement('div');
+  picker.id = 'point-picker';
+  picker.className = 'small';
+  picker.style.marginTop = '10px';
+  ui.equ.appendChild(picker);
+  ui.pointpicker = picker;
+
+  const syncFocus = ()=>{ $$('.expr', ui.equ).forEach(x=>x.classList.toggle('focus', x.dataset.focus===state.focus)); };
+  const renderPicker = ()=>{
+    const name = state.focus;
+    const i = s.lines.findIndex(x=>x.name===name);
+    const [L1,L2] = s.lines[i].labels;
+    const pts = state.byLabel[name] || {};
+    picker.innerHTML = `
+      <div><b>${name}</b> — Choisir le point à placer :</div>
+      <div class="chips" style="margin:.25rem 0">
+        <span class="chip" data-pick="${L1}">${L1}</span>
+        <span class="chip" data-pick="${L2}">${L2}</span>
+      </div>
+      <div>${L1} : ${pts[L1]?coordToText(pts[L1].x,pts[L1].y):'—'} ·
+           ${L2} : ${pts[L2]?coordToText(pts[L2].x,pts[L2].y):'—'}</div>
+      <div class="hint">Clique d’abord la lettre, puis clique dans le repère pour placer ce point.</div>
+    `;
+  };
+  
+  const highlightSelectedPoint = ()=>{
+  // Colorer la puce active
+  $$('.chip', ui.pointpicker).forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.pick===state.awaitLabel);
+  });
+
+  // Colorer le point sélectionné (si déjà placé)
+  const groups = ui.rep.gUser.querySelectorAll('g[data-label]');
+  groups.forEach(g=>{
+    const lab = g.dataset.label;
+    const c = g.querySelector('circle');
+    const t = g.querySelector('text');
+    if(!c || !t) return;
+
+    // mémorise la couleur d'origine une seule fois
+    if(!g.dataset.baseFill){
+      const base = c.getAttribute('fill') || '#0a84ff';
+      g.dataset.baseFill = base;
+      t.dataset.baseFill = t.getAttribute('fill') || base;
+    }
+
+    if(lab === state.awaitLabel){
+      // sélectionnée → couleur noire bien visible
+      c.setAttribute('fill', '#000');
+      t.setAttribute('fill', '#000');
+      c.setAttribute('r', '6');               // petit bonus : rayon +1
+      t.setAttribute('font-weight','700');
+    }else{
+      // restore couleur d'origine
+      const base = g.dataset.baseFill;
+      c.setAttribute('fill', base);
+      t.setAttribute('fill', t.dataset.baseFill || base);
+      c.setAttribute('r', '5');
+      t.setAttribute('font-weight','400');
+    }
+  });
+};
+
+  syncFocus(); renderPicker();highlightSelectedPoint();
+
+
+  function belongsTo(L,P){
+    if(L.type==='h') return Math.abs(P.y - L.k) < 1e-9;
+    if(L.type==='v') return Math.abs(P.x - L.k) < 1e-9;
+    if(L.type==='aff') return Math.abs(P.y - (L.m*P.x + L.b)) < 1e-9;
+    if(L.type==='frac') return Math.abs(P.y - (L.p/L.q*P.x + L.b)) < 1e-9;
+    return false;
+  }
+
+  // Clics dans le repère : ne font rien tant qu’une lettre n’est pas sélectionnée
+  ui.rep.onClick = (P)=>{
+    const name = state.focus;
+    const i = s.lines.findIndex(x=>x.name===name);
+    const color = PALETTE[i%PALETTE.length];
+    const [L1,L2] = s.lines[i].labels;
+    const lab = state.awaitLabel;
+    if(!lab || (lab!==L1 && lab!==L2)) return; // pas de lettre choisie
+
+    // poser / déplacer le point choisi
+    ui.rep.placeUser(lab, P.x, P.y, color);
+    state.byLabel[name][lab] = {x:P.x, y:P.y};
+
+    // mettre à jour l’infinite line quand on a les deux
+    const P1 = state.byLabel[name][L1];
+    const P2 = state.byLabel[name][L2];
+    state.clicks[name] = [];
+    if(P1) state.clicks[name].push(P1);
+    if(P2) state.clicks[name].push(P2);
+    if(P1 && P2){
+      ui.rep.drawUserInfiniteLine('ul_'+name,color,P1,P2);
+    }
+    renderPicker();
+  };
+
+  // Focus sur une expression OU choix de la lettre
+  ui.equ.addEventListener('click', (ev)=>{
+    const expr = ev.target.closest('.expr[data-focus]');
+if(expr){
+  state.focus = expr.dataset.focus;
+  state.awaitLabel = null;              // on efface la sélection de point
+  syncFocus();
+  renderPicker();
+  highlightSelectedPoint();             // ← ajouté
+}
+
+const chip = ev.target.closest('.chip[data-pick]');
+if(chip){
+  state.awaitLabel = chip.dataset.pick; // A/B, C/D, ...
+  renderPicker();
+  highlightSelectedPoint();             // ← ajouté
+}
+
+
+    const b = ev.target.closest('button[data-validate]');
+    if(b){
+      const name = b.dataset.validate;
+      const clicks = state.clicks[name]||[];
+      if(clicks.length<2){ setTick($('#tick_'+name, ui.equ), null); return; }
+      const L = s.lines.find(x=>x.name===name);
+      const ok = clicks.every(P=>belongsTo(L,P));
+      state.done[name]=ok;
+      setTick($('#tick_'+name, ui.equ), ok); // tick à la demande
+      const all = Object.values(state.done).every(Boolean);
+      host._ui.res.className = all? 'res-ok':'';
+      host._ui.res.textContent = all? '✔ Toutes les droites validées' : '';
+    }
+  });
+
+  host.dataset.state=JSON.stringify(s);
+},
+
+  correct(host,s){
+    const st = host._perline;
+    if(!st){ host._ui.res.textContent=''; return {ok:false,total:1}; }
+    const all = Object.values(st.done).length && Object.values(st.done).every(v=>v);
+    host._ui.res.className = all? 'res-ok' : '';
+    host._ui.res.textContent = all? '✔ Toutes les droites validées' : '';
+    return {ok:all,total:1};
+  },
+  solution(host,s){
+    // Texte de solution avec lettres
+    const linesHTML = s.lines.map((L)=>{
+      const [P1] = L.labels;
+      if(L.type==='v'){
+        return `<div class="step"><b>${L.name}</b> : x = ${uminusStr(L.k)} donc on place un point d’abscisse ${uminusStr(L.k)} puis on trace une droite verticale.</div>`;
+      }else if(L.type==='h'){
+        return `<div class="step"><b>${L.name}</b> : y = ${uminusStr(L.k)} donc on place un point d’ordonnée ${uminusStr(L.k)} puis on trace une droite horizontale.</div>`;
+      }else if(L.type==='aff'){
+        const m=L.m, p=L.b, dir=m>=0?'haut':'bas', v=Math.abs(m);
+        return `<div class="step"><b>${L.name}</b> : y = m x + p avec m = ${String(m).replace('-',UMINUS)} et p = ${uminusStr(p)}. On place d’abord ${P1}(0 ; ${uminusStr(p)}). À partir de ${P1}, on se déplace verticalement de ${v} unité${v>1?'s':''} vers le ${dir} et horizontalement d'une unité vers la droite.</div>`;
+      }else{
+        const dir=L.p>=0?'haut':'bas', v=Math.abs(L.p), h=Math.abs(L.q);
+        return `<div class="step"><b>${L.name}</b> : y = m x + p avec m = ${fracHTML(L.p,L.q)} et p = ${uminusStr(L.b)}. On place d’abord ${P1}(0 ; ${uminusStr(L.b)}). À partir de ${P1}, on se déplace verticalement de ${v} unité${v>1?'s':''} vers le ${dir} et horizontalement de ${h} unité${h>1?'s':''} vers la droite.</div>`;
+      }
+    }).join('');
+    host._ui.res.innerHTML = `<div class="steps">${linesHTML}</div>`;
+  },
+  reset(host){
+    if(host._ui) host._ui.rep.clearUser();
+    if(host._ui){ $$('.tick', host._ui.equ).forEach(t=>setTick(t,null)); }
+    $('#res',host).textContent='';
+  },
+  pdfStatement(s){
+    const list = s.lines.map(L=>{
+      if(L.type==='v') return `x = ${L.k}`;
+      if(L.type==='h') return `y = ${L.k}`;
+      if(L.type==='aff') return eqIntText(L.m,L.b);
+      return eqFracHTML(L.p,L.q,L.b);
+    }).join(' ; ');
+    return `<div>Tracer, pour chacune des 6 équations suivantes, une droite en plaçant deux points :</div>
+            <div class="hint">${list}</div>`;
+  },
+  pdfSolution(s){
+    const lines = s.lines.map(L=>{
+      if(L.type==='v') return `${L.name} : droite verticale (x = ${L.k})`;
+      if(L.type==='h') return `${L.name} : droite horizontale (y = ${L.k})`;
+      if(L.type==='aff') return `${L.name} : ${eqIntText(L.m,L.b)} — placer (0;${L.b}), puis (1;${L.m+L.b}).`;
+      return `${L.name} : ${eqFracHTML(L.p,L.q,L.b)} — placer (0;${L.b}), puis (${L.q};${L.p+L.b}).`;
+    }).join('<br>');
+    return `<div class="steps">${lines}</div>`;
+  }
+});
+
+/* ========== Ex 4: Déterminer l’équation des droites D₁…D₆ ========== */
+L.push({
+  id:'eq_droites6',
+  title:'Ex. 4 — Déterminer une équation des droites D₁…D₆',
+  gen(){
+  const R={...AMP};
+  const inner = { xmin:R.xmin+1, xmax:R.xmax-1, ymin:R.ymin+1, ymax:R.ymax-1 };
+  const lines=[]; const seen=new Set();
+  const slopesInt=[-5,-4,-3,-2,-1,1,2,3,4,5]; // pas 0 ici (on mettra une horizontale dédiée)
+
+  const add=(obj)=>{
+    const sig = obj.type==='h' ? 'h'+obj.k
+             : obj.type==='v' ? 'v'+obj.k
+             : obj.type==='aff' ? 'a'+obj.m+':'+obj.b
+             : 'f'+obj.p+'/'+obj.q+':'+obj.b;
+    if(seen.has(sig)) return false;
+    seen.add(sig); lines.push(obj); return true;
+  };
+
+  // Contraintes de lisibilité depuis p=(0,b) pour obliques :
+  //  - x=0 ET x=1 dans l'inner pour m entier
+  //  - x=0 ET x=q dans l'inner pour m = p/q (q<=5, irréductible)
+  const originOK      = (inner.xmin <= 0 && inner.xmax >= 0);
+  const step1OK       = (inner.xmin <= 1 && inner.xmax >= 1);
+  const stepQOK = q => (inner.xmin <= 0 && inner.xmax >= q);
+
+  const tryObliqueInt = (tries=200)=>{
+    if(!(originOK && step1OK)) return false;
+    while(tries--){
+      const m = slopesInt[Math.floor(Math.random()*slopesInt.length)];
+      const bmin = Math.max(inner.ymin, inner.ymin - m);
+      const bmax = Math.min(inner.ymax, inner.ymax - m);
+      if(bmin>bmax) continue;
+      const b = rnd(bmin, bmax);
+      if(add({type:'aff', m, b})) return true;
+    }
+    return false;
+  };
+
+  const tryObliqueFrac = (tries=400)=>{
+    if(!originOK) return false;
+    while(tries--){
+      let q = rnd(2,5);
+      let p = rnd(1,5) * (Math.random()<.5?-1:1);
+      const S = simp(p,q); // q>0, irréductible
+      if(S.q===1) continue;          // éviter de retomber sur un entier
+      if(!stepQOK(S.q)) continue;    // x=q doit être atteignable vers la droite
+      const bmin = Math.max(inner.ymin, inner.ymin - S.p);
+      const bmax = Math.min(inner.ymax, inner.ymax - S.p);
+      if(bmin>bmax) continue;
+      const b = rnd(bmin, bmax);
+      if(add({type:'frac', p:S.p, q:S.q, b})) return true;
+    }
+    return false;
+  };
+
+  // 1) Toujours UNE verticale et UNE horizontale (pas de contrainte de lisibilité pour elles)
+  add({type:'v', k: rnd(inner.xmin, inner.xmax)});
+  add({type:'h', k: rnd(inner.ymin, inner.ymax)});
+
+  // 2) Deux obliques à pente entière lisibles depuis p
+  let cntInt=0, guard=80;
+  while(cntInt<2 && guard--) if(tryObliqueInt()) cntInt++;
+
+  // 3) Deux obliques à pente fractionnaire lisibles depuis p
+  let cntFrac=0; guard=160;
+  while(cntFrac<2 && guard--) if(tryObliqueFrac()) cntFrac++;
+
+  // 4) Si on n'a pas 6 droites (amplitude trop serrée), on complète pragmatiquement
+  while(lines.length<6){
+    // on tente d'abord une entière lisible, sinon on ajoute une horizontale/verticale sûre
+    if(!tryObliqueInt()){
+      if(Math.random()<.5) add({type:'h', k: rnd(inner.ymin, inner.ymax)});
+      else add({type:'v', k: rnd(inner.xmin, inner.xmax)});
+    }
+  }
+  lines.splice(6);
+
+  // Mélange + nommage D1..D6
+  for(let i=lines.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [lines[i],lines[j]]=[lines[j],lines[i]]; }
+  lines.forEach((L,i)=>L.name='D'+(i+1));
+  return {R,lines};
+},
+  render(host,s){
+    const ui=renderWithRepere(host,{R:s.R}); host._ui=ui;
+    const R=ui.rep.R;
+
+    function clipLine(line){
+      const XMIN=R.xmin, XMAX=R.xmax, YMIN=R.ymin, YMAX=R.ymax;
+      const pts=[];
+      if(line.type==='h'){ pts.push({x:XMIN,y:line.k},{x:XMAX,y:line.k}); }
+      else if(line.type==='v'){ pts.push({x:line.k,y:YMIN},{x:line.k,y:YMAX}); }
+      else{
+        const m = line.type==='aff' ? line.m : (line.p/line.q);
+        const b = line.b;
+        const y_xmin = m*XMIN + b; if(y_xmin>=YMIN-1e-9 && y_xmin<=YMAX+1e-9) pts.push({x:XMIN,y:y_xmin});
+        const y_xmax = m*XMAX + b; if(y_xmax>=YMIN-1e-9 && y_xmax<=YMAX+1e-9) pts.push({x:XMAX,y:y_xmax});
+        if(Math.abs(m)>1e-9){
+          const x_ymin = (YMIN - b)/m; if(x_ymin>=XMIN-1e-9 && x_ymin<=XMAX+1e-9) pts.push({x:x_ymin,y:YMIN});
+          const x_ymax = (YMAX - b)/m; if(x_ymax>=XMIN-1e-9 && x_ymax<=XMAX+1e-9) pts.push({x:x_ymax,y:YMAX});
+        }
+        const uniq=[]; pts.forEach(P=>{ if(!uniq.some(Q=>Math.hypot(Q.x-P.x,Q.y-P.y)<1e-6)) uniq.push(P); });
+        if(uniq.length>=2) return uniq.slice(0,2);
+        return [{x:XMIN,y:y_xmin},{x:XMAX,y:y_xmax}];
+      }
+      return pts;
+    }
+
+    ui.rep.gPts.innerHTML='';
+    s.lines.forEach((L,i)=>{
+      const color = PALETTE[i%PALETTE.length];
+      const seg = clipLine(L);
+      ui.rep.drawGivenLine(L.name, color, seg);
+
+      // --- Etiquette proche de la droite, dans SA couleur ---
+const [P0, P1] = seg;                       // seg = clipLine(L)
+const minX = Math.min(P0.x, P1.x), maxX = Math.max(P0.x, P1.x);
+const minY = Math.min(P0.y, P1.y), maxY = Math.max(P0.y, P1.y);
+
+let xlab, ylab, anchor = 'end';
+
+if(L.type==='v'){
+  // verticale : centré près du haut du segment
+  xlab = L.k;
+  ylab = clamp(R.ymax - 1, minY + 0.3, maxY - 0.3);
+  anchor = 'middle';
+}else if(L.type==='h'){
+  // ✅ horizontale : sur la droite elle-même (y = k), vers la droite du segment
+  xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3);
+  ylab = L.k;                                  // <-- sur la droite, pas en haut
+  anchor = 'end';
+}else{
+  // pente non nulle : vers la droite, sur le segment
+  const m = (L.type==='aff') ? L.m : (L.p / L.q);
+  xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3);
+  ylab = clamp(m * xlab + L.b, minY + 0.3, maxY - 0.3);
+  anchor = 'end';
+}
+
+const P = ui.rep.coordToScreen(xlab, ylab);
+const t = document.createElementNS(ui.rep.el.namespaceURI,'text');
+t.setAttribute('x', P.x);
+t.setAttribute('y', P.y);
+t.setAttribute('font-size','13');
+t.setAttribute('font-weight','700');
+t.setAttribute('fill', color);                 // couleur de la droite
+t.setAttribute('text-anchor', anchor);
+t.setAttribute('dominant-baseline','central');
+t.setAttribute('paint-order','stroke');
+t.setAttribute('stroke', '#fff');              // halo blanc pour lisibilité
+t.setAttribute('stroke-width', '3');
+t.style.pointerEvents = 'none';
+t.textContent = L.name;
+
+// tout au-dessus pour rester visible
+ui.rep.el.appendChild(t);
+
+
+
+    });
+
+    const list = s.lines.map((L,i)=>{
+      const c = PALETTE[i%PALETTE.length];
+      return `<div>${dot(c)} <b>${L.name}</b> : ${mkInput('ans_'+L.name,220,'y=... ou x=...')}</div>`;
+    }).join('');
+    ui.equ.innerHTML = `<div>Déterminer une équation de chaque droite représentée (accepter : <span class="code">y = mx + p</span> ou <span class="code">x = k</span>).</div><div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">${list}</div>`;
+    host.dataset.state=JSON.stringify(s);
+  },
+  parseStudentEquation(text){
+  // normalisation
+  let t = normalizeMinus(String(text||'')).replace(UMINUS,'-').replace(/\s+/g,'');
+  // x = k  (verticale)
+  if(/^x=/.test(t)){
+    const k = parseFrac(t.slice(2).replace(/^\((.*)\)$/,'$1'));
+    return k ? { type:'v', k: k.p/k.q } : null;
+  }
+  // y = ...
+  if(!/^y=/.test(t)) return null;
+  const rhs = t.slice(2);
+
+  // y = k  (horizontale)
+  if(!/x/.test(rhs)){
+    const fb = parseFrac(rhs.replace(/^\((.*)\)$/,'$1'));
+    return fb ? { type:'aff', m:0, b: fb.p/fb.q } : null;
+  }
+
+  // helpers
+  function parseMXStart(s){
+    // x / +x / -x
+    if(/^\+x/.test(s)) return { m:1,  rest:s.slice(2) };
+    if(/^x/.test(s))   return { m:1,  rest:s.slice(1) };
+    if(/^-x/.test(s))  return { m:-1, rest:s.slice(2) };
+    // (a/b)x  |  a/b x  |  ax  (avec signe éventuel)
+    const m = s.match(/^([+\-]?(?:\(\d+\/\d+\)|\d+\/\d+|\d+))x/);
+    if(!m) return null;
+    const mf = parseFrac(m[1].replace(/^\((.*)\)$/,'$1'));
+    if(!mf) return null;
+    return { m: mf.p/mf.q, rest: s.slice(m[0].length) };
+  }
+  function parseBStart(s){
+    const m = s.match(/^([+\-]?(?:\(\d+\/\d+\)|\d+\/\d+|\d+))(.*)$/);
+    if(!m) return null;
+    const fb = parseFrac(m[1].replace(/^\((.*)\)$/,'$1'));
+    if(!fb) return null;
+    return { b: fb.p/fb.q, rest: m[2]||'' };
+  }
+
+  // Cas 1 : y = mx (+/-) b
+  const r1 = parseMXStart(rhs);
+  if(r1){
+    if(r1.rest==='') return { type:'aff', m:r1.m, b:0 };
+    const fb = parseFrac(r1.rest.replace(/^\((.*)\)$/,'$1'));
+    return fb ? { type:'aff', m:r1.m, b: fb.p/fb.q } : null;
+  }
+
+  // Cas 2 : y = b (+/-) mx
+  const r2 = parseBStart(rhs);
+  if(r2){
+    const rmx = parseMXStart(r2.rest);
+    if(rmx && rmx.rest==='') return { type:'aff', m:rmx.m, b:r2.b };
+  }
+
+  return null;
+},
+
+  correct(host,s){
+    let okAll=true, tot=0;
+    for(const L of s.lines){
+      tot++;
+      const inp = getVal(host,'ans_'+L.name);
+      if(!inp){ okAll=false; continue; } // pas de sanction si vide
+      const parsed = this.parseStudentEquation(inp);
+      let good=false;
+      if(L.type==='h'){ good = parsed && parsed.type==='aff' && Math.abs(parsed.m)<1e-9 && Math.abs(parsed.b - L.k)<1e-9; }
+      else if(L.type==='v'){ good = parsed && parsed.type==='v' && Math.abs(parsed.k - L.k)<1e-9; }
+      else if(L.type==='aff'){ good = parsed && parsed.type==='aff' && Math.abs(parsed.m - L.m)<1e-9 && Math.abs(parsed.b - L.b)<1e-9; }
+      else if(L.type==='frac'){ good = parsed && parsed.type==='aff' && Math.abs(parsed.m - (L.p/L.q))<1e-9 && Math.abs(parsed.b - L.b)<1e-9; }
+      okAll = okAll && !!good;
+      const inpEl = $('#ans_'+L.name, host);
+      if(inpEl){ inpEl.classList.toggle('field-ok', !!good); inpEl.classList.toggle('field-ko', !good && !!inp); }
+    }
+    host._ui.res.className = okAll?'res-ok':'';
+    host._ui.res.textContent = okAll ? '✔' : '';
+    return {ok:okAll,total:tot};
+  },
+  solution(host,s){
+  const html = s.lines.map(L=>{
+    // utilitaires
+    const mReduced = ()=>{
+      if(L.type==='aff') return {p:L.m, q:1};
+      const S = simp(L.p, L.q);        // q>0
+      return {p:S.p, q:S.q};
+    };
+    const VH = ()=>{
+      // Choix canonique : H>0 ; pour m entier, V=m, H=1 ; pour fraction, V=p, H=q
+      if(L.type==='aff') return {V:L.m, H:1};
+      const S = simp(L.p, L.q);        // déjà irréductible (q>0)
+      return {V:S.p, H:S.q};
+    };
+    const eqHTML = ()=>{
+      if(L.type==='h') return `y = ${uminusStr(L.k)}`;
+      if(L.type==='v') return `x = ${uminusStr(L.k)}`;
+      if(L.type==='aff') return eqIntText(L.m, L.b);
+      const S = simp(L.p, L.q);
+      return eqFracHTML(S.p, S.q, L.b);
+    };
+
+    // horizontale
+    if(L.type==='h'){
+      return `<div class="steps">
+        <div class="step"><b>${L.name}</b></div>
+        <div class="step">${L.name} : y = ${uminusStr(L.k)} (droite horizontale)</div>
+      </div>`;
+    }
+
+    // verticale
+    if(L.type==='v'){
+      return `<div class="steps">
+        <div class="step"><b>${L.name}</b></div>
+        <div class="step">${L.name} : x = ${uminusStr(L.k)} (droite verticale)</div>
+      </div>`;
+    }
+
+    // affine / fractionnaire
+    const pTxt = uminusStr(L.b);
+    const {V,H} = VH();                // H > 0
+    const mRed = mReduced();
+    const mIsInt = (mRed.q===1);
+    const mText  = mIsInt ? String(mRed.p).replace('-', UMINUS) : fracHTML(mRed.p, mRed.q);
+
+    // V/H en pile (réduit par fracHTML) :
+    const vOverH = fracHTML(V, H);
+
+    // éviter les doublons : si V/H == m (réduit), on ne répète pas "= m"
+    const same = (mRed.q===1)
+      ? (H===1 && V===mRed.p)
+      : (V===mRed.p && H===mRed.q);
+
+    const mEquality = same ? `m = ${vOverH}` : `m = ${vOverH} = ${mText}`;
+    const eqTxt = eqHTML();
+
+    return `<div class="steps">
+      <div class="step"><b>${L.name}</b></div>
+      <div class="step">p est l’ordonnée à l’origine donc p = ${pTxt}</div>
+      <div class="step">On trouve m par lecture graphique :</div>
+      <div class="step">On part d’un point (à coordonnées entières) quelconque de la droite. On compte le déplacement vertical entier V (+ vers le haut et – vers le bas) de telle sorte que le déplacement horizontal vers la droite H soit un entier.</div>
+      <div class="step">Déplacements choisis : V = ${uminusStr(V)} et H = ${H}</div>
+      <div class="step">On a alors ${mEquality}.</div>
+      <div class="step">${L.name} : ${eqTxt}</div>
+    </div>`;
+  }).join('');
+  host._ui.res.innerHTML = html;
+},
+
+
+  reset(host){ if(host._ui) host._ui.rep.clearUser(); $('#res',host).textContent=''; $$('input',host).forEach(i=>i.value=''); },
+  pdfStatement(s){
+    return `<div>Déterminer une équation de chaque droite D₁…D₆ représentée.</div>`;
+  },
+  pdfSolution(s){
+    const L=s.lines.map(L=>{
+      if(L.type==='h'){ return `${L.name} : y = ${L.k}`; }
+      if(L.type==='v'){ return `${L.name} : x = ${L.k}`; }
+      if(L.type==='aff'){ return `${L.name} : ${eqIntText(L.m,L.b)}`; }
+      return `${L.name} : ${eqFracHTML(L.p,L.q,L.b)}`;
+    }).join('<br>');
+    return `<div class="steps">${L}</div>`;
+  }
+});
+
+return L;
+}
+
+/* ============ Score & actions ============ */
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent=`${scoreOK} / ${scoreTot}`; }
+function buildOne(){ const sel=$('#exo-select'), host=$('#host'); const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def){ host.textContent='(Aucun exercice)'; return; }
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st); def.render(host,st);
+  $('#res',host).textContent=''; }
+function check(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st);
+  // ✅ Le score n'avance que quand la réponse est complète ET correcte
+  if(r && r.ok){
+    scoreOK+=1;
+    scoreTot+=1;
+    updateScore();
+  }
+}
+
+function solution(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ scoreOK=0; scoreTot=0; updateScore(); const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host); }
+
+let REGISTRY=[];
+window.REGISTRY = REGISTRY;
+window.pickDef = id => (window.REGISTRY||[]).find(d=>d.id===id) || null;
+
+/* Init */
+document.addEventListener('DOMContentLoaded',function(){
+  try{
+    REGISTRY = makeExos();
+    window.REGISTRY = REGISTRY;
+    const sel=$('#exo-select');
+    if(!REGISTRY || !REGISTRY.length){ $('#status').textContent='(Init: aucune entrée)'; return; }
+    REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+    sel.addEventListener('change',buildOne);
+    $('#btn-new').addEventListener('click',buildOne);
+    $('#btn-check').addEventListener('click',check);
+    $('#btn-solution').addEventListener('click',solution);
+    $('#btn-reset').addEventListener('click',resetAll);
+    $('#amp-apply').addEventListener('click',applyAMPInputs);
+    sel.value=REGISTRY[0].id; buildOne(); updateScore(); $('#status').textContent='(OK)';
+  }catch(err){
+    console.error(err);
+    $('#status').textContent='Erreur d’init : '+(err?.message||err);
+  }
+});
+
+/* =============== PDF via exo-pdf-kit (hooks) =============== */
+window.addEventListener('load', function(){
+  if(!(window.ExoPDF && ExoPDF.init)) return;
+
+  // ---------- Palette PDF (fixe, pour la cohérence) ----------
+  const PDF_PALETTE = ['#1565c0','#d32f2f','#2e7d32','#6a1b9a','#ef6c00','#00897b'];
+
+  // ---------- Utilitaires ----------
+  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+
+  const sigLine = L => (L.type==='h' ? `h${L.k}`
+                    : L.type==='v' ? `v${L.k}`
+                    : L.type==='aff' ? `a${L.m}:${L.b}`
+                    : `f${L.p}/${L.q}:${L.b}`);
+
+  // remplace les <input> par une “ligne” imprimable, supprime ticks/boutons
+  function sanitizeEquHTML(equNode){
+    const clone = equNode.cloneNode(true);
+    clone.querySelectorAll('input').forEach(inp=>{
+      const w = Math.max(60, parseInt(inp.style.width)||0);
+      const span = document.createElement('span');
+      span.style.display='inline-block';
+      span.style.minWidth = (w||60)+'px';
+      span.style.borderBottom='1px solid #000';
+      span.style.height='1.1em';
+      span.style.verticalAlign='bottom';
+      inp.replaceWith(span);
+    });
+    clone.querySelectorAll('button,.tick').forEach(el=>el.remove());
+    return clone.outerHTML;
+  }
+
+  // bloc 2 colonnes : repère à gauche, texte à droite (table → rendu PDF fiable)
+  function twoCol(svgHTML, rightHTML){
+    return `
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+      <tr>
+        <td style="width:50%;vertical-align:top;padding-right:12px">${svgHTML}</td>
+        <td style="width:50%;vertical-align:top">${rightHTML}</td>
+      </tr>
+    </table>`;
+  }
+
+  // expression d’équation pour l’énoncé de l’ex. 3
+  function eqText(L){
+    if(L.type==='v') return `x = ${L.k}`;
+    if(L.type==='h') return `y = ${L.k}`;
+    if(L.type==='aff'){
+      const m = L.m===1?'x':(L.m===-1?'−x':(`${String(L.m).replace('-','−')}x`));
+      const b = L.b===0?'' : (L.b>0?` + ${L.b}`:` − ${Math.abs(L.b)}`);
+      return `y = ${m}${b}`;
+    }
+    // fractionnaire (pile)
+    const p = Math.abs(L.p), q = Math.abs(L.q), sign = L.p<0?'−':'';
+    const m = `${sign}<span class="frac"><span class="num">${p}</span><span class="den">${q}</span></span><span class="sp"></span>x`;
+    const b = L.b===0?'' : (L.b>0?` + ${L.b}`:` − ${Math.abs(L.b)}`);
+    return `y = ${m}${b}`;
+  }
+
+  // segment affiché pour une droite dans le rectangle du repère
+  function segmentForLine(R, L){
+    const XMIN=R.xmin, XMAX=R.xmax, YMIN=R.ymin, YMAX=R.ymax;
+    if(L.type==='v') return [{x:L.k,y:YMIN},{x:L.k,y:YMAX}];
+    if(L.type==='h') return [{x:XMIN,y:L.k},{x:XMAX,y:L.k}];
+
+    const m = (L.type==='aff') ? L.m : (L.p/L.q);
+    const b = L.b;
+    const pts = [];
+    const y_xmin = m*XMIN + b; if(y_xmin>=YMIN-1e-9 && y_xmin<=YMAX+1e-9) pts.push({x:XMIN,y:y_xmin});
+    const y_xmax = m*XMAX + b; if(y_xmax>=YMIN-1e-9 && y_xmax<=YMAX+1e-9) pts.push({x:XMAX,y:y_xmax});
+    if(Math.abs(m)>1e-9){
+      const x_ymin = (YMIN - b)/m; if(x_ymin>=XMIN-1e-9 && x_ymin<=XMAX+1e-9) pts.push({x:x_ymin,y:YMIN});
+      const x_ymax = (YMAX - b)/m; if(x_ymax>=XMIN-1e-9 && x_ymax<=XMAX+1e-9) pts.push({x:x_ymax,y:YMAX});
+    }
+    // dédoublonner / 2 points
+    const uniq=[]; pts.forEach(P=>{ if(!uniq.some(Q=>Math.hypot(Q.x-P.x,Q.y-P.y)<1e-6)) uniq.push(P); });
+    if(uniq.length>=2) return uniq.slice(0,2);
+    // repli : bornes X
+    return [{x:XMIN,y:y_xmin},{x:XMAX,y:y_xmax}];
+  }
+
+  // étiquette sur le SEGMENT, proche de l’extrémité droite (ou en haut pour une verticale)
+  function labelOnSegment(rep, L, color, name){
+    const R = rep.R;
+    const [A,B] = segmentForLine(R, L);
+    let P; // point d’ancrage
+
+    if(L.type==='v'){
+      // verticales : proche du haut du segment
+      const y = clamp(Math.max(A.y,B.y) - 0.8, R.ymin+0.3, R.ymax-0.3);
+      P = {x:A.x, y};
+    }else{
+      // choisir le point le plus à droite, reculer un peu (t=0.96) pour rester dans le cadre
+      const Right = (A.x >= B.x) ? A : B;
+      const Left  = (Right===A) ? B : A;
+      const t = 0.96;
+      P = { x: Left.x + t*(Right.x-Left.x), y: Left.y + t*(Right.y-Left.y) };
+    }
+
+    const S = rep.coordToScreen(P.x, P.y);
+    const t = document.createElementNS(rep.el.namespaceURI,'text');
+    t.setAttribute('x', S.x);
+    t.setAttribute('y', S.y);
+    t.setAttribute('font-size','13');
+    t.setAttribute('font-weight','700');
+    t.setAttribute('fill', color);
+    t.setAttribute('text-anchor','end');
+    t.setAttribute('dominant-baseline','central');
+    t.setAttribute('paint-order','stroke');
+    t.setAttribute('stroke', '#fff');
+    t.setAttribute('stroke-width', '3');
+    t.textContent = name;
+    rep.el.appendChild(t);
+  }
+
+  // dessine la/les droites attendues (pour les corrigés avec repère)
+  function drawSolutionIntoRep(def, st, rep){
+    if(!rep) return;
+    const R = rep.R;
+
+    if(def.id==='cd_entier'){
+      const A={x:0, y:st.b}, B={x:1, y:st.b+st.m};
+      rep.placeUser('A',A.x,A.y, PDF_PALETTE[0]);
+      rep.placeUser('B',B.x,B.y, PDF_PALETTE[1]);
+      rep.drawUserInfiniteLine('AB', '#333', A, B);
+    }
+    else if(def.id==='cd_fraction'){
+      const A={x:0, y:st.b}, B={x:st.q, y:st.b+st.p};
+      rep.placeUser('A',A.x,A.y, PDF_PALETTE[0]);
+      rep.placeUser('B',B.x,B.y, PDF_PALETTE[1]);
+      rep.drawUserInfiniteLine('AB', '#333', A, B);
+    }
+    else if(def.id==='placer_6_droites'){
+      (st.lines||[]).forEach((L,i)=>{
+        const color = PDF_PALETTE[i % PDF_PALETTE.length];
+        if(L.type==='v'){
+          rep.drawUserLine('sol'+i,color,[{x:L.k,y:R.ymin},{x:L.k,y:R.ymax}]);
+        }else if(L.type==='h'){
+          rep.drawUserLine('sol'+i,color,[{x:R.xmin,y:L.k},{x:R.xmax,y:L.k}]);
+        }else{
+          // ligne infinie à partir d'un couple de points sur la droite
+          const m = (L.type==='aff') ? L.m : (L.p/L.q);
+          const P={x:0,y:L.b}, Q={x:1,y:L.b+m};
+          rep.drawUserInfiniteLine('sol'+i,color,P,Q);
+        }
+        // nom sur la droite, au bout
+        labelOnSegment(rep, L, color, L.name);
+      });
+    }
+    // eq_droites6 : correction sans repère → aucun tracé ici
+  }
+
+  // Où monter la carte PDF
+  const mountAfter = '#ampbar';
+
+  ExoPDF.init({
+    mountAfterSelector: mountAfter,
+    title: 'Seconde – Droites',
+    max: 30,
+    leadByDefId: {
+      'cd_entier'       : 'Placer A et B puis tracer la droite. Compléter les pointillés.',
+      'cd_fraction'     : 'Placer A et B puis tracer la droite. Compléter les pointillés.',
+      'placer_6_droites': 'Tracer chaque droite donnée en plaçant deux points.',
+      'eq_droites6'     : 'Déterminer une équation de chaque droite.'
+    },
+
+    // fige/varie l’amplitude et renseigne l’anti-doublon
+    beforeGen(def, st){
+      const pdfAmpRandom = document.querySelector('#pdf-amp-random')?.checked;
+      st.R = pdfAmpRandom
+        ? { xmin: -rnd(6,10), xmax: rnd(6,10), ymin: -rnd(6,10), ymax: rnd(6,10) }
+        : { ...AMP };
+
+      if(def.id==='cd_entier'){
+        st.params = { m:st.m, b:st.b, R:st.R };
+      }else if(def.id==='cd_fraction'){
+        st.params = { p:st.p, q:st.q, b:st.b, R:st.R };
+      }else if(def.id==='placer_6_droites' || def.id==='eq_droites6'){
+        st.params = { lines:(st.lines||[]).map(sigLine).join('|'), R:st.R };
+      }
+      return st;
+    },
+
+    // ENONCÉ + CORRIGÉ : toujours tableau 2 colonnes (sauf ex.4 correction)
+    beforeRender(def, st, withSolutions){
+      // rendu hors écran pour obtenir le même repère/HTML que l’écran
+      const tmp = document.createElement('div');
+      Object.assign(tmp.style, {position:'fixed', left:'-10000px', top:'-10000px', width:'420px', height:'420px', overflow:'hidden'});
+      document.body.appendChild(tmp);
+
+      try{
+        def.render(tmp, st);
+
+        // récupérer le bloc à droite “comme à l’écran”
+        let statementRight = '';
+        if(def.id==='placer_6_droites'){
+          // Ex. 3 : liste Dk : équation
+          const items = (st.lines||[]).map(L=>`<li><b>${L.name}</b> : ${eqText(L)}</li>`).join('');
+          statementRight = `
+            <div><b>Consigne :</b> Tracer chaque droite en plaçant deux points, puis valider.</div>
+            <div class="hint">Rappel : <b>x=k</b> verticale ; <b>y=k</b> horizontale ;
+              <b>y=mx+p</b> : placer le point d’ordonnée <b>p</b>, puis compter un déplacement
+              <span class="frac"><span class="num">V</span><span class="den">H</span></span>
+              tel que <b>m=</b><span class="frac"><span class="num">V</span><span class="den">H</span></span>.
+            </div>
+            <ul style="margin:.3rem 0 .2rem 1rem; padding-left:.6rem">${items}</ul>`;
+        }else{
+          const equ = tmp.querySelector('.equ');
+          statementRight = equ ? sanitizeEquHTML(equ) : (typeof def.pdfStatement==='function'? def.pdfStatement(st) : '(Énoncé)');
+        }
+
+        if(!withSolutions){
+          // ————— ÉNONCÉ (2 colonnes) —————
+          const svgHTML = cloneCurveForPDF(tmp, { widthPx: 340, heightPx: 340, blockWidth: '100%' });
+          return twoCol(svgHTML, statementRight);
+        }
+
+        // ————— CORRIGÉ —————
+        if(def.id==='eq_droites6'){
+          // Ex. 4 : correction SANS repère (exigence)
+          let solText = '';
+          try{
+            if(typeof def.solution === 'function') def.solution(tmp, st);
+            const n = tmp.querySelector('#res') || tmp.querySelector('.solution') || tmp.querySelector('.steps');
+            solText = n ? (n.outerHTML || n.innerHTML) : '';
+          }catch(e){}
+          if(!solText && typeof def.pdfSolution==='function') solText = def.pdfSolution(st);
+          return `<div>${solText||''}</div>`;
+        }
+
+        // Ex. 1, 2, 3 : repère rempli + bloc solution (2 colonnes)
+        const rep = tmp._ui?.rep;
+        drawSolutionIntoRep(def, st, rep);
+        const solSVG = cloneCurveForPDF(tmp, { widthPx: 340, heightPx: 340, blockWidth: '100%' });
+
+        let solText = '';
+        try{
+          if(typeof def.solution === 'function') def.solution(tmp, st);
+          const n = tmp.querySelector('#res') || tmp.querySelector('.solution') || tmp.querySelector('.steps');
+          solText = n ? (n.outerHTML || n.innerHTML) : '';
+        }catch(e){}
+        if(!solText && typeof def.pdfSolution==='function') solText = def.pdfSolution(st);
+
+        return twoCol(solSVG, solText||'');
+      } finally {
+        tmp.remove();
+      }
+    }
+  });
+});
+
+
+})(); 
+</script>
+</body>
+</html>

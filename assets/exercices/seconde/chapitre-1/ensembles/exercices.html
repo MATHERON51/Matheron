@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seconde – Chapitre 1 – Ensembles</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.55}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  #host .input-wrap{display:flex;align-items:center}
+
+  .row{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:center;margin:6px 0}
+  .row-inline{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .hint{opacity:.85;margin:.2rem 0 .6rem}
+
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#f0f0f0;border:1px solid #ddd}
+  .ok{outline:2px solid #22c55e}
+  .ko{outline:2px solid #ef4444}
+  .table-exo{width:100%;border-collapse:collapse}
+  .table-exo th,.table-exo td{border:1px solid #e5e7eb;padding:6px 8px;vertical-align:middle;text-align:center}
+  .table-exo th{text-align:center;background:#f7f7f7}
+
+  /* jolies fractions (sans LaTeX) */
+  .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+  .frac .num,.frac .den{padding:0 .20em;white-space:nowrap}
+  .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+  .frac-sign{margin-right:.15em}
+
+  /* bloc explications (correction détaillée) */
+  .steps{margin-top:10px;padding:10px;border:1px dashed #e3e3e3;border-radius:8px;background:#fafafa}
+  .steps .line{margin:4px 0}
+
+  /* === Bloc .equ : ENONCE complet (consigne + contenu) === */
+  @media screen{
+    .equ{position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+  }
+  @media print{
+    .hint{display:none !important;}
+    .equ{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  }
+  .equ{margin-bottom:10px}
+  .equ .consigne{margin-bottom:6px;font-weight:600}
+  .gap{display:inline-block;min-width:32px;border-bottom:1px solid #999;line-height:1.2}
+  .square{display:inline-block;width:14px;height:14px;border:1px solid #999;border-radius:2px}
+
+  .pdf-controls .btn,
+  .pdf-controls button{background:#f7f7f7 !important;color:#111 !important;border-color:#dadada !important}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 1 – <strong>Ensembles</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn" title="Tirer de nouveaux nombres ou fractions">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn" title="Vérifier vos réponses">✅ Vérifier</button>
+      <button id="btn-solution" class="btn" title="Afficher une solution possible">💡 Solution</button>
+      <button id="btn-reset" class="btn" title="Effacer la saisie courante">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 1rem">
+        <li><span class="badge">Appartenance</span> Choisir <code>∈</code> ou <code>∉</code> pour chaque proposition.</li>
+        <li><span class="badge">Décimal ou rationnel</span> Pour chaque fraction <span class="mono">p/q</span>, choisir <em>Décimal</em> si l’écriture décimale est finie, sinon <em>Rationnel</em>.</li>
+        <li><span class="badge">Tableau</span> Cocher les cases qui conviennent dans le tableau (ℕ, ℤ, ⅅ, ℚ, ℝ).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- JS partagés comme developpement.html -->
+  <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
+  <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+  <script>
+  'use strict';
+
+  function $(s,r){ return (r||document).querySelector(s); }
+  function $$(s,r){ return Array.from((r||document).querySelectorAll(s)); }
+  const rndInt = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+  const choice = arr => arr[(Math.random()*arr.length)|0];
+  const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const gcd = (a,b)=>{ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; };
+
+  function fracHTML(p,q){
+    const sign = (p*q<0) ? '−' : '';
+    p=Math.abs(p); q=Math.abs(q);
+    if(q===1) return sign + String(p);
+    const core = '<span class="frac"><span class="num">'+p+'</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+    return sign ? '<span class="frac-sign">−</span>'+core : core;
+  }
+  function powHTML(base, exp){
+    if(exp===0) return '1';
+    if(exp===1) return String(base);
+    return base+'<sup>'+exp+'</sup>';
+  }
+  function factor25HTML(a2,a5){
+    const parts=[];
+    if(a2>0) parts.push(powHTML('2',a2));
+    if(a5>0) parts.push(powHTML('5',a5));
+    return parts.length? parts.join('·') : '1';
+  }
+
+  /* Fabrique de nombres avec tags d'appartenance */
+  function makeInt(n){
+    const isNat = n>=0;
+    return {
+      kind:'int', val:n,
+      html: String(n).replace('-', '−'),
+      N:isNat, Z:true, D:true, Q:true, R:true
+    };
+  }
+  function makeDecimal(x){
+    const isInt = Number.isInteger(x);
+    const isNat = isInt && x>=0;
+    return {
+      kind:'dec', val:x,
+      html: String(x).replace('-', '−').replace('.', ','),
+      N:isNat, Z:isInt, D:true, Q:true, R:true
+    };
+  }
+  function makeFraction(p,q){
+    const d = gcd(p,q);
+    p/=d; q/=d;
+    const sign = q<0 ? -1:1; p*=sign; q*=sign;
+    const isInt = (p%q===0);
+    const v = p/q;
+    const isNat = isInt && v>=0;
+    let qq = Math.abs(q), a2=0, a5=0;
+    while(qq%2===0){qq/=2; a2++}
+    while(qq%5===0){qq/=5; a5++}
+    const isDecimal = (qq===1);
+    return {
+      kind:'frac', p:p, q:q, a2:a2, a5:a5, rest:qq,
+      html: fracHTML(p,q),
+      N:isNat, Z:isInt, D:isDecimal, Q:true, R:true
+    };
+  }
+  function makeIrrational(sym){
+    return {
+      kind:'irr', html: sym,
+      N:false, Z:false, D:false, Q:false, R:true
+    };
+  }
+  function poolNumbers(){
+    return [
+      makeInt(2), makeInt(0), makeInt(-3), makeInt(64),
+      makeDecimal(0.003), makeDecimal(-2.5), makeDecimal(1.23), makeDecimal(10.4),
+      makeFraction(1,2), makeFraction(2,5), makeFraction(5,3), makeFraction(-2,7),
+      makeFraction(22,10), makeFraction(7,526),
+      makeIrrational('π'), makeIrrational('√2')
+    ];
+  }
+
+  /* ====== EXERCICES ====== */
+
+  // Exercice 1 — Appartenance (∈ / ∉)
+  const exo1 = {
+    id: "ens-appartenance",
+    title: "Appartenance (∈ / ∉)",
+    gen(){
+      const sets = ["ℕ","ℤ","ⅅ","ℚ","ℝ"];
+      return shuffle(poolNumbers().slice()).slice(0,8).map(n=>{
+        const S = choice(sets);
+        const key = (S==="ℕ"?"N":S==="ℤ"?"Z":S==="ⅅ"?"D":S==="ℚ"?"Q":"R");
+        const truth = n[key];
+        return { n, set:S, answer: truth ? "∈" : "∉" };
+      });
+    },
+    render(host, data){
+      host.innerHTML="";
+
+      // Consigne visible à l'écran
+      const cons = document.createElement("p");
+      cons.className = "hint";
+      cons.textContent = "Consigne : Compléter par le symbole ∈ ou ∉.";
+      host.appendChild(cons);
+
+      // ENONCE complet pour PDF (consigne + contenu) — utilise 4 espaces insécables entre nombre et ensemble
+      const equ = document.createElement("div");
+      equ.className = "equ";
+      equ.innerHTML = '<div class="consigne">Compléter par le symbole ∈ ou ∉.</div>';
+      data.forEach(item=>{
+        const line = document.createElement("div");
+        line.className="row-inline";
+        // 4 espaces insécables pour l'énoncé PDF
+        line.innerHTML = `<span class="mono">${item.n.html}</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="mono">${item.set}</span>`;
+        equ.appendChild(line);
+      });
+      host.appendChild(equ);
+
+      // UI interactive
+      data.forEach(item=>{
+        const row = document.createElement("div"); row.className="row-inline";
+        const num = document.createElement("span"); num.className="mono"; num.innerHTML=item.n.html;
+        const sel = document.createElement("select");
+        sel.setAttribute("data-answer", item.answer);
+        sel.dataset.set=item.set; sel.dataset.kind=item.n.kind; sel.dataset.html=item.n.html;
+        if(item.n.kind==='int'){ sel.dataset.int = item.n.val>=0 ? 'pos':'neg'; }
+        if(item.n.kind==='frac'){ sel.dataset.p=item.n.p; sel.dataset.q=item.n.q; sel.dataset.a2=item.n.a2; sel.dataset.a5=item.n.a5; sel.dataset.rest=item.n.rest; }
+        ["","∈","∉"].forEach(v=>sel.appendChild(new Option(v,v)));
+        const ens = document.createElement("span"); ens.className="mono"; ens.textContent=item.set;
+        row.append(num, sel, ens);
+        host.appendChild(row);
+      });
+    },
+    correct(host){
+      let ok=0, tot=0;
+      $$("select[data-answer]", host).forEach(sel=>{
+        tot++;
+        const fine = sel.value === sel.getAttribute("data-answer");
+        sel.classList.toggle("ok", fine);
+        sel.classList.toggle("ko", !fine);
+        if(fine) ok++;
+      });
+      return {ok, tot};
+    },
+    reset(host){
+      $$("select[data-answer]", host).forEach(sel=>{
+        sel.value=""; sel.classList.remove("ok","ko");
+      });
+      $(".steps",host)?.remove();
+    },
+    solution(host){
+      $$("select[data-answer]", host).forEach(sel=>{
+        sel.value = sel.getAttribute("data-answer");
+        sel.classList.add("ok"); sel.classList.remove("ko");
+      });
+
+      // Retirer consigne & .equ du DOM pour le corrigé
+      $$(".hint",host).forEach(n=>n.remove());
+      $$(".equ",host).forEach(n=>n.remove());
+
+      // Explications détaillées
+      $(".steps",host)?.remove();
+      const box=document.createElement("div"); box.className="steps";
+      box.insertAdjacentHTML("beforeend","<div><strong>Explications :</strong></div>");
+      $$("select[data-answer]", host).forEach(sel=>{
+        const sym = sel.value || sel.getAttribute("data-answer");
+        const nHTML = sel.dataset.html, S=sel.dataset.set, kind=sel.dataset.kind;
+        let why = "";
+        if(S==="ℕ"){
+          if(sym==="∈") why = "entier naturel (≥ 0).";
+          else          why = "n’est pas un entier naturel (pas un entier ≥ 0).";
+        } else if(S==="ℤ"){
+          if(sym==="∈") why = "entier relatif.";
+          else          why = "n’est pas un entier.";
+        } else if(S==="ⅅ"){
+          if(sym==="∈"){
+            if(kind==='frac'){
+              const a2=+sel.dataset.a2, a5=+sel.dataset.a5, rest=+sel.dataset.rest;
+              if(rest===1)      why = `écriture décimale finie car le dénominateur s’écrit ${factor25HTML(a2,a5)}.`;
+              else              why = "—";
+            } else if(kind==='int'){ why = "tout entier a une écriture décimale finie."; }
+            else if(kind==='dec'){  why = "écriture décimale finie par définition."; }
+          }else{
+            if(kind==='irr'){ why = "irrationnel ⇒ pas d’écriture décimale finie."; }
+            else if(kind==='frac'){
+              const rest=+sel.dataset.rest;
+              if(rest!==1) why = "pas décimal : le dénominateur possède d’autres facteurs que 2 et 5.";
+              else         why = "—";
+            } else why = "—";
+          }
+        } else if(S==="ℚ"){
+          if(sym==="∈"){
+            if(kind==='frac'){ why = "quotient de deux entiers (p/q) ⇒ rationnel."; }
+            else if(kind==='int' || kind==='dec'){ why = "tout entier/décimal est rationnel."; }
+          } else {
+            if(kind==='irr'){ why = "irrationnel (ex. π, √2) ⇒ pas dans ℚ."; }
+          }
+        } else if(S==="ℝ"){
+          why = "tous les nombres considérés sont réels (ℝ).";
+        }
+        const line = document.createElement("div");
+        line.className="line";
+        line.innerHTML = `<span class="mono">${nHTML}</span> ${sym} <span class="mono">${S}</span> — ${why}`;
+        box.appendChild(line);
+      });
+      host.appendChild(box);
+    }
+  };
+
+  // Exercice 2 — Décimal ou rationnel (fractions)
+  const exo2 = {
+    id: "ens-decimal-ou-non",
+    title: "Décimal ou rationnel (fractions)",
+    gen(){
+      const L = [], seen = new Set();
+      while(L.length<8){
+        let p = rndInt(-20,20), q = rndInt(2,30);
+        if(q===0) continue;
+        const d = gcd(p,q), rp = p/d, rq = q/d;
+        const key = rp+"/"+rq;
+        if(seen.has(key)) continue; seen.add(key);
+        let qq = Math.abs(rq), a2=0, a5=0;
+        while(qq%2===0){qq/=2; a2++}
+        while(qq%5===0){qq/=5; a5++}
+        L.push({
+          p:rp,q:rq,a2,a5,rest:qq,
+          html: fracHTML(rp,rq),
+          answer: (qq===1 ? "Décimal" : "Rationnel")
+        });
+      }
+      return L;
+    },
+    render(host, data){
+      host.innerHTML="";
+
+      // Consigne visible à l'écran
+      const cons = document.createElement("p");
+      cons.className = "hint";
+      cons.textContent = "Consigne : Dire si le nombre est décimal (écriture finie) ou rationnel non décimal.";
+      host.appendChild(cons);
+
+      // ENONCE complet pour PDF dans .equ
+      const equ = document.createElement("div");
+      equ.className = "equ";
+      equ.innerHTML = '<div class="consigne">Dire si le nombre est décimal (écriture finie) ou rationnel non décimal.</div>';
+      data.forEach(q=>{
+        const line = document.createElement("div"); line.className="row-inline";
+        line.innerHTML = `<span class="mono">${q.html}</span> — <span class="gap" style="min-width:140px"></span>`;
+        equ.appendChild(line);
+      });
+      host.appendChild(equ);
+
+      // UI interactive
+      data.forEach(q=>{
+        const row = document.createElement("div");
+        row.className="row-inline";
+        const frac = document.createElement("span"); frac.className="mono"; frac.innerHTML=q.html;
+        const sel = document.createElement("select");
+        sel.setAttribute("data-answer", q.answer);
+        sel.dataset.p=q.p; sel.dataset.q=q.q; sel.dataset.a2=q.a2; sel.dataset.a5=q.a5; sel.dataset.rest=q.rest;
+        ["","Décimal","Rationnel"].forEach(v=>sel.appendChild(new Option(v,v)));
+        row.append(frac, sel);
+        host.appendChild(row);
+      });
+    },
+    correct(host){
+      let ok=0, tot=0;
+      $$("select[data-answer]", host).forEach(sel=>{
+        tot++;
+        const fine = sel.value === sel.getAttribute("data-answer");
+        sel.classList.toggle("ok", fine);
+        sel.classList.toggle("ko", !fine);
+        if(fine) ok++;
+      });
+      return {ok, tot};
+    },
+    reset(host){
+      $$("select[data-answer]", host).forEach(sel=>{
+        sel.value=""; sel.classList.remove("ok","ko");
+      });
+      $(".steps",host)?.remove();
+    },
+    solution(host){
+      $$("select[data-answer]", host).forEach(sel=>{
+        sel.value = sel.getAttribute("data-answer");
+        sel.classList.add("ok"); sel.classList.remove("ko");
+
+      });
+      $$(".hint",host).forEach(n=>n.remove());
+      $$(".equ",host).forEach(n=>n.remove());
+
+      $(".steps",host)?.remove();
+      const box=document.createElement("div");
+      box.className="steps";
+      box.insertAdjacentHTML("beforeend","<div><strong>Explications :</strong></div>");
+      $$("select[data-answer]", host).forEach(sel=>{
+        const p=+sel.dataset.p, q=+sel.dataset.q, a2=+sel.dataset.a2, a5=+sel.dataset.a5, rest=+sel.dataset.rest;
+        let reasonHTML="";
+        if(rest===1){
+          const f = factor25HTML(a2,a5);
+          reasonHTML = `écriture décimale finie car <span class="mono">q</span> = ${f}.`;
+        }else{
+          reasonHTML = `rationnel non décimal car <span class="mono">q</span> possède d’autres facteurs premiers que 2 et 5.`;
+        }
+        const line=document.createElement("div");
+        line.className="line";
+        line.innerHTML = `${fracHTML(p,q)} — ${sel.value||sel.getAttribute("data-answer")} — ${reasonHTML}`;
+        box.appendChild(line);
+      });
+      host.appendChild(box);
+    }
+  };
+
+  // Exercice 3 — Tableau d’appartenance
+  const exo3 = {
+    id: "ens-tableau",
+    title: "Tableau d’appartenance (ℕ, ℤ, ⅅ, ℚ, ℝ)",
+    gen(){ return shuffle(poolNumbers().slice()).slice(0,6); },
+    render(host, nums){
+      host.innerHTML="";
+
+      const cons = document.createElement("p");
+      cons.className = "hint";
+      cons.textContent = "Consigne : Cocher pour chaque nombre les ensembles auxquels il appartient.";
+      host.appendChild(cons);
+
+      const equ = document.createElement("div");
+      equ.className = "equ";
+      equ.innerHTML = '<div class="consigne">Cocher pour chaque nombre les ensembles auxquels il appartient.</div>';
+      const tablePDF = document.createElement("table");
+      tablePDF.className="table-exo";
+      const thead2 = document.createElement("thead");
+      const thr2 = document.createElement("tr");
+      ["Nombre","ℕ","ℤ","ⅅ","ℚ","ℝ"].forEach(h=>{ const th=document.createElement("th"); th.textContent=h; thr2.appendChild(th); });
+      thead2.appendChild(thr2); tablePDF.appendChild(thead2);
+      const tbody2 = document.createElement("tbody");
+      nums.forEach(n=>{
+        const tr=document.createElement("tr");
+        const c0=document.createElement("td"); c0.className="mono"; c0.innerHTML=n.html; tr.appendChild(c0);
+        ["N","Z","D","Q","R"].forEach(key=>{
+          const td=document.createElement("td"); const box=document.createElement("span"); box.className="square";
+          td.appendChild(box); tr.appendChild(td);
+        });
+        tbody2.appendChild(tr);
+      });
+      tablePDF.appendChild(tbody2);
+      equ.appendChild(tablePDF);
+      host.appendChild(equ);
+
+      const table = document.createElement("table");
+      table.className = "table-exo";
+      const thead = document.createElement("thead");
+      const thr = document.createElement("tr");
+      ["Nombre","ℕ","ℤ","ⅅ","ℚ","ℝ"].forEach(h=>{ const th=document.createElement("th"); th.textContent=h; thr.appendChild(th); });
+      thead.appendChild(thr); table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      nums.forEach(n=>{
+        const tr = document.createElement("tr");
+        const c0 = document.createElement("td"); c0.className="mono"; c0.innerHTML=n.html; tr.appendChild(c0);
+        ["N","Z","D","Q","R"].forEach(key=>{
+          const td=document.createElement("td");
+          const chk=document.createElement("input"); chk.type="checkbox";
+          chk.setAttribute("data-ans", n[key] ? "1" : "0");
+          td.appendChild(chk); tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      host.appendChild(table);
+    },
+    correct(host){
+      let ok=0, tot=0;
+      $$("tbody tr", host).forEach(tr=>{
+        $$("input[type=checkbox]", tr).forEach(chk=>{
+          tot++;
+          const want = chk.getAttribute("data-ans")==="1";
+          const fine = !!chk.checked === want;
+          chk.classList.toggle("ok", fine);
+          chk.classList.toggle("ko", !fine);
+          if(fine) ok++;
+        });
+      });
+      return {ok, tot};
+    },
+    reset(host){
+      $$("tbody tr", host).forEach(tr=>{
+        $$("input[type=checkbox]", tr).forEach(chk=>{
+          chk.checked=false; chk.classList.remove("ok","ko");
+        });
+      });
+    },
+    solution(host){
+      $$(".hint",host).forEach(n=>n.remove());
+      $$(".equ",host).forEach(n=>n.remove());
+
+      $$("tbody tr", host).forEach(tr=>{
+        $$("input[type=checkbox]", tr).forEach(chk=>{
+          const want = chk.getAttribute("data-ans")==="1";
+          chk.checked = want;
+          chk.classList.add("ok"); chk.classList.remove("ko");
+        });
+      });
+    }
+  };
+
+  var REGISTRY=[exo1,exo2,exo3];
+  window.REGISTRY=REGISTRY;
+
+  var scoreOK=0, scoreTot=0;
+  function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+  function buildOne(){
+    var sel=$("#exo-select"), host=$("#host"), def=REGISTRY.find(function(e){return e.id===sel.value;});
+    if(!def) return;
+    var state=def.gen();
+    host.dataset.active=def.id;
+    host.dataset.state=JSON.stringify(state);
+    def.render(host,state);
+    var res=$("#res",host); if(res) res.textContent='';
+  }
+  function check(){
+    var host=$("#host");
+    var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+    if(!def) return;
+    var st = JSON.parse(host.dataset.state||'{}');
+    var r = def.correct(host, st) || {ok:0, tot:0};
+    var tot = ('total' in r)?r.total:('tot' in r? r.tot:0);
+    scoreTot += tot; scoreOK += r.ok?1:0; updateScore();
+  }
+  function solution(){
+    var host=$("#host");
+    var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+    if(!def) return;
+    var st = JSON.parse(host.dataset.state||'{}');
+    def.solution(host, st);
+  }
+  function resetAll(){
+    var host=$("#host");
+    var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+    if(!def) return;
+    var st = JSON.parse(host.dataset.state||'{}'); def.reset(host, st);
+  }
+
+  function whenReady(cb){
+    function ok(){ return window.DevRules && window.algebraicEqual; }
+    if (ok()) return cb();
+    var t=0, i=setInterval(function(){
+      if (ok()){ clearInterval(i); cb(); }
+      else if ((t+=50)>5000){ clearInterval(i); console.warn('Dépendances non chargées'); }
+    },50);
+  }
+
+  whenReady(function(){
+    var sel=$("#exo-select");
+    REGISTRY.forEach(function(e,i){ sel.appendChild(new Option((i+1)+'. '+e.title, e.id)); });
+    sel.addEventListener('change', buildOne);
+    $("#btn-new").addEventListener('click', buildOne);
+    $("#btn-check").addEventListener('click', check);
+    $("#btn-solution").addEventListener('click', solution);
+    $("#btn-reset").addEventListener('click', resetAll);
+    buildOne();
+
+    if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+      ExoPDF.init({
+        title: 'Seconde – Chapitre 1 – Ensembles',
+        max: 50,
+        mountAfterSelector: '.card.small',
+        beforeRender(def, st, withSolutions){
+          try{
+            const tmp = document.createElement('div');
+            tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+            def.render(tmp, st);
+            if(!withSolutions){
+              const equ = tmp.querySelector('.equ');
+              if(equ) return equ.outerHTML;
+            }else{
+              if(typeof def.solution==='function'){ def.solution(tmp, st); }
+              const steps = tmp.querySelector('.steps');
+              if(steps) return steps.outerHTML;
+              return tmp.innerHTML;
+            }
+            return tmp.innerHTML;
+          }catch(e){
+            return null;
+          }
+        }
+      });
+    }
+  });
+  </script>
+
+  <!-- Clavier math centré -->
+  <div data-math-kbd style="display:flex; justify-content:center"></div>
+</body>
+</html>

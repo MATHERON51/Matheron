@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seconde – Chapitre 2 – Tableau de valeurs</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer}
+.btn:hover{background:#efefef}
+.score{font-weight:700}
+.small{font-size:.92rem;color:#666}
+.equ{font-weight:600}
+
+/* Tableaux d’exercice (interactif) */
+.tbl{border-collapse:collapse;width:100%;margin:8px 0}
+.tbl th,.tbl td{border:1px solid #e6e6e6;padding:8px 10px;text-align:center;vertical-align:top}
+.tbl input{width:100%;text-align:center;padding:.35rem .4rem;border:1px solid #ddd;border-radius:8px}
+.pretty{display:none}
+.cell-solved input{display:none}
+.cell-solved .pretty{display:block}
+
+/* PDF-only helper */
+.pdf-only{display:none}
+@media print{ .pdf-only{display:block} }
+
+/* Fractions jolies */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Zone Solution (corrigé) */
+.steps{margin:.6rem 0 0 .1rem;padding:.5rem .6rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+
+/* Tableau des détails — identique écran ↔ PDF (barres verticales noires + espacement) */
+.sol-table{border-collapse:collapse;width:100%}
+.sol-table td{
+  border-left:3px solid #000;
+  padding:.25rem 1rem;
+  vertical-align:top;
+}
+.sol-table td:last-child{border-right:3px solid #000}
+.sol-table tr+tr td{border-top:1px solid #e3e3e3}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 2 – <strong>Tableau de valeurs</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+      <span id="status" class="small"></span>
+    </div>
+
+    <div class="card" id="host" aria-live="polite"></div>
+
+    <div class="card small">
+      <strong>Saisie :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li>Dans le tableau, écris uniquement le <code>nombre</code> (ou <code>ND</code> si non défini).</li>
+        <li>Tu peux taper <code>a/b</code> ; en “Solution”, les fractions s’affichent joliment.</li>
+        <li>Décimaux : virgule ou point ; le signe « − » est accepté.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<!-- libs -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.js" defer></script>
+
+<script>
+(function(){'use strict';
+
+/* ===== utilitaires ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>a.sort(()=>Math.random()-.5);
+const UMINUS='−';
+
+/* ===== rationnels / quotients ===== */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function norm(p,q){ if(q===0) throw new Error('denominator 0'); let g=gcd(p,q); p/=g; q/=g; if(q<0){ p=-p; q=-q; } return {p,q}; }
+function makeR(p,q){ return norm(p,q||1); }
+function Q(numHTML, denHTML){
+  const d=String(denHTML).trim();
+  if(d==='1') return numHTML;
+  return '<span class="frac"><span class="num">'+numHTML+'</span><span class="bar"></span><span class="den">'+denHTML+'</span></span>';
+}
+function fracHTML(p,q){
+  const neg=(p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q);
+  if(q===1) return (neg?UMINUS:'')+String(p);
+  return (neg?'<span class="frac-sign">'+UMINUS+'</span>':'')+Q(String(p),String(q));
+}
+function toHTMLNumber(val){
+  if(val===null) return '<em>ND</em>';
+  if(typeof val==='number'){
+    const k=1000, num=Math.round(val*k);
+    if(Math.abs(num/k - val) <= 1e-9){ const r=norm(num,k); return fracHTML(r.p,r.q); }
+    return String(val);
+  }
+  const r=norm(val.p,val.q); return fracHTML(r.p,r.q);
+}
+
+/* ===== parsing cellule & comparaison ===== */
+function parseCell(s){
+  const t=String(s||'').trim().replace(/\u2212/g,'-').replace(/,/,'.');
+  if(/^nd$/i.test(t)) return {type:'nd'};
+  const m=t.match(/^([-+]?\d+)\s*\/\s*([-+]?\d+)$/);
+  if(m){ const p=+m[1], q=+m[2]; if(q!==0) return {type:'rat', p, q}; }
+  const v=Number(t); if(Number.isFinite(v)) return {type:'real', v};
+  return null;
+}
+function eqVal(given, expected){
+  if(expected===null) return /^nd$/i.test(String(given||'').trim());
+  const g=parseCell(given); if(!g) return false;
+  const ex=(typeof expected==='number')? expected : expected.p/expected.q;
+  if(g.type==='nd') return expected===null;
+  if(g.type==='real') return Math.abs(g.v-ex)<=1e-9;
+  if(g.type==='rat'){ const G=gcd(g.p,g.q); const p=g.p/G,q=g.q/G; return Math.abs(p/q-ex)<=1e-9; }
+  return false;
+}
+
+/* ===== affichage — ENONCÉS (jamais de × ; on masque les zéros) ===== */
+const signStr = v => v>=0 ? ' + ' : ' − ';
+function termAx(a){ return (a===1)?'x':(a===-1?UMINUS+'x':a+'x'); }
+function termAx2(a){ return (a===1)?'x²':(a===-1?UMINUS+'x²':a+'x²'); }
+function fmtAffineEnonce(a,b){
+  let s = termAx(a);
+  if(b!==0) s += signStr(b) + Math.abs(b);
+  return s;
+}
+function fmtQuadEnonce(a,b,c){
+  let s = termAx2(a);
+  if(b!==0) s += signStr(b) + Math.abs(b) + 'x';
+  if(c!==0) s += signStr(c) + Math.abs(c);
+  return s;
+}
+function fmtLinNoTimes(a,b){ // homographique : “ax (+/− b)” sans × et sans 0
+  let s = (a!==0)? termAx(a) : '';
+  if(b!==0){
+    s += (s? signStr(b) : (b<0? '− ' : '')) + Math.abs(b);
+  }
+  return s || '0';
+}
+
+/* ===== affichage — CALCULS (× seulement avec des NOMBRES, parenthèses si négatif) ===== */
+const pDisp = n => n<0 ? `(${UMINUS}${Math.abs(n)})` : String(n);
+const nDisp = n => n<0 ? `${UMINUS}${Math.abs(n)}` : String(n);
+function mulStr(a, s){ if(a===1) return s; if(a===-1) return UMINUS+s; return a+'×'+s; }
+function monoAx(a){ return (a===1)?'x' : (a===-1? '−x' : a+'x'); }
+function joinTerms(first, ...rest){
+  let out = first || '';
+  for(const t of rest){ if(!t || !t.text) continue; out += (t.sign>0?' + ':' − ')+t.text; }
+  return out || '0';
+}
+
+/* ===== helpers tableaux ===== */
+function buildFxTable(model){
+  const th = model.xs.map(x=>`<th>${toHTMLNumber(x)}</th>`).join('');
+  const row = model.rows.map(r=>`<td><div class="pretty"></div><input data-id="${r.id}" inputmode="text" autocomplete="off"></td>`).join('');
+  return `<table class="tbl"><thead><tr><th>x</th>${th}</tr></thead><tbody><tr><td>f(x)</td>${row}</tr></tbody></table>`;
+}
+function buildXTable(model){
+  const th = model.rows.map(r=>`<th><div class="pretty"></div><input data-id="${r.id}" inputmode="text" autocomplete="off"></th>`).join('');
+  const fy = model.ys.map(y=>`<td>${toHTMLNumber(y)}</td>`).join('');
+  return `<table class="tbl"><thead><tr><th>x</th>${th}</tr></thead><tbody><tr><td>f(x)</td>${fy}</tr></tbody></table>`;
+}
+function showPrettyInCell(container, html){
+  const td = container.closest('td,th'); if(!td) return;
+  td.classList.add('cell-solved');
+  const box = td.querySelector('.pretty') || (()=>{ const d=document.createElement('div'); d.className='pretty'; td.prepend(d); return d; })();
+  box.innerHTML = html;
+}
+function clearPretty(host){ host.querySelectorAll('.cell-solved').forEach(td=>td.classList.remove('cell-solved')); }
+
+/* ===== tableau des détails (styles inline → écran = PDF) ===== */
+function detailsTable(columns){
+  const height = Math.max(...columns.map(col=>col.length));
+  const ncol = columns.length;
+  const base = 'border-left:3px solid #000;padding:.25rem 1rem;vertical-align:top;border-top:1px solid #e3e3e3;';
+  const rows=[];
+  for(let r=0;r<height;r++){
+    let tds='';
+    for(let c=0;c<ncol;c++){
+      const right = (c===ncol-1)?'border-right:3px solid #000;':'';
+      const html = (columns[c][r]||'').replace(/\n/g,'<br>');
+      tds += `<td style="${base}${right}">${html}</td>`;
+    }
+    rows.push(`<tr>${tds}</tr>`);
+  }
+  return `<table class="sol-table" style="border-collapse:collapse;width:100%"><tbody>${rows.join('')}</tbody></table>`;
+}
+
+/* ===== déduplication ===== */
+function _normDedup(s){ return String(s??'').replace(/-/g, UMINUS).replace(/\s+/g,' ').trim(); }
+function dedupeConsecutive(lines){
+  const out=[]; let prev=null;
+  for(const L of lines){
+    const N=_normDedup(L);
+    if(prev!==null && N===prev) continue;
+    out.push(L);
+    prev=N;
+  }
+  return out;
+}
+function dedupeTail(lines){
+  for (let i=lines.length-1;i>0;i--){
+    if(_normDedup(lines[i])===_normDedup(lines[i-1])) lines.splice(i,1); else break;
+  }
+  return lines;
+}
+function dedupeAll(lines){ return dedupeTail(dedupeConsecutive(lines)); }
+
+/* ===== construit le tableau d’ÉNONCÉ vide (PDF-only) ET l’insère dans .equ ===== */
+function insertEnoncePDFTable(host){
+  host.querySelectorAll('.enonce-pdf-table').forEach(n=>n.remove());
+
+  const src = host.querySelector('.tbl');
+  const equ = host.querySelector('.equ');
+  if(!src || !equ) return;
+
+  const clone = src.cloneNode(true);
+  // vide les réponses
+  clone.querySelectorAll('input').forEach(inp=>inp.remove());
+  clone.querySelectorAll('.pretty').forEach(p=>p.remove());
+  clone.querySelectorAll('.cell-solved').forEach(td=>td.classList.remove('cell-solved'));
+  // styles inline pour contours visibles dans le PDF
+  clone.style.borderCollapse='collapse';
+  clone.style.width='100%';
+  clone.style.border='2px solid #000';
+  clone.querySelectorAll('th,td').forEach(cell=>{
+    cell.style.border='1px solid #000';
+    cell.style.padding='8px 10px';
+    cell.style.textAlign='center';
+    cell.style.verticalAlign='top';
+  });
+
+  const wrap = document.createElement('div');
+  wrap.className='pdf-only enonce-pdf-table';
+  wrap.style.margin='6px 0 10px 0';
+  wrap.appendChild(clone);
+
+  equ.appendChild(wrap);
+}
+
+/* ===== EXERCICES ===== */
+
+/* TV1 — f(x)=ax+b → f(x) */
+const exTV1 = {
+  id:'tv_affine_fx', title:'Tableau : f(x)=ax+b → f(x)',
+  gen(){
+    let a=0; while(a===0) a=rnd(-5,5); const b=rnd(-8,8);
+    const xs=shuffle([-3,-2,-1,0,1,2,3,4,5]).slice(0,5).sort((x,y)=>x-y);
+    const rows=xs.map((x,i)=>({x, id:'y'+i, val: a*x + b}));
+    return {a,b,xs,rows};
+  },
+  render(host,s){
+    const fHTML = `Soit <strong>f(x) = ${fmtAffineEnonce(s.a,s.b)}</strong>. Compléter le tableau :`;
+    host.innerHTML = `<div class="equ">${fHTML}</div>${buildFxTable(s)}<div class="steps" id="steps"></div>`;
+    insertEnoncePDFTable(host);
+    host.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); check();}}));
+  },
+  correct(host,s){
+    let ok=0, total=s.rows.length;
+    s.rows.forEach(r=>{ const el=host.querySelector(`input[data-id="${r.id}"]`); if(el && eqVal(el.value,r.val)) ok++; });
+    $('#score').textContent=`${ok} / ${total}`; return {ok, total};
+  },
+  solution(host,s){
+    s.rows.forEach(r=>{
+      const el=host.querySelector(`input[data-id="${r.id}"]`); if(!el) return;
+      el.value=String(r.val); showPrettyInCell(el, toHTMLNumber(r.val));
+    });
+    const cols = s.rows.map(r=>{
+      const left = `f(${nDisp(r.x)})`;
+      const L0 = `f(x) = ${fmtAffineEnonce(s.a,s.b)}`;
+      const L1 = '';
+      const L2 = left + ' = ' + (s.b!==0 ? (mulStr(s.a, pDisp(r.x)) + (s.b>0?' + ':' − ') + Math.abs(s.b)) : mulStr(s.a, pDisp(r.x)));
+      const prod = s.a*r.x;
+      const L3 = left + ' = ' + (s.b!==0 ? (nDisp(prod) + (s.b>0?' + ':' − ') + Math.abs(s.b)) : nDisp(prod));
+      const L4 = left + ' = ' + nDisp(prod + s.b);
+      return dedupeAll([L0,L1,L2,L3,L4]);
+    });
+    $('#steps',host).innerHTML = detailsTable(cols);
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearPretty(host); $('#steps',host).innerHTML=''; insertEnoncePDFTable(host); }
+};
+
+/* TV2 — f(x)=ax²+bx+c → f(x) */
+const exTV2 = {
+  id:'tv_quad_fx', title:'Tableau : f(x)=ax²+bx+c → f(x)',
+  gen(){
+    const a = pick([-2,-1,1,2]); const b=rnd(-4,4), c=rnd(-6,6);
+    const xs=shuffle([-3,-2,-1,0,1,2,3]).slice(0,5).sort((x,y)=>x-y);
+    const rows=xs.map((x,i)=>({x, id:'y'+i, val: a*x*x + b*x + c}));
+    return {a,b,c,xs,rows};
+  },
+  render(host,s){
+    const head = `Soit <strong>f(x) = ${fmtQuadEnonce(s.a,s.b,s.c)}</strong>. Compléter le tableau :`;
+    host.innerHTML = `<div class="equ">${head}</div>${buildFxTable(s)}<div class="steps" id="steps"></div>`;
+    insertEnoncePDFTable(host);
+    host.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); check();}}));
+  },
+  correct(host,s){
+    let ok=0,total=s.rows.length;
+    s.rows.forEach(r=>{ const el=host.querySelector(`input[data-id="${r.id}"]`); if(el && eqVal(el.value,r.val)) ok++; });
+    $('#score').textContent=`${ok} / ${total}`; return {ok,total};
+  },
+  solution(host,s){
+    s.rows.forEach(r=>{
+      const el=host.querySelector(`input[data-id="${r.id}"]`); if(!el) return;
+      el.value=String(r.val); showPrettyInCell(el, toHTMLNumber(r.val));
+    });
+    const cols = s.rows.map(r=>{
+      const x=r.x, left=`f(${nDisp(x)})`;
+      const L0 = `f(x) = ${fmtQuadEnonce(s.a,s.b,s.c)}`;
+      const L1 = '';
+      const L2 = left + ' = ' + joinTerms(
+        mulStr(s.a, pDisp(x)+'²'),
+        (s.b!==0 ? {sign:Math.sign(s.b), text:Math.abs(s.b)+'×'+pDisp(x)} : null),
+        (s.c!==0 ? {sign:Math.sign(s.c), text:String(Math.abs(s.c))} : null)
+      );
+      const x2 = x*x, bx = s.b*x;
+      const L3 = left + ' = ' + joinTerms(
+        mulStr(s.a, String(x2)),
+        (bx!==0 ? {sign:Math.sign(bx), text:String(Math.abs(bx))} : null),
+        (s.c!==0 ? {sign:Math.sign(s.c), text:String(Math.abs(s.c))} : null)
+      );
+      const sc = bx + s.c;
+      const L4 = left + ' = ' + joinTerms(
+        mulStr(s.a, String(x2)),
+        (sc!==0 ? {sign:Math.sign(sc), text:String(Math.abs(sc))} : null)
+      );
+      const ax2 = s.a*x2;
+      const L5 = left + ' = ' + joinTerms(
+        nDisp(ax2),
+        (sc!==0 ? {sign:Math.sign(sc), text:String(Math.abs(sc))} : null)
+      );
+      const L6 = left + ' = ' + nDisp(ax2 + sc);
+      return dedupeAll([L0,L1,L2,L3,L4,L5,L6]);
+    });
+    $('#steps',host).innerHTML = detailsTable(cols);
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearPretty(host); $('#steps',host).innerHTML=''; insertEnoncePDFTable(host); }
+};
+
+/* TV3 — f(x)=(ax+b)/(cx+d) → f(x) (ND forcé exactement une fois, colonne aléatoire) */
+const exTV3 = {
+  id:'tv_homo_fx', title:'Tableau : f(x)=(ax+b)/(cx+d) → f(x) (ND possible)',
+  gen(){
+    // c ≠ 0
+    let c=0; while(c===0) c=rnd(-3,3);
+    // on choisit un pôle entier aléatoire dans la grille
+    const CAND=[-4,-3,-2,-1,0,1,2,3,4,5];
+    const xPole = pick(CAND);
+    // force d pour avoir cx + d = 0 en xPole
+    const d = -c * xPole;
+
+    // numérateur libre
+    const a=rnd(-4,4), b=rnd(-6,6);
+
+    // on construit xs avec exactement un xPole et 4 autres ≠ xPole
+    const others = shuffle(CAND.filter(x=>x!==xPole)).slice(0,4);
+    const xs = [...others, xPole].sort((x,y)=>x-y);
+
+    // lignes : ND seulement pour xPole
+    const rows = xs.map((x,i)=>{
+      if(x===xPole) return {x, id:'y'+i, val:null};
+      const den=c*x+d; // non nul par construction
+      const num=a*x+b, g=gcd(num,den);
+      return {x, id:'y'+i, val:{p:num/g,q:den/g}};
+    });
+
+    return {a,b,c,d,xs,rows};
+  },
+  render(host,s){
+    const N = fmtLinNoTimes(s.a,s.b);
+    const D = fmtLinNoTimes(s.c,s.d);
+    const fHTML=`Soit <strong>f(x) = ${Q(N,D)}</strong>. Compléter le tableau (écrire <em>ND</em> si nécessaire) :`;
+    host.innerHTML = `<div class="equ">${fHTML}</div>${buildFxTable(s)}<div class="steps" id="steps"></div>`;
+    insertEnoncePDFTable(host);
+    host.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); check();}}));
+  },
+  correct(host,s){
+    let ok=0,total=s.rows.length;
+    s.rows.forEach(r=>{
+      const el=host.querySelector(`input[data-id="${r.id}"]`);
+      if(!el) return;
+      const expected = (r.val===null)? null : r.val;
+      const okOne = (expected===null) ? /^nd$/i.test(el.value.trim()) : eqVal(el.value, expected);
+      if(okOne) ok++;
+    });
+    $('#score').textContent=`${ok} / ${total}`; return {ok,total};
+  },
+  solution(host,s){
+    s.rows.forEach(r=>{
+      const el=host.querySelector(`input[data-id="${r.id}"]`);
+      if(!el) return;
+      if(r.val===null){
+        el.value='ND'; showPrettyInCell(el, '<em>ND</em>');
+      }else{
+        el.value = (r.val.q===1? String(r.val.p): (r.val.p+'/'+r.val.q));
+        showPrettyInCell(el, toHTMLNumber(r.val));
+      }
+    });
+    const cols = s.rows.map(r=>{
+      const x=r.x, left = `f(${nDisp(x)})`;
+      if(r.val===null){
+        const sub = (s.c!==0? s.c+'×'+pDisp(x) : '0') + (s.d!==0 ? (s.d>0?' + ':' − ') + Math.abs(s.d) : '');
+        return dedupeAll([
+          `Pour x=${nDisp(x)} : ${sub} = 0`,
+          `Conclusion : f(${nDisp(x)}) est non définie (ND).`
+        ]);
+      }else{
+        const p=s.a*x+s.b, q=s.c*x+s.d, nn=norm(p,q);
+        const L0 = `f(x) = ${Q(fmtLinNoTimes(s.a,s.b), fmtLinNoTimes(s.c,s.d))}`;
+        const L1 = '';
+        const numSub = (s.a!==0? s.a+'×'+pDisp(x) : (s.b===0?'0':'')) + (s.b!==0? (s.a!==0? signStr(s.b): (s.b<0?' − ':' + ')) + Math.abs(s.b) : '');
+        const denSub = (s.c!==0? s.c+'×'+pDisp(x) : (s.d===0?'0':'')) + (s.d!==0? (s.c!==0? signStr(s.d): (s.d<0?' − ':' + ')) + Math.abs(s.d) : '');
+        const L2 = `${left} = ${Q(numSub, denSub)}`;
+        const L3 = `${left} = ${Q(String(p), String(q))}`;
+        const L4 = `${left} = ${toHTMLNumber(nn)}`;
+        return dedupeAll([L0,L1,L2,L3,L4]);
+      }
+    });
+    $('#steps',host).innerHTML = detailsTable(cols);
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearPretty(host); $('#steps',host).innerHTML=''; insertEnoncePDFTable(host); }
+};
+
+/* TV4 — f(x)=ax+b → chercher x (antécédents) */
+const exTV4 = {
+  id:'tv_affine_x', title:'Tableau : f(x)=ax+b → trouver x (antécédents)',
+  gen(){
+    let a=0; while(a===0) a=rnd(-6,6); const b=rnd(-8,8);
+    const xs=shuffle([-4,-3,-2,-1,0,1,2,3,4]).slice(0,5).sort((x,y)=>x-y);
+    const ys=xs.map(x=>a*x+b);
+    const rows=xs.map((x,i)=>({ id:'x'+i, val: makeR(x,1) }));
+    return {a,b,xs,ys,rows};
+  },
+  render(host,s){
+    const fHTML = `Soit <strong>f(x) = ${fmtAffineEnonce(s.a,s.b)}</strong>. Compléter le tableau en trouvant <strong>x</strong> :`;
+    host.innerHTML = `<div class="equ">${fHTML}</div>${buildXTable(s)}<div class="steps" id="steps"></div>`;
+    insertEnoncePDFTable(host);
+    host.querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); check();}}));
+  },
+  correct(host,s){
+    let ok=0,total=s.rows.length;
+    s.rows.forEach((r)=>{ const el=host.querySelector(`input[data-id="${r.id}"]`); if(el && eqVal(el.value, r.val)) ok++; });
+    $('#score').textContent=`${ok} / ${total}`; return {ok,total};
+  },
+  solution(host,s){
+    s.rows.forEach(r=>{
+      const el=host.querySelector(`input[data-id="${r.id}"]`);
+      if(!el) return;
+      const v=r.val; el.value=(v.q===1? String(v.p): (v.p+'/'+v.q));
+      showPrettyInCell(el, toHTMLNumber(v));
+    });
+    const cols = s.ys.map((y)=>{
+      const kHTML = toHTMLNumber(y);
+      const L0 = `f(x) = ${fmtAffineEnonce(s.a,s.b)}`;
+      const L1 = '';
+      const L2 = `f(x) = ${kHTML}`;
+      const L3 = monoAx(s.a) + (s.b!==0 ? (s.b>0?' + ':' − ') + Math.abs(s.b) : '') + ' = ' + kHTML;
+      const L4 = (s.b!==0) ? (monoAx(s.a) + ' = ' + kHTML + (s.b>0?' − ':' + ') + Math.abs(s.b)) : null;
+      const ymb = (typeof y==='number') ? makeR(y - s.b,1) : makeR(y.p - s.b*y.q, y.q);
+      const L5 = 'x = ' + (s.b!==0 ? Q(String(ymb.p), String(s.a*ymb.q))
+                                   : Q(String((typeof y==='number')?y: y.p), String(s.a*((typeof y==='number')?1: y.q))));
+      const fin = norm(ymb.p, s.a*ymb.q);
+      const L6 = 'x = ' + toHTMLNumber(fin);
+      return dedupeAll(s.b!==0 ? [L0,L1,L2,L3,L4,L5,L6] : [L0,L1,L2,L3,L5,L6]);
+    });
+    $('#steps',host).innerHTML = detailsTable(cols);
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearPretty(host); $('#steps',host).innerHTML=''; insertEnoncePDFTable(host); }
+};
+
+/* ===== REGISTRY/UI ===== */
+const REGISTRY=[exTV1,exTV2,exTV3,exTV4];
+window.REGISTRY=REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent=scoreOK+' / '+scoreTot; }
+function buildOne(){ const sel=$('#exo-select'), host=$('#host'); const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def){ host.textContent='(Aucun exercice)'; return; }
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st); def.render(host,st); }
+function check(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host,st); if(r){ scoreOK+=r.ok?1:0; scoreTot+=(r.total||1); updateScore(); }}
+function solution(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ scoreOK=0; scoreTot=0; updateScore(); const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host); }
+
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const sel=$('#exo-select');
+    REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+    sel.addEventListener('change', buildOne);
+    $('#btn-new').addEventListener('click', buildOne);
+    $('#btn-check').addEventListener('click', check);
+    $('#btn-solution').addEventListener('click', solution);
+    $('#btn-reset').addEventListener('click', resetAll);
+
+    // Entrée → Vérifier
+    document.addEventListener('keydown', (ev)=>{
+      const inHost = document.activeElement && document.activeElement.closest('#host') && document.activeElement.tagName==='INPUT';
+      if(inHost && ev.key==='Enter'){ ev.preventDefault(); check(); }
+    });
+
+    sel.value=REGISTRY[0].id; buildOne(); updateScore(); $('#status').textContent='';
+  }catch(err){ console.error(err); $('#status').textContent='(Erreur d’init : voir la console)'; }
+});
+
+/* ===== PDF ===== */
+window.addEventListener('load', function () {
+  if (window.ExoPDF && ExoPDF.init) {
+    ExoPDF.init({
+      title:'Seconde – Chapitre 2 – Tableau de valeurs',
+      lead:'Compléter le tableau.',
+      max:50,
+      leadByDefId:{
+        'tv_affine_fx':'Compléter le tableau de valeurs pour f(x)=ax+b.',
+        'tv_quad_fx':'Compléter le tableau de valeurs pour f(x)=ax²+bx+c.',
+        'tv_homo_fx':'Compléter le tableau de valeurs pour f(x)=(ax+b)/(cx+d). Écrire « ND » si nécessaire.',
+        'tv_affine_x':'Compléter le tableau : trouver x à partir de f(x) (affine).'
+      }
+    });
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Chapitre 0 – Calculs – Identités remarquables</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+
+/* Grille : énoncé + saisie (1ère ligne), corrigé pleine largeur dessous */
+.row{
+  display:grid;
+  grid-template-columns:1fr minmax(260px,340px);
+  grid-template-areas:
+    'lab inp'
+    'res res';
+  gap:10px;
+  align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row input[type=text], .row .input-line{grid-area:inp}
+.row #res{grid-area:res;margin-top:2px}
+
+.input-line{display:flex;align-items:center;gap:6px}
+.input-line .input-prefix{font-weight:600; white-space:nowrap}
+
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.equ{font-weight:600}
+.hint{opacity:.85;margin:.2rem 0 .6rem}
+
+/* Étapes */
+.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.2rem 0; white-space:nowrap}
+
+/* === Bloc .equ-offscreen : ENONCÉ complet (consigne + équation) pour le PDF === */
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;} /* pas de doublon de consigne */
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+}
+.equ-offscreen .consigne{margin-bottom:6px;font-weight:600}
+
+/* Petit tableau d’aide (carrés parfaits) */
+.sqtbl{width:100%;border-collapse:collapse;margin-top:10px}
+.sqtbl td{border:1px solid #eaeaea;padding:8px;text-align:center;white-space:nowrap}
+.sqtbl tr:nth-child(even) td{background:#fbfbfb}
+#sol-wrap .btn,#mode-conseil{width:100%}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 0 – Calculs – <strong>Identités remarquables</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <!-- Barre principale -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn" title="Génère un nouvel énoncé">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn" title="Vérifie ta réponse">✅ Vérifier</button>
+
+      <!-- Le bouton Solution sera "enveloppé" avec le sélecteur (colonne) -->
+      <span id="sol-wrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:260px;width:260px">
+        <button id="btn-solution" class="btn" title="Affiche une solution détaillée">💡 Solution</button>
+        <!-- le select est injecté ici via JS -->
+      </span>
+
+      <button id="btn-reset" class="btn" title="Réinitialise la saisie et le score">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <!-- ENONCÉ / SAISIE / CORRIGÉ -->
+    <div class="card" id="host"></div>
+
+    <!-- Saisie & indications -->
+    <div class="card small" id="help-card">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li>Écris en forme réduite, par exemple : <code class="code">x^2 + 4x + 4</code> (ou <code class="code">x² + 4x + 4</code>).</li>
+        <li>Les signes sont normalisés en <code>−</code> (moins Unicode) et la multiplication en <code>×</code> si affichée.</li>
+        <li><strong>Sélecteur “Solution (avec / sans conseil)”</strong> : pour les formes <code>(−a ± b)²</code>, le mode <em>avec conseil</em> réécrit d’abord l’expression (ex. <code>(−A − B)² → (A + B)²</code>) avant de développer&nbsp;; <em>sans conseil</em> développe directement l’expression donnée.</li>
+        <li><strong>Conseil (exercice 5)</strong> : si la somme ou la différence est ≤ 20, calcule directement sans développer. Exemple : <code class="code">(10 − 2)² = 8² = 64</code>.</li>
+      </ul>
+    </div>
+
+    <!-- Clavier math, centré -->
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<!-- Librairies -->
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const UMINUS='−', MULT='×';
+const FEQ = s => `F&nbsp;=&nbsp;${s}`;
+
+/* ===== Helpers ===== */
+function uminus(n){ return n<0 ? UMINUS+String(Math.abs(n)) : String(n); }
+function axStr(a){ const k=Math.abs(a); return (a<0? UMINUS : '') + (k===1? 'x' : (k+'x')); }
+function normalizeSigns(s){
+  return s.replace(/\u2212/g,UMINUS)
+          .replace(/\+\s*[−-]/g,' − ')
+          .replace(/[−-]\s*\+/g,' − ')
+          .replace(/[−-]\s*[−-]/g,' + ')
+          .replace(/\+\s*\+/g,' + ')
+          .replace(/\s{2,}/g,' ')
+          .trim();
+}
+function canonSup2(s){
+  return s.replace(/([x0-9)])²/g, '$1<sup>2</sup>').replace(/\(<sup>2<\/sup>/g,'(');
+}
+function polyToHTML({a2=0,a1=0,a0=0}){
+  const parts=[];
+  if(a2){ parts.push(a2===1?'x<sup>2</sup>':a2===-1?`${UMINUS}x<sup>2</sup>`:uminus(a2)+'x<sup>2</sup>'); }
+  if(a1){
+    const k=Math.abs(a1), t=(k===1?'x':k+'x');
+    if(parts.length) parts.push(a1>0?' + '+t:' − '+t); else parts.push(a1<0? UMINUS+t : t);
+  }
+  if(a0){
+    const k=Math.abs(a0);
+    if(parts.length) parts.push(a0>0?' + '+k:' − '+k); else parts.push(a0<0? UMINUS+k : ''+k);
+  }
+  return parts.length? parts.join('') : '0';
+}
+function polyToAscii({a2=0,a1=0,a0=0}){
+  let s='';
+  if(a2){ s = (a2===1?'x^2':a2===-1?'-x^2':a2+'x^2'); }
+  if(a1){
+    const k=Math.abs(a1), t=(k===1?'x':k+'x');
+    s += (s?' ':'') + (a1>0? '+ ':'- ') + t;
+  }
+  if(a0){
+    s += (s?' ':'') + (a0>0? '+ ':'- ') + Math.abs(a0);
+  }
+  return s || '0';
+}
+function stepsHTML(lines){
+  return `<div class="steps">${lines.map(t=>`<div class="step">${canonSup2(normalizeSigns(t))}</div>`).join('')}</div>`;
+}
+
+/* Simple parseur de polynômes ax^2+bx+c */
+function parsePoly(txt){
+  if(!txt) return null;
+  let s = txt.replace(/\s+/g,'').replace(/[–−]/g,'-').toLowerCase();
+  if(!/^[0-9x+\-^]*$/.test(s)) return null;
+  s = s.replace(/x\^2/g,'x2').replace(/x\^1/g,'x');
+  const parts = s.match(/[+\-]?[^+\-]+/g)||[];
+  let a2=0,a1=0,a0=0;
+  for(const p of parts){
+    if(/x2$/.test(p)){
+      const k = p.replace(/x2$/,'');
+      a2 += (k===''||k==='+')? 1 : (k==='-')? -1 : parseInt(k,10);
+    } else if(/x$/.test(p)){
+      const k = p.replace(/x$/,'');
+      a1 += (k===''||k==='+')? 1 : (k==='-')? -1 : parseInt(k,10);
+    } else if(p){
+      a0 += parseInt(p,10);
+    }
+  }
+  return {a2,a1,a0};
+}
+
+/* ===== Développement : (ax ± b)² (avec conseils) =====
+   useAdvice : si true, insère les lignes de "Conseil : …" pour (-a ± b)²  */
+function buildSquareLines(a,b,sign,k=null, useAdvice=true){
+  const kprefix = (k==null) ? '' : uminus(k);
+  const AposStr = axStr(Math.abs(a));   // ex: 2x
+  const ArawStr = axStr(a);             // ex: −2x si a<0
+  const Bstr    = String(Math.abs(b));  // ex: 5
+  const Acoef   = Math.abs(a);
+  const Bcoef   = Math.abs(b);
+  const lines=[];
+
+  // ===== CAS AVEC CONSEIL quand a<0 =====
+  if(useAdvice && a<0){
+    if(sign==='−'){
+      // (-A − B)^2 -> (A + B)^2
+      lines.push('Conseil : (−A − B)² = (A + B)²');
+      lines.push(FEQ(`${kprefix}(${AposStr} + ${Bstr})²`));
+      lines.push(`Formule : (A + B)² avec A = ${AposStr}, B = ${Bstr}`);
+      lines.push(`Or (A + B)² = A² + 2AB + B²`);
+
+      if(k==null){
+        lines.push(FEQ(`(${AposStr})² + 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+      }else{
+        lines.push(FEQ(`${kprefix}( (${AposStr})² + 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+      }
+
+      if(k!=null){
+        lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1: 2*Acoef*Bcoef,a0:Bcoef*Bcoef})} )`));
+      }
+      lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*( 2*Acoef*Bcoef), a0:(k||1)*Bcoef*Bcoef})}`));
+      return lines;
+    }else{
+      // (-A + B)^2 -> (B − A)^2 , et on explicite selon la demande
+      lines.push('Conseil : (−A + B)² = (B − A)²');
+      lines.push(FEQ(`${kprefix}(${Bstr} − ${AposStr})²`));
+      lines.push(`Formule : (B − A)² avec B = ${AposStr}, A = ${Bstr}`);
+      lines.push(`Or (B − A)² = B² − 2BA + A²`);
+
+      if(k==null){
+        lines.push(FEQ(`(${AposStr})² − 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+      }else{
+        lines.push(FEQ(`${kprefix}( (${AposStr})² − 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+      }
+
+      if(k!=null){
+        lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1:-2*Acoef*Bcoef,a0:Bcoef*Bcoef})} )`));
+      }
+      lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*(-2*Acoef*Bcoef), a0:(k||1)*Bcoef*Bcoef})}`));
+      return lines;
+    }
+  }
+
+  // ===== CAS SANS CONSEIL (ou a >= 0) =====
+  // On garde l'expression telle quelle et on applique la bonne formule
+  lines.push(FEQ(`${kprefix}(${ArawStr} ${sign} ${Bstr})²`));
+  const form = sign==='+' ? '(A + B)²' : '(A − B)²';
+  lines.push(`Formule : ${form} avec A = ${ArawStr}, B = ${Bstr}`);
+  lines.push(`Or ${form} = ${ sign==='+' ? 'A² + 2AB + B²' : 'A² − 2AB + B²' }`);
+
+  if(sign==='+'){
+    if(k==null){
+      lines.push(FEQ(`(${ArawStr})² + 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+    }else{
+      lines.push(FEQ(`${kprefix}( (${ArawStr})² + 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+    }
+  }else{
+    if(k==null){
+      lines.push(FEQ(`(${ArawStr})² − 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+    }else{
+      lines.push(FEQ(`${kprefix}( (${ArawStr})² − 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+    }
+  }
+
+  // calcul
+  const innerA1 = (sign==='+' ? 1 : -1) * 2*(a)*Bcoef; // ici a signé
+  if(k!=null){
+    lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1:innerA1,a0:Bcoef*Bcoef})} )`));
+  }
+  lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*innerA1, a0:(k||1)*Bcoef*Bcoef})}`));
+  return lines;
+}
+
+/* ===== Exercices ===== */
+const ex1 = {
+  id:"carre-binom",
+  title:"Développer : (ax ± b)²",
+  gen(){
+    const a = rnd(-9,9)||1;
+    const b = Math.abs(rnd(-12,12)||2);
+    const sign = choice(['+','−']);
+    const A = Math.abs(a), B = b;
+    const pm = sign;
+    const exp = {
+      a2: A*A,
+      a1: (pm==='+') ? 2*a*B : -2*a*B, // a signé
+      a0: B*B
+    };
+    return {a,b,sign,exp};
+  },
+  text(st){ return `<span class="equ">${FEQ(`(${axStr(st.a)} ${st.sign} ${Math.abs(st.b)})²`)}</span>`; },
+  render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
+  correct(host, st){
+    const ans = parsePoly($("#reponse",host).value);
+    if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 + 4x + 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
+    const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const adv = useAdvice();
+    const baseLHS = FEQ(`(${axStr(st.a)} ${st.sign} ${Math.abs(st.b)})²`);
+    const lines = buildSquareLines(st.a, st.b, st.sign, null, adv);
+    // 1ère ligne = énoncé exact; si conseil actif et a<0 on affiche l'énoncé puis la réécriture
+    if(adv && st.a<0){ lines.unshift(baseLHS); } else { lines[0] = baseLHS; }
+    $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = polyToAscii(st.exp);
+},
+  printSolutionHTML(st){ return stepsHTML(buildSquareLines(st.a, st.b, st.sign, null, true)); },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+const ex2 = {
+  id:"produit-conj",
+  title:"Développer : (a + b)(a − b)",
+  gen(){
+    const a = rnd(-9,9) || -1;
+    const b = Math.abs(rnd(-12,12) || 2);
+    const order = Math.random() < 0.5 ? 'pm' : 'mp';
+    return {a,b,order,exp:{a2:Math.abs(a)*Math.abs(a),a1:0,a0:-(b*b)}};
+  },
+  text(st){
+    const A = axStr(st.a), B = String(Math.abs(st.b));
+    const e = st.order==='pm'
+      ? `(${A} + ${B})(${A} − ${B})`
+      : `(${A} − ${B})(${A} + ${B})`;
+    return `<span class="equ">${FEQ(e)}</span>`;
+  },
+  render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
+  correct(host, st){
+    const ans = parsePoly($("#reponse",host).value);
+    if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 - 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
+    const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
+    const first = st.order==='pm'
+      ? FEQ(`(${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`)
+      : FEQ(`(${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`);
+    const lines = [
+      first,
+      `Formule : ${form} avec A = ${Aterm}, B = ${Bterm}`,
+      `Or ${form} = A² − B²`,
+      FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+      FEQ(`${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
+    ];
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value  = polyToAscii({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)});
+  },
+  printSolutionHTML(st){
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
+    const first = st.order==='pm'
+      ? FEQ(`(${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`)
+      : FEQ(`(${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`);
+    const lines = [
+      first,
+      `Formule : ${form} avec A = ${Aterm}, B = ${Bterm}`,
+      `Or ${form} = A² − B²`,
+      FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+      FEQ(`${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
+    ];
+    return stepsHTML(lines);
+  },
+  reset: ex1.reset
+};
+
+const ex3 = {
+  id:"k-carré",
+  title:"Développer : k · (ax ± b)²",
+  gen(){
+    const k = rnd(-9,9)||1;
+    const a = rnd(-9,9)||1;
+    const b = Math.abs(rnd(-12,12)||2);
+    const sign = choice(['+','−']);
+    const A=Math.abs(a), B=b;
+    const exp={ a2:k*(A*A), a1:k*((sign==='+')?2*a*B:-2*a*B), a0:k*(B*B) }; // a signé
+    return {k,a,b,sign,exp};
+  },
+  text(st){ return `<span class="equ">${FEQ(`${uminus(st.k)}(${axStr(st.a)} ${st.sign} ${st.b})²`)}</span>`; },
+  render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
+  correct(host, st){
+    const ans = parsePoly($("#reponse",host).value);
+    if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 - 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
+    const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
+    const lines = buildSquareLines(st.a, st.b, st.sign, st.k, useAdvice());
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = polyToAscii(st.exp);
+  },
+  printSolutionHTML(st){ return stepsHTML(buildSquareLines(st.a, st.b, st.sign, st.k, true)); },
+  reset: ex1.reset
+};
+
+const ex4 = {
+  id: "vf-idr",
+  title: "Vrai / Faux : identité remarquable",
+
+  gen(){
+    const type = choice(['carre+','carre-','conj']);
+    const a = rnd(-6,6) || 1;
+    const b = rnd(-9,9) || 2;
+
+    let exp, prop, answer;
+
+    if (type === 'conj') {
+      // (ax + b)(ax − b) = a^2 x^2 − b^2
+      const A = Math.abs(a), B = Math.abs(b);
+      exp = { a2: A*A, a1: 0, a0: -(B*B) };
+
+      const correct = Math.random() < 0.6;
+      prop = { ...exp };
+      if (!correct) {
+        if (Math.random() < 0.5) prop.a0 = -prop.a0;         // inverse le signe du terme constant
+        else                     prop.a1 = choice([-1,1]) * rnd(1,5); // ajoute un terme x
+      }
+      answer = correct ? 'Vrai' : 'Faux';
+    } else {
+      // (ax ± b)^2  — on prend a SIGNÉ pour 2ab
+      const s = (type === 'carre+') ? +1 : -1;
+      const A = Math.abs(a), B = Math.abs(b);
+      exp = {
+        a2: A*A,
+        a1: 2 * a * s * B,      // a signé, B>0
+        a0: B*B
+      };
+
+      const correct = Math.random() < 0.6;
+      prop = { ...exp };
+      if (!correct) {
+        if (Math.random() < 0.5) prop.a1 = -prop.a1;        // inverse le signe du terme x
+        else                     prop.a0 += choice([-1,1]) * rnd(1,3); // petite perturbation du constant
+      }
+      answer = correct ? 'Vrai' : 'Faux';
+    }
+
+    return { type, a, b, exp, prop, answer };
+  },
+
+  text(st){
+    if (st.type === 'conj') {
+      return `<span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} ) ( ${axStr(st.a)} − ${Math.abs(st.b)} ) = ${polyToHTML(st.prop)}</span>`;
+    } else if (st.type === 'carre+') {
+      return `<span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
+    } else { // carre-
+      return `<span class="equ">( ${axStr(st.a)} − ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
+    }
+  },
+
+  render(host, st){
+    renderRow(host, "Dire si l’égalité est vraie :", this.text(st), "Choisir Vrai / Faux", "Réponse", "");
+    const row = host.querySelector('.row');
+    const inpWrap = row.querySelector('.input-line');
+    const sel = document.createElement('select'); sel.id = "reponse-vf";
+    ["","Vrai","Faux"].forEach(v => sel.appendChild(new Option(v, v)));
+    inpWrap.replaceWith(sel);
+  },
+
+  correct(host, st){
+    const val = ($("#reponse-vf", host) || {}).value || "";
+    const ok = (val === st.answer);
+    $("#res", host).innerHTML = ok ? "✔" : `✘ (attendu : ${st.answer})`;
+    $("#res", host).className = ok ? "res-ok" : "res-ko";
+    return { ok, total: 1 };
+  },
+
+  solution(host, st){
+    const { type, a, b } = st;
+
+    // LHS EXACTEMENT comme dans l’énoncé
+    let lhs = "";
+    if (type === 'conj') {
+      lhs = `( ${axStr(a)} + ${Math.abs(b)} ) ( ${axStr(a)} − ${Math.abs(b)} )`;
+    } else if (type === 'carre+') {
+      lhs = `( ${axStr(a)} + ${Math.abs(b)} )<sup>2</sup>`;
+    } else {
+      lhs = `( ${axStr(a)} − ${Math.abs(b)} )<sup>2</sup>`;
+    }
+
+    let lines = [];
+
+    if (type === 'conj') {
+      const Aterm = axStr(a);                 // A signé à l’affichage
+      const Bterm = String(Math.abs(b));
+      lines = [
+        FEQ(lhs),
+        `Formule : (A + B)(A − B) avec A = ${Aterm}, B = ${Bterm}`,
+        `Or (A + B)(A − B) = A² − B²`,
+        FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+        FEQ(`${polyToHTML({a2:Math.abs(a)*Math.abs(a), a1:0, a0:-(Math.abs(b)*Math.abs(b))})}`)
+      ];
+    } else {
+      // Même mécanique que l’exercice 3, avec buildSquareLines et gestion “conseil / sans conseil”
+      const adv = useAdvice();
+      const signSym = (type === 'carre+') ? '+' : '−';
+      lines = buildSquareLines(a, b, signSym, null, adv);
+
+      // 1ʳᵉ ligne = énoncé exact ; si “conseil” & a<0 → on insère l’énoncé puis la réécriture
+      if (adv && a < 0) { lines.unshift(FEQ(lhs)); } else { lines[0] = FEQ(lhs); }
+    }
+
+    // Conclusion : uniquement pour l’ex. 4
+    lines.push('Conclusion : l’égalité est ' + (st.answer === 'Vrai' ? 'vraie' : 'fausse') + '.');
+
+    $$(".hint",host).forEach(n => n.remove());
+    $$(".equ-offscreen",host).forEach(n => n.remove());
+    $("#res",host).innerHTML = stepsHTML(lines);
+  },
+
+  printSolutionHTML(st){
+    const host = document.createElement('div');
+    this.solution(host, st);
+    return host.querySelector('#res')?.innerHTML || '';
+  },
+
+  reset(host){
+    const sel = $("#reponse-vf",host);
+    if (sel) sel.value = "";
+    $("#res",host).textContent = "";
+  }
+};
+
+
+const ex5 = {
+  id:"calcul-num",
+  title:"Calculer rapidement (identité remarquable)",
+  gen(){
+    const kind = choice(['square','prod']);
+    const pool = [-20,-15,-12,-10,-8,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,10,12,15,20,-100,100];
+    if(kind==='square'){
+      const a = choice(pool.filter(v=>v>0));
+      const d = choice([1,2,3,4,5,6,8,10]);
+      const sign = choice(['+','−']);
+      const val = (sign==='+'? (a+d)*(a+d) : (a-d)*(a-d));
+      return {kind,sign,a,b:d,expected:val};
+    }else{
+      const a = choice(pool);
+      const k = choice([1,2,3,4,5,6,8,10]);
+      const val = a*a - k*k;
+      return {kind,a,k,expected:val};
+    }
+  },
+  text(st){
+    return (st.kind==='square')
+      ? `<span class="equ">( ${st.a} ${st.sign} ${st.b} )<sup>2</sup></span>`
+      : `<span class="equ">( ${st.a} − ${st.k} ) ( ${st.a} + ${st.k} )</span>`;
+  },
+  render(host, st){
+    renderRow(host, "Calculer (sans calculatrice) :", this.text(st), "ex.  2401", "Réponse (nombre entier)");
+    const box=document.createElement('div'); box.innerHTML = squaresTableHTML(); host.appendChild(box);
+  },
+  correct(host, st){
+    const txt = ($("#reponse",host).value||"").trim().replace(/\s+/g,'');
+    if(!/^-?\d+$/.test(txt)){
+      $("#res",host).innerHTML = "✘ Entrez un entier (ex.  9801)";
+      $("#res",host).className = "res-ko";
+      return {ok:false,total:1};
+    }
+    const ok = (parseInt(txt,10)===st.expected);
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${st.expected})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines=[];
+    if(st.kind==='square'){
+      const A = st.a, B = st.b;
+      const sum = st.sign==='+' ? (A+B) : (A-B);
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`;
+      lines.push(FEQ(`( ${A} ${st.sign} ${B} )²`));
+      lines.push(FEQ(`${pow(sum)}`));
+      lines.push(FEQ(`${String(sum*sum)}`));
+    }else{
+      const A = st.a, B = st.k;
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';
+      lines.push(FEQ(`( ${A} − ${B} ) ( ${A} + ${B} )`));
+      lines.push(FEQ(`${p2(A)} − ${p2(B)}`));
+      lines.push(FEQ(`${A*A} − ${B*B}`));
+      lines.push(FEQ(`${String(st.expected)}`));
+    }
+    $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = String(st.expected);
+  },
+  printSolutionHTML(st){
+    if(st.kind==='square'){
+      const A=st.a, B=st.b, sum=(st.sign==='+'?A+B:A-B);
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`;
+      return stepsHTML([FEQ(`( ${A} ${st.sign} ${B} )²`), FEQ(`${pow(sum)}`), FEQ(`${ sum*sum }`)]);
+    }else{
+      const A=st.a, K=st.k;
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';
+      return stepsHTML([FEQ(`( ${A} − ${K} ) ( ${A} + ${K} )`), FEQ(`${p2(A)} − ${p2(K)}`), FEQ(`${A*A} − ${K*K}`), FEQ(`${A*A - K*K}`)]);
+    }
+  },
+  reset: ex1.reset
+};
+
+/* ===== Registre & moteur ===== */
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+
+function renderRow(host, consigneText, htmlEq, placeholder="ex.  x^2 + 4x + 4", label='Réponse (forme réduite)', prefixLabel=""){
+  host.innerHTML="";
+  const hint=document.createElement('p'); hint.className="hint"; hint.textContent=`Consigne : ${consigneText}`; host.appendChild(hint);
+  const off=document.createElement('div'); off.className="equ-offscreen";
+  off.innerHTML=`<div class="consigne">${consigneText}</div><div class="equation">${htmlEq}</div>`;
+  host.appendChild(off);
+
+  const row=document.createElement("div"); row.className="row";
+  const lab=document.createElement("div"); lab.className="col-label equ"; lab.innerHTML=htmlEq; row.appendChild(lab);
+
+  const inpWrap=document.createElement("div"); inpWrap.className="input-line";
+  if(prefixLabel){ const pre=document.createElement("span"); pre.className="input-prefix"; pre.innerHTML=prefixLabel.replace(' = ','&nbsp;=&nbsp;'); inpWrap.appendChild(pre); }
+  const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder=placeholder; inpWrap.appendChild(inp);
+  row.appendChild(inpWrap);
+
+  const res=document.createElement("div"); res.id="res"; row.appendChild(res);
+  host.appendChild(row);
+  return {inp,res};
+}
+
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponse",host) || $("#reponse-vf",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ def.reset(host); }
+}
+
+// === Choix d'affichage de la solution pour (-a ± b)² ===
+function useAdvice(){
+  const sel = document.getElementById('mode-conseil');
+  return !sel || sel.value !== 'nocons';
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+
+  // Sélecteur "solution avec/sans conseil" — sous le bouton Solution mais sans déplacer les autres boutons
+  const wrap = document.getElementById('sol-wrap');
+  const modeConseil = document.createElement('select');
+  modeConseil.id = 'mode-conseil';
+  modeConseil.title = "Mode d'affichage de la solution";
+  modeConseil.innerHTML = `
+    <option value="cons">Solution (avec conseil)</option>
+    <option value="nocons">Solution (sans conseil)</option>
+  `;
+  wrap.appendChild(modeConseil);
+
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+  document.addEventListener('keydown', function(ev){
+    if(ev.key === 'Enter'){
+      const a = document.activeElement;
+      if(a && a.id === 'reponse'){
+        ev.preventDefault();
+        try{ check(); }catch(_){}
+      }
+    }
+  });
+
+  // PDF : insère l’outil au-dessus du clavier, capture consigne+énoncé et corrigé
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: 'Seconde – Chapitre 0 – Calculs – Identités remarquables',
+      max: 50,
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, withSolutions){
+        try{
+          const tmp = document.createElement('div');
+          tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+          def.render(tmp, st);
+          if(!withSolutions){
+            const equ = tmp.querySelector('.equ-offscreen');
+            if(equ) return equ.outerHTML;  // consigne + équation
+            return tmp.innerHTML;
+          }else{
+            if(typeof def.solution==='function'){ def.solution(tmp, st); }
+            const res = tmp.querySelector('#res');
+            if(res) return res.innerHTML;   // steps (par défaut avec conseils)
+            return tmp.innerHTML;
+          }
+        }catch(e){ return null; }
+      }
+    });
+  }
+
+  // Normalisation Unicode (−, × …)
+  if (window.DevRules && DevRules.attachCleaner) DevRules.attachCleaner();
+});
+})();
+</script>
+</body>
+</html>

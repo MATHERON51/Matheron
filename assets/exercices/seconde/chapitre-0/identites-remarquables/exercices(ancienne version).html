@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Seconde – Chapitre 0 – Calculs – Identités remarquables</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.row{display:grid;grid-template-columns:1fr auto minmax(560px,1fr);gap:8px;align-items:center}
+.row > div:last-child{overflow-x:auto}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.equ{font-weight:700}
+.steps{margin:.5rem 0 0 .15rem;padding:.6rem .7rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:10px}
+.eqline{display:block;margin:.25rem 0;line-height:1.35;white-space:normal}
+.kbd-host{display:flex;justify-content:center}
+.small{font-size:.92rem;color:#555}
+/* tableau des carrés */
+.sqtbl{width:100%;border-collapse:collapse;margin-top:10px}
+.sqtbl td{border:1px solid #eaeaea;padding:8px;text-align:center;white-space:nowrap}
+.sqtbl tr:nth-child(even) td{background:#fbfbfb}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 0 – Calculs – <strong>Identités remarquables</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <!-- Clavier math -->
+    <div class="card kbd-host"><div data-math-kbd></div></div>
+    <div class="small" style="text-align:center">
+      Astuce : tu peux écrire les puissances avec <code>^</code> (ex. <code>x^2</code>) ou utiliser <code>x²</code>.
+    </div>
+  </div>
+
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const UMINUS='−', MULT='×';
+
+/* ===== helpers ===== */
+function uminus(n){ return n<0 ? UMINUS+String(Math.abs(n)) : String(n); }
+function axStr(a){
+  const k=Math.abs(a);
+  return (a<0? UMINUS : '') + (k===1? 'x' : (k+'x'));
+}
+function normalizeSigns(s){
+  return s.replace(/\u2212/g,UMINUS)
+          .replace(/\+\s*[−-]/g,' − ')
+          .replace(/[−-]\s*\+/g,' − ')
+          .replace(/[−-]\s*[−-]/g,' + ')
+          .replace(/\+\s*\+/g,' + ')
+          .replace(/\s{2,}/g,' ')
+          .trim();
+}
+function canonSup2(s){
+  return s.replace(/([x0-9)])²/g, '$1<sup>2</sup>').replace(/\(<sup>2<\/sup>/g,'(');
+}
+function polyToHTML({a2=0,a1=0,a0=0}){
+  const parts=[];
+  if(a2){
+    parts.push(a2===1?'x<sup>2</sup>':a2===-1?`${UMINUS}x<sup>2</sup>`:uminus(a2)+'x<sup>2</sup>');
+  }
+  if(a1){
+    const k=Math.abs(a1), t=(k===1?'x':k+'x');
+    if(parts.length) parts.push(a1>0?' + '+t:' − '+t); else parts.push(a1<0? UMINUS+t : t);
+  }
+  if(a0){
+    const k=Math.abs(a0);
+    if(parts.length) parts.push(a0>0?' + '+k:' − '+k); else parts.push(a0<0? UMINUS+k : ''+k);
+  }
+  return parts.length? parts.join('') : '0';
+}
+function polyToAscii({a2=0,a1=0,a0=0}){
+  let s='';
+  if(a2){ s = (a2===1?'x^2':a2===-1?'-x^2':a2+'x^2'); }
+  if(a1){
+    const k=Math.abs(a1), t=(k===1?'x':k+'x');
+    s += (s?' ':'') + (a1>0? '+ ':'- ') + t;
+  }
+  if(a0){
+    s += (s?' ':'') + (a0>0? '+ ':'- ') + Math.abs(a0);
+  }
+  return s || '0';
+}
+function stepsHTML(lines){
+  return `<div class="steps">${lines.map(t=>`<div class="eqline">${canonSup2(normalizeSigns(t))}</div>`).join('')}</div>`;
+}
+/* Tableau des carrés 0..20 (comme ta maquette) */
+function squaresTableHTML(){
+  const nPerRow = 7;
+  const t = [];
+  t.push('<table class="sqtbl"><tbody>');
+  for(let i=0;i<=21;i+=nPerRow){
+    const start=i, end=Math.min(20, i+nPerRow-1);
+    if(start>20) break;
+    t.push('<tr>');
+    for(let n=start; n<=end; n++){
+      t.push(`<td>${n}<sup>2</sup> = ${n*n}</td>`);
+    }
+    t.push('</tr>');
+  }
+  t.push('</tbody></table>');
+  return t.join('');
+}
+
+/* ===== Développement : (ax ± b)², avec conseil appliqué ===== */
+function buildSquareLines(a,b,sign,k=null){
+  const Bpos = Math.abs(b);
+  let Aterm = axStr(Math.abs(a));
+  let Bterm = String(Bpos);
+  let pm = sign;
+  const lines=[];
+  const kprefix = (k==null) ? '' : uminus(k);
+
+  if(a<0){
+    if(sign==='−'){
+      lines.push('Conseil : (−A − B)² = (A + B)²');
+      pm = '+';
+    }else{
+      lines.push('Conseil : (−A + B)² = (B − A)²');
+      pm = '−'; [Aterm, Bterm] = [Bterm, Aterm];
+    }
+    lines.push(`Réécriture : F= ${kprefix}(${Aterm} ${pm} ${Bterm})²`);
+  }
+
+  lines.push(`F= ${kprefix}(${Aterm} ${pm} ${Bterm})²`);
+
+  const form = pm==='+' ? '(A + B)²' : '(A − B)²';
+  const or   = pm==='+' ? 'A² + 2AB + B²' : 'A² − 2AB + B²';
+  lines.push(`Formule : ${form} avec A=${Aterm}, B=${Bterm}`);
+  lines.push(`Or ${form}= ${or}`);
+  lines.push(`F= ${kprefix}(${Aterm} ${pm} ${Bterm})²`);
+
+  const pow  = t => (/x/.test(t) ? `(${t})²` : `${t}²`);
+  const mult = (x,y)=> `2×${/x/.test(x)?`(${x})`:x}×${/x/.test(y)?`(${y})`:y}`;
+  const pmDev = pm==='+' ? '+' : '−';
+
+  if(k==null){
+    lines.push(`F= ${pow(Aterm)} ${pmDev} ${mult(Aterm,Bterm)} + ${pow(Bterm)}`);
+  }else{
+    lines.push(`F= ${kprefix}( ${pow(Aterm)} ${pmDev} ${mult(Aterm,Bterm)} + ${pow(Bterm)} )`);
+  }
+
+  const Acoef = Math.abs(a), Bcoef = Math.abs(b);
+  const innerA2 = Acoef*Acoef;
+  const innerA1 = (pm==='+' ? 1 : -1) * 2*Acoef*Bcoef;
+  const innerA0 = Bcoef*Bcoef;
+  if(k!=null){
+    const inner = polyToHTML({a2:innerA2, a1:innerA1, a0:innerA0});
+    lines.push(`F= ${kprefix}( ${inner} )`);
+  }
+
+  const factor = (k==null?1:k);
+  const a2c = factor * innerA2;
+  const a1c = factor * innerA1;
+  const a0c = factor * innerA0;
+  lines.push(`F= ${polyToHTML({a2:a2c,a1:a1c,a0:a0c})}`);
+
+  return lines;
+}
+
+/* ===== gabarit rendu ===== */
+function renderOne(host, htmlEq, placeholder="ex.  x^2 + 4x + 4", label='Réponse (forme réduite)'){
+  host.innerHTML="";
+  const row0=document.createElement("div"); row0.className="row";
+  const lab0=document.createElement("div"); lab0.className="equ"; lab0.innerHTML=htmlEq; row0.appendChild(lab0);
+  const spacer=document.createElement("div"); spacer.textContent=""; row0.appendChild(spacer);
+  const res0=document.createElement("div"); res0.id="res"; row0.appendChild(res0);
+  host.appendChild(row0);
+
+  const row1=document.createElement("div"); row1.className="row";
+  const lab1=document.createElement("div"); lab1.innerHTML=label;
+  const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder=placeholder;
+  const res1=document.createElement("div"); res1.textContent="";
+  row1.appendChild(lab1); row1.appendChild(inp); row1.appendChild(res1);
+  host.appendChild(row1);
+}
+
+/* ===== EXO 1 – (ax ± b)² ===== */
+const ex1 = {
+  id:"carre-binom",
+  title:"Développer : (ax ± b)²",
+  gen(){
+    const a = rnd(-9,9)||1;
+    const b = Math.abs(rnd(-12,12)||2);
+    const sign = choice(['+','−']);
+    const A = Math.abs(a), B = b;
+    const pm = sign;
+    const exp = {
+      a2: A*A,
+      a1: (pm==='+') ? 2*A*B : -2*A*B,
+      a0: B*B
+    };
+    return {a,b,sign,exp};
+  },
+  text(st){
+    const e = `F= (${axStr(st.a)} ${st.sign} ${Math.abs(st.b)})²`;
+    return `Développer et réduire : <span class="equ">${e}</span>`;
+  },
+  render(host, st){ renderOne(host, this.text(st)); },
+  correct(host, st){
+    const ans = parsePoly($("#reponse",host).value);
+    if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 + 4x + 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
+    const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines = buildSquareLines(st.a, st.b, st.sign);
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = polyToAscii(st.exp);
+  },
+  printSolutionHTML(st){ return stepsHTML(buildSquareLines(st.a, st.b, st.sign)); },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+/* ===== parse simple pour la vérif ===== */
+function parsePoly(txt){
+  if(!txt) return null;
+  let s = txt.replace(/\s+/g,'').replace(/[–−]/g,'-').toLowerCase();
+  if(!/^[0-9x+\-^]*$/.test(s)) return null;
+  s = s.replace(/x\^2/g,'x2').replace(/x\^1/g,'x');
+  const parts = s.match(/[+\-]?[^+\-]+/g)||[];
+  let a2=0,a1=0,a0=0;
+  for(const p of parts){
+    if(/x2$/.test(p)){
+      const k = p.replace(/x2$/,'');
+      a2 += (k===''||k==='+')? 1 : (k==='-')? -1 : parseInt(k,10);
+    } else if(/x$/.test(p)){
+      const k = p.replace(/x$/,'');
+      a1 += (k===''||k==='+')? 1 : (k==='-')? -1 : parseInt(k,10);
+    } else if(p){
+      a0 += parseInt(p,10);
+    }
+  }
+  return {a2,a1,a0};
+}
+
+/* ===== EXO 2 – Produit de conjugués ===== */
+const ex2 = {
+  id:"produit-conj",
+  title:"Développer : (a + b)(a − b)",
+  gen(){
+    const a = rnd(-9,9) || -1;
+    const b = Math.abs(rnd(-12,12) || 2);
+    const order = Math.random() < 0.5 ? 'pm' : 'mp';
+    return {a,b,order,exp:{a2:Math.abs(a)*Math.abs(a),a1:0,a0:-(b*b)}};
+  },
+  text(st){
+    const A = axStr(st.a), B = String(Math.abs(st.b));
+    const e = st.order==='pm'
+      ? `F= (${A} + ${B})(${A} − ${B})`
+      : `F= (${A} − ${B})(${A} + ${B})`;
+    return `Développer et réduire : <span class="equ">${e}</span>`;
+  },
+  render(host, st){ renderOne(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
+    const first = st.order==='pm'
+      ? `F= (${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`
+      : `F= (${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`;
+    const lines = [
+      first,
+      `Formule : ${form} avec A=${Aterm}, B=${Bterm}`,
+      `Or ${form}= A² − B²`,
+      `F= (${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`,
+      `F= ${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`
+    ];
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value  = polyToAscii({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)});
+  },
+  printSolutionHTML(st){
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
+    const first = st.order==='pm'
+      ? `F= (${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`
+      : `F= (${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`;
+    const lines = [
+      first,
+      `Formule : ${form} avec A=${Aterm}, B=${Bterm}`,
+      `Or ${form}= A² − B²`,
+      `F= (${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`,
+      `F= ${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`
+    ];
+    return stepsHTML(lines);
+  },
+  reset: ex1.reset
+};
+
+/* ===== EXO 3 – k · (ax ± b)² ===== */
+const ex3 = {
+  id:"k-carré",
+  title:"Développer : k · (ax ± b)²",
+  gen(){
+    const k = rnd(-9,9)||1;
+    const a = rnd(-9,9)||1;
+    const b = Math.abs(rnd(-12,12)||2);
+    const sign = choice(['+','−']);
+    const A=Math.abs(a), B=b;
+    const exp={ a2:k*(A*A), a1:k*((sign==='+')?2*A*B:-2*A*B), a0:k*(B*B) };
+    return {k,a,b,sign,exp};
+  },
+  text(st){
+    const e = `F= ${uminus(st.k)}(${axStr(st.a)} ${st.sign} ${st.b})²`;
+    return `Développer et réduire : <span class="equ">${e}</span>`;
+  },
+  render(host, st){ renderOne(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const lines = buildSquareLines(st.a, st.b, st.sign, st.k);
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = polyToAscii(st.exp);
+  },
+  printSolutionHTML(st){ return stepsHTML(buildSquareLines(st.a, st.b, st.sign, st.k)); },
+  reset: ex1.reset
+};
+
+/* ===== EXO 4 – Vrai/Faux ===== */
+const ex4 = {
+  id:"vf-idr",
+  title:"Vérifier une identité (Vrai/Faux)",
+  gen(){
+    const type = choice(['carre+','carre-','conj']);
+    const a=rnd(-6,6)||1, b=rnd(-9,9)||2;
+    let exp, prop, answer;
+    if(type==='conj'){
+      exp = {a2:Math.abs(a)*Math.abs(a), a1:0, a0: -(b*b)};
+      const correct = Math.random()<0.6;
+      prop = {...exp}; if(!correct){ Math.random()<0.5 ? (prop.a0=-prop.a0) : (prop.a1 = choice([-1,1])*rnd(1,5)); }
+      answer = correct? 'Vrai':'Faux';
+    } else if(type==='carre+'){
+      const A=Math.abs(a), B=Math.abs(b);
+      exp = {a2:A*A, a1:2*A*B, a0:B*B};
+      const correct = Math.random()<0.6;
+      prop = {...exp}; if(!correct){ Math.random()<0.5 ? (prop.a1=-prop.a1) : (prop.a0 += choice([-1,1])*rnd(1,3)); }
+      answer = correct? 'Vrai':'Faux';
+    } else {
+      const A=Math.abs(a), B=Math.abs(b);
+      exp = {a2:A*A, a1:-2*A*B, a0:B*B};
+      const correct = Math.random()<0.6;
+      prop = {...exp}; if(!correct){ Math.random()<0.5 ? (prop.a1=-prop.a1) : (prop.a0 += choice([-1,1])*rnd(1,3)); }
+      answer = correct? 'Vrai':'Faux';
+    }
+    return {type,a,b,exp,prop,answer};
+  },
+  text(st){
+    if(st.type==='conj'){
+      return `Dire si l’égalité est vraie : <span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} )( ${axStr(st.a)} − ${Math.abs(st.b)} ) = ${polyToHTML(st.prop)}</span>`;
+    }else if(st.type==='carre+'){
+      return `Dire si l’égalité est vraie : <span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
+    }else{
+      return `Dire si l’égalité est vraie : <span class="equ">( ${axStr(st.a)} − ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
+    }
+  },
+  render(host, st){
+    host.innerHTML="";
+    const row0=document.createElement("div"); row0.className="row";
+    const lab0=document.createElement("div"); lab0.className="equ"; lab0.innerHTML=this.text(st); row0.appendChild(lab0);
+    const spacer=document.createElement("div"); spacer.textContent=""; row0.appendChild(spacer);
+    const res0=document.createElement("div"); res0.id="res"; row0.appendChild(res0);
+    host.appendChild(row0);
+
+    const row1=document.createElement("div"); row1.className="row";
+    const lab1=document.createElement("div"); lab1.textContent="Votre jugement";
+    const sel=document.createElement("select"); sel.id="reponse-vf";
+    ["","Vrai","Faux"].forEach(v=>sel.appendChild(new Option(v,v)));
+    const res1=document.createElement("div"); res1.textContent="";
+    row1.appendChild(lab1); row1.appendChild(sel); row1.appendChild(res1);
+    host.appendChild(row1);
+  },
+  correct(host, st){
+    const val = ($("#reponse-vf",host)||{}).value || "";
+    const ok = (val===st.answer);
+    $("#res",host).innerHTML = ok? "✔" : `✘ (attendu : ${st.answer})`;
+    $("#res",host).className = ok? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const {type,a,b}=st;
+    const A = axStr(Math.abs(a)), B = `${Math.abs(b)}`;
+    const lines=[];
+    if(type==='conj'){
+      lines.push(`F= (${A} + ${B})(${A} − ${B})`);
+      lines.push(`Formule : (A + B)(A − B) avec A=${A}, B=${B}`);
+      lines.push(`Or (A + B)(A − B)= A² − B²`);
+      lines.push(`F= (${A})² − ${B}²`);
+      lines.push(`F= ${polyToHTML({a2:Math.abs(a)*Math.abs(a),a1:0,a0:-(b*b)})}`);
+    }else if(type==='carre+'){
+      if(a<0) lines.push('Conseil : (−A + B)² = (B − A)²');
+      lines.push(`F= (${A} + ${B})²`);
+      lines.push(`Formule : (A + B)² avec A=${A}, B=${B}`);
+      lines.push(`Or (A + B)²= A² + 2AB + B²`);
+      lines.push(`F= (${A})² + 2${MULT}(${A})${MULT}${B} + ${B}²`);
+      lines.push(`F= ${polyToHTML({a2:Math.abs(a)*Math.abs(a),a1:2*Math.abs(a)*Math.abs(b),a0:Math.abs(b)*Math.abs(b)})}`);
+    }else{
+      if(a<0) lines.push('Conseil : (−A − B)² = (A + B)²');
+      lines.push(`F= (${A} − ${B})²`);
+      lines.push(`Formule : (A − B)² avec A=${A}, B=${B}`);
+      lines.push(`Or (A − B)²= A² − 2AB + B²`);
+      lines.push(`F= (${A})² − 2${MULT}(${A})${MULT}${B} + ${B}²`);
+      lines.push(`F= ${polyToHTML({a2:Math.abs(a)*Math.abs(a),a1:-2*Math.abs(a)*Math.abs(b),a0:Math.abs(b)*Math.abs(b)})}`);
+    }
+    $("#res",host).innerHTML = stepsHTML(lines);
+  },
+  printSolutionHTML(st){ const host=document.createElement('div'); this.solution({querySelector:()=>null, innerHTML:''}, st); return $("#res",host)?.innerHTML||''; },
+  reset(host){ const sel=$("#reponse-vf",host); if(sel) sel.value=""; $("#res",host).textContent=""; }
+};
+
+/* ===== EXO 5 – Calcul rapide ===== */
+const ex5 = {
+  id:"calcul-num",
+  title:"Calculer rapidement (identité remarquable)",
+  gen(){
+    const kind = choice(['square','prod']);
+    const pool = [-20,-15,-12,-10,-8,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,10,12,15,20,-100,100];
+    if(kind==='square'){
+      const a = choice(pool.filter(v=>v>0));
+      const d = choice([1,2,3,4,5,6,8,10]);
+      const sign = choice(['+','−']);
+      const val = (sign==='+'? (a+d)*(a+d) : (a-d)*(a-d));
+      return {kind,sign,a,b:d,expected:val};
+    }else{
+      const a = choice(pool);
+      const k = choice([1,2,3,4,5,6,8,10]);
+      const val = a*a - k*k;
+      return {kind,a,k,expected:val};
+    }
+  },
+  text(st){
+    return (st.kind==='square')
+      ? `Calculer (sans calculatrice) : <span class="equ">( ${st.a} ${st.sign} ${st.b} )<sup>2</sup></span>`
+      : `Calculer (sans calculatrice) : <span class="equ">( ${st.a} − ${st.k} )( ${st.a} + ${st.k} )</span>`;
+  },
+  render(host, st){
+    renderOne(host, this.text(st), "ex.  2401", "Réponse (nombre entier)");
+    /* Ajout : tableau des carrés 0..20 juste sous l’énoncé */
+    const box=document.createElement('div');
+    box.innerHTML = squaresTableHTML();
+    host.appendChild(box);
+  },
+  correct(host, st){
+    const txt = ($("#reponse",host).value||"").trim().replace(/\s+/g,'');
+    if(!/^-?\d+$/.test(txt)){
+      $("#res",host).innerHTML = "✘ Entrez un entier (ex.  9801)";
+      $("#res",host).className = "res-ko";
+      return {ok:false,total:1};
+    }
+    const ok = (parseInt(txt,10)===st.expected);
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${st.expected})`;
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines=[];
+    if(st.kind==='square'){
+      const A = st.a, B = st.b;
+      const sum = st.sign==='+' ? (A+B) : (A-B);
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`; // ← parenthèses si négatif
+      lines.push(`F= ( ${A} ${st.sign} ${B} )²`);
+      lines.push(`F= ${pow(sum)}`);            // ← corrige "-2²" en "(−2)²"
+      lines.push(`F= ${String(sum*sum)}`);
+    }else{
+      const A = st.a, B = st.k;
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';   // parenthèses si négatif
+      lines.push(`F= ( ${A} − ${B} )( ${A} + ${B} )`);
+      lines.push(`F= ${p2(A)} − ${p2(B)}`);
+      lines.push(`F= ${A*A} − ${B*B}`);
+      lines.push(`F= ${String(st.expected)}`);
+    }
+    $("#res",host).innerHTML = stepsHTML(lines);
+    $("#reponse",host).value = String(st.expected);
+  },
+  printSolutionHTML(st){
+    if(st.kind==='square'){
+      const A=st.a, B=st.b, sum=(st.sign==='+'?A+B:A-B);
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`;
+      return stepsHTML([`F= ( ${A} ${st.sign} ${B} )²`, `F= ${pow(sum)}`, `F= ${ sum*sum }`]);
+    }else{
+      const A=st.a, K=st.k;
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';
+      return stepsHTML([`F= ( ${A} − ${K} )( ${A} + ${K} )`, `F= ${p2(A)} − ${p2(K)}`, `F= ${A*A} − ${K*K}`, `F= ${A*A - K*K}`]);
+    }
+  },
+  reset: ex1.reset
+};
+
+/* ===== Registre & moteur ===== */
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponse",host) || $("#reponse-vf",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ def.reset(host); }
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+});
+})();
+</script>
+
+<!-- Patch commun Chapitre 0 -->
+<script src="../../../../js/ch0-mul-clean.js" defer></script>
+
+<!-- PDF -->
+<script src="../../../../js/exo-pdf-kit.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  ExoPDF.init({
+    title: 'Seconde – Chapitre 0 – Calculs – Identités remarquables',
+    max: 50,
+    lead: 'Développer ou calculer en utilisant une identité remarquable :',
+    leadByDefId: {
+      "carre-binom": 'Développer et réduire :',
+      "produit-conj": 'Développer et réduire :',
+      "k-carré": 'Développer et réduire :',
+      "vf-idr": 'Dire si l’égalité suivante est vraie :',
+      "calcul-num": 'Calculer (sans calculatrice) :'
+    }
+  });
+});
+</script>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.js" defer></script>
+
+</body>
+</html>

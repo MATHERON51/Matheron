@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang='fr'>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Taux d’évolution</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+/* style du casier de correction */
+.res{grid-area:res; padding:12px; border-radius:10px; background:#f7f7f7}
+
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+/* Layout: en colonne (saisie en dessous) */
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    'lab'
+    'inp'
+    'res';
+  gap:10px; align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.row .res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+#host .steps .step{white-space:nowrap}
+
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Table exo 1 & 6 */
+.tbl{border-collapse:collapse; border:1px solid #bbb}
+.tbl td,.tbl th{border:1px solid #bbb; padding:6px; text-align:center}
+@media print{
+  .tbl{border:1px solid #000}
+  .tbl td,.tbl th{border:1px solid #000}
+}
+.tbl input[type=text]{width:90px;text-align:center}
+
+/* petit espace garanti autour des lettres en italique (A, E, p) dans les équations */
+.eq em { margin: 0 .28em; }
+.col-label em { margin: 0 .28em; }
+.consigne em { margin: 0 .28em; }
+.c-label em { margin: 0 .28em; }
+.sub{ margin: 0 .28em; }
+.eq strong { margin: 0 .28em; }
+.col-label strong { margin: 0 .28em; }
+.consigne strong { margin: 0 .28em; }
+.c-label strong { margin: 0 .28em; }
+/* PATCH: espacement autour des tokens math inline (Vi, Vf...) */
+.mx{ display:inline-block; margin:0 .25em; }
+
+/* variante si tu préfères encapsuler (voir JS plus bas) */
+.mx { display:inline-block; margin:0 .28em; }
+
+/* indices lisibles, même si un reset CSS les neutralise */
+sub { font-size: .8em; vertical-align: -0.25em; }
+/* Puces lisibles dans la case grisée de correction */
+.res ul.bullets{ margin: 6px 0 0 18px; padding:0 }
+.res ul.bullets li{ margin:8px 0 }
+.res ul.bullets .eq{ display:inline-block; padding:4px 8px; border:1px dashed #bbb; border-radius:6px; }
+
+/* air autour des fractions dans une équation */
+.eq .frac{ margin: 0 .2em; }
+/* espace visible après "1)" / "2)" dans les solutions */
+.qno{ display:inline-block; margin-right:.45em }
+
+/* "ainsi" souligné + espace de chaque côté */
+.ainsi{
+  text-decoration: underline;
+  display:inline-block;
+  margin: 0 .45em;
+}
+
+/* lignes de solution plus lisibles */
+#res .sol p{ margin:.25rem 0; }
+
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  .equ-offscreen .c-label{display:none !important;}
+}
+
+/* Variante : saisie à droite de la question (pour ex6 & ex7) */
+.row.right{
+  display:grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-areas:
+    "lab inp"
+    "res res";
+  gap:10px 14px;
+  align-items:center;
+}
+.row.right .col-label{ grid-area:lab; }
+.row.right .input-line{ grid-area:inp; display:flex; justify-content:flex-end; }
+.row.right .input-line input[type=text]{ width:100% }
+
+/* Mobile : repasse en colonne */
+@media (max-width:680px){
+  .row.right{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "lab"
+      "inp"
+      "res";
+  }
+}
+
+/* Tick à droite de chaque champ */
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}   /* V vert */
+.tick.ko{color:#dc2626}   /* X rouge */
+</style>
+</head>
+
+<body>
+<div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 3 – <strong>Taux d'évolution</strong></h1>
+
+    <div class="wrap" style="padding:0 18px">
+      <div class="controls">
+        <label for="exo-select">Type d’exercice :</label>
+        <select id="exo-select"></select>
+        <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+        <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+        <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+        <div class="score" id="score">Score : 0 / 0</div>
+      </div>
+    </div>
+</div>
+ 
+ 
+
+  
+<div class="wrap">
+  <div class="card">
+    <div id="host"></div>
+  </div>
+
+  <div class="card small">
+    <div><strong>Saisie & réponses acceptées :</strong></div>
+    <ul class="tips">
+      <li>Décimaux : virgule <em>ou</em> point (ex. <code>1,25</code> ↔ <code>1.25</code>).</li>
+      <li>Pourcentages : autorisé avec <code>%</code> (<code>12%</code>) ou en décimal (<code>0,12</code>).</li>
+      <li>Arrondis : <em>t</em> à <strong>0,01</strong> près ; pourcentage au <strong>%</strong> près ; valeurs numériques à <strong>0,01</strong> près.</li>
+    </ul>
+   
+  </div>
+  <!-- Clavier math, centré -->
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+</div>
+
+<script>
+/* ================== Outils génériques ================== */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = L => L[rnd(0,L.length-1)];
+const UMINUS='−';
+
+function innerHost(host){
+  // ⬇️ Ne PAS effacer le contenu si ".inner" existe déjà
+  let inner = host.querySelector('.inner');
+  if(!inner){
+    host.innerHTML = '<div class="inner"></div>';
+    inner = host.querySelector('.inner');
+  }
+  return inner;
+}
+
+/* ================== Formats & parse ================== */
+const fmtDecFR = (x, digits=3) => { const s = String(Math.round(x*10**digits)/10**digits); return s.replace('.',','); };
+const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s = stripSignUnicode(String(s||'').trim()).replace(/\s+/g,' ');
+  if(!s) return NaN;
+  const pct = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(pct) return parseFloat(pct[1].replace(',', '.'))/100;
+  return parseFloat(s.replace(',', '.'));
+}
+function parseNumberFR_noPct(s){
+  s = stripSignUnicode(String(s||'').trim());
+  if (/%/.test(s)) return NaN;
+  return parseFloat(s.replace(',', '.'));
+}
+function parsePercentStrict(s){
+  const raw = String(s||'').trim();
+  if (/%/.test(raw)) { const m = raw.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/); return m ? parseFloat(m[1].replace(',', '.')) : NaN; }
+  const v = parseNumberFR(raw);
+  if (!isFinite(v)) return NaN;
+  if (Math.abs(v) > 0 && Math.abs(v) < 1) return NaN;
+  return v;
+}
+function sameFloat(a,b,eps=1e-6){ return Math.abs(a-b) <= eps; }
+// PATCH — déduplication robuste (insensible aux espaces/majuscules)
+function _canonCtx(s){
+  return String(s||'')
+    .replace(/\u00A0/g,' ')   // NBSP → espace
+    .replace(/\s+/g,' ')      // espaces multiples
+    .trim()
+    .toLowerCase();
+}
+// Arrondi au centième et test d'égalité sur l'affichage
+const eq02 = (a,b)=> Math.round(a*100) === Math.round(b*100);
+
+// Tirage d’un entier en excluant certaines valeurs (utile pour t%)
+function rndExcept(min, max, except=[]) {
+  const S = new Set(except.map(String));
+  let v;
+  do { v = rnd(min, max); } while (S.has(String(v)));
+  return v;
+}
+
+/* ================== Rendu utils ================== */
+function fracHTML(n, d){ return `<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`; }
+function tidyDecFR(v, digits=3){
+  let s = fmtDecFR(v, digits);
+  if (s.includes(',')) s = s.replace(/0+$/,'').replace(/[,]$/,''); return s;
+}
+function fmtIntOrDec(v, digits=2){ return Number.isInteger(v)? String(v) : tidyDecFR(v, digits); }
+function Q(n){ return `<span class="qno">${n})</span>`; }
+
+/* ================== Ticks (✔/✘) pour inputs texte ================== */
+function addTicks(host){
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    const next = inp.nextElementSibling;
+    if(!next || !next.classList || !next.classList.contains('tick')){
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+    }
+  });
+}
+function setTickForInput(inp, state){
+  const tick = inp.nextElementSibling && inp.nextElementSibling.classList.contains('tick') ? inp.nextElementSibling : null;
+  if(!tick) return;
+  if(state===null){ tick.textContent=''; tick.classList.remove('ok','ko'); return; }
+  if(state===true){ tick.textContent='✔'; tick.classList.add('ok'); tick.classList.remove('ko'); }
+  else            { tick.textContent='✘'; tick.classList.add('ko'); tick.classList.remove('ok'); }
+}
+
+/* ================== Validation par champ ================== */
+function validateOneInput(inp, st, exId){
+  const valRaw = (inp.value||'').trim();
+  if(valRaw==='') return null;
+  const id = inp.id||'';
+
+  switch(exId){
+    /* ===== Ex. 2 : trois cas ===== */
+    case 'taux_calc_3cas': {
+      if(id==='tA'){
+        const v = parseNumberFR(valRaw);
+        const t = st.A.Vf/st.A.Vi - 1;
+        return isFinite(v) && sameFloat(Math.round(v*100)/100, Math.round(t*100)/100);
+      }
+      if(id==='vfB'){
+        const v = parseNumberFR_noPct(valRaw);
+        const exp = st.B.Vi * (1 + st.B.t);
+        return isFinite(v) && sameFloat(Math.round(v*100)/100, Math.round(exp*100)/100);
+      }
+      if(id==='viC'){
+        const v = parseNumberFR_noPct(valRaw);
+        const exp = st.C.Vf / (1 + st.C.t);
+        return isFinite(v) && sameFloat(Math.round(v*100)/100, Math.round(exp*100)/100);
+      }
+      return false;
+    }
+
+    /* ===== Ex. 3 : contexte libre ===== */
+    case 'taux_contextes': {
+      if(id==='vabs'){
+        const v = parseNumberFR_noPct(valRaw);
+        const exp = st.Vf - st.Vi;
+        return isFinite(v) && sameFloat(Math.round(v*100)/100, Math.round(exp*100)/100);
+      }
+      if(id==='t'){
+        const v = parseNumberFR(valRaw);
+        const exp = st.Vf / st.Vi - 1;
+        return isFinite(v) && sameFloat(Math.round(v*100)/100, Math.round(exp*100)/100);
+      }
+      if(id==='pct'){
+        const v = parsePercentStrict(valRaw);
+        const exp = (st.Vf / st.Vi - 1) * 100;
+        return isFinite(v) && (Math.round(v) === Math.round(exp));
+      }
+      return false;
+    }
+
+    default: return false;
+  }
+}
+
+/* Valide tous les inputs texte visibles (sans score) */
+function progressiveValidate(host){
+  const exId = host.dataset.active;
+  const st = JSON.parse(host.dataset.state||'{}');
+  let blanks=0;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    const state = validateOneInput(inp, st, exId);
+    setTickForInput(inp, state);
+    if(state===null) blanks++;
+  });
+  return blanks;
+}
+function allInputsFilled(host){
+  let ok=true;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if((inp.value||'').trim()==='') ok=false;
+  });
+  return ok;
+}
+
+/* ================== EXERCICES ================== */
+
+/* === Ex. 1 : Proportion ou évolution ? === */
+const ex1 = {
+  id:'taux_prop_evo',
+  title:'Proportion ou évolution ?',
+  gen(){
+  // Banque originale (sans se soucier ici de moins/plus : on filtrera)
+  const T = [
+    // ——— Proportions “classiques” ———
+    ()=>({txt:`${rnd(5,95)}% des élèves de la classe ont un vélo.`, kind:'P'}),
+    ()=>({txt:`Dans ce panier, ${rnd(10,60)}% de fruits sont des pommes.`, kind:'P'}),
+    ()=>({txt:`${rnd(30,90)}% des spectateurs sont des abonnés.`, kind:'P'}),
+    ()=>({txt:`Un sondage indique que ${rnd(20,80)}% des personnes interrogées aiment la vanille.`, kind:'P'}),
+    ()=>({txt:`La part des produits bio est de ${rnd(5,40)}% dans ce magasin.`, kind:'P'}),
+    ()=>({txt:`Il y a ${rnd(1,30)}% d’impuretés dans ce minerai.`, kind:'P'}),
+    ()=>({txt:`Sur le plateau, ${rnd(10,90)}% des cartes sont rouges.`, kind:'P'}),
+    ()=>({txt:`${rnd(40,90)}% des élèves de la classe pratiquent un sport.`, kind:'P'}),
+    ()=>({txt:`${rnd(20,70)}% des habitants ont un animal de compagnie.`, kind:'P'}),
+    ()=>({txt:`${rnd(10,80)}% des livres de l’étagère sont des romans.`, kind:'P'}),
+    ()=>({txt:`${rnd(10,90)}% des billes de la boîte sont bleues.`, kind:'P'}),
+    ()=>({txt:`${rnd(20,80)}% des plateaux du self contiennent un dessert.`, kind:'P'}),
+    ()=>({txt:`${rnd(10,60)}% des stands du marché vendent des fruits.`, kind:'P'}),
+    ()=>({txt:`${rnd(5,50)}% des timbres de la collection viennent d’Europe.`, kind:'P'}),
+    ()=>({txt:`${rnd(1,30)}% des véhicules du parking sont électriques.`, kind:'P'}),
+    ()=>({txt:`${rnd(50,95)}% des joueurs de l’équipe sont droitiers.`, kind:'P'}),
+    ()=>({txt:`${rnd(40,90)}% des visiteurs du site utilisent un mobile.`, kind:'P'}),
+
+    // ——— Évolutions (A/D) ———
+    ()=>({txt:`Le prix d’un billet a augmenté de ${rnd(2,35)}%.`, kind:'A'}),
+    ()=>({txt:`La population de la ville a crû de ${rnd(1,20)}% en dix ans.`, kind:'A'}),
+    ()=>({txt:`Il y a une plus-value de ${rnd(3,25)}% à la revente.`, kind:'A'}),
+    ()=>({txt:`Le volume de production est en hausse de ${rnd(1,50)}%.`, kind:'A'}),
+    ()=>({txt:`Le nombre d’accidents a baissé de ${rnd(5,40)}%.`, kind:'D'}),
+    ()=>({txt:`Le stock a diminué de ${rnd(10,60)}%.`, kind:'D'}),
+    ()=>({txt:`Les émissions de CO₂ ont été réduites de ${rnd(5,30)}%.`, kind:'D'}),
+    ()=>({txt:`La consommation d’eau a reculé de ${rnd(2,25)}%.`, kind:'D'}),
+    ()=>({txt:`Une remise de ${rnd(5,40)}% est appliquée sur ce produit.`, kind:'D'}),
+    ()=>({txt:`La température moyenne a diminué de ${rnd(5,30)}%.`, kind:'D'}),
+    ()=>({txt:`La fréquentation du musée a augmenté de ${rnd(5,80)}%.`, kind:'A'}),
+    ()=>({txt:`Le prix d’un abonnement a diminué de ${rnd(5,40)}%.`, kind:'D'}),
+    ()=>({txt:`Le budget marketing a augmenté de ${rnd(5,60)}%.`, kind:'A'}),
+    ()=>({txt:`La consommation d’électricité a baissé de ${rnd(5,35)}%.`, kind:'D'}),
+    ()=>({txt:`La production de l’usine a augmenté de ${rnd(5,50)}%.`, kind:'A'}),
+    ()=>({txt:`Le temps de trajet a diminué de ${rnd(5,60)}%.`, kind:'D'}),
+    ()=>({txt:`Le taux de réussite a augmenté de ${rnd(5,40)}%.`, kind:'A'}),
+    ()=>({txt:`Le loyer a augmenté de ${rnd(2,20)}%.`, kind:'A'}),
+    ()=>({txt:`La quantité de déchets produits a diminué de ${rnd(5,50)}%.`, kind:'D'})
+  ];
+
+  // BANQUES dédiées pour imposer 1 "Moins de ..." et 1 "Plus de ..."
+  const P_MOINS = [
+    ()=>({txt:`Moins de ${rnd(5,49)}% des élèves viennent en bus.`, kind:'P'}),
+    ()=>({txt:`Moins de ${rnd(5,49)}% des habitants possèdent un chien.`, kind:'P'}),
+    ()=>({txt:`Moins de ${rnd(5,49)}% des livres de la bibliothèque sont des BD.`, kind:'P'}),
+    ()=>({txt:`Moins de ${rnd(5,49)}% des cartes du jeu sont noires.`, kind:'P'}),
+    ()=>({txt:`Moins de ${rnd(5,49)}% des commandes arrivent en retard.`, kind:'P'})
+  ];
+  const P_PLUS = [
+    ()=>({txt:`Plus de ${rnd(51,95)}% des élèves pratiquent un sport.`, kind:'P'}),
+    ()=>({txt:`Plus de ${rnd(51,95)}% des visiteurs utilisent un mobile.`, kind:'P'}),
+    ()=>({txt:`Plus de ${rnd(51,95)}% des stands du marché vendent des fruits.`, kind:'P'}),
+    ()=>({txt:`Plus de ${rnd(51,95)}% des véhicules du parking sont électriques.`, kind:'P'}),
+    ()=>({txt:`Plus de ${rnd(51,95)}% des plateaux du self contiennent un dessert.`, kind:'P'})
+  ];
+
+  const target = {P:4, E:5};
+  let count = {P:0, E:0};
+  const used = new Set();
+  const rows = [];
+
+  function pushUnique(gen){
+    const r = gen();
+    const k = _canonCtx(r.txt);
+    if(used.has(k)) return false;
+    used.add(k);
+    rows.push(r);
+    if(r.kind==='A' || r.kind==='D') count.E++; else count.P++;
+    return true;
+  }
+
+  // 1) Imposer exactement 1 "Moins de ..." et 1 "Plus de ..."
+  let haveMoins=false, havePlus=false;
+  for(let tries=0; !haveMoins && tries<30; tries++) haveMoins = pushUnique(choice(P_MOINS));
+  for(let tries=0; !havePlus  && tries<30; tries++) havePlus  = pushUnique(choice(P_PLUS));
+
+  // 2) Compléter jusqu’à 9 lignes en respectant 4P/5E et éviter tout autre "Moins de"/"Plus de"
+  while(rows.length < 9){
+    const r = choice(T)();             // pioche générale
+    const key = _canonCtx(r.txt);
+    if(used.has(key)) continue;
+
+    const isEvo  = (r.kind==='A' || r.kind==='D');
+    const isMoins= /^Moins de\b/i.test(r.txt);
+    const isPlus = /^Plus de\b/i.test(r.txt);
+
+    // on refuse d'ajouter d'autres "Moins de"/"Plus de" (on en a déjà 1 de chaque)
+    if(isMoins || isPlus) continue;
+
+    if(isEvo && count.E >= target.E) continue;
+    if(!isEvo && count.P >= target.P) continue;
+
+    used.add(key);
+    rows.push(r);
+    if(isEvo) count.E++; else count.P++;
+  }
+
+  // 3) Mélanger l'ordre pour ne pas avoir toujours les 2 imposés en tête
+  rows.sort(()=>Math.random()-0.5);
+
+  return {rows};
+},
+
+
+  render(host, st){
+    const inner = innerHost(host);
+    const optsYN = `<option value="">—</option><option value="oui">Oui</option><option value="non">Non</option>`;
+    const optsDir = `<option value="">—</option><option value="A">Augmentation</option><option value="D">Diminution</option>`;
+    const rows = st.rows.map((r,i)=>`
+   <tr>
+     <td class="num">${i+1}.</td>
+     <td style="text-align:left">${r.txt}</td>
+     <td><select id="p${i}">${optsYN}</select></td>
+     <td><select id="e${i}">${optsDir}</select><span id="t${i}" class="tick"></span></td>
+   </tr>`).join('');
+    inner.innerHTML = `
+      <div class="consigne"><div class="c-label">Énoncé</div>
+        <div>Dans chaque situation, dire si le pourcentage désigne une <em>proportion</em> (colonne 2) ou une <em>évolution</em>. </div>
+      <div>Pour <em>l’évolution</em> (colonne 3), préciser s'il s'agit d'une augmentation ou une diminution. Choisir « — » quand il s’agit d’une proportion.</div>
+	  </div>
+      <table class="tbl center">
+<thead><tr><th style="width:44px">#</th><th>Situation</th><th>Proportion ?</th><th>Évolution ?</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div id="res" class="res"></div>
+    `;
+  },
+  correct(host, st){
+    const inner = innerHost(host);
+    let okAll=true, total=st.rows.length;
+    st.rows.forEach((r,i)=>{
+      const p = $(`#p${i}`,inner).value, e = $(`#e${i}`,inner).value;
+      let ok=false;
+      if(r.kind==='P') ok = (p==='oui' && e==='');
+      if(r.kind==='A') ok = (p==='non' && e==='A');
+      if(r.kind==='D') ok = (p==='non' && e==='D');
+      const t = $(`#t${i}`,inner); if(t){ t.textContent = ok? '✔':'✘'; t.className='tick '+(ok?'ok':'ko'); }
+      okAll = okAll && ok;
+    });
+    const res = $('#res',inner);
+    if(okAll){ res.innerHTML = 'Tout est correct.'; res.className='res res-ok'; }
+    else     { res.innerHTML = 'Il y a des erreurs.'; res.className='res res-ko'; }
+    return {ok:okAll, total};
+  },
+  solution(host, st){
+    const inner = innerHost(host);
+    const lines = st.rows.map((r,i)=>{
+      const P = (r.kind==='P')? 'Oui' : 'Non';
+      const E = (r.kind==='A')? 'Augmentation' : (r.kind==='D'?'Diminution':'—');
+      return `<div>${i+1}. ${r.txt} — Proportion : <strong>${P}</strong> ; Évolution : <strong>${E}</strong>.</div>`;
+    });
+    $('#res',inner).innerHTML = lines.map(x=>`<p>${x}</p>`).join('');
+    $('#res',inner).className='res';
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* === Ex. 2 : trois cas (t, Vf, Vi) === */
+const ex2 = {
+  id:'taux_calc_3cas',
+  title:'Calculs d’application — trois cas',
+  gen(){
+  // a) On donne Vi, Vf -> chercher t
+  const A = (() => {
+    let Vi, Vf, tInt;
+    do {
+      Vi   = rnd(80, 260)/100;                 // 0.80..2.60
+      tInt = rndExcept(-45, 75, [0]);          // exclut 0%
+      Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
+    } while (eq02(Vi, Vf));                     // évite Vi = Vf à 0,01 près
+    return { Vi, Vf };
+  })();
+
+  // b) On donne Vi, t -> chercher Vf  (on vérifie que l'affichage ne donne pas Vi = Vf)
+  const B = (() => {
+    let Vi, tInt, Vf;
+    do {
+      Vi   = rnd(80, 260)/100;
+      tInt = rndExcept(-40, 80, [0]);          // exclut 0%
+      Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
+    } while (eq02(Vi, Vf));
+    return { Vi, t: tInt/100 };
+  })();
+
+  // c) On donne Vf, t -> chercher Vi  (Vi = Vf n'arrive que si t = 0 → exclu)
+  const C = (() => {
+    const Vf   = rnd(80, 260)/100;
+    const tInt = rndExcept(-40, 80, [0]);      // exclut 0%
+    return { Vf, t: tInt/100 };
+  })();
+
+  return { A, B, C };
+},
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+  <div class="consigne">
+    <div class="c-label">Consigne</div>
+    <div>
+      On utilisera la formule ${fracHTML('V<sub>f</sub> − V<sub>i</sub>','V<sub>i</sub>')} pour calculer <em>t</em>.
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>a)</strong> Donnés : V<sub>i</sub>= ${fmtIntOrDec(st.A.Vi,2)} ; V<sub>f</sub>= ${fmtIntOrDec(st.A.Vf,2)}. Chercher <em>t</em> (à 0,01 près).</div>
+    <div class="input-line"><input id="tA" type="text" placeholder="t (ex. 0,12 ou 12%)"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>b)</strong> Donnés : V<sub>i</sub>= ${fmtIntOrDec(st.B.Vi,2)} ; t = ${fmtIntOrDec(st.B.t,2)}. Chercher <em>V<sub>f</sub></em> (à 0,01 près).</div>
+    <div class="input-line"><input id="vfB" type="text" placeholder="Vf (ex. 1,92)"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>c)</strong> Donnés : V<sub>f</sub>= ${fmtIntOrDec(st.C.Vf,2)} ; t = ${fmtIntOrDec(st.C.t,2)}. Chercher <em>V<sub>i</sub></em> (à 0,01 près).</div>
+    <div class="input-line"><input id="viC" type="text" placeholder="Vi (ex. 1,60)"></div>
+  </div>
+
+  <!-- Case grisée unique pour la correction -->
+  <div id="res" class="res"></div>
+`;
+
+
+  },
+  correct(host, st){
+    const inner = innerHost(host);
+    addTicks(inner);
+    progressiveValidate(inner);
+    if(!allInputsFilled(inner)){
+      const res = $('#res',inner); if(res){ res.textContent=''; res.className='res'; }
+      return;
+    }
+    const okA = validateOneInput($('#tA',inner), st, this.id);
+    const okB = validateOneInput($('#vfB',inner), st, this.id);
+    const okC = validateOneInput($('#viC',inner), st, this.id);
+    const okAll = !!(okA && okB && okC);
+    const res = $('#res',inner);
+    if(res){
+      if(okAll){ res.textContent='Tout est correct.'; res.className='res res-ok'; }
+      else     { res.textContent='Il y a des erreurs.'; res.className='res res-ko'; }
+    }
+    return {ok:okAll, total:3};
+  },
+  solution(host, st){
+  const inner = innerHost(host);
+  const fmt = (x)=>fmtIntOrDec(x,2);                   // arrondi 0,01 pour affichage
+  const sgn = (t)=> t>=0 ? 'Augmentation' : 'Diminution';
+  const pm  = (t)=> t>=0 ? `1 + ${fmt(t)}` : `1 − ${fmt(Math.abs(t))}`;
+  const pct = (t)=> Math.round(t*100);                 // au % près
+  const frac = (N,D)=>fracHTML(N,D);
+
+  // a) t
+  const ta   = st.A.Vf/st.A.Vi - 1;
+  const ta01 = Math.round(ta*100)/100;
+
+  // b) Vf
+  const vfb  = st.B.Vi*(1+st.B.t);
+  const vfb01= Math.round(vfb*100)/100;
+
+  // c) Vi
+  const vic  = st.C.Vf/(1+st.C.t);
+  const vic01= Math.round(vic*100)/100;
+
+  const rows = `
+    <tr>
+      <td class="num">a.</td>
+      <td style="text-align:left">
+        V<sub>i</sub> = ${fmt(st.A.Vi)}<br>
+        V<sub>f</sub> = ${fmt(st.A.Vf)}
+      </td>
+      <td><em>t</em> = ${fracHTML('V<sub>f</sub> − V<sub>i</sub>','V<sub>i</sub>')}</td>
+      <td>
+        <em>t</em> = ${frac(`${fmt(st.A.Vf)} − ${fmt(st.A.Vi)}`, `${fmt(st.A.Vi)}`)}
+        &nbsp;≈ <strong>${fmt(ta01)}</strong> ≈ <strong>${pct(ta01)}%</strong>
+      </td>
+      <td><strong>${sgn(ta)}</strong></td>
+    </tr>
+
+    <tr>
+      <td class="num">b.</td>
+      <td style="text-align:left">
+        V<sub>i</sub> = ${fmt(st.B.Vi)}<br>
+        <em>t</em> = ${fmt(st.B.t)}
+      </td>
+      <td>V<sub>f</sub> = (1 + t)  V<sub>i</sub></td>
+      <td>
+        V<sub>f</sub> = (${pm(st.B.t)}) × ${fmt(st.B.Vi)}
+        &nbsp;≈ <strong>${fmt(vfb01)}</strong>
+      </td>
+      <td><strong>${sgn(st.B.t)}</strong></td>
+    </tr>
+
+    <tr>
+      <td class="num">c.</td>
+      <td style="text-align:left">
+        V<sub>f</sub> = ${fmt(st.C.Vf)}<br>
+        <em>t</em> = ${fmt(st.C.t)}
+      </td>
+      <td>V<sub>i</sub> = ${frac('V<sub>f</sub>','1 + t')}</td>
+      <td>
+        V<sub>i</sub> = ${frac(`${fmt(st.C.Vf)}`, `${pm(st.C.t)}`)}
+        &nbsp;≈ <strong>${fmt(vic01)}</strong>
+      </td>
+      <td><strong>${sgn(st.C.t)}</strong></td>
+    </tr>
+  `;
+
+  $('#res', inner).innerHTML = `
+    <table class="tbl center">
+      <thead>
+        <tr>
+          <th style="width:32px"></th>
+          <th>Éléments donnés</th>
+          <th>Formule</th>
+          <th>Réponse</th>
+          <th>Augmentation ou diminution</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+  $('#res', inner).className = 'res';
+},
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+/* === Ex. 3 : Banque de 20 contextes (entiers pour objets/personnes) === */
+const ex3 = {
+  id:'taux_contextes',
+  title:'Taux d’évolution — contextes variés',
+  
+
+  gen(){
+  // Décimal : force Vi ≠ Vf à l'affichage (0,01 près), réajuste t si besoin
+function withT_ne(Vi, t) {
+  // (ré)échantillonne ou pousse t loin de 0 pour garantir un changement visible
+  let T = t;
+  let Vf = Math.round(Vi * (1 + T) * 100) / 100;
+  if (eq02(Vi, Vf)) {
+    // pousse de ±0,01 (puis ±0,02 si nécessaire)
+    T = (T >= 0 ? T + 0.01 : T - 0.01);
+    Vf = Math.round(Vi * (1 + T) * 100) / 100;
+    if (eq02(Vi, Vf)) {
+      T = (T >= 0 ? T + 0.02 : T - 0.02);
+      Vf = Math.round(Vi * (1 + T) * 100) / 100;
+    }
+  }
+  return { Vi, t: T, Vf };
+}
+
+// Comptages (objets/personnes) : Vi, Vf entiers et différents
+// Comptages (objets/personnes) : Vi, Vf entiers et différents
+function COUNT_ne(min, max, pctList){
+  // liste par défaut (pas de 0 %)
+  const LIST = (Array.isArray(pctList) && pctList.length
+                ? pctList
+                : [-60,-50,-40,-30,-25,-20,-15,-10,10,15,20,25,30,40,50,60]
+               ).filter(p => p !== 0);
+
+  let Vi, tPct, Vf, guard = 0;
+  do {
+    Vi   = rnd(min, max);
+    tPct = LIST[rnd(0, LIST.length - 1)];
+    Vf   = Math.round(Vi * (1 + tPct/100)); // entier
+    if (++guard > 1000) break;              // sécurité
+  } while (Vf === Vi);                       // garantit un changement
+
+  return { Vi, t: tPct/100, Vf, isCount: true };
+}
+
+    function withT(Vi, t){ return {Vi:Vi, t:t, Vf: Math.round(Vi*(1+t)*100)/100}; }
+    // counts: ensure integers Vi and Vf
+    function COUNT(min,max, pctList=[-60,-50,-40,-30,-25,-20,-10,10,20,25,30,40,50,60]){
+      const Vi = rnd(min,max);
+      const t  = choice(pctList)/100;
+      const Vf = Math.round(Vi*(1+t)); // entier
+      return {Vi, t, Vf, isCount:true};
+    }
+    const C = [
+      ()=>({label:'prix d’une baguette (€)', ...withT(rnd(60,120)/100, rnd(-20,35)/100)}),
+      ()=>({label:'salaire mensuel (€)', ...withT(rnd(1200,2900), rnd(-10,25)/100)}),
+      ()=>COUNT(50, 800, [-50,-40,-30,-20,-10,10,20,30,40,50]).__proto__={}, // placeholder, not used
+    ];
+    // Build 20 different generators
+    const BANK = [
+      ()=>({label:'prix d’un panier de courses <em>(en €)</em>', ...withT_ne(rnd(30,180), rnd(-25,35)/100)}),
+      ()=>({label:'prix d’un smartphone <em>(en €)</em>', ...withT_ne(rnd(200,1400), rnd(-40,25)/100)}),
+      ()=>({label:'prix du carburant <em>(en €/L)</em>', ...withT_ne(rnd(130,220)/100, rnd(-35,45)/100)}),
+      ()=>({label:'budget d’un ménage <em>(en €)</em>', ...withT_ne(rnd(800,4500), rnd(-30,30)/100)}),
+      ()=>({label:'volume d’un réservoir <em>(en L)</em>', ...withT_ne(rnd(100,2000), rnd(-60,60)/100)}),
+      ()=>({label:'débit d’un cours d’eau <em>(en m³/s)</em>', ...withT_ne(rnd(5,600)/10, rnd(-50,50)/100)}),
+      ()=>({label:'surface d’un champ <em>(en ha)</em>', ...withT_ne(rnd(5,80)/10, rnd(-20,20)/100)}),
+      ()=>({label:'distance parcourue <em>(en km)</em>', ...withT_ne(rnd(5,300)/10, rnd(-40,40)/100)}),
+      ()=>({label:'nombre d’habitants d’une ville ', ...COUNT_ne(8000,120000)}),
+      ()=>({label:'nombre d’abonnés ', ...COUNT_ne(1000,60000)}),
+      ()=>({label:'stock de pièces ', ...COUNT_ne(200,5000)}),
+      ()=>({label:'nombre d’élèves ', ...COUNT_ne(50,1200)}),
+      ()=>({label:'nombre de visiteurs ', ...COUNT_ne(100,30000)}),
+      ()=>({label:'production d’abeilles <em>(en kg de miel)</em>', ...withT_ne(rnd(50,900)/10, rnd(-50,80)/100)}),
+      ()=>({label:'temps de trajet <em>(en min)</em>', ...COUNT_ne(5,180, [-60,-50,-40,-30,-20,-10,10,20,30,40,50,60,80])}),
+      ()=>({label:'nombre de véhicules ', ...COUNT_ne(10,600)}),
+      ()=>({label:'nombre d’arbres ', ...COUNT_ne(100,2000)}),
+      ()=>({label:'prix d’un livre <em>(en €)</em>', ...withT_ne(rnd(5,35), rnd(-30,40)/100)}),
+      ()=>({label:'longueur d’un câble <em>(en m)</em>', ...withT_ne(rnd(20,500), rnd(-25,25)/100)}),
+      ()=>({label:'poids d’un colis <em>(en kg)</em>', ...withT_ne(rnd(2,40)/10, rnd(-30,30)/100)})
+    ];
+    return choice(BANK)();
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+  <div class="consigne"><div class="c-label">Énoncé</div>
+    <div>Le ${st.label} est passé de <strong>${fmtIntOrDec(st.Vi,2)}</strong> à <strong>${fmtIntOrDec(st.Vf,2)}</strong>.</div>
+  </div>
+  <ol class="hint">
+    <li>Calculer la variation absolue.</li>
+    <li>Calculer le taux d’évolution (à 0,01 près).</li>
+    <li>En déduire le pourcentage d’évolution (au % près).</li>
+  </ol>
+
+  <div class="row">
+    <div class="col-label"><strong>1)</strong> Variation absolue</div>
+    <div class="input-line"><input id="vabs" type="text" placeholder="ex. 3,5"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>2)</strong> Taux d’évolution t</div>
+    <div class="input-line"><input id="t" type="text" placeholder="ex. −0,12 ou −12%"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>3)</strong> Pourcentage d’évolution</div>
+    <div class="input-line"><input id="pct" type="text" placeholder="ex. −12%"></div>
+  </div>
+
+  <!-- Une seule case grisée pour la correction -->
+  <div id="res" class="res"></div>
+`;
+
+  },
+  correct(host, st){
+    const inner = innerHost(host);
+    addTicks(inner);
+    progressiveValidate(inner);
+    if(!allInputsFilled(inner)){ const res=$('#res',inner); if(res){ res.textContent=''; res.className='res'; } return; }
+    const ok1 = validateOneInput($('#vabs',inner), st, this.id);
+    const ok2 = validateOneInput($('#t',inner), st, this.id);
+    const ok3 = validateOneInput($('#pct',inner), st, this.id);
+    const okAll = !!(ok1 && ok2 && ok3);
+    const res=$('#res',inner);
+    if(okAll){ res.textContent='Tout est correct.'; res.className='res res-ok'; }
+    else     { res.textContent='Il y a des erreurs.'; res.className='res res-ko'; }
+    return {ok:okAll, total:3};
+  },
+  solution(host, st){
+  const inner = innerHost(host);
+  const fmt2 = (x)=>fmtIntOrDec(x,2);
+
+  // On arrondit Vi, Vf au centième comme dans l'énoncé attendu
+  const Vi = Math.round(st.Vi*100)/100;
+  const Vf = Math.round(st.Vf*100)/100;
+
+  const VA  = Vf - Vi;
+  const T   = Vf/Vi - 1;
+  const T01 = Math.round(T*100)/100;     // t à 0,01 près
+  const Pct = Math.round(T01*100);       // % au pourcentage près
+
+  $('#res', inner).innerHTML = `
+    <ol class="steps">
+		<div class="eq">
+	          <strong>V<sub>i</sub></strong> = ${fmt2(Vi)} et <strong>V<sub>f</sub></strong> = ${fmt2(Vf)}.<br>
+
+	</div>
+      <li>
+        <div class="eq">
+          <strong>V<sub>a</sub></strong> = V<sub>f</sub> − V<sub>i</sub> = ${fmt2(Vf)} − ${fmt2(Vi)} = <strong>${fmt2(VA)}</strong>
+        </div>
+      </li>
+
+      <li>
+        <div class="eq">
+          <em>t</em> = ${fracHTML('V<sub>f</sub> − V<sub>i</sub>', 'V<sub>i</sub>')}
+          = ${fracHTML(`${fmt2(Vf)} − ${fmt2(Vi)}`, `${fmt2(Vi)}`)}
+          ≈ <strong>${fmt2(T01)}</strong>
+        </div>
+      </li>
+
+      <li>
+        <div class="eq">
+          <em>t</em> = ${fmt2(T01)} = <strong>${Pct}%</strong>
+        </div>
+      </li>
+    </ol>
+  `;
+  $('#res', inner).className = 'res';
+},
+
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ================== Registre & moteur ================== */
+const REGISTRY=[ex1,ex2,ex3];
+window.REGISTRY=REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
+  addTicks(host);
+}
+function check(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  addTicks(host);
+  progressiveValidate(host);
+  if(!allInputsFilled(host)){ const res=$('#res',host); if(res){ res.textContent=''; res.className='res'; } return; }
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r = def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
+  // snapshot visible inputs
+  const visInputs = $$('#host input[type=text]').filter(inp=>!inp.closest('.equ-offscreen'));
+  const snap = new Map(visInputs.map(inp=>[inp, inp.value]));
+  const st=JSON.parse(host.dataset.state||'{}');
+  def.solution(host, st);
+  for(const [inp,val] of snap) inp.value = val;
+  progressiveValidate(host);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  innerHost(document.getElementById('host'));
+  const sel=$('#exo-select');
+  REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  // Enter triggers Verifier
+  document.addEventListener('keydown', function(ev){
+    const a = document.activeElement;
+    if(a && a.closest('#host') && (a.tagName==='INPUT')){
+      if(ev.key==='Enter'){ ev.preventDefault(); check(); }
+    }
+  });
+});
+</script>
+
+<!-- JS fournis -->
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+<script src='../../../../js/fraction-sign-clarity.dom.v3.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    if (!window.ExoPDF) { console.warn('ExoPDF non chargé'); return; }
+
+    ExoPDF.init({
+      // Monte le générateur PDF sous la carte “Saisie & réponses acceptées :”
+      mountAfterSelector: '.wrap .card.small',
+
+      title: document.title.replace(/\s+–.+$/,'').trim(),
+      max: 40,
+      leadByDefId: {
+        'taux_prop_evo' : 'Exercice 1 — Proportion ou évolution ?',
+        'taux_calc_3cas': 'Exercice 2 — Calculs d’application (t, Vf, Vi)',
+        'taux_contextes': 'Exercice 3 — Taux d’évolution (contextes)'
+      },
+
+      // === Point crucial : fournir ÉNONCÉ et SOLUTION au kit ===
+      // - isSolution=false : on fige l’énoncé et on REND TOUTES LES CASES VIDES
+      // - isSolution=true  : on appelle def.solution(...) et on renvoie le #res
+      beforeRender(def, st, isSolution){
+        const tmp = document.createElement('div');
+        // hors écran pour ne pas polluer la page
+        Object.assign(tmp.style, {position:'fixed', left:'-10000px', top:'-10000px', width:'0', height:'0', overflow:'hidden'});
+        document.body.appendChild(tmp);
+
+        try{
+          // 1) rendu de base
+          if (typeof def.render === 'function') def.render(tmp, st);
+
+          if (isSolution) {
+            // 2) calcul de la solution (préférence .solution(), sinon .correct())
+            if (typeof def.solution === 'function') { try{ def.solution(tmp, st); } catch(e){}; }
+            else if (typeof def.correct === 'function'){ try{ def.correct(tmp, st); } catch(e){}; }
+
+            // 3) on récupère le bloc #res (ou .res en fallback)
+            let node = tmp.querySelector('#res') || tmp.querySelector('.res') || tmp;
+            // on nettoie le style “ok/ko” éventuel
+            node.classList?.remove('res-ok','res-ko');
+            return { solution: node.outerHTML };
+          }
+
+          // --- Ici : ÉNONCÉ (laisser les cases BLANCHES) ---
+          // a) retirer les ✓/✗
+          tmp.querySelectorAll('.tick').forEach(t=>t.remove());
+          // b) remplacer tous les <select> par des <span> vides
+          tmp.querySelectorAll('select').forEach(sel=>{
+            const span = document.createElement('span');
+            span.className = 'sol-sel';
+            span.textContent = '';           // case blanche
+            sel.replaceWith(span);
+          });
+          // c) remplacer tous les inputs par des <span> vides
+          tmp.querySelectorAll('input[type=text], input[type=number]').forEach(inp=>{
+            const span = document.createElement('span');
+            span.className = 'sol-text';
+            span.textContent = '';           // zone blanche
+            inp.replaceWith(span);
+          });
+          return { statement: tmp.innerHTML };
+
+        } finally {
+          tmp.remove();
+        }
+      }
+    });
+
+    // Forcer “avec corrigés” coché par défaut
+    setTimeout(()=>{ const chk = document.querySelector('.pdf-controls #pdf-sol'); if (chk) chk.checked = true; }, 0);
+  });
+</script>
+
+
+
+
+</body>
+
+</html>

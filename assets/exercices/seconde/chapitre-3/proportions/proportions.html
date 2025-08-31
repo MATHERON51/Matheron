@@ -1,0 +1,1584 @@
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Proportion & pourcentages</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+/* Layout: en colonne (saisie en dessous) */
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    'lab'
+    'inp'
+    'res';
+  gap:10px; align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.row .res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+#host .steps .step{white-space:nowrap}
+
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Table exo 1 & 6 */
+.tbl{border-collapse:collapse}
+.tbl td,.tbl th{border:1px solid #ddd;padding:6px; text-align:center}
+.tbl input[type=text]{width:90px;text-align:center}
+
+/* petit espace garanti autour des lettres en italique (A, E, p) dans les équations */
+.eq em { margin: 0 .28em; }
+
+/* variante si tu préfères encapsuler (voir JS plus bas) */
+.mx { display:inline-block; margin:0 .28em; }
+
+/* indices lisibles, même si un reset CSS les neutralise */
+sub { font-size: .8em; vertical-align: -0.25em; }
+
+/* air autour des fractions dans une équation */
+.eq .frac{ margin: 0 .2em; }
+/* espace visible après "1)" / "2)" dans les solutions */
+/* n° de question : espace garanti */
+.qno{ display:inline-block; margin-right:.45em }
+
+/* "ainsi" souligné + espace de chaque côté */
+.ainsi{
+  text-decoration: underline;
+  display:inline-block;
+  margin: 0 .45em;
+}
+
+/* petit air autour des fractions quand elles sont dans une équation */
+.eq .frac{ margin: 0 .2em; }
+
+/* lignes de solution plus lisibles */
+#res .sol p{ margin:.25rem 0; }
+
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  .equ-offscreen .c-label{display:none !important;}
+}
+
+
+/* Variante : saisie à droite de la question (pour ex6 & ex7) */
+.row.right{
+  display:grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-areas:
+    "lab inp"
+    "res res";
+  gap:10px 14px;
+  align-items:center;
+}
+.row.right .col-label{ grid-area:lab; }
+.row.right .input-line{ grid-area:inp; display:flex; justify-content:flex-end; }
+.row.right .input-line input[type=text]{ width:100% }
+
+/* Mobile : repasse en colonne */
+@media (max-width:680px){
+  .row.right{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "lab"
+      "inp"
+      "res";
+  }
+}
+
+/* Tick à droite de chaque champ */
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}   /* V vert */
+.tick.ko{color:#dc2626}   /* X rouge */
+
+
+
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="wrap" style="padding:0 18px">
+      <div class="controls">
+        <label for="exo-select">Type d’exercice :</label>
+        <select id="exo-select"></select>
+        <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+        <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+        <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+        <div class="score" id="score">Score : 0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="card small">
+      <div><strong>Saisie & réponses acceptées :</strong></div>
+      <ul class="tips">
+        <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,175</code> ou <code>0.175</code>).</li>
+        <li>Pourcentages : avec « % » (ex. <code>43%</code> ou <code>43 %</code>).</li>
+        <li>Fractions : forme <code>a/b</code>. On accepte les proportions au format <code>a/b</code>, décimal <code>0,7</code> ou pourcentage <code>70%</code>.</li>
+        <li>Quand la question demande un <strong>nombre de personnes/objets</strong>, le résultat attendu est un <strong>entier</strong>.</li>
+        <li>Entrée ⏎ déclenche « Vérifier » si le curseur est dans la barre de saisie standard ; pour les tableaux, utilisez le bouton « Vérifier ».</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div id="host"></div>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+
+  </div>
+
+<script>
+(() => {
+/* ===== Outils génériques ===== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = L => L[rnd(0,L.length-1)];
+const UMINUS = '−';
+
+function innerHost(host){ if(!host.dataset.active){ host.dataset.active=''; host.innerHTML='<div class="inner"></div>'; } return host.querySelector('.inner'); }
+
+/* formatages */
+const fmtDecFR = (x, digits=3) => {
+  const s = String(Math.round(x*10**digits)/10**digits);
+  return s.replace('.',',');
+};
+const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s = stripSignUnicode(String(s||'').trim()).replace(/\s+/g,' ');
+  if(!s) return NaN;
+  const pct = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(pct) return parseFloat(pct[1].replace(',', '.'))/100;
+  return parseFloat(s.replace(',', '.'));
+}
+function parsePercent(s){
+  const v = parseNumberFR(s);
+  return isFinite(v) ? v*100 : NaN;
+}
+function sameFloat(a,b,eps=1e-6){ return Math.abs(a-b) <= eps; }
+
+/* outils PDF (copie consigne+énoncé) */
+function renderRow(host, consigneText, labelHTML, hasInput=true, placeholder=''){
+  const root=innerHost(host); root.innerHTML='';
+  const hint=document.createElement('div'); hint.className='hint consigne';
+  hint.innerHTML='<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  const off=document.createElement('div'); off.className='equ-offscreen';
+  off.innerHTML='<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div><div class="equation">'+labelHTML+'</div>';
+  root.appendChild(off);
+
+  const row=document.createElement('div'); row.className='row';
+  const lab=document.createElement('div'); lab.className='col-label equ'; lab.innerHTML=labelHTML; row.appendChild(lab);
+  const incol=document.createElement('div'); incol.className='input-line'; 
+  if(hasInput){
+    incol.innerHTML='<input id="reponse" type="text" placeholder="'+placeholder+'">';
+  } else {
+    incol.innerHTML='';
+  }
+  row.appendChild(incol);
+  row.appendChild(Object.assign(document.createElement('div'),{className:'res', id:'res'}));
+  root.appendChild(row);
+}
+// === Nouveau helper : une rangée par question, avec saisie sous la question ===
+function renderRowsUnderQuestions(host, consigneText, blocks){
+  const root = innerHost(host); root.innerHTML = '';
+
+  // Bandeau consigne (à l'écran)
+  const hint = document.createElement('div');
+  hint.className = 'hint consigne';
+  hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  // Version "offscreen" pour le PDF (sans barres de saisie)
+  const off = document.createElement('div');
+  off.className = 'equ-offscreen';
+  off.innerHTML =
+    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+    + blocks.map(b => '<div class="equation">'+b.labelHTML+'</div>').join('');
+  root.appendChild(off);
+
+  // Une rangée par question
+  blocks.forEach(b => {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
+    lab.innerHTML = b.labelHTML;
+    row.appendChild(lab);
+
+    const incol = document.createElement('div'); incol.className = 'input-line';
+    if (b.id) incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+    row.appendChild(incol);
+
+    root.appendChild(row);
+  });
+
+  // Zone de résultat unique de l’exercice
+  root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+}
+// Rend une fraction empilée: n/d
+function fracHTML(n, d){
+  return `<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
+}
+
+/* ===== Exact vs Approx helpers ===== */
+const gcd = (a,b)=> b ? gcd(b, a%b) : Math.abs(a);
+
+function intRat(x, den=1){
+  // transforme x (nombre ou chaîne "26,7") en rationnel entier / entier
+  const s = String(x).replace(',', '.').trim();
+  if (/^[-+]?\d+$/.test(s)) return { n: parseInt(s,10), d: den };
+  const k = (s.split('.')[1]||'').length;
+  return { n: Math.round(parseFloat(s)*10**k), d: den*10**k };
+}
+function reduceRat(n,d){
+  const g = gcd(n,d)||1; return { n:n/g, d:d/g };
+}
+function minTerminatingDecimals(n,d){
+  ({n,d} = reduceRat(n,d));
+  let a=0,b=0;
+  while(d%2===0){ d/=2; a++; }
+  while(d%5===0){ d/=5; b++; }
+  return d===1 ? Math.max(a,b) : Infinity; // ∞ → décimal non-terminant
+}
+function eqOrApproxSymbol(n,d,digits){
+  // "=" si le décimal exact se termine en ≤ digits décimales, sinon "≈"
+  return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈';
+}
+function eqOrApproxPercentSymbol(n,d,digits){
+  // pour n/d * 100 affiché avec "digits" décimales
+  return eqOrApproxSymbol(n*100, d, digits);
+}
+
+
+// N° de question avec espace garanti à droite.
+// Exemples : Q(1) -> "1)" ; Q('1a') -> "1a)" ; Q(1,'a') -> "1a)"
+function Q(n, sub){
+  let s;
+  if (typeof n === 'number') {
+    s = String(n) + (sub ? String(sub) : '');
+  } else {
+    s = String(n || '');
+  }
+  s = s.trim().replace(/\)$/, ''); // on enlève un éventuel ')' final déjà présent
+  return `<span class="qno">${s})</span>`;
+}
+
+
+const EMX = s => `<span class="mx"><em>${s}</em></span>`;   // italique avec marge
+
+// décimal FR sans zéros inutiles
+// Remplace l'ancien tidy(...) qui faisait s = s.replace(/0+$/,'') (trop agressif)
+function tidyDecFR(v, digits=3){
+  // garde 30 → "30"; ne supprime des zéros que s'il y a une virgule
+  let s = fmtDecFR(v, digits);
+  if (s.includes(',')) {
+    s = s.replace(/0+$/,'').replace(/[,]$/,'');
+  }
+  return s;
+}
+
+// Affiche un entier sans décimales, sinon décimal FR propre
+function fmtIntOrDec(v, digits=3){
+  return Number.isInteger(v) ? String(v) : tidyDecFR(v, digits);
+}
+
+// === Rendu : une ligne par question, INPUT à DROITE ===
+function renderRowsInputRight(host, consigneText, blocks){
+  const root = innerHost(host); root.innerHTML = '';
+
+  // Bandeau consigne (écran)
+  const hint = document.createElement('div');
+  hint.className = 'hint consigne';
+  hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  // Version PDF (sans inputs)
+  const off = document.createElement('div');
+  off.className = 'equ-offscreen';
+  off.innerHTML =
+    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+    + blocks.map(b => '<div class="equation">'+(b.labelHTML||'')+'</div>').join('');
+  root.appendChild(off);
+
+  // Une rangée par question (input à droite)
+  blocks.forEach(b => {
+    const row = document.createElement('div'); row.className = 'row right';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
+    lab.innerHTML = b.labelHTML || '';
+    row.appendChild(lab);
+
+    const incol = document.createElement('div'); incol.className = 'input-line';
+    if (b.rightHTML !== undefined) {
+      incol.innerHTML = b.rightHTML;         // contenu personnalisé à droite
+    } else if (b.id) {
+      incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+    } // sinon colonne vide
+    row.appendChild(incol);
+
+    root.appendChild(row);
+  });
+
+  // Zone résultat unique
+  root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+}
+
+
+// Convertit x (nombre ou "26,7") avec dénominateur den en rationnel entier/entier
+function intRat(x, den=1){
+  const s = String(x).replace(',', '.').trim();
+  if (/^[-+]?\d+$/.test(s)) return { n: parseInt(s,10), d: den };
+  const k = (s.split('.')[1]||'').length;
+  return { n: Math.round(parseFloat(s)*10**k), d: den*10**k };
+}
+function reduceRat(n,d){ const g=gcd(n,d)||1; return {n:n/g, d:d/g}; }
+function minTerminatingDecimals(n,d){
+  ({n,d}=reduceRat(n,d)); let a=0,b=0;
+  while(d%2===0){d/=2;a++;} while(d%5===0){d/=5;b++; }
+  return d===1 ? Math.max(a,b) : Infinity; // ∞ : non terminant
+}
+// "=" si la valeur peut s’écrire exactement avec ≤ digits décimales, sinon "≈"
+function eqOrApproxSymbol(n,d,digits){ return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈'; }
+function eqOrApproxPercentSymbol(n,d,digits){ return eqOrApproxSymbol(n*100, d, digits); }
+
+
+
+/* Chaîne sans “×100” :
+   digitsPct = décimales du % (0 → au % près, 1 → 0,1 %, 2 → 0,01 %, etc.)
+   le décimal sera affiché avec digitsPct+2 décimales. */
+function chainFracDecPct(numDisplay, denDisplay, digitsPct){
+  const decDigits = digitsPct + 2;
+  const numVal = parseFloat(String(numDisplay).replace(',', '.'));
+  const denVal = parseFloat(String(denDisplay).replace(',', '.'));
+  const {n,d} = intRat(numDisplay, denVal);  // pour décider “=”/“≈”
+  const sDec = eqOrApproxSymbol(n, d, decDigits);
+  const sPct = eqOrApproxPercentSymbol(n, d, digitsPct);
+  const frac = fracHTML(String(numDisplay).replace('.',','), String(denDisplay));
+  const dec  = fmtDecFR(numVal/denVal, decDigits);
+  const pct  = fmtDecFR(100*numVal/denVal, digitsPct)+' %';
+  return `${frac} ${sDec} ${dec} ${sPct} ${pct}`;
+}
+
+/* ===== TICKS : ajout & gestion ===== */
+
+/* Ajoute un span.tick juste après chaque input texte visible dans #host */
+function addTicks(host){
+  $$('#host input[type=text]').forEach(inp=>{
+    // ignorer inputs "offscreen" utilisés pour le PDF
+    if(inp.closest('.equ-offscreen')) return;
+    // si pas encore de tick juste après, on l'ajoute
+    const next = inp.nextElementSibling;
+    if(!next || !next.classList || !next.classList.contains('tick')){
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+    }
+  });
+}
+
+/* Met à jour le tick d’un champ : true -> V ; false -> X ; null -> rien (champ vide) */
+function setTickForInput(inp, state){
+  const tick = inp.nextElementSibling && inp.nextElementSibling.classList.contains('tick')
+    ? inp.nextElementSibling
+    : null;
+  if(!tick) return;
+  if(state===null){ tick.textContent=''; tick.classList.remove('ok','ko'); return; }
+  if(state===true){ tick.textContent='✔'; tick.classList.add('ok'); tick.classList.remove('ko'); }
+  else            { tick.textContent='✘'; tick.classList.add('ko'); tick.classList.remove('ok'); }
+}
+
+/* Utilitaires parsing déjà existants : parseNumberFR, parsePercent, sameFloat, stripSignUnicode, fmtDecFR ... */
+
+/* ===== Validation par champ (retourne true/false/null) =====
+   null -> champ vide (ne pas pénaliser, ne pas afficher de symbole)
+*/
+function validateOneInput(inp, st, exId){
+  const valRaw = (inp.value||'').trim();
+  if(valRaw==='') return null;
+
+  function asInt(s){ s = stripSignUnicode(String(s||'').trim()); const n=parseInt(s,10); return Number.isInteger(n)?n:NaN; }
+  const id = inp.id||'';
+  const valPct = parsePercent(valRaw);
+  const valNum = parseNumberFR(valRaw);
+
+  switch(exId){
+    /* ===== Ex.1 : .ans (data-kind dec/pct ; data-i p0.. / q0..) ===== */
+    case 'pct_tableaux':{
+      if(!inp.classList.contains('ans')) return false;
+      const kind = inp.dataset.kind;
+      const ident = inp.dataset.i||'';
+      let expected;
+      if(ident.startsWith('p')){ expected = (JSON.parse($("#host").dataset.state).P)[+ident.slice(1)].sol; }
+      else{                      expected = (JSON.parse($("#host").dataset.state).Q)[+ident.slice(1)].sol; }
+      if(kind==='dec'){ const v=parseNumberFR(valRaw); return isFinite(v)&&sameFloat(v, expected, 1e-3); }
+      else{             const v=parsePercent(valRaw);  return isFinite(v)&&sameFloat(v, expected, 1e-3); }
+    }
+
+    /* ===== Ex.2 : q1 (%), q2 (%) ===== */
+    case 'frac_to_pct':{
+      const A = st.A, B = st.B;
+      if(id==='q1'){ return Number.isFinite(valPct) && sameFloat(valPct, A.pct, 1e-3); }
+      if(id==='q2'){ return Number.isFinite(valPct) && sameFloat(valPct, B.pct, 1e-3); }
+      return false;
+    }
+
+    /* ===== Ex.3 : p1 (proportion have/N), p2 (entier usbCount) ===== */
+    case 'sondage':{
+      if(id==='p1'){
+        // accepte fraction / décimal / %
+        let v=NaN; const m=valRaw.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(valRaw); v=Number.isFinite(d)?d:(Number.isFinite(valPct)?valPct/100:NaN); }
+        return Number.isFinite(v) && sameFloat(v, st.have/st.N, 1e-3);
+      }
+      if(id==='p2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.usbCount; }
+      return false;
+    }
+
+    /* ===== Ex.4 : r1 (p = nA1/nE1 ; tolérance 10^-3), r2 (nA2), r3 (nE3) ===== */
+    case 'souspop':{
+      if(id==='r1'){
+        let v=NaN; const m=valRaw.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(valRaw); v=Number.isFinite(d)?d:(Number.isFinite(valPct)?valPct/100:NaN); }
+        const tgt = st.nA1/st.nE1;
+        const okExact = Number.isFinite(v) && sameFloat(v, tgt, 1e-6);
+        const okRounded = Number.isFinite(v) && (Math.round(v*1000)===Math.round(tgt*1000));
+        return okExact || okRounded;
+      }
+      if(id==='r2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nA2; }
+      if(id==='r3'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nE3; }
+      return false;
+    }
+
+    /* ===== Ex.5 : m1 (% à 0,01 %), m2 (entier arrondi q2) ===== */
+    case 'masses':{
+      if(id==='m1'){ const exp=100*st.c1/st.M; return Number.isFinite(valPct) && (Math.round(valPct*100)===Math.round(exp*100)); }
+      if(id==='m2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===Math.round(st.q2); }
+      return false;
+    }
+
+    /* ===== Ex.6 : .c-ans (table), q2a/b/c (entiers), q3/q4 (% au % près) ===== */
+    case 'pme':{
+      if(inp.classList.contains('c-ans')){
+        const k=inp.dataset.k, exp = {CT:st.CT, TH:st.TH, TF:st.TF, TT:st.TT, TOT_F:st.TOT_F}[k];
+        const n=asInt(valRaw); return Number.isInteger(n) && n===exp;
+      }
+      if(id==='q2a'){ const n=asInt(valRaw); const exp=(st.gAsk==='H'?st.TOT_H:st.TOT_F); return Number.isInteger(n)&&n===exp; }
+      if(id==='q2b'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CT; }
+      if(id==='q2c'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CH; }
+      if(id==='q3a'){ const p=valPct; const exp=Math.round(100*(st.gAsk==='H'?st.TOT_H:st.TOT_F)/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q3b'){ const p=valPct; const exp=Math.round(100*st.CT/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4a'){ const p=valPct; const exp=Math.round(100*st.CH/st.TOT_H); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4b'){ const p=valPct; const exp=Math.round(100*st.CF/st.TOT_F); return Number.isFinite(p)&&Math.round(p)===exp; }
+      return false;
+    }
+
+    /* ===== Ex.7 : b1a (4 déc), b1b (0,01%), b2a (4 déc), b2b (0,01%), b3 (texte), b4a (entier), b4b (% au % près) ===== */
+    case 'bilan':{
+      function sameDec4(a,b){return Math.round(a*1e4)===Math.round(b*1e4);}
+      function samePct2(a,b){return Math.round(a*100)===Math.round(b*100);}
+      if(id==='b1a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G/st.N); }
+      if(id==='b1b'){ const p=valPct; return Number.isFinite(p) && samePct2(p, 100*st.G/st.N); }
+      if(id==='b2a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G17/st.G); }
+      if(id==='b2b'){ const p=valPct; return Number.isFinite(p) && samePct2(p, 100*st.G17/st.G); }
+      if(id==='b3'){
+        const a=valRaw.toLowerCase().replace(/\s+/g,' ').trim();
+        return a.includes(st.group.split(' ')[0].toLowerCase()) && a.includes('fille');
+      }
+      if(id==='b4a'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.n18; }
+      if(id==='b4b'){
+        const exp = 100 - Math.round(100*st.N17/st.N) - st.U18; // attendu avant arrondi final
+        const p=valPct; return Number.isFinite(p) && Math.round(p)===Math.round(exp);
+      }
+      return false;
+
+      function parsePropFlexible(s){
+        let v=NaN; const m=s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
+        else { const d=parseNumberFR(s); v=Number.isFinite(d)?d:(Number.isFinite(parsePercent(s))?parsePercent(s)/100:NaN); }
+        return v;
+      }
+    }
+
+    default:
+      return false;
+  }
+}
+
+/* Valide tous les champs remplis du host (sans toucher au score) */
+function progressiveValidate(host){
+  const exId = host.dataset.active;
+  const st = JSON.parse(host.dataset.state||'{}');
+  let blanks=0;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    const state = validateOneInput(inp, st, exId);
+    setTickForInput(inp, state);
+    if(state===null) blanks++;
+  });
+  return blanks; // nb de champs vides
+}
+
+/* Tout est-il rempli ? */
+function allInputsFilled(host){
+  let ok=true;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if((inp.value||'').trim()==='') ok=false;
+  });
+  return ok;
+}
+/* === après buildOne(), ajoute les ticks et une première validation à blanc === */
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  $('#res',host).textContent='';
+
+  // NEW: ticks et validation partielle
+  addTicks(host);
+  progressiveValidate(host); // n’affiche rien tant que les champs sont vides
+}
+
+/* === Validation progressive à la sortie de champ === */
+document.addEventListener('blur', function(ev){
+  if(ev.target && ev.target.matches('#host input[type=text]')){
+    const host=$('#host');
+    addTicks(host);                      // au cas où nouveau champ inséré
+    // Valide uniquement ce champ
+    const exId = host.dataset.active;
+    const st = JSON.parse(host.dataset.state||'{}');
+    const state = validateOneInput(ev.target, st, exId);
+    setTickForInput(ev.target, state);
+  }
+}, true);
+
+/* === Remplace la fonction check() ===
+   - Valide tout ce qui est rempli (ticks V/X).
+   - Si TOUT est rempli -> appelle def.correct(...) et met à jour le score.
+   - Sinon -> n’augmente pas le score ; message d’info. */
+function check(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  addTicks(host);
+  const blanks = progressiveValidate(host);
+
+  if(!allInputsFilled(host)){
+    $('#res',host).innerHTML = 'ℹ️ Certaines réponses sont vides : les cases remplies ont été vérifiées (✔ / ✘).';
+    $('#res',host).className = 'res';
+    return; // pas de score tant que tout n’est pas rempli
+  }
+
+  // Tout est rempli → correction officielle + score
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+
+/* ===== EXERCICES ===== */
+
+/* 1 — Tableaux % ↔ décimaux (5 colonnes) */
+const ex1={
+  id:'pct_tableaux', title:'Compléter les tableaux (pourcentages ↔ décimaux)',
+  gen(){
+    const cols = 5;
+    const percInts = [3,7,12,22,37,41,55,87,92];
+    const percDecs = [0.5, 1.2, 2.5, 12.5, 7.5, 0.2];
+    const decs = [0.43,0.52,0.175,0.2,0.006,0.34,0.875,0.025];
+    const P = [];
+    while(P.length<cols){
+      const useDecPct = Math.random()<0.4;
+      if(useDecPct){
+        const v = choice(percDecs);
+        if(!P.some(x=>x.type==='pct' && x.v===v)){
+          P.push({type:'pct', v:v, label:(String(v).replace('.',','))+' %', want:'dec', sol: v/100});
+        }
+      } else {
+        const v = choice(percInts);
+        if(!P.some(x=>x.type==='pct' && x.v===v)){
+          P.push({type:'pct', v:v, label:v+' %', want:'dec', sol: v/100});
+        }
+      }
+    }
+    const Q = [];
+    while(Q.length<cols){
+      const v = choice(decs);
+      if(!Q.some(x=>x.v===v)){
+        Q.push({type:'dec', v:v, label:String(v).replace('.',','), want:'pct', sol: v*100});
+      }
+    }
+    return {P,Q};
+  },
+  text(st){
+    function buildRow(arr, showWhat){
+      return arr.map((cell,i)=>{
+        if(showWhat==='given') return '<td>'+cell.label+'</td>';
+        return '<td><input class="ans" data-kind="'+cell.want+'" data-i="'+showWhat+String(i)+'" type="text" placeholder="'+(cell.want==='dec'?'0,41':'41 %')+'"></td>';
+      }).join('');
+    }
+    const tbl1 = '<table class="tbl"><tbody><tr>'+buildRow(st.P,'given')+'</tr><tr>'+buildRow(st.P,'p')+'</tr></tbody></table>';
+    const tbl2 = '<table class="tbl" style="margin-top:8px"><tbody><tr>'+buildRow(st.Q,'q')+'</tr><tr>'+buildRow(st.Q,'given')+'</tr></tbody></table>';
+    return tbl1 + tbl2;
+  },
+  render(host, st){ renderRow(host, "Compléter les tableaux, comme dans l’exemple :", this.text(st), false); $("#host").dataset.state = JSON.stringify(st); },
+  correct(host, st){
+    const inputs = $$(".ans", host);
+    let ok=true;
+    inputs.forEach(inp=>{
+      const kind = inp.dataset.kind;
+      const id = inp.dataset.i;
+      let expected;
+      if(id.startsWith('p')){ const i=+id.slice(1); expected = st.P[i].sol; }
+      else { const i=+id.slice(1); expected = st.Q[i].sol; }
+      const raw = (inp.value||'').trim();
+      let good=false;
+      if(kind==='dec'){
+        const v=parseNumberFR(raw);
+        good = isFinite(v) && sameFloat(v, expected, 1e-3);
+      }else{
+        const v=parsePercent(raw);
+        good = isFinite(v) && sameFloat(v, expected, 1e-3);
+      }
+      if(!good) ok=false;
+    });
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Certaines cases sont incorrectes.";
+    $("#res",host).className= ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+  // (optionnel) on remplit aussi les inputs à l’écran
+  $$(".ans", host).forEach(inp=>{
+    const kind = inp.dataset.kind;
+    const id = inp.dataset.i;
+    let val;
+    if(id.startsWith('p')){ const i=+id.slice(1); val = st.P[i].sol; }
+    else { const i=+id.slice(1); val = st.Q[i].sol; }
+    inp.value = (kind==='dec' ? fmtDecFR(val,3) : fmtDecFR(val,3)+' %');
+  });
+
+  // petit formateur “propre” (supprime zéros inutiles après la virgule)
+  const tidy = (v,d=3)=>{ let s=fmtDecFR(v,d); s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; };
+
+  // tableau 1 (haut : % donnés ; bas : décimaux)
+  const t1_top = st.P.map(c=>`<td>${c.label}</td>`).join('');
+  const t1_bot = st.P.map(c=>`<td>${tidy(c.sol,3)}</td>`).join('');
+  const tbl1 =
+    `<table class="tbl"><tbody><tr>${t1_top}</tr><tr>${t1_bot}</tr></tbody></table>`;
+
+  // tableau 2 (haut : % à afficher ; bas : décimaux donnés)
+  const t2_top = st.Q.map(c=>`<td>${tidy(c.sol*100,3)} %</td>`).join('');
+  const t2_bot = st.Q.map(c=>`<td>${c.label}</td>`).join('');
+  const tbl2 =
+    `<table class="tbl" style="margin-top:8px"><tbody><tr>${t2_top}</tr><tr>${t2_bot}</tr></tbody></table>`;
+
+  // rendu solution (pour l’écran et le PDF)
+  $("#res",host).innerHTML =
+    `<div style="margin-bottom:6px"><strong>Tableaux complétés :</strong></div>${tbl1}${tbl2}`;
+  $("#res",host).className = "res-ok";
+},
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+/* Banques de contexte */
+/* 2 — Phrases-contexte (10) pour proportion -> % */
+const CTX2=[
+  {who:'les footballeurs', where:'dans un club amateur'},
+  {who:'les lecteurs assidus', where:'dans une bibliothèque'},
+  {who:'les élèves inscrits à l’atelier théâtre', where:'dans un lycée'},
+  {who:'les voyageurs abonnés', where:'dans un bus'},
+  {who:'les supporters munis d’un drapeau', where:'au stade'},
+  {who:'les licenciés en judo', where:'au club omnisports'},
+  {who:'les abonnés internet fibre', where:'dans un immeuble'},
+  {who:'les joueurs d’échecs', where:'dans une salle des fêtes'},
+  {who:'les cyclistes casqués', where:'sur une randonnée'},
+  {who:'les votants', where:'dans une assemblée'}
+];
+
+/* 3 — Banques : entité + attributs */
+const CTX3={
+  pop:[
+    'élèves','apprenants','adhérents','participants','stagiaires',
+    'collégiens','lycéens','étudiants','internautes','habitants'
+  ],
+  own:[
+    'une adresse électronique','un vélo','une carte de bibliothèque',
+    'une calculatrice scientifique','un smartphone','une tablette',
+    'un casque audio','un abonnement aux transports','un ordinateur portable','une gourde réutilisable'
+  ],
+  use:[
+    'une clé USB','une messagerie instantanée','un ENT','une application de révision',
+    'un casque audio','un service de cloud','un agenda numérique','un lecteur MP3','une liseuse','un traitement de texte'
+  ]
+};
+
+/* 5 — Banques : produits & composés */
+const CTX5=[
+  {thing:'maquereaux en boîte', unit:'g', c1:'protéines', c2:'lipides'},
+  {thing:'mueslis', unit:'g', c1:'fibres', c2:'sucre'},
+  {thing:'jus d’orange', unit:'mL', c1:'vitamine C (en g)', c2:'sucre'},
+  {thing:'chocolats noirs', unit:'g', c1:'cacao (en g)', c2:'matières grasses'},
+  {thing:'boissons énergisantes', unit:'mL', c1:'caféine (en g)', c2:'sucre'},
+  {thing:'alliages métalliques', unit:'g', c1:'cuivre (en g)', c2:'zinc'},
+  {thing:'yaourts', unit:'g', c1:'protéines', c2:'lipides'},
+  {thing:'fromages', unit:'g', c1:'protéines', c2:'matières grasses'},
+  {thing:'mélanges de fruits secs', unit:'g', c1:'amandes (en g)', c2:'noisettes'},
+  {thing:'boissons au soja', unit:'mL', c1:'protéines', c2:'sucre'}
+];
+
+/* 6 — Banques : métiers (10 paires) */
+const CTX6 = [
+  { r1:'Cadres',        r2:'Techniciens',             where:'dans une entreprise' },
+  { r1:'Enseignants',   r2:"Assistants d’éducation",  where:'dans un lycée' },
+  { r1:'Médecins',      r2:'Infirmiers',              where:'dans un hôpital' },
+  { r1:'Chercheurs',    r2:'Ingénieurs',              where:'dans un centre de recherche' },
+  { r1:'Bénévoles',     r2:'Organisateurs',           where:'dans une association' },
+  { r1:'Développeurs',  r2:'Designers',               where:'dans une agence web' },
+  { r1:'Pilotes',       r2:'Mécaniciens',             where:'dans un aéroport' },
+  { r1:'Vendeurs',      r2:'Magasiniers',             where:'dans un magasin' },
+  { r1:'Serveurs',      r2:'Cuisiniers',              where:'dans un restaurant' },
+  { r1:'Commerciaux',   r2:'Techniciens',             where:'dans une entreprise' }
+];
+
+
+/* 7 — Banques : groupes (10) */
+const CTX7=[
+  'classe','groupe d’atelier','équipe','chorale','groupe de stage',
+  'club de lecture','groupe de randonneurs','promo','groupe d’élèves','groupe de bénévoles'
+];
+
+/* 2 — Fraction d’une population → pourcentage (2 questions) */
+const ex2={
+  id:'frac_to_pct', title:'Proportion → pourcentage (2 questions)',
+  gen(){
+    function makeCase(){
+      const den = choice([8,10,12,16,20,25,40,50,80,100]);
+      const num = rnd(1, den-1);
+      return {num, den, pct: 100*num/den};
+    }
+    const ctxA = choice(CTX2), ctxB = choice(CTX2);
+    return {A:makeCase(), B:makeCase(), ctxA, ctxB};
+  },
+  text(st){
+    return '<div>1) '+st.ctxA.who+' représentent les '+st.A.num+'/'+st.A.den+' '+st.ctxA.where+'. Donner le pourcentage correspondant.</div>'+
+           '<div style="margin-top:6px">2) '+st.ctxB.who+' représentent les '+st.B.num+'/'+st.B.den+' '+st.ctxB.where+'. Donner le pourcentage correspondant.</div>';
+  },
+  render(host, st){
+  renderRowsUnderQuestions(host,
+    'Convertir une proportion en pourcentage (écrire éventuellement avec une virgule) :',
+    [
+      { labelHTML: '1) '+st.ctxA.who+' représentent les '+st.A.num+'/'+st.A.den+' '+st.ctxA.where+'. Donner le pourcentage correspondant.',
+        id:'q1', placeholder:'ex. 68,75 %' },
+      { labelHTML: '2) '+st.ctxB.who+' représentent les '+st.B.num+'/'+st.B.den+' '+st.ctxB.where+'. Donner le pourcentage correspondant.',
+        id:'q2', placeholder:'ex. 85 %' }
+    ]
+  );
+},
+
+  correct(host, st){
+    const v1 = parsePercent($('#q1',host).value);
+    const v2 = parsePercent($('#q2',host).value);
+    const ok = isFinite(v1)&&sameFloat(v1, st.A.pct, 1e-3) && isFinite(v2)&&sameFloat(v2, st.B.pct, 1e-3);
+    $('#res',host).innerHTML = ok? '✔' : '✘ Attendu : '+fmtDecFR(st.A.pct,2)+' % et '+fmtDecFR(st.B.pct,2)+' %';
+    $('#res',host).className= ok ? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+  $('#q1',host).value = fmtDecFR(st.A.pct,2)+' %';
+  $('#q2',host).value = fmtDecFR(st.B.pct,2)+' %';
+
+  const L1 = `${Q(1)} ${chainFracDecPct(st.A.num, st.A.den, 2)}`;
+  const L2 = `${Q(2)} ${chainFracDecPct(st.B.num, st.B.den, 2)}`;
+
+  $('#res',host).innerHTML = `${L1}<br>${L2}`;
+  $('#res',host).className='res-ok';
+}
+,
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+/* 3 — Sondage (proportion + effectif) */
+const ex3={
+  id:'sondage', title:'Sondage : proportion & effectif',
+  gen(){
+  const N   = choice([60,70,80,90,100,120]);
+  const have = rnd(Math.floor(N*0.5), Math.floor(N*0.95));
+
+  // Choisir p (à une décimale) pour que n = N*p/100 soit entier.
+  // p = K/10 ; condition: N*K/1000 ∈ ℤ  ⟺  K multiple de (1000 / gcd(N,1000))
+  const step = 1000 / gcd(N, 1000);          // pas en "dixièmes" (ex.: 25 → p multiple de 2,5 %)
+  const kMin = Math.ceil(100 / step) * step; // 10,0 %
+  const kMax = Math.floor(600 / step) * step;// 60,0 %
+  const possibles = [];
+  for (let k=kMin; k<=kMax; k+=step) possibles.push(k);
+  const K = choice(possibles);                // un multiple "propre" dans [10,0% ; 60,0%]
+
+  const usbPct   = K / 10;                    // pourcentage à une décimale (ex.: 22,5)
+  const usbCount = (N * K) / 1000;            // entier garanti
+
+  const who = choice(CTX3.pop);
+  const own = choice(CTX3.own);
+  const use = choice(CTX3.use);
+  return { N, have, usbPct, usbCount, who, own, use };
+}
+,
+  text(st){
+    return '<div>Un sondage portant sur '+st.N+' '+st.who+' indique que '+st.have+' d’entre eux possèdent '+st.own+' et que '+fmtDecFR(st.usbPct,1)+' % d’entre eux utilisent régulièrement '+st.use+'.</div>'+
+           '<ol style="margin-top:6px"><li>Quelle est la proportion des '+st.who+' possédant '+st.own+' ?</li><li>Combien de '+st.who+' utilisent régulièrement '+st.use+' ?</li></ol>';
+  },
+  render(host, st){
+  renderRowsUnderQuestions(host,
+    'Répondre en proportion (ex. 31/40 ou 0,775 ou 77,5%) puis en entier :',
+    [
+      { labelHTML: 'Un sondage portant sur '+st.N+' '+st.who+' indique que '+st.have+' possèdent '+st.own
+        +' et que '+fmtDecFR(st.usbPct,1)+' % utilisent régulièrement '+st.use+'.<br>'
+        +'1) Quelle est la proportion des '+st.who+' possédant '+st.own+' ?',
+        id:'p1', placeholder:'ex. 31/40 ou 0,775 ou 77,5 %' },
+      { labelHTML: '2) Combien de '+st.who+' utilisent régulièrement '+st.use+' ?',
+        id:'p2', placeholder:'entier' }
+    ]
+  );
+}
+,
+  correct(host, st){
+    const r1 = ($('#p1',host).value||'').trim();
+    let val1 = NaN;
+    const m = r1.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+    if(m){ val1 = parseInt(m[1],10)/parseInt(m[2],10); }
+    else {
+      const v = parseNumberFR(r1);
+      if(isFinite(v)) val1 = v; else {
+        const p = parsePercent(r1); if(isFinite(p)) val1 = p/100;
+      }
+    }
+    const ok1 = isFinite(val1) && sameFloat(val1, st.have/st.N, 1e-3);
+    const n2 = parseInt(stripSignUnicode($('#p2',host).value||'').trim(),10);
+    const ok2 = Number.isInteger(n2) && n2===st.usbCount;
+    const ok = ok1 && ok2;
+    $('#res',host).innerHTML = ok? '✔' : '✘ Attendu : '+fmtDecFR(st.have/st.N,3)+' (ou '+st.have+'/'+st.N+' ou '+fmtDecFR(100*st.have/st.N,1)+' %) et '+st.usbCount;
+    $('#res',host).className= ok? 'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+  $('#p1',host).value = fmtDecFR(st.have/st.N,3);
+  $('#p2',host).value = String(st.usbCount);
+
+  // Q1 : % à 0,1 % → décimal à 0,001
+  const line1 = `<em>p</em> = ${chainFracDecPct(st.have, st.N, 1)}`;
+
+  // Q2 : on calcule un effectif (la fraction p/100 × N est OK ici)
+  const fracPct = fracHTML(fmtDecFR(st.usbPct,1), 100);
+  const line2 = `<em>n</em> = ${fracPct} × ${st.N} = ${st.usbCount}`;
+  const line3 = `Il y a ${st.usbCount} ${st.who} qui utilisent régulièrement ${st.use}.`;
+
+  $('#res',host).innerHTML = `${Q(1)} ${line1}<br>${Q(2)} ${line2}<br>&nbsp;&nbsp;${line3}`;
+  $('#res',host).className = 'res-ok';
+},
+
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+/* 4 — Proportion d’une sous-population (p = nA / nE) avec rationnels pour avoir entiers */
+const ex4={
+  id:'souspop', title:'Proportion d’une sous-population (p = n_A / n_E)',
+  gen(){
+    // Q1 : p
+    const nE1 = choice([240, 360, 480, 600, 800, 1200, 2400]);
+    const nA1 = rnd(Math.floor(nE1*0.2), Math.floor(nE1*0.8));
+
+    // Q2 : nA entier -> choisir p2 = num/den, et nE2 multiple de den
+    const fracs = [{n:1,d:10},{n:1,d:8},{n:1,d:5},{n:1,d:4},{n:2,d:5},{n:3,d:10},{n:3,d:8},{n:3,d:5},{n:1,d:2},{n:3,d:4}];
+    const f2 = choice(fracs);
+    const k2 = choice([18,20,27,30,36,40,45,54,60]);
+    const nE2 = k2 * f2.d;
+    const p2 = f2.n / f2.d;
+    const nA2 = k2 * f2.n;
+
+    // Q3 : nE entier -> choisir p3 = num/den et nA3 multiple de num
+    const f3 = choice(fracs);
+    const k3 = choice([20,24,30,32,36,40,45,50,60,72]);
+    const nA3 = k3 * f3.n;
+    const p3 = f3.n / f3.d;
+    const nE3 = k3 * f3.d;
+
+    return { nE1, nA1, nE2, p2, nA2, nA3, p3, nE3 };
+  },
+  text(st){
+  const p2txt = fmtDecFR(st.p2,3).replace('.',',');
+  const p3txt = fmtDecFR(st.p3,3).replace('.',',');
+  return '<div>A est une partie de E, n<sub>A</sub> est l’effectif de A, n<sub>E</sub> celui de E, et p la proportion de A dans E.</div>'+
+    '<ol style="margin-top:6px">'+
+    '<li>On donne n<sub>A</sub> = '+st.nA1+' et n<sub>E</sub> = '+st.nE1+'. Calculer p.</li>'+
+    '<li>On donne p = '+p2txt+' et n<sub>E</sub> = '+st.nE2+'. Calculer n<sub>A</sub>.</li>'+
+    '<li>On donne n<sub>A</sub> = '+st.nA3+' et p = '+p3txt+'. Calculer n<sub>E</sub>.</li>'+
+    '</ol>';
+},
+
+  render(host, st){
+  const intro =
+    `<span class="eq">${EMX('A')} est une partie de ${EMX('E')}, ` +
+    `n<sub>A</sub> est l’effectif de ${EMX('A')}, ` +
+    `n<sub>E</sub> celui de ${EMX('E')} et ${EMX('p')} la proportion de ${EMX('A')} dans ${EMX('E')}.</span>`;
+
+  renderRowsUnderQuestions(host,
+    'Répondre : p en proportion (fraction / décimal / %), et n en entier :',
+    [
+      { labelHTML:intro }, // bloc d’énoncé complet (sans input)
+      { labelHTML:`${Q(1)}On donne n<sub>A</sub> = ${st.nA1} et n<sub>E</sub> = ${st.nE1}. Calculer ${EMX('p')} (arrondir à 0,001 près).`,
+   id:'r1', placeholder:'ex. 3/8 ou 0,375 ou 37,5 %' },
+      { labelHTML:`${Q(2)}On donne ${EMX('p')} = ${fmtDecFR(st.p2,3).replace('.',',')} et n<sub>E</sub> = ${st.nE2}. Calculer n<sub>A</sub>.`,
+        id:'r2', placeholder:'entier' },
+      { labelHTML:`${Q(3)}On donne n<sub>A</sub> = ${st.nA3} et ${EMX('p')} = ${fmtDecFR(st.p3,3).replace('.',',')}. Calculer n<sub>E</sub>.`,
+        id:'r3', placeholder:'entier' }
+    ]
+  );
+},
+
+
+  correct(host, st){
+    const s1 = ($('#r1',host).value||'').trim();
+    let v1 = NaN; const m = s1.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+    if(m){ v1=parseInt(m[1],10)/parseInt(m[2],10); } else {
+      const d=parseNumberFR(s1); if(isFinite(d)) v1=d; else { const p=parsePercent(s1); if(isFinite(p)) v1=p/100; }
+    }
+    const target = st.nA1 / st.nE1;
+const okExact   = isFinite(v1) && sameFloat(v1, target, 1e-6);              // ex. 768/2400
+const okRounded = isFinite(v1) && (Math.round(v1*1000) === Math.round(target*1000)); // p à 10^-3
+const ok1 = okExact || okRounded;
+    const r2 = parseInt(stripSignUnicode($('#r2',host).value||'').trim(),10);
+    const ok2 = Number.isInteger(r2) && r2===st.nA2;
+    const r3 = parseInt(stripSignUnicode($('#r3',host).value||'').trim(),10);
+    const ok3 = Number.isInteger(r3) && r3===st.nE3;
+    const ok = ok1 && ok2 && ok3;
+$('#res',host).innerHTML = ok? '✔' :
+'✘ Attendu : p = '+fmtDecFR(st.nA1/st.nE1,3)+
+' (ou n<sub>A</sub>/n<sub>E</sub> = '+st.nA1+'/'+st.nE1+' ou '+fmtDecFR(100*st.nA1/st.nE1,2)+' %)'
++' ; n<sub>A</sub> = '+st.nA2+' ; n<sub>E</sub> = '+st.nE3+'.';    $('#res',host).className= ok? 'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+  $('#r1',host).value = `${st.nA1}/${st.nE1} (≈ ${fmtDecFR(st.nA1/st.nE1,3)} = ${fmtDecFR(100*st.nA1/st.nE1,1)} %)`;
+  $('#r2',host).value = String(st.nA2);
+  $('#r3',host).value = String(st.nE3);
+
+  const Q = n => `<span class="qno" style="display:inline-block;margin-right:.45em">${n})</span>`;
+  const fracHTML = (n,d)=>`<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
+  const EMX = s => `<span class="mx"><em>${s}</em></span>`;
+
+  const fmtIntOrDec = v => Number.isInteger(v) ? String(v) : fmtDecFR(v,3).replace(/0+$/,'').replace(/[,]$/,'');
+
+  // symbolique
+  const symFrac = fracHTML('n<sub>A</sub>', 'n<sub>E</sub>');
+
+  // Q1 : symbole adapté vers décimal (3 déc.) et vers % (2 déc.)
+  const r1 = intRat(st.nA1, st.nE1);
+  const sDec = eqOrApproxSymbol(r1.n, r1.d, 3);
+  const sPct = eqOrApproxPercentSymbol(r1.n, r1.d, 1);
+
+  const line1 = `${Q(1)}<span class="eq">${EMX('p')} = ${symFrac} = ${fracHTML(st.nA1, st.nE1)} ${sDec} ${fmtDecFR(st.nA1/st.nE1,3)} ${sPct} ${fmtDecFR(100*st.nA1/st.nE1,1)} %</span>`;
+
+  // Q2 (exact avec notre générateur)
+  const line2 = `${Q(2)}<span class="eq">${EMX('p')} = ${symFrac}</span>`+
+                ` <span class="ainsi">ainsi</span> `+
+                `<span class="eq">n<sub>A</sub> = n<sub>E</sub> × ${EMX('p')} = ${st.nE2} × ${fmtDecFR(st.p2,3)} = ${fmtIntOrDec(st.nA2)}</span>`;
+
+  // Q3 : inclure nA/p en pile, et résultat exact
+  const line3 = `${Q(3)}<span class="eq">${EMX('p')} = ${symFrac}</span>`+
+                ` <span class="ainsi">ainsi</span> `+
+                `<span class="eq">n<sub>E</sub> = ${fracHTML('n<sub>A</sub>', EMX('p'))} = ${fracHTML(st.nA3, fmtDecFR(st.p3,3))} = ${fmtIntOrDec(st.nE3)}</span>`;
+
+  $('#res',host).innerHTML = `<div class="sol"><p>${line1}</p><p>${line2}</p><p>${line3}</p></div>`;
+  $('#res',host).className = 'res-ok';
+},
+
+
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+/* 5 — Proportion d’une sous-population (masses & %) avec contextes */
+/* 5 — Proportion d’une sous-population (masses & %) — AVEC arrondis demandés */
+const ex5 = {
+  id:'masses',
+  title:'Proportion d’une sous-population (conservation / % / masse)',
+
+  gen(){
+    const ctx = choice(CTX5);
+    const M   = choice([140,150,160,170,175,180,200,250]);
+    const c1  = rnd(Math.max(5, Math.round(M*0.05)), Math.max(10, Math.round(M*0.35)));
+    const p2  = choice([4.5,6.2,7.2,8.4,9.5,10,12.5,15,20]);
+    const q2  = M * p2 / 100;
+    return {ctx, M, c1, p2, q2};
+  },
+
+  /* On rend l’énoncé via des blocs, pour être visible à l’écran ET dans le PDF */
+  render(host, st){
+    const intro =
+      `On considère des ${st.ctx.thing} de ${st.M} ${st.ctx.unit}. `;
+
+    renderRowsUnderQuestions(host,
+      'Répondre : Q1 → pourcentage <em>(arrondir à 0,01&nbsp;% près si besoin)</em> ; Q2 → quantité <em>(arrondir à l’unité)</em> :',
+      [
+        { labelHTML: intro },
+
+        { labelHTML:
+          '1) Il y a '+fmtDecFR(st.c1,1)+' '+st.ctx.unit+' de '+st.ctx.c1+
+          '. Quel est le pourcentage correspondant&nbsp;?<br><small>(arrondir à 0,01&nbsp;% près)</small>',
+          id:'m1', placeholder:'ex. 15,26 %' },
+
+        { labelHTML:
+          '2) Il y a '+fmtDecFR(st.p2,1)+' % de '+st.ctx.c2+
+          '. Quelle est la quantité (en '+st.ctx.unit+') de '+st.ctx.c2+' ?<br><small>(arrondir à l’unité)</small>',
+          id:'m2', placeholder:'entier (arrondi)' }
+      ]
+    );
+  },
+
+  /* Vérification :
+     - Q1 : on compare le pourcentage après ARRONDI aux centièmes de % (0,01 %).
+     - Q2 : on exige l’entier égal à round(q2). */
+  correct(host, st){
+    const pUser = parsePercent($('#m1',host).value);     // valeur en %
+    const qUser = parseNumberFR($('#m2',host).value);    // quantité (doit être un entier)
+
+    const pExp  = 100*st.c1/st.M;                        // % exact attendu
+
+    // OK si l'arrondi aux 0,01 % du candidat == l'arrondi aux 0,01 % de la valeur exacte
+    const ok1 = Number.isFinite(pUser)
+      && (Math.round(pUser*100) === Math.round(pExp*100));
+
+    const qExpInt = Math.round(st.q2);
+    const ok2 = Number.isFinite(qUser) && Number.isInteger(qUser) && (qUser === qExpInt);
+
+    const ok = ok1 && ok2;
+
+    $('#res',host).innerHTML = ok
+      ? '✔'
+      : '✘ Attendu : '+fmtDecFR(pExp,2)+' % (arrondi à 0,01 %) et '+qExpInt+' '+st.ctx.unit+' (arrondi à l’unité).';
+    $('#res',host).className = ok ? 'res-ok' : 'res-ko';
+
+    return {ok,total:1};
+  },
+
+  /* Solution mise en forme comme sur ta maquette */
+  solution(host, st){
+  const Q = n => `<span class="qno" style="display:inline-block;margin-right:.45em">${n})</span>`;
+  const fmtIntOrDec = (v,d=3)=> Number.isInteger(v) ? String(v)
+    : (()=>{ let s=String(Math.round(v*10**d)/10**d).replace('.',','); if(s.includes(',')) s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; })();
+
+  // Q1 : % à 0,01 % → décimal à 0,0001
+  const L1 = `${Q(1)}<span class="eq">${chainFracDecPct(fmtDecFR(st.c1,1), st.M, 2)}</span>`;
+  const S1 = `Il y a ${fmtDecFR(100*st.c1/st.M,2)} % de ${st.ctx.c1} dans les ${st.ctx.thing}.`;
+
+  // Q2 : effectif (arrondi à l’unité) — pas de “≈ …” si déjà entier
+  const qExact = st.q2, qRound = Math.round(qExact);
+  const exactTxt = `${fmtIntOrDec(qExact,3)} ${st.ctx.unit}`, roundTxt = `${qRound} ${st.ctx.unit}`;
+  const showApprox = !Number.isInteger(qExact);
+  const L2 = `${Q(2)}<span class="eq">${fracHTML(fmtDecFR(st.p2,1),100)} × ${st.M} = ${showApprox ? `${exactTxt} ≈ ${roundTxt}` : roundTxt}</span>`;
+  const S2 = `Il y a ${roundTxt} de ${st.ctx.c2} dans les ${st.ctx.thing}.`;
+
+  // remplir aussi les champs
+  $('#m1',host).value = fmtDecFR(100*st.c1/st.M,2)+' %';
+  $('#m2',host).value = String(qRound);
+
+  $('#res',host).innerHTML = `${L1}<br>${S1}<br><br>${L2}<br>${S2}`;
+  $('#res',host).className = 'res-ok';
+}
+,
+
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+
+/* 6 — Tableau à compléter + questions (contextes) */
+/* ===== 6 — Tableau à compléter & questions (répartition, input à droite, % arrondis au % près) ===== */
+const ex6 = {
+  id:'pme',
+  title:'Tableau à compléter & questions (répartition)',
+  gen(){
+    const TOT = choice([32,36,38,40,42,48,50]);
+    const ctx = choice(CTX6);
+
+    const CH = rnd(6, 14);              // r1 hommes
+    const CF = rnd(5, 14);              // r1 femmes
+
+    let TOT_H = rnd(CH+2, Math.max(CH+2, TOT - CF));
+    if (TOT_H > TOT - CF) TOT_H = TOT - CF;
+    const TOT_F = TOT - TOT_H;
+
+    const CT = CH + CF;                 // total r1
+    const TH = TOT_H - CH;              // r2 hommes
+    const TF = TOT_F - CF;              // r2 femmes
+    const TT = TH + TF;                 // total r2
+
+    const gAsk = choice(['H','F']);     // questions 2a / 3a portent sur Hommes ou Femmes
+
+    return { TOT, CH, CF, CT, TOT_H, TOT_F, TH, TF, TT, ctx, gAsk };
+  },
+
+  render(host, st){
+    const who = `${st.ctx.r1.toLowerCase()} et ${st.ctx.r2.toLowerCase()}`;
+    const tableHTML =
+      '<div>Le tableau ci-dessous indique la répartition des '+who+' '+st.ctx.where+'.</div>'+
+      '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>'+
+      '<tbody>'+
+      '<tr><td>'+st.ctx.r1+'</td><td>'+st.CH+'</td><td>'+st.CF+'</td><td><input class="c-ans" data-k="CT" type="text" placeholder="?"></td></tr>'+
+      '<tr><td>'+st.ctx.r2+'</td><td><input class="c-ans" data-k="TH" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TF" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TT" type="text" placeholder="?"></td></tr>'+
+      '<tr><td>Total</td><td>'+st.TOT_H+'</td><td><input class="c-ans" data-k="TOT_F" type="text" placeholder="?"></td><td>'+st.TOT+'</td></tr>'+
+      '</tbody></table>';
+
+    const libG    = (st.gAsk==='H') ? 'hommes' : 'femmes';
+    const LibGCap = (st.gAsk==='H') ? 'Hommes' : 'Femmes';
+    const deG     = (st.gAsk==='H') ? 'd’hommes' : 'de femmes';
+    const propG   = (st.gAsk==='H') ? 'des hommes' : 'des femmes';
+
+    renderRowsInputRight(host,
+      'Compléter le tableau puis répondre (entiers pour les effectifs ; pourcentages <strong>arrondis au % près</strong>) :',
+      [
+        { labelHTML: tableHTML, rightHTML:'' },
+
+        { labelHTML: '2a) Combien y a-t-il '+deG+' ?', id:'q2a', placeholder: LibGCap+' (entier)' },
+        { labelHTML: '2b) Combien de '+st.ctx.r1+' ?',   id:'q2b', placeholder: st.ctx.r1+' (entier)' },
+        { labelHTML: '2c) Combien de '+st.ctx.r1+' hommes ?', id:'q2c', placeholder: st.ctx.r1+' hommes (entier)' },
+
+        { labelHTML: '3a) Quelle est la proportion '+propG+' ? (en %, <em>arrondir au % près</em>)', id:'q3a', placeholder:'% '+libG },
+        { labelHTML: '3b) Quelle est la proportion des '+st.ctx.r1+' ? (en %, <em>arrondir au % près</em>)', id:'q3b', placeholder:'% '+st.ctx.r1.toLowerCase() },
+
+        { labelHTML: '4a) Parmi les hommes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4a', placeholder:'%' },
+        { labelHTML: '4b) Parmi les femmes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4b', placeholder:'%' }
+      ]
+    );
+  },
+
+  correct(host, st){
+    // Vérif du tableau
+    const expect = {CT:st.CT, TH:st.TH, TF:st.TF, TT:st.TT, TOT_F:st.TOT_F};
+    let okTable = true;
+    $$('.c-ans',host).forEach(inp=>{
+      const k = inp.dataset.k;
+      const v = parseInt(stripSignUnicode((inp.value||'').trim()),10);
+      if(!Number.isInteger(v) || v!==expect[k]) okTable=false;
+    });
+
+    // 2a : hommes OU femmes (lecture)
+    const v2a = parseInt(stripSignUnicode(($('#q2a',host).value||'').trim()),10);
+    const totG = (st.gAsk==='H') ? st.TOT_H : st.TOT_F;
+    const ok2a = Number.isInteger(v2a) && v2a===totG;
+
+    // 2b / 2c
+    const ok2b = parseInt(stripSignUnicode(($('#q2b',host).value||'').trim()),10) === st.CT;
+    const ok2c = parseInt(stripSignUnicode(($('#q2c',host).value||'').trim()),10) === st.CH;
+
+    // 3a / 3b : % arrondis au % près
+    const p3a = parsePercent($('#q3a',host).value);
+    const exp3a = Math.round(100 * ((st.gAsk==='H') ? st.TOT_H : st.TOT_F) / st.TOT);
+    const ok3a = Number.isFinite(p3a) && Math.round(p3a) === exp3a;
+
+    const p3b = parsePercent($('#q3b',host).value);
+    const exp3b = Math.round(100 * st.CT / st.TOT);
+    const ok3b = Number.isFinite(p3b) && Math.round(p3b) === exp3b;
+
+    // 4a / 4b : % “parmi”, arrondis au % près
+    const p4a = parsePercent($('#q4a',host).value);
+    const exp4a = Math.round(100 * st.CH / st.TOT_H);
+    const ok4a = Number.isFinite(p4a) && Math.round(p4a) === exp4a;
+
+    const p4b = parsePercent($('#q4b',host).value);
+    const exp4b = Math.round(100 * st.CF / st.TOT_F);
+    const ok4b = Number.isFinite(p4b) && Math.round(p4b) === exp4b;
+
+    const ok = okTable && ok2a && ok2b && ok2c && ok3a && ok3b && ok4a && ok4b;
+    $('#res',host).innerHTML = ok ? '✔' :
+      '✘ Pourcentages attendus au % près : '+exp3a+' %, '+exp3b+' %, '+exp4a+' %, '+exp4b+' %.';
+    $('#res',host).className = ok ? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+
+  solution(host, st){
+  // compléter le tableau
+  $$('.c-ans',host).forEach(inp=>{
+    const k=inp.dataset.k;
+    const value = (k==='CT'?st.CT:(k==='TH'?st.TH:(k==='TF'?st.TF:(k==='TT'?st.TT:st.TOT_F))));
+    inp.value = String(value);
+  });
+
+  // pré-remplir les réponses “lecture/somme”
+  $('#q2a',host).value = String(st.gAsk==='H'? st.TOT_H : st.TOT_F);
+  $('#q2b',host).value = String(st.CT);
+  $('#q2c',host).value = String(st.CH);
+
+  const Q = n => `<span class="qno" style="display:inline-block;margin-right:.45em">${n})</span>`;
+  const libG  = (st.gAsk==='H') ? 'hommes' : 'femmes';
+  const propG = (st.gAsk==='H') ? 'des hommes' : 'des femmes';
+  const totG  = (st.gAsk==='H') ? st.TOT_H     : st.TOT_F;
+  const r1low = st.ctx.r1.toLowerCase();
+
+  // 2a / 2b / 2c (lectures/somme)
+  const S2a = `${Q('2a')} D’après le tableau, il y a ${totG} ${libG}.`;
+  const L2b = `${Q('2b')} <span class="eq">${st.CH} + ${st.CF} = ${st.CT}</span>`;
+  const S2b = `Il y a ${st.CT} ${r1low}.`;
+  const S2c = `${Q('2c')} D’après le tableau, il y a ${st.CH} ${r1low} hommes.`;
+
+  // 3a / 3b / 4a / 4b — % au % près (digitsPct=0 ⇒ décimal à 2 décimales)
+  const chain3a = chainFracDecPct(totG,  st.TOT, 0);
+  const chain3b = chainFracDecPct(st.CT, st.TOT, 0);
+  const chain4a = chainFracDecPct(st.CH, st.TOT_H, 0);
+  const chain4b = chainFracDecPct(st.CF, st.TOT_F, 0);
+
+  const L3a = `${Q('3a')} <span class="eq">${chain3a}</span>`;
+  const S3a = `La proportion ${propG} est ${fmtDecFR(Math.round(100*totG/st.TOT),0)} %.`;
+
+  const L3b = `${Q('3b')} <span class="eq">${chain3b}</span>`;
+  const S3b = `La proportion des ${r1low} est ${fmtDecFR(Math.round(100*st.CT/st.TOT),0)} %.`;
+
+  const L4a = `${Q('4a')} <span class="eq">${chain4a}</span>`;
+  const S4a = `Parmi les hommes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CH/st.TOT_H),0)} %.`;
+
+  const L4b = `${Q('4b')} <span class="eq">${chain4b}</span>`;
+  const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CF/st.TOT_F),0)} %.`;
+
+  // remplir les champs % (au % près)
+  $('#q3a',host).value = fmtDecFR(Math.round(100*totG/st.TOT),0)+' %';
+  $('#q3b',host).value = fmtDecFR(Math.round(100*st.CT/st.TOT),0)+' %';
+  $('#q4a',host).value = fmtDecFR(Math.round(100*st.CH/st.TOT_H),0)+' %';
+  $('#q4b',host).value = fmtDecFR(Math.round(100*st.CF/st.TOT_F),0)+' %';
+
+  $('#res',host).innerHTML = [S2a, L2b, S2b, S2c, L3a, S3a, L3b, S3b, L4a, S4a, L4b, S4b]
+    .map(x=>`<p>${x}</p>`).join('');
+  $('#res',host).className='res-ok';
+}
+,
+
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+
+/* 7 — Bilan (groupe) */
+/* ===== 7 — Bilan (groupe) — % arrondis à 0,01 % près ===== */
+/* ===== 7 — Bilan (groupe) — % à 0,01 % ; décimaux coordonnés ; règle spéciale 4b ===== */
+const ex7 = {
+  id:'bilan',
+  title:'Bilan (groupe : filles/âges)',
+  gen(){
+    const group = choice(CTX7);
+    const N = choice([28,30,32,34,36]);
+    const G = rnd(Math.ceil(N*0.4), Math.ceil(N*0.75));
+    const N17 = rnd(Math.ceil(N*0.3), Math.ceil(N*0.7));
+    const G17 = rnd(Math.max(0, N17-(N-G)), Math.min(G, N17));
+    const U18 = choice([10,12.5,20,25,30,40,50]); // %
+    const n18 = Math.round(N*U18/100);
+    return {group,N,G,N17,G17,U18,n18};
+  },
+
+  render(host, st){
+    const intro =
+      '<div>Un '+st.group+' compte '+st.N+' élèves, dont '+st.G+' filles. '+
+      'Parmi les '+st.N17+' élèves de 17 ans, on dénombre '+st.G17+' filles.</div>';
+
+    renderRowsInputRight(host,
+      'Répondre : proportions (fraction/décimal/%) et entiers quand demandé. '+
+      'Pour les <strong>pourcentages, arrondir à 0,01&nbsp;% près</strong> (donc décimaux à 4&nbsp;décimales).',
+      [
+        { labelHTML: intro, rightHTML:'' },
+
+        { labelHTML: '1a) Proportion de filles dans le '+st.group+' ? (<em>à 0,0001 près</em>)',
+          id:'b1a', placeholder:'ex. 0,4321' },
+        { labelHTML: '1b) Pourcentage de filles dans le '+st.group+' ? (<em>à 0,01&nbsp;% près</em>)',
+          id:'b1b', placeholder:'% deux décimales' },
+
+        { labelHTML: '2a) Proportion de filles de 17 ans parmi les filles ? (<em>à 0,0001 près</em>)',
+          id:'b2a', placeholder:'ex. 0,1234' },
+        { labelHTML: '2b) Pourcentage correspondant ? (<em>à 0,01&nbsp;% près</em>)',
+          id:'b2b', placeholder:'% deux décimales' },
+
+        { labelHTML: '3) Populations considérées en 1) et 2) ?', id:'b3', placeholder:'ex. '+st.group+' ; filles' },
+
+        { labelHTML: '4a) Avec '+fmtDecFR(st.U18,1)+' % d’élèves de 18 ans : combien d’élèves de 18 ans ?', id:'b4a', placeholder:'entier' },
+
+        { labelHTML: '4b) % d’élèves n’ayant ni 17 ans ni 18 ans ? (<em>à 0,01&nbsp;% près</em>). '+
+                     'On arrondit d’abord le % des 17&nbsp;ans au % près.',
+          id:'b4b', placeholder:'% deux décimales' }
+      ]
+    );
+  },
+
+  correct(host, st){
+    // parse proportion : accepte fraction / décimal / %
+    function parseProp(s){
+      s = String(s||'').trim();
+      let v = NaN; const m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+      if(m){ v = parseInt(m[1],10)/parseInt(m[2],10); }
+      else{
+        const d = parseNumberFR(s); if(isFinite(d)) v = d; else {
+          const p = parsePercent(s); if(isFinite(p)) v = p/100;
+        }
+      }
+      return v;
+    }
+    const samePct2 = (a,b)=> Math.round(a*100) === Math.round(b*100);   // 0,01 %
+    const sameDec4 = (a,b)=> Math.round(a*1e4) === Math.round(b*1e4);   // 4 décimales
+
+    // 1a / 1b
+    const ok1a = sameDec4(parseProp($('#b1a',host).value), st.G/st.N);
+    const ok1b = (p => Number.isFinite(p) && samePct2(p, 100*st.G/st.N))(parsePercent($('#b1b',host).value));
+
+    // 2a / 2b
+    const ok2a = sameDec4(parseProp($('#b2a',host).value), st.G17/st.G);
+    const ok2b = (p => Number.isFinite(p) && samePct2(p, 100*st.G17/st.G))(parsePercent($('#b2b',host).value));
+
+    // 3) texte libre (lecture)
+    const ans3 = ($('#b3',host).value||'').toLowerCase().replace(/\s+/g,' ').trim();
+    const ok3 = ans3.includes(st.group.split(' ')[0].toLowerCase()) && ans3.includes('fille');
+
+    // 4a
+    const ok4a = parseInt(stripSignUnicode($('#b4a',host).value||'').trim(),10) === st.n18;
+
+    // 4b — règle : arrondir d’abord p17 au % près
+    const p17_round = Math.round(100*st.N17/st.N);            // %
+    const exp4b = 100 - p17_round - st.U18;                   // %
+    const ok4b = (p => Number.isFinite(p) && samePct2(p, exp4b))(parsePercent($('#b4b',host).value));
+
+    const ok = ok1a && ok1b && ok2a && ok2b && ok3 && ok4a && ok4b;
+    $('#res',host).innerHTML = ok ? '✔' :
+      '✘ Rappels : 1a/2a décimal à 4 déc.; 1b/2b/4b à 0,01 % ; en 4b, on arrondit d’abord le % des 17 ans au % près.';
+    $('#res',host).className = ok ? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+
+  solution(host, st){
+  // compléter le tableau existant (pour l’écran)
+  $$('.c-ans',host).forEach(inp=>{
+    const k=inp.dataset.k;
+    const value = (k==='CT'?st.CT:(k==='TH'?st.TH:(k==='TF'?st.TF:(k==='TT'?st.TT:st.TOT_F))));
+    inp.value = String(value);
+  });
+
+  // préremplir les champs des questions
+  $('#q2a',host).value = String(st.gAsk==='H'? st.TOT_H : st.TOT_F);
+  $('#q2b',host).value = String(st.CT);
+  $('#q2c',host).value = String(st.CH);
+  $('#q3a',host).value = fmtDecFR(Math.round(100*(st.gAsk==='H'? st.TOT_H : st.TOT_F)/st.TOT),0)+' %';
+  $('#q3b',host).value = fmtDecFR(Math.round(100*st.CT/st.TOT),0)+' %';
+  $('#q4a',host).value = fmtDecFR(Math.round(100*st.CH/st.TOT_H),0)+' %';
+  $('#q4b',host).value = fmtDecFR(Math.round(100*st.CF/st.TOT_F),0)+' %';
+
+  // ===== tableau de solution (pur, sans inputs) =====
+  const solTable =
+    `<table class="tbl"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>${st.ctx.r1}</td><td>${st.CH}</td><td>${st.CF}</td><td>${st.CT}</td></tr>
+        <tr><td>${st.ctx.r2}</td><td>${st.TH}</td><td>${st.TF}</td><td>${st.TT}</td></tr>
+        <tr><td>Total</td><td>${st.TOT_H}</td><td>${st.TOT_F}</td><td>${st.TOT}</td></tr>
+      </tbody></table>`;
+
+  // ===== bloc calculs + conclusions (comme avant) =====
+  const Q = (...args)=> (typeof window.Q==='function'
+      ? window.Q(...args)
+      : `<span class="qno" style="display:inline-block;margin-right:.45em">${Array.from(args).join('')})</span>`);
+
+  const fracHTML = (n,d)=>`<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
+  const r1low = st.ctx.r1.toLowerCase();
+  const libG  = (st.gAsk==='H') ? 'hommes' : 'femmes';
+  const propG = (st.gAsk==='H') ? 'des hommes' : 'des femmes';
+  const totG  = (st.gAsk==='H') ? st.TOT_H : st.TOT_F;
+
+  const L2b = `${Q(2,'b')} <span class="eq">${st.CH} + ${st.CF} = ${st.CT}</span>`;
+  const S2b = `Il y a ${st.CT} ${r1low}.`;
+  const S2a = `${Q(2,'a')} D’après le tableau, il y a ${totG} ${libG}.`;
+  const S2c = `${Q(2,'c')} D’après le tableau, il y a ${st.CH} ${r1low} hommes.`;
+
+  const chain = (a,b)=>`${fracHTML(a,b)} = ${fmtDecFR(a/b,2)} = ${fmtDecFR(Math.round(100*a/b),0)} %`;
+
+  const L3a = `${Q(3,'a')} <span class="eq">${chain(totG, st.TOT)}</span>`;
+  const S3a = `La proportion ${propG} est ${fmtDecFR(Math.round(100*totG/st.TOT),0)} %.`;
+
+  const L3b = `${Q(3,'b')} <span class="eq">${chain(st.CT, st.TOT)}</span>`;
+  const S3b = `La proportion des ${r1low} est ${fmtDecFR(Math.round(100*st.CT/st.TOT),0)} %.`;
+
+  const L4a = `${Q(4,'a')} <span class="eq">${chain(st.CH, st.TOT_H)}</span>`;
+  const S4a = `Parmi les hommes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CH/st.TOT_H),0)} %.`;
+
+  const L4b = `${Q(4,'b')} <span class="eq">${chain(st.CF, st.TOT_F)}</span>`;
+  const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CF/st.TOT_F),0)} %.`;
+
+  // ===== rendu final dans #res (table + explications) =====
+  $('#res',host).innerHTML = `
+    <div style="margin-bottom:6px"><strong>Tableau complété :</strong></div>
+    ${solTable}
+    <div style="margin-top:10px"></div>
+    <p>${S2a}</p><p>${L2b}</p><p>${S2b}</p><p>${S2c}</p>
+    <p>${L3a}</p><p>${S3a}</p>
+    <p>${L3b}</p><p>${S3b}</p>
+    <p>${L4a}</p><p>${S4a}</p>
+    <p>${L4b}</p><p>${S4b}</p>`;
+  $('#res',host).className='res-ok';
+},
+
+  reset(host){ const root=innerHost(host); root.innerHTML=''; }
+};
+
+
+
+/* ===== Registre & moteur ===== */
+const REGISTRY = [ex1,ex2,ex3,ex4,ex5,ex6,ex7];
+window.REGISTRY = REGISTRY;
+
+let scoreOK = 0, scoreTot = 0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  $('#res',host).textContent='';
+}
+function check(){
+  const host = $('#host');
+  const def  = REGISTRY.find(e => e.id === host.dataset.active);
+  if (!def) return;
+
+  // Màj des ✔/✘ sur les champs déjà remplis
+  addTicks(host);
+  progressiveValidate(host);
+
+  // Tant que tout n'est pas rempli -> aucun message, aucun score
+  if (!allInputsFilled(host)) {
+    const res = $('#res', host);
+    if (res) { res.textContent = ''; res.className = 'res'; }
+    return;
+  }
+
+  // Tout est rempli -> correction officielle + score
+  const st = JSON.parse(host.dataset.state || "{}");
+  const r  = def.correct(host, st);
+  if (r) { scoreOK += (r.ok ? 1 : 0); scoreTot += (r.total || 1); updateScore(); }
+}
+
+function solution(){
+  const host = $('#host');
+  const def  = REGISTRY.find(e => e.id === host.dataset.active);
+  if (!def || !def.solution) return;
+
+  // 1) Snapshot des valeurs actuelles pour ne PAS les écraser
+  const visInputs = $$('#host input[type=text]').filter(inp => !inp.closest('.equ-offscreen'));
+  const snapshot  = new Map(visInputs.map(inp => [inp, inp.value]));
+
+  // 2) Laisser l'exercice construire l'affichage de #res
+  const st = JSON.parse(host.dataset.state || "{}");
+  def.solution(host, st);
+
+  // 3) Restaurer strictement les saisies de l'élève
+  for (const [inp, val] of snapshot) inp.value = val;
+
+  // 4) Recalcul des ✔/✘ en fonction de SES réponses (pas de message global)
+  progressiveValidate(host);
+}
+
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore(); const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host);
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  innerHost(document.getElementById('host'));
+  const sel=$('#exo-select');
+  REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  // Entrée -> Vérifier depuis la barre standard (utile pour exos avec une barre universelle)
+  // Entrée -> Vérifier depuis n'importe quel input visible de #host (pas ceux offscreen pour le PDF)
+document.addEventListener('keydown', function(ev){
+  const a = document.activeElement;
+  if (ev.key === 'Enter'
+      && a
+      && a.matches('#host input[type=text]')
+      && !a.closest('.equ-offscreen')) {
+    ev.preventDefault();
+    try { check(); } catch(_e){}
+  }
+});
+
+
+  // PDF : consigne + énoncé / ou correction seule (si withSolutions)
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title:'Seconde – Proportion & pourcentages',
+      max:50,
+      mountAfterSelector:'.card.small',
+      beforeRender(def, st, withSolutions){
+        try{
+          const tmp=document.createElement('div');
+          tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+          def.render(tmp, st);
+          if(!withSolutions){
+            const off=tmp.querySelector('.equ-offscreen'); const row=tmp.querySelector('.row');
+            const s1=off?off.innerHTML:''; const s2=row?row.querySelector('.col-label').innerHTML:'';
+            return (s1||'') + (s2?'<div style="margin-top:6px">'+s2+'</div>':'');
+          }else{
+            if(def.solution){
+              def.solution(tmp, st);
+              const res=tmp.querySelector('#res'); return res?res.innerHTML:'';
+            }
+          }
+        }catch(e){ console.warn(e); }
+      }
+    });
+  }
+});
+})();
+</script>
+
+<!-- JS fournis -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/fraction-sign-clarity.dom.v3.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+</body>
+</html>

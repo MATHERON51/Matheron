@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Générateur quintiques Hermite — repère fixe [-6,6]×[-6,6]</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:#111;font:16px/1.5 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .card{border:1px solid #e6e6e6;border-radius:14px;padding:14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn{border:1px solid #c9c9c9;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .btn.primary{background:#111;color:#fff;border-color:#111}
+  label{display:flex;align-items:center;gap:6px}
+  input[type=number]{width:80px;padding:6px 8px;border:1px solid #ccc;border-radius:8px}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#f5f5f5;border-radius:8px;padding:2px 6px}
+  .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;white-space:pre-wrap;background:#f8f8f8;border:1px dashed #ddd;border-radius:10px;padding:10px}
+  .canvas-wrap{position:relative;background:#fafafa;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;height:540px}
+  .meta{font-size:14px;color:#333}
+  .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+  @media (max-width:900px){.cols{grid-template-columns:1fr}}
+  .list{font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#fcfcfc;border:1px solid #eee;border-radius:10px;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <button id="randBtn" class="btn primary">🎲 Générer un nouvel énoncé</button>
+      <button id="pointsBtn" class="btn">20 points de la courbe</button>
+      <span class="kbd">Repère fixe : x,y ∈ [-6,6] (origine visible)</span>
+      <label>Val. |pente max| :
+        <input id="mag" type="number" step="1" value="5" title="Valeurs pour m,k,l et pente entière n : tirées dans [−mag, +mag]">
+      </label>
+      <label>Denom q (1…N) :
+        <input id="denMax" type="number" step="1" value="4" title="Le dénominateur de q=V/H sera H∈[1..N]">
+      </label>
+    </div>
+    <div class="meta" id="desc"></div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="code" id="polyOut">—</div>
+      <div class="list" id="checks">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Rational arithmetic (BigInt) ----------
+const ZERO = {n:0n, d:1n};
+function rat(n, d=1n){
+  n = BigInt(n); d = BigInt(d);
+  if(d===0n) throw Error('den=0');
+  if(d<0n){ n=-n; d=-d; }
+  const g = gcd(abs(n), d);
+  return {n:n/g, d:d/g};
+}
+const abs = x => (x<0n? -x : x);
+function gcd(a,b){ while(b){ const t=a%b; a=b; b=t; } return a; }
+
+function add(a,b){ return rat(a.n*b.d + b.n*a.d, a.d*b.d); }
+function mul(a,b){ return rat(a.n*b.n, a.d*b.d); }
+function div(a,b){ return rat(a.n*b.d, a.d*b.n); }
+function toNum(a){ return Number(a.n) / Number(a.d); }
+function toStr(a){ return a.d===1n ? a.n.toString() : (a.n.toString()+"/"+a.d.toString()); }
+
+// ---------- Polynomials with Rational coeffs (low→high) ----------
+function trim(p){ for(let i=p.length-1;i>0;i--){ if(p[i].n===0n) p.pop(); else break; } return p; }
+function pZero(){ return [rat(0n)]; }
+function pConst(c){ return [c]; }
+function pAdd(a,b){ const n=Math.max(a.length,b.length); const out=Array.from({length:n},(_,i)=> add(a[i]||ZERO,b[i]||ZERO)); return trim(out); }
+function pScale(a, s){ return trim(a.map(c => mul(c,s))); }
+function pMul(a,b){ const out=Array.from({length:a.length+b.length-1},()=>rat(0n)); for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++){ out[i+j]=add(out[i+j], mul(a[i],b[j])); } return trim(out); }
+function pEval(a, x){ let acc=rat(0n), X=rat(1n); for(let i=0;i<a.length;i++){ acc=add(acc, mul(a[i],X)); X=mul(X,x);} return acc; }
+function pDer(a){ if(a.length<=1) return [rat(0n)]; const out=[]; for(let i=1;i<a.length;i++) out.push( mul(a[i], rat(i,1n)) ); return trim(out); }
+
+function xMinus(t){ return [rat(-BigInt(t),1n), rat(1n,1n)]; }
+function lagrangeBasis(xi, nodes){
+  const others = nodes.filter(x => x!==xi);
+  let num = pMul( xMinus(others[0]), xMinus(others[1]) );
+  const den = rat( (BigInt(xi)-BigInt(others[0])) * (BigInt(xi)-BigInt(others[1])) , 1n);
+  return pScale(num, div(rat(1n,1n), den));
+}
+function sumInv(xi, nodes){
+  const others = nodes.filter(x => x!==xi);
+  const t1 = div( rat(1n,1n), rat(BigInt(xi)-BigInt(others[0]),1n) );
+  const t2 = div( rat(1n,1n), rat(BigInt(xi)-BigInt(others[1]),1n) );
+  return add(t1,t2);
+}
+function hermiteCardinals(xi, nodes){
+  const L = lagrangeBasis(xi, nodes);
+  const L2 = pMul(L,L);
+  const Si = sumInv(xi, nodes);
+  const P = pAdd( pConst(rat(1n)), pScale( xMinus(xi), mul(rat(-2n), Si)) );
+  const Hi0 = pMul(P, L2);
+  const Hi1 = pMul( xMinus(xi), L2 );
+  return {Hi0, Hi1};
+}
+function buildPoly(a,b,c, m,k,l, n, q_num, q_den){
+  const nodes=[a,b,c];
+  const {Hi0:Ha0, Hi1:Ha1} = hermiteCardinals(a,nodes);
+  const {Hi0:Hb0, Hi1:Hb1} = hermiteCardinals(b,nodes);
+  const {Hi0:Hc0, Hi1:Hc1} = hermiteCardinals(c,nodes);
+  let P=pZero();
+  P = pAdd(P, pScale(Ha0, rat(BigInt(m))));
+  P = pAdd(P, pScale(Hb0, rat(BigInt(k))));
+  P = pAdd(P, pScale(Hc0, rat(BigInt(l))));
+  P = pAdd(P, pScale(Hb1, rat(BigInt(n))));
+  P = pAdd(P, pScale(Hc1, rat(BigInt(q_num), BigInt(q_den))));
+  return trim(P);
+}
+
+// ---------- Random generation with bounding to [-6,6] ----------
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function pickDistinctInt(rangeMin, rangeMax, exclude=new Set()){
+  let tries=0;
+  while(true){
+    const v = randInt(rangeMin, rangeMax);
+    if(!exclude.has(v)) return v;
+    if(++tries>1000) throw Error('no int available');
+  }
+}
+
+const VIEW_MIN=-6, VIEW_MAX=6;
+
+function fitsInView(P){
+  // sample on [-6,6], ensure y in [-6,6]
+  const steps=800;
+  for(let i=0;i<=steps;i++){
+    const x = VIEW_MIN + i*(VIEW_MAX-VIEW_MIN)/steps;
+    // Horner with double
+    let y=0; for(let j=P.length-1;j>=0;j--) y = y*x + (Number(P[j].n)/Number(P[j].d));
+    if(!Number.isFinite(y)) return false;
+    if(y<VIEW_MIN-1e-9 || y>VIEW_MAX+1e-9) return false;
+  }
+  return true;
+}
+
+function generate(){
+  const MAG  = parseInt(document.getElementById('mag').value,10);
+  const DENM = Math.max(1, parseInt(document.getElementById('denMax').value,10));
+
+  let tries=0, P=null, a,b,c,m,k,l,n,V,H;
+  while(tries++<400){
+    // choose distinct integers a<b<c within [-5,5] (évite la bordure)
+    a = pickDistinctInt(-5, 5);
+    b = pickDistinctInt(-5, 5, new Set([a]));
+    c = pickDistinctInt(-5, 5, new Set([a,b]));
+    [a,b,c] = [a,b,c].sort((u,v)=>u-v);
+
+    // values in [-5,5] (garde une marge dans la fenêtre [-6,6])
+    m = randInt(-MAG, MAG);
+    k = randInt(-MAG, MAG);
+    l = randInt(-MAG, MAG);
+    m = Math.max(-5, Math.min(5, m));
+    k = Math.max(-5, Math.min(5, k));
+    l = Math.max(-5, Math.min(5, l));
+
+    // slopes
+    n = randInt(-MAG, MAG); if(n===0) n=1; n = Math.max(-5, Math.min(5, n));
+    H = randInt(1, DENM);
+    V = randInt(-MAG, MAG); if(V===0) V=1; V = Math.max(-5, Math.min(5, V));
+    // reduce
+    (function(){ let x=Math.abs(V), y=Math.abs(H); while(y){ const t=x%y; x=y; y=t; } const g=x; V/=g; H/=g; })();
+
+    P = buildPoly(a,b,c, m,k,l, n, V, H);
+    if(fitsInView(P)) break;
+  }
+  if(!P) throw Error('Impossible de borner la courbe après plusieurs essais — augmentez denMax ou réduisez |pente max|.');
+
+  describeScenario({a,b,c,m,k,l,n,V,H});
+  setCurrent({P, a,b,c, m,k,l, n, qNum:V, qDen:H});
+  draw();
+  showOutputs({P, a,b,c, m,k,l, n, V, H});
+}
+
+let CURRENT=null;
+function setCurrent(obj){ CURRENT=obj; }
+
+function describeScenario({a,b,c,m,k,l,n,V,H}){
+  const d = document.getElementById('desc');
+  d.innerHTML = `Contraintes : 
+  A(<span class="kbd">${a}</span> ; <span class="kbd">${m}</span>) avec <span class="kbd">f'(A)=0</span> — 
+  B(<span class="kbd">${b}</span> ; <span class="kbd">${k}</span>) avec <span class="kbd">f'(B)=${n}</span> — 
+  C(<span class="kbd">${c}</span> ; <span class="kbd">${l}</span>) avec <span class="kbd">f'(C)=${V}/${H}</span>. 
+  Repère fixé à <span class="kbd">[-6,6]×[-6,6]</span>.`;
+}
+
+function showOutputs({P,a,b,c,m,k,l,n,V,H}){
+  // pretty polynomial string
+  const polyTex = P.slice().reverse().map((r,idx,arr)=>{
+    const deg = arr.length-1-idx;
+    const s = toStr(r);
+    return `${s}${deg>0?"·x"+(deg>1?"^"+deg:""):""}`;
+  }).join(" + ").replace(/\+\s-\s/g,"- ");
+
+  const out = document.getElementById('polyOut');
+  const lines = [
+    "Polynôme de degré ≤ 5 (coefficients rationnels réduits):",
+    "",
+    "f(x) = " + polyTex,
+    "",
+    "Coefficients (du terme constant à x^5):",
+    ...P.map((r,i)=>`  a${i} = ${toStr(r)}`)
+  ];
+  out.textContent = lines.join("\\n");
+
+  // checks exact with rationnels
+  const Pd = pDer(P);
+  function eq(a,b){ return a.n===b.n && a.d===b.d; }
+  const linesC = [];
+  const fA = pEval(P, rat(BigInt(a)));    linesC.push(`f(${a}) = ${toStr(fA)}  ${eq(fA,rat(BigInt(m)))?"✓":"✗ attendu "+m}`);
+  const fB = pEval(P, rat(BigInt(b)));    linesC.push(`f(${b}) = ${toStr(fB)}  ${eq(fB,rat(BigInt(k)))?"✓":"✗ attendu "+k}`);
+  const fC = pEval(P, rat(BigInt(c)));    linesC.push(`f(${c}) = ${toStr(fC)}  ${eq(fC,rat(BigInt(l)))?"✓":"✗ attendu "+l}`);
+  const dA = pEval(Pd, rat(BigInt(a)));   linesC.push(`f'(${a}) = ${toStr(dA)}  ${eq(dA,rat(0n))?"✓":"✗ attendu 0"}`);
+  const dB = pEval(Pd, rat(BigInt(b)));   linesC.push(`f'(${b}) = ${toStr(dB)}  ${eq(dB,rat(BigInt(n)))?"✓":"✗ attendu "+n}`);
+  const dC = pEval(Pd, rat(BigInt(c)));   const q = rat(BigInt(V), BigInt(H));
+  linesC.push(`f'(${c}) = ${toStr(dC)}  ${eq(dC,q)?"✓":"✗ attendu "+toStr(q)}`);
+
+  document.getElementById('checks').textContent = linesC.join("\\n");
+}
+</script>
+
+<script>
+// ---------- Drawing on fixed viewport [-6,6]×[-6,6] ----------
+const $cv = document.getElementById('cv');
+const ctx = $cv.getContext('2d');
+const XMIN=-6, XMAX=6, YMIN=-6, YMAX=6;
+
+function pxW(){ return $cv.clientWidth; }
+function pxH(){ return $cv.clientHeight; }
+function scaleCanvasForDPI(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = pxW(), h = pxH();
+  $cv.width = Math.round(w*dpr);
+  $cv.height = Math.round(h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function X(x){ return (x - XMIN) * (pxW()/(XMAX - XMIN)); }
+function Y(y){ return (YMAX - y) * (pxH()/(YMAX - YMIN)); }
+
+function evalPolyNum(P, x){
+  let y = 0;
+  for(let i=P.length-1;i>=0;i--) y = y*x + (Number(P[i].n)/Number(P[i].d));
+  return y;
+}
+
+function draw(){
+  if(!CURRENT) return;
+  const {P, a,b,c} = CURRENT;
+  scaleCanvasForDPI();
+  ctx.clearRect(0,0,pxW(),pxH());
+
+  // grid
+  ctx.lineWidth = 1;
+  for(let gx=Math.ceil(XMIN); gx<=Math.floor(XMAX); gx++){
+    ctx.strokeStyle = (gx===0)? '#888' : '#e8e8e8';
+    ctx.beginPath(); ctx.moveTo(X(gx), Y(YMIN)); ctx.lineTo(X(gx), Y(YMAX)); ctx.stroke();
+  }
+  for(let gy=Math.ceil(YMIN); gy<=Math.floor(YMAX); gy++){
+    ctx.strokeStyle = (gy===0)? '#888' : '#e8e8e8';
+    ctx.beginPath(); ctx.moveTo(X(XMIN), Y(gy)); ctx.lineTo(X(XMAX), Y(gy)); ctx.stroke();
+  }
+
+  // labels
+  ctx.fillStyle = '#444';
+  ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+  ctx.textAlign = 'center';
+  for(let gx=Math.ceil(XMIN); gx<=Math.floor(XMAX); gx++){ if(gx===0) continue; ctx.fillText(String(gx), X(gx), Y(0)+14); }
+  ctx.textAlign = 'right';
+  for(let gy=Math.ceil(YMIN); gy<=Math.floor(YMAX); gy++){ if(gy===0) continue; ctx.fillText(String(gy), X(0)-6, Y(gy)+4); }
+
+  // curve
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#d12c2c';
+  ctx.beginPath();
+  const steps=1000;
+  for(let i=0;i<=steps;i++){
+    const x = XMIN + i*(XMAX-XMIN)/steps;
+    const y = evalPolyNum(P, x);
+    const px = X(x), py = Y(y);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // points A,B,C
+  const pts = [
+    {x:a, name:'A'},
+    {x:b, name:'B'},
+    {x:c, name:'C'},
+  ].map(p => ({...p, y: evalPolyNum(P,p.x)}));
+
+  ctx.fillStyle = '#111';
+  for(const p of pts){
+    ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillText(`${p.name} (${p.x}; ${Math.round(p.y*1000)/1000})`, X(p.x)+6, Y(p.y)-8);
+  }
+
+  // 20 points listing
+  window._points = ptsList(P, XMIN, XMAX, 20);
+}
+
+function ptsList(P, XMIN, XMAX, N){
+  const xs = [];
+  for(let i=0;i<N;i++){
+    const t = i/(N-1);
+    const x = XMIN + t*(XMAX - XMIN);
+    const y = evalPolyNum(P, x);
+    xs.push([round(x), round(y)]);
+  }
+  return xs;
+}
+const round = x => Math.round(x*1000)/1000;
+
+document.getElementById('randBtn').addEventListener('click', generate);
+document.getElementById('pointsBtn').addEventListener('click', () => {
+  if(!CURRENT) return;
+  const list = window._points || [];
+  const lines = list.map((p,i)=> `${i+1}. (${p[0]} ; ${p[1]})`).join("\\n");
+  alert("20 points de gauche à droite:\\n\\n"+lines);
+});
+new ResizeObserver(draw).observe($cv);
+generate(); // initial
+</script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cubique exact (spline) et cubique global contraint</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{--ink:#111;--bg:#fafafa;--grid:#cfe6ff;--axes:#222;--curve:#e11;--fit:#1a66ff}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:22px auto;padding:0 16px}
+  h1{font-size:20px;margin:0 0 8px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  canvas{background:#fff;border:1px solid #e6e6e6;border-radius:10px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);min-width:280px}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+  button{border:1px solid #ccc;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer}
+  code{background:#f4f4f4;padding:1px 6px;border-radius:6px}
+  small{opacity:.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Courbe « type polynôme » : spline cubique (exacte) et polynôme cubique global (contraint)</h1>
+  <div class="row">
+    <canvas id="cv" width="1000" height="600"></canvas>
+    <div class="card" style="flex:1">
+      <div class="opts">
+        <label><input id="showSpline" type="checkbox" checked> Afficher <b>spline cubique</b> (passe par tous les points)</label><br>
+        <label><input id="showPoly" type="checkbox" checked> Afficher <b>polynôme cubique global</b> (moindres carrés, dérivées imposées)</label>
+      </div>
+      <p><b>Contraintes</b> : f′(−5)=3, f′(−1)=0, f′(3)=−2.  
+      Points nommés : A(−5,2), B(−1,−1), C(3,2).</p>
+      <p><button id="dl">Télécharger le PNG</button></p>
+      <p><small>Remarque : un seul polynôme de degré 3 ne peut pas passer par 20 points arbitraires tout en gardant cette forme (il n’a que 2 points critiques possibles).  
+      La <b>spline cubique</b> est un polynôme de degré 3 <i>par morceaux</i> (C¹) qui, elle, passe exactement par tous les points.</small></p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========= 1) Données ========= */
+const pts = [
+  {x:-5.74, y:-1.44},
+  {x:-5.00, y: 2.00},   // A
+  {x:-4.55, y: 3.18},
+  {x:-4.07, y: 3.91},
+  {x:-3.59, y: 3.91},
+  {x:-3.12, y: 3.23},
+  {x:-2.64, y: 1.86},
+  {x:-2.17, y: 0.59},
+  {x:-1.69, y:-0.49},
+  {x:-1.00, y:-1.00},   // B
+  {x:-0.50, y:-0.75},
+  {x:-0.02, y:-0.03},
+  {x: 0.45, y: 0.92},
+  {x: 0.93, y: 1.86},
+  {x: 1.41, y: 2.68},
+  {x: 1.88, y: 2.96},
+  {x: 2.36, y: 2.85},
+  {x: 3.00, y: 2.00},   // C
+  {x: 3.70, y: 0.19},
+  {x: 4.18, y:-1.44}
+];
+const idxA = 1, idxB = 9, idxC = 17;
+const slopesKnown = new Map([[idxA,3],[idxB,0],[idxC,-2]]);
+
+/* ========= 2) Utilitaires ========= */
+const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+const xMin = Math.floor(Math.min(...xs))-1, xMax = Math.ceil(Math.max(...xs))+1;
+const yMin = Math.floor(Math.min(...ys))-1, yMax = Math.ceil(Math.max(...ys))+1;
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const pad = 40, W=cv.width, H=cv.height;
+const sx = (W-2*pad)/(xMax-xMin), sy = (H-2*pad)/(yMax-yMin);
+const X = x => pad + (x-xMin)*sx;
+const Y = y => H - pad - (y-yMin)*sy;
+
+/* ========= 3) Spline cubique (PCHIP + contrainte sur pentes A,B,C) ========= */
+function pchipSlopes(xs, ys){
+  const n = xs.length, h = Array(n-1), d = Array(n-1);
+  for (let i=0;i<n-1;i++){ h[i]=xs[i+1]-xs[i]; d[i]=(ys[i+1]-ys[i])/h[i]; }
+  const m = Array(n).fill(0);
+
+  // extrémités
+  let m0 = ((2*h[0]+h[1])*d[0] - h[0]*d[1])/(h[0]+h[1]);
+  if (Math.sign(m0)!==Math.sign(d[0])) m0=0;
+  else if (Math.sign(d[0])!==Math.sign(d[1]) && Math.abs(m0)>3*Math.abs(d[0])) m0=3*d[0];
+  m[0]=m0;
+
+  for (let k=1;k<=n-2;k++){
+    if (d[k-1]===0 || d[k]===0 || Math.sign(d[k-1])!==Math.sign(d[k])) m[k]=0;
+    else m[k]=(h[k-1]+h[k])/(h[k-1]/d[k-1]+h[k]/d[k]);
+  }
+
+  let mn = ((2*h[n-2]+h[n-3])*d[n-2] - h[n-2]*d[n-3])/(h[n-3]+h[n-2]);
+  if (Math.sign(mn)!==Math.sign(d[n-2])) mn=0;
+  else if (Math.sign(d[n-2])!==Math.sign(d[n-3]) && Math.abs(mn)>3*Math.abs(d[n-2])) mn=3*d[n-2];
+  m[n-1]=mn;
+
+  return m;
+}
+function slopesWithConstraints(xs, ys, forced){
+  const m = pchipSlopes(xs, ys);
+  forced.forEach((val, idx)=>{ m[idx]=val; });
+  return m;
+}
+function sampleHermite(xs, ys, m, step=0.01){
+  const out=[];
+  for (let i=0;i<xs.length-1;i++){
+    const x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1], h=x1-x0, m0=m[i], m1=m[i+1];
+    for (let t=0; t<1; t+=step){
+      const t2=t*t, t3=t2*t;
+      const h00= 2*t3-3*t2+1, h10=t3-2*t2+t, h01=-2*t3+3*t2, h11=t3-t2;
+      const x=x0+t*h, y=h00*y0+h10*h*m0+h01*y1+h11*h*m1;
+      out.push({x,y});
+    }
+  }
+  out.push({x:xs.at(-1), y:ys.at(-1)});
+  return out;
+}
+
+/* ========= 4) Polynôme cubique global avec dérivées imposées =========
+   On impose : f'(xA)=mA, f'(xB)=mB, f'(xC)=mC  ⇒ système 3×3 en (a,b,c).
+   Puis on choisit d qui minimise Σ (f(xi)-yi)^2  ⇒ d = moyenne[ yi - (ax^3+bx^2+cx) ].
+*/
+function solve3x3(A,b){ // Gauss simple
+  const M = A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<3;c++){
+    // pivot
+    let p=c;
+    for(let r=c+1;r<3;r++) if (Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
+    if (Math.abs(M[p][c])<1e-12) return [0,0,0]; // quasi-singulier
+    if (p!==c) [M[c],M[p]]=[M[p],M[c]];
+    // normalise & élimine
+    const piv=M[c][c];
+    for(let j=c;j<4;j++) M[c][j]/=piv;
+    for(let r=0;r<3;r++){
+      if(r===c) continue;
+      const f=M[r][c];
+      for(let j=c;j<4;j++) M[r][j]-=f*M[c][j];
+    }
+  }
+  return [M[0][3],M[1][3],M[2][3]];
+}
+function cubicFromDerivativeConstraints(points, xA=-5, mA=3, xB=-1, mB=0, xC=3, mC=-2){
+  // 3a x^2 + 2b x + c = m
+  const A = [
+    [3*xA*xA, 2*xA, 1],
+    [3*xB*xB, 2*xB, 1],
+    [3*xC*xC, 2*xC, 1]
+  ];
+  const b = [mA, mB, mC];
+  const [a,b2,c] = solve3x3(A,b); // b2 = b (coefficient du x^2)
+  // d par moindres carrés
+  let s=0;
+  for(const p of points) s += p.y - (a*p.x**3 + b2*p.x**2 + c*p.x);
+  const d = s / points.length;
+  return {a:a, b:b2, c:c, d:d};
+}
+
+/* ========= 5) Rendu ========= */
+const showSplineEl = document.getElementById('showSpline');
+const showPolyEl   = document.getElementById('showPoly');
+
+function drawGrid(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+
+  // grille
+  ctx.lineWidth=1; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--grid');
+  ctx.beginPath();
+  for (let x=Math.ceil(xMin); x<=Math.floor(xMax); x++){ const Xp=X(x); ctx.moveTo(Xp,pad); ctx.lineTo(Xp,H-pad); }
+  for (let y=Math.ceil(yMin); y<=Math.floor(yMax); y++){ const Yp=Y(y); ctx.moveTo(pad,Yp); ctx.lineTo(W-pad,Yp); }
+  ctx.stroke();
+
+  // axes
+  ctx.lineWidth=2; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--axes');
+  ctx.beginPath();
+  if (xMin<=0 && 0<=xMax){ const X0=X(0); ctx.moveTo(X0,pad); ctx.lineTo(X0,H-pad); }
+  if (yMin<=0 && 0<=yMax){ const Y0=Y(0); ctx.moveTo(pad,Y0); ctx.lineTo(W-pad,Y0); }
+  ctx.stroke();
+  // graduations légères
+  ctx.fillStyle='#444'; ctx.font='12px system-ui';
+  for (let x=Math.ceil(xMin); x<=Math.floor(xMax); x++) ctx.fillText(String(x), X(x)+3, Y(0)+14);
+  for (let y=Math.ceil(yMin); y<=Math.floor(yMax); y++) ctx.fillText(String(y), X(0)+6, Y(y)-3);
+}
+
+function drawPoints(){
+  // points + croix
+  ctx.fillStyle='#000';
+  for (const p of pts){ ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),3.5,0,Math.PI*2); ctx.fill(); }
+  function cross(px,py,r=8,lw=3){ ctx.save(); ctx.translate(px,py); ctx.lineWidth=lw; ctx.strokeStyle='#000';
+    ctx.beginPath(); ctx.moveTo(-r,-r); ctx.lineTo(r,r); ctx.moveTo(-r,r); ctx.lineTo(r,-r); ctx.stroke(); ctx.restore(); }
+  cross(X(pts[idxA].x),Y(pts[idxA].y));
+  cross(X(pts[idxB].x),Y(pts[idxB].y));
+  cross(X(pts[idxC].x),Y(pts[idxC].y));
+
+  ctx.fillStyle='#a00'; ctx.font='18px Georgia,serif';
+  ctx.fillText('C', X(0.2), Y(2.8));
+}
+
+function drawTangents(){ // juste en A,B,C pour visualiser les contraintes
+  const T = [
+    {p:pts[idxA], m:3,  name:'A'},
+    {p:pts[idxB], m:0,  name:'B'},
+    {p:pts[idxC], m:-2, name:'C'}
+  ];
+  ctx.lineWidth=2; ctx.setLineDash([6,6]); ctx.strokeStyle='#2a9d8f';
+  for (const t of T){
+    const x0=xMin, x1=xMax;
+    const y0=t.p.y + t.m*(x0 - t.p.x);
+    const y1=t.p.y + t.m*(x1 - t.p.x);
+    ctx.beginPath(); ctx.moveTo(X(x0),Y(y0)); ctx.lineTo(X(x1),Y(y1)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawSpline(){
+  const m = slopesWithConstraints(xs, ys, slopesKnown);
+  const curve = sampleHermite(xs, ys, m, 0.01);
+  ctx.lineWidth=4; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--curve');
+  ctx.beginPath(); ctx.moveTo(X(curve[0].x), Y(curve[0].y));
+  for (const q of curve) ctx.lineTo(X(q.x), Y(q.y));
+  ctx.stroke();
+}
+
+function drawCubicPoly(){
+  const {a,b,c,d} = cubicFromDerivativeConstraints(pts, pts[idxA].x, 3, pts[idxB].x, 0, pts[idxC].x, -2);
+  // trace de xMin à xMax
+  ctx.lineWidth=3; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--fit'); ctx.setLineDash([10,6]);
+  ctx.beginPath();
+  for (let x=xMin; x<=xMax; x+=0.01){
+    const y = ((a*x + b)*x + c)*x + d; // ax^3+bx^2+cx+d
+    const xp = X(x), yp = Y(y);
+    if (x===xMin) ctx.moveTo(xp,yp); else ctx.lineTo(xp,yp);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function render(){
+  drawGrid();
+  drawPoints();
+  drawTangents();
+  if (showSplineEl.checked) drawSpline();
+  if (showPolyEl.checked)   drawCubicPoly();
+}
+render();
+
+showSplineEl.addEventListener('change', render);
+showPolyEl  .addEventListener('change', render);
+
+/* ========= 6) Export PNG ========= */
+document.getElementById('dl').addEventListener('click', ()=>{
+  const a = document.createElement('a');
+  a.download = 'courbe_polynome.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+</script>
+</body>
+</html>

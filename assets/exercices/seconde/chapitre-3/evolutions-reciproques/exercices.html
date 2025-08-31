@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang='fr'>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Évolution réciproque</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+
+.row{ display:grid; grid-template-columns:1fr; grid-template-areas:'lab' 'inp' 'res'; gap:10px; align-items:start; }
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+.eq .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.eq .frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.eq .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+/* petit tick après les champs */
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+</style>
+</head>
+
+<body>
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Seconde – <strong>Évolution réciproque</strong></h1>
+  <div class="wrap" style="padding:0 18px">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card"><div id="host"></div></div>
+
+  <div class="card small">
+    <div><strong>Saisie & réponses acceptées :</strong></div>
+    <ul class="tips">
+      <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,17</code> ↔ <code>0.17</code>).</li>
+      <li>Pourcentages : autorisé avec <code>%</code> (ex. <code>17%</code>).</li>
+      <li>Arrondis : taux au <strong>% près</strong> (équivalent à 0,01 en décimal).</li>
+    </ul>
+  </div>
+    <div class="card"><div data-math-kbd style="display:flex; justify-content:center"></div></div>
+
+</div>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script>
+/* ======= Outils ======= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=L=>L[rnd(0,L.length-1)];
+
+const fmtDecFR=(x,d=2)=>String(Math.round(x*10**d)/10**d).replace('.',',');
+function tidyDecFR(v,d=2){ let s=fmtDecFR(v,d); if(s.includes(',')) s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; }
+
+const same02=(a,b)=>Math.round(a*100)===Math.round(b*100);   // ~ 1% sur un taux en décimal
+const stripU=s=>String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s=stripU(String(s||'').trim());
+  const m=s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(m) return parseFloat(m[1].replace(',', '.'))/100;
+  return parseFloat(s.replace(',', '.'));
+}
+function fracHTML(n,d){ return '<span class="frac"><span class="num">'+n+'</span><span class="bar"></span><span class="den">'+d+'</span></span>'; }
+function addTicks(host){ $$('#host input[type=text]').forEach(inp=>{ if(!inp.nextElementSibling || !inp.nextElementSibling.classList?.contains('tick')) inp.insertAdjacentHTML('afterend','<span class="tick"></span>'); }); }
+function setTick(inp, ok){ const t=inp.nextElementSibling?.classList?.contains('tick')?inp.nextElementSibling:null; if(!t) return; t.textContent=ok===null?'':(ok?'✔':'✘'); t.className='tick '+(ok?'ok':'ko'); }
+// signe "=" ou "≈" selon arrondi
+function eqSign(exact, shown){ return (Math.abs(exact - shown) < 1e-12) ? '=' : '≈'; }
+const noun = s => s==='+' ? 'hausse' : 'baisse';
+const needed = s => s==='+' ? 'réduction' : 'hausse'; // pour revenir à l'initial
+function rto(v,d=2){ return Math.round(v*10**d)/10**d; }
+
+/* ======= Ex. 1 — Taux réciproque d’un pourcentage donné ======= */
+const ex1={
+  id:'taux_recip_simple',
+  title:'Exercice 1 — Déterminer un taux d’évolution réciproque',
+  gen(){
+    const s = Math.random()<0.5 ? '+' : '−';   // hausse/baisse
+    const p = rnd(5,60);                       // au % près
+    const c  = s==='+' ? 1+p/100 : 1-p/100;
+    const cr = 1/c;
+    const tr = cr - 1;                         // décimal (signe opposé)
+    return {s, p, c, cr, tr};
+  },
+  render(host, st){
+    host.innerHTML = `<div class="inner">
+      <div class="consigne">
+        <div style="font-weight:700">Énoncé</div>
+        Déterminer, sous forme de pourcentage, le taux d’évolution <em>réciproque</em> d’une <strong>${noun(st.s)}</strong> de <strong>${st.p}%</strong>.
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse attendue :</strong> le taux réciproque (au % près)</div>
+        <div class="input-line"><input id="t1" type="text" placeholder="ex. 17% ou 0,17"></div>
+      </div>
+      <div id="res" class="res"></div>
+    </div>`;
+  },
+  correct(host, st){
+    const inner=$('.inner',host); addTicks(inner);
+    const t = parseNumberFR($('#t1',inner).value);   // décimal accepté
+    const ok = isFinite(t) && same02(t, st.tr);
+    setTick($('#t1',inner), ok);
+    const res=$('#res',inner); res.textContent = ok ? 'Correct.' : 'Incorrect.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  solution(host, st){
+  const inner = $('.inner', host);
+
+  const c1Exact = st.c;                          // 1 ± p/100
+  const c1Show  = tidyDecFR(c1Exact, 2);
+
+  const c2Exact = 1 / c1Exact;
+  const c2Show  = tidyDecFR(rto(c2Exact, 2), 2);
+
+  const tExact  = c2Exact - 1;                   // décimal
+  const tDec    = tidyDecFR(rto(tExact, 2), 2);  // ex: −0,13
+  const tPctI   = Math.round(tExact * 100);      // au % près (entier signé)
+  const signWord = (st.s === '+') ? 'baisse' : 'hausse';
+
+  $('#res', inner).innerHTML = `
+    <div class="eq">
+      <div>c<sub>1</sub> = 1 ${st.s==='+'?'+':'−'} ${fracHTML(st.p,'100')} = ${c1Show}</div>
+      <div>c<sub>2</sub> = ${fracHTML('1','c<sub>1</sub>')} = ${fracHTML('1', c1Show)} ${eqSign(c2Exact, rto(c2Exact,2))} ${c2Show}</div>
+      <div>t<sub>2</sub> = c<sub>2</sub> − 1 ${eqSign(tExact, rto(tExact,2))} ${tDec} ≈ ${tPctI}%</div>
+      <p>Il faut une <strong>${signWord}</strong> d’environ <strong>${Math.abs(tPctI)}%</strong>.</p>
+    </div>`;
+  $('#res', inner).className = 'res eq';
+},
+
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ======= Banque 25 contextes (énoncés réalistes) ======= */
+function bank25(){
+  const B = [
+    p => `Le prix de vente d’un article a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}% lors d’une opération. Quelle ${needed(p.s)} faut-il appliquer pour revenir au prix initial ?`,
+    p => `Le loyer a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}% cette année. Quelle ${needed(p.s)} est nécessaire pour retrouver le loyer de l’an dernier ?`,
+    p => `Le salaire d’un employé a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}% en janvier. Quelle ${needed(p.s)} faudrait-il pour revenir au salaire précédent ?`,
+    p => `Le prix d’un billet de cinéma a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} rendre pour retrouver l’ancien tarif ?`,
+    p => `Le prix d’un ordinateur a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour revenir au prix d’avant ?`,
+    p => `Le prix d’un livre scolaire a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} appliquer pour retrouver le prix initial ?`,
+    p => `Le tarif d’un abonnement a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} permet de revenir au tarif initial ?`,
+    p => `Le prix d’un smartphone a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}% pendant les soldes. Quelle ${needed(p.s)} pour retrouver le prix d’avant ?`,
+    p => `Le coût d’un trajet en train a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} est nécessaire pour revenir à l’ancien coût ?`,
+    p => `Le prix d’un panier de courses a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour retrouver le prix initial ?`,
+    p => `Le tarif horaire d’un artisan a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} pour revenir à l’ancien tarif ?`,
+    p => `Le prix d’une place de spectacle a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour revenir au prix de départ ?`,
+    p => `Le prix d’un café au comptoir a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} pour retrouver l’ancien prix ?`,
+    p => `Le prix d’un menu au restaurant a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} appliquer pour revenir au prix initial ?`,
+    p => `Le prix du ticket de bus a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour retrouver l’ancien prix ?`,
+    p => `Le prix d’une paire de chaussures a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} appliquer pour revenir au prix avant promo ?`,
+    p => `Le prix d’une bicyclette a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} pour retrouver le prix initial ?`,
+    p => `Le prix d’un sac à dos a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} pour revenir au prix d’origine ?`,
+    p => `Le prix d’une console de jeux a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour revenir au prix initial ?`,
+    p => `Le prix d’une imprimante a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} appliquer pour retrouver l’ancien prix ?`,
+    p => `Le prix d’une chaise de bureau a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour revenir au prix d’origine ?`,
+    p => `Le prix d’une lampe de chevet a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} pour retrouver le prix initial ?`,
+    p => `Le prix d’une trottinette a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} appliquer pour revenir au prix initial ?`,
+    p => `Le prix d’un casque audio a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} faut-il pour retrouver le prix de départ ?`,
+    p => `Le prix d’un sac de sport a ${p.s==='+'?'augmenté':'diminué'} de ${p.p}%. Quelle ${needed(p.s)} permet de revenir au prix initial ?`,
+  ];
+  return B;
+}
+
+/* ======= Ex. 2 — Taux réciproque dans un contexte ======= */
+const ex2={
+  id:'taux_recip_contexte',
+  title:'Exercice 2 — Évolution réciproque en contexte (banque de 25)',
+  gen(){
+    const s = Math.random()<0.5 ? '+' : '−';   // hausse/baisse
+    const p = rnd(5,60);                       // au % près
+    const c  = s==='+' ? 1+p/100 : 1-p/100;
+    const cr = 1/c;
+    const tr = cr - 1;                         // décimal
+    const ctx = choice(bank25());
+    return {s,p,c,cr,tr, ctxText: ctx({s,p})};
+  },
+  render(host, st){
+    host.innerHTML = `<div class="inner">
+      <div class="consigne">
+        <div style="font-weight:700">Énoncé</div>
+        ${st.ctxText}
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse attendue :</strong> le taux réciproque (au % près)</div>
+        <div class="input-line"><input id="t2" type="text" placeholder="ex. 17% ou 0,17"></div>
+      </div>
+      <div id="res" class="res"></div>
+    </div>`;
+  },
+  correct(host, st){
+    const inner=$('.inner',host); addTicks(inner);
+    const t = parseNumberFR($('#t2',inner).value);
+    const ok = isFinite(t) && same02(t, st.tr);
+    setTick($('#t2',inner), ok);
+    const res=$('#res',inner); res.textContent = ok ? 'Correct.' : 'Incorrect.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  solution(host, st){
+  const inner = $('.inner', host);
+
+  const c1Exact = st.c;                          // 1 ± p/100
+  const c1Show  = tidyDecFR(c1Exact, 2);
+
+  const c2Exact = 1 / c1Exact;
+  const c2Show  = tidyDecFR(rto(c2Exact, 2), 2);
+
+  const tExact  = c2Exact - 1;
+  const tDec    = tidyDecFR(rto(tExact, 2), 2);
+  const tPctI   = Math.round(tExact * 100);
+  const signWord = (st.s === '+') ? 'baisse' : 'hausse';
+
+  $('#res', inner).innerHTML = `
+    <div class="eq">
+      <div>c<sub>1</sub> = 1 ${st.s==='+'?'+':'−'} ${fracHTML(st.p,'100')} = ${c1Show}</div>
+      <div>c<sub>2</sub> = ${fracHTML('1','c<sub>1</sub>')} = ${fracHTML('1', c1Show)} ${eqSign(c2Exact, rto(c2Exact,2))} ${c2Show}</div>
+      <div>t<sub>2</sub> = c<sub>2</sub> − 1 ${eqSign(tExact, rto(tExact,2))} ${tDec} ≈ ${tPctI}%</div>
+      <p>Il faut donc une <strong>${signWord}</strong> d’environ <strong>${Math.abs(tPctI)}%</strong> pour revenir à la valeur initiale.</p>
+    </div>`;
+  $('#res', inner).className = 'res eq';
+},
+
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ======= Moteur ======= */
+const REGISTRY=[ex1, ex2];
+window.REGISTRY = REGISTRY; // requis par le générateur PDF
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent=`Score : ${scoreOK} / ${scoreTot}`; }
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host, st); $('#res',host)?.classList?.remove('res-ok','res-ko');
+}
+function check(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host, st);
+  if(r){ scoreOK+=(r.ok?1:0); scoreTot+=(r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host, st);
+}
+function resetAll(){ scoreOK=0; scoreTot=0; updateScore(); const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const sel=$('#exo-select'); REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  // Enter = Vérifier
+  document.addEventListener('keydown', ev=>{
+    const a=document.activeElement;
+    if(a && a.closest('#host') && a.tagName==='INPUT' && ev.key==='Enter'){ ev.preventDefault(); check(); }
+  });
+});
+</script>
+
+<!-- Générateur PDF -->
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.ExoPDF) {
+    ExoPDF.init({
+      title: (document.title || 'Fiche d’exercices').replace(/\s+–.+$/, '').trim(),
+      mountAfterSelector: '.wrap .card.small', // sous « Saisie & réponses acceptées »
+      max: 50
+      // On laisse le fallback du kit : rendu offscreen propre + extraction de #res pour la correction.
+    });
+  } else {
+    console.warn('ExoPDF non chargé');
+  }
+});
+</script>
+
+</body>
+</html>

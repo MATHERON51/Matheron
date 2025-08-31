@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Seconde — Représentation graphique</title>
+
+<!-- Dépendances (tes versions “multiplicatif”) -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<script src="../../../../js/ch0-mul-clean.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+
+<style>
+  /* style très proche de ton original */
+  *{box-sizing:border-box}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:12px 16px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  label{color:#333}
+  select,input{font:inherit}
+  input[type=number]{width:80px}
+  .btn{appearance:none;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;padding:8px 10px;cursor:pointer}
+  .btn:hover{background:#efefef}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+  /* bloc exo */
+  .equ{margin-bottom:8px}
+  .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
+  .qmark{min-width:1.2em;text-align:center;font-weight:700}
+  .answer input{min-width:240px}
+
+  /* repères */
+  svg.repere{display:block;margin:.25rem 0;width:min(560px,100%);height:auto;aspect-ratio:560/360}
+  .thin-grid line{stroke:#000;stroke-opacity:.22;stroke-width:.7}
+  .heavy-grid line{stroke:#000;stroke-opacity:.6;stroke-width:.9}
+  .axes line{stroke:#111;stroke-width:1.2}
+  .curve{fill:none;stroke:#d81b1b;stroke-width:2.2}
+  .dots{fill:#000}
+
+  /* correction */
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  /* PDF UI (montée par exo-pdf-kit) */
+  .pdf-controls{margin-top:4px}
+  .small{font-size:.92rem;color:#666}
+
+  /* Forçage visuel d’espaces autour des parenthèses (Ex.1–2 uniquement) */
+  .paren-l::before{content:" ";}
+  .paren-r::after{content:" ";}
+
+  /* Entrée -> Vérifier (confort) */
+  input[type="text"]{padding:6px 8px;border:1px solid #ddd;border-radius:8px}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">Seconde — <strong>Représentation graphique</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <div class="row">
+        <label for="exo-select"><strong>Type d’exercice :</strong></label>
+        <select id="exo-select"></select>
+        <button class="btn" id="btn-new">Nouvel énoncé</button>
+        <button class="btn" id="btn-check">Vérifier</button>
+        <button class="btn" id="btn-solution">Solution</button>
+        <button class="btn" id="btn-reset">Réinitialiser</button>
+        <span class="small" style="margin-left:8px">Score : <span id="score">0</span>/<span id="total">0</span></span>
+      </div>
+      <div class="row">
+        <strong>Amplitude :</strong>
+        <label>xmin <input id="xmin" type="number" step="1" value="-5"></label>
+        <label>xmax <input id="xmax" type="number" step="1" value="6"></label>
+        <label>ymin <input id="ymin" type="number" step="1" value="-6"></label>
+        <label>ymax <input id="ymax" type="number" step="1" value="6"></label>
+        <button class="btn" id="btn-amp">Appliquer</button>
+      </div>
+    </div>
+
+    <main class="grid">
+      <section class="card">
+        <div id="host"></div>
+        <div data-math-kbd></div>
+      </section>
+      <section class="card">
+        <div id="res"></div>
+      </section>
+    </main>
+
+    <section class="card controls">
+      <div class="small" style="font-weight:600">Générer une fiche (PDF)</div>
+      <!-- exo-pdf-kit montera ici son UI -->
+    </section>
+  </div>
+
+<script>
+"use strict";
+
+/* ========= utilitaires ========= */
+const UMINUS = "−";
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const $ = (s,r=document)=>r.querySelector(s);
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function choice(a){ return a[Math.floor(Math.random()*a.length)]; }
+const fmtFR = n => {
+  if (typeof n !== "number" || !isFinite(n)) return String(n);
+  const isInt = Math.abs(n - Math.round(n)) < 1e-9;
+  const s = isInt ? String(Math.round(n)) : n.toFixed(2);
+  const fr = s.replace(".", ",").replace(/,00$/, "");
+  return (n<0 ? UMINUS : "") + (n<0 ? fr.replace(/^-/, "") : fr);
+};
+function dedup(lines){ const out=[]; for(const L of lines){ if(!out.length || out[out.length-1]!==L) out.push(L); } return out; }
+
+/* ========= Amplitude (1,2,4) ========= */
+let AMP={ xmin:-5,xmax:6,ymin:-6,ymax:6 };
+function applyAMP(){
+  let xi=+$('#xmin').value, xa=+$('#xmax').value, yi=+$('#ymin').value, ya=+$('#ymax').value;
+  if(!(xi<=xa)) [xi,xa]=[xa,xi];
+  if(!(yi<=ya)) [yi,ya]=[ya,yi];
+  xi=clamp(xi,-12,12); xa=clamp(xa,-12,12);
+  yi=clamp(yi,-12,12); ya=clamp(ya,-12,12);
+  if(xi===xa) xa=xi+1; if(yi===ya) ya=yi+1;
+  AMP={ xmin:xi,xmax:xa,ymin:yi,ymax:ya };
+  document.body.classList.remove('solution-active');
+  buildOne();
+}
+
+/* =================== Repères =================== */
+/* générique : graduations collées aux axes (x en bas, y à gauche) + flèches */
+let __clipId=0;
+function buildRepereSVG(opts){
+  const W=560, H=360;
+  const {xmin,xmax,ymin,ymax} = opts;
+
+  const svg=elNS('svg'); svg.setAttribute('viewBox','0 0 560 360'); svg.classList.add('repere');
+  const defs=elNS('defs');
+  const clip=elNS('clipPath'); const cid='clip'+(++__clipId); clip.setAttribute('id',cid);
+  const crect=elNS('rect'); crect.setAttribute('x',0); crect.setAttribute('y',0); crect.setAttribute('width',W); crect.setAttribute('height',H);
+  clip.appendChild(crect); defs.appendChild(clip);
+
+  const marker=elNS('marker'); marker.setAttribute('id','arrow'); marker.setAttribute('viewBox','0 0 6 6');
+  marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8'); marker.setAttribute('refX','6'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto');
+  const tri=elNS('path'); tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
+  defs.appendChild(marker); svg.appendChild(defs);
+
+  const axes = elNS('g'); axes.classList.add('axes');
+  const plot = elNS('g'); plot.classList.add('plot'); plot.setAttribute('clip-path','url(#'+cid+')');
+  svg.appendChild(axes); svg.appendChild(plot);
+
+  const X = x => (x - xmin) * W / (xmax - xmin);
+  const Y = y => H - (y - ymin) * H / (ymax - ymin);
+
+  // cadre
+  const frame=elNS('rect'); frame.setAttribute('x',0); frame.setAttribute('y',0); frame.setAttribute('width',W); frame.setAttribute('height',H);
+  frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111'); axes.appendChild(frame);
+
+  const yAxisY = clamp(Y(0), 10, H-10);
+  const xAxisX = clamp(X(0), 10, W-10);
+
+  // grille + labels
+  const grid = elNS('g'); grid.classList.add('thin-grid');
+  const tx = elNS('g'); const ty = elNS('g');
+  const sx = (opts.ticks && opts.ticks.x) || 1;
+  for (let xv = Math.ceil(xmin/sx)*sx; xv <= xmax+1e-9; xv += sx){
+    const xx = X(xv);
+    const l = elNS('line'); l.setAttribute('x1',xx); l.setAttribute('x2',xx); l.setAttribute('y1',0); l.setAttribute('y2',H); grid.appendChild(l);
+    const t = elNS('text'); t.textContent = fmtFR(xv); t.setAttribute('x',xx); t.setAttribute('y',yAxisY+14); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12'); tx.appendChild(t);
+  }
+  const sy = (opts.ticks && opts.ticks.y) || 1;
+  for (let yv = Math.ceil(ymin/sy)*sy; yv <= ymax+1e-9; yv += sy){
+    const yy = Y(yv);
+    const l = elNS('line'); l.setAttribute('x1',0); l.setAttribute('x2',W); l.setAttribute('y1',yy); l.setAttribute('y2',yy); grid.appendChild(l);
+    const t = elNS('text'); t.textContent = fmtFR(yv); t.setAttribute('x',xAxisX-6); t.setAttribute('y',yy+4); t.setAttribute('text-anchor','end'); t.setAttribute('font-size','12'); ty.appendChild(t);
+  }
+  axes.appendChild(grid); axes.appendChild(tx); axes.appendChild(ty);
+
+  // axes + flèches
+  const axX = elNS('line'); axX.setAttribute('x1',0); axX.setAttribute('x2',W-8); axX.setAttribute('y1',yAxisY); axX.setAttribute('y2',yAxisY); axX.setAttribute('marker-end','url(#arrow)'); axes.appendChild(axX);
+  const axY = elNS('line'); axY.setAttribute('x1',xAxisX); axY.setAttribute('x2',xAxisX); axY.setAttribute('y1',H); axY.setAttribute('y2',8); axY.setAttribute('marker-end','url(#arrow)'); axes.appendChild(axY);
+
+  return { svg, plot, axes, X, Y, xmin, xmax, ymin, ymax, W, H };
+}
+
+/* Repère spécifique Ex.3 : labels plus visibles, toujours dans le cadre */
+function buildRepereSVG_ex3(opts){
+  const R = buildRepereSVG(opts);
+  R.axes.classList.remove('thin-grid'); R.axes.classList.add('heavy-grid');
+  R.svg.setAttribute('data-heavylabels','1');
+  return R;
+}
+
+function elNS(name){ return document.createElementNS('http://www.w3.org/2000/svg', name); }
+function drawPolyline(g, pts, X, Y, cls="curve"){ const p=elNS('polyline'); p.setAttribute('fill','none'); p.setAttribute('class',cls); p.setAttribute('points', pts.map(([x,y])=>`${X(x)},${Y(y)}`).join(" ")); g.appendChild(p); }
+function drawDots(g, pts, X, Y, cls="dots"){ for(const [x,y] of pts){ const c=elNS('circle'); c.setAttribute('cx',X(x)); c.setAttribute('cy',Y(y)); c.setAttribute('r',3); c.setAttribute('class',cls); g.appendChild(c);} }
+
+/* ========= “espaces autour des parenthèses” (Ex.1–2) ========= */
+/* On encapsule ( et ) dans <span class="paren-l">(</span> et <span class="paren-r">)</span>
+   puis on ajoute les espaces via CSS ::before / ::after. */
+function addParenSpacers(root){
+  if(!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const toChange = [];
+  while (walker.nextNode()){
+    const n = walker.currentNode;
+    const parent = n.parentNode;
+    if(!parent || parent.closest('[data-mulclean="off"]')==null) continue; // on ne fait ça que dans la zone “off”
+    const s = n.nodeValue;
+    if(!/[()]/.test(s)) continue;
+    toChange.push(n);
+  }
+  for(const n of toChange){
+    const frag = document.createDocumentFragment();
+    String(n.nodeValue).split(/([()])/).forEach(tok=>{
+      if(tok==="("){
+        const sp=document.createElement('span'); sp.className='paren-l'; sp.textContent='(' ; frag.appendChild(sp);
+      }else if(tok===")"){
+        const sp=document.createElement('span'); sp.className='paren-r'; sp.textContent=')' ; frag.appendChild(sp);
+      }else{
+        frag.appendChild(document.createTextNode(tok));
+      }
+    });
+    n.parentNode.replaceChild(frag, n);
+  }
+}
+
+/* =================== EXERCICES =================== */
+const REGISTRY = [
+/* === Exercice 1 ========================================================== */
+{
+  id:'rg1',
+  title:'Lecture graphique (x entiers)',
+  lead:'Lecture : ensemble de définition, images, antécédents.',
+  gen(){
+    const a = AMP;
+    const xs = []; for(let x=a.xmin; x<=a.xmax; x++) xs.push(x);
+    // courbe passant par des points entiers lisibles
+    const pts = xs.map(x => [x, clamp((x%2? -1:1)*Math.round((a.ymax-a.ymin)/4) + (Math.sin(x*1.2)|0), a.ymin+1, a.ymax-1)]);
+    const askX = shuffle(xs.filter(x=>x!==0)).slice(0,2).sort((u,v)=>u-v);
+    const askY = shuffle(pts.map(p=>p[1])).slice(0,2);
+    return {pts, askX, askY};
+  },
+  render(host, st){
+    // zone désactivée des cleaners pour garder les espaces autour des parenthèses
+    host.innerHTML = `<div class="equ" data-mulclean="off"><em>Lecture graphique.</em></div>`;
+    const rep = buildRepereSVG(AMP); host.appendChild(rep.svg);
+    drawPolyline(rep.plot, st.pts, rep.X, rep.Y);
+    drawDots(rep.plot, st.pts, rep.X, rep.Y);
+
+    const q = document.createElement('div'); q.className='qa'; q.setAttribute('data-mulclean','off');
+    q.innerHTML = `
+      <div class="qmark">1.</div><div>Ensemble de définition :
+        <input type="text" id="d" placeholder="[${fmtFR(AMP.xmin)} ; ${fmtFR(AMP.xmax)}]"></div>
+      <div class="qmark">2.</div><div>Image de <span class="num">${fmtFR(st.askX[0])}</span> :
+        <input type="text" id="i0" placeholder="entier"></div>
+      <div class="qmark">3.</div><div>Image de <span class="num">${fmtFR(st.askX[1])}</span> :
+        <input type="text" id="i1" placeholder="entier"></div>
+      <div class="qmark">4.</div><div>Antécédent(s) de <span class="num">${fmtFR(st.askY[0])}</span> :
+        <input type="text" id="a0" placeholder="x ; … (entiers, 'aucun')"></div>
+      <div class="qmark">5.</div><div>Antécédent(s) de <span class="num">${fmtFR(st.askY[1])}</span> :
+        <input type="text" id="a1" placeholder="x ; … (entiers, 'aucun')"></div>
+    `;
+    host.appendChild(q);
+    addParenSpacers(host); // forcer les espaces visuels
+  },
+  check(root, st){
+    let ok=0, tot=0;
+    tot++;
+    const d = $('#d',root)?.value?.replace(/\s/g,'')||'';
+    const goodD = `[${fmtFR(AMP.xmin)} ; ${fmtFR(AMP.xmax)}]`.replace(/\s/g,'');
+    if(d===goodD) ok++;
+
+    st.askX.forEach((x,i)=>{ tot++; const y=st.pts.find(p=>p[0]===x)[1];
+      const v = $('#i'+i,root)?.value?.trim().replace(",","."); if(v!=="" && +v===y) ok++; });
+
+    st.askY.forEach((y,i)=>{ tot++; const xs=st.pts.filter(p=>p[1]===y).map(p=>p[0]).sort((a,b)=>a-b);
+      const v = $('#a'+i,root)?.value||''; const L=v.split(/[;,]/).map(s=>s.trim()).filter(Boolean).map(w=>+w).sort((a,b)=>a-b);
+      if(xs.length===L.length && xs.every((x,j)=>x===L[j])) ok++; });
+    return {ok, tot};
+  },
+  solution(root, st){
+    const L=[];
+    L.push(`D = [ ${fmtFR(AMP.xmin)} ; ${fmtFR(AMP.xmax)} ]`);
+    st.askX.forEach(x=>{ const y=st.pts.find(p=>p[0]===x)[1]; L.push(`f(${fmtFR(x)}) = ${fmtFR(y)}`); });
+    st.askY.forEach(y=>{ const xs=st.pts.filter(p=>p[1]===y).map(p=>fmtFR(p[0])).join(' ; ') || 'aucun'; L.push(`Antécédent(s) de ${fmtFR(y)} : ${xs}`); });
+    $('#res').innerHTML = `<div class="steps" data-mulclean="off">${dedup(L).map(s=>`<div class="step">${s}</div>`).join('')}</div>`;
+    document.body.classList.add('solution-active');
+    addParenSpacers($('#res')); // garder espaces
+  }
+},
+
+/* === Exercice 2 ========================================================== */
+{
+  id:'rg2',
+  title:'Lecture graphique (entiers & 1/2)',
+  lead:'Même présentation — spacing parenthèses forcé.',
+  gen(){
+    const a = AMP;
+    const xs=[]; for(let x=a.xmin; x<=a.xmax; x+=0.5) xs.push(x);
+    const pts = xs.map(x => [x, clamp(Math.round( (Math.cos(x*0.9))*((a.ymax-a.ymin)/3) ), a.ymin+1, a.ymax-1)]);
+    const askX = shuffle(xs.filter(x=>Math.abs(x)%1===0.5)).slice(0,2).sort((u,v)=>u-v);
+    const askY = shuffle(pts.map(p=>p[1])).slice(0,2);
+    return {pts, askX, askY};
+  },
+  render(host, st){
+    host.innerHTML = `<div class="equ" data-mulclean="off"><em>Lecture graphique.</em></div>`;
+    const rep = buildRepereSVG(AMP); host.appendChild(rep.svg);
+    drawPolyline(rep.plot, st.pts, rep.X, rep.Y);
+    drawDots(rep.plot, st.pts, rep.X, rep.Y);
+
+    const q = document.createElement('div'); q.className='qa'; q.setAttribute('data-mulclean','off');
+    q.innerHTML = `
+      <div class="qmark">1.</div><div>Ensemble de définition :
+        <input type="text" id="d" placeholder="[${fmtFR(AMP.xmin)} ; ${fmtFR(AMP.xmax)}]"></div>
+      <div class="qmark">2.</div><div>Image de <span class="num">${fmtFR(st.askX[0])}</span> :
+        <input type="text" id="i0" placeholder="entier ou 1/2"></div>
+      <div class="qmark">3.</div><div>Image de <span class="num">${fmtFR(st.askX[1])}</span> :
+        <input type="text" id="i1" placeholder="entier ou 1/2"></div>
+      <div class="qmark">4.</div><div>Antécédent(s) de <span class="num">${fmtFR(st.askY[0])}</span> :
+        <input type="text" id="a0" placeholder="x ; … (entiers, 'aucun')"></div>
+      <div class="qmark">5.</div><div>Antécédent(s) de <span class="num">${fmtFR(st.askY[1])}</span> :
+        <input type="text" id="a1" placeholder="x ; … (entiers, 'aucun')"></div>
+    `;
+    host.appendChild(q);
+    addParenSpacers(host);
+  },
+  check: (root,st)=> REGISTRY[0].check(root,st), // même logique
+  solution: (root,st)=> REGISTRY[0].solution(root,st)
+},
+
+/* === Exercice 3 – Contextualisé, entiers obligatoires ==================== */
+{
+  id:'rg3',
+  title:'Lecture contextualisée (entiers)',
+  lead:'Contexte + repère dédié (graduations à gauche/en bas).',
+  gen(){
+    const themes = [
+      {id:'tension', txt:"Alex a mesuré la tension en fonction du temps écoulé aux bornes d'une lampe. Il a obtenu le graphique suivant, donnant la tension (en volts) en fonction du temps (en millisecondes).", xlab:"Temps (ms)", ylab:"Tension (V)"},
+      {id:'petrole', txt:"On étudie l’évolution du prix du pétrole en fonction de l’année.", xlab:"Année", ylab:"Prix (unité)"},
+      {id:'naiss',   txt:"On observe le nombre de naissances en fonction de l’année.", xlab:"Année", ylab:"Naissances (milliers)"},
+      {id:'co2',     txt:"Évolution d’émissions de CO₂ en fonction de l’année.", xlab:"Année", ylab:"Émissions (Mt)"}
+    ];
+    const T = choice(themes);
+
+    // grille entière : on force des points (x,y) entiers, lisibles
+    const a = AMP; // on réutilise l’amplitude utilisateur
+    const xs = []; for(let x=a.xmin; x<=a.xmax; x++) xs.push(x);
+    const pts = xs.map(x=>{
+      // fonction “douce” mais arrondie à l’entier et bornée dans [ymin+1 ; ymax-1]
+      let y = Math.round( (Math.sin((x-a.xmin)/(a.xmax-a.xmin+1)*Math.PI*1.7))*((a.ymax-a.ymin)/3) );
+      y = clamp(y, a.ymin+1, a.ymax-1);
+      if (T.id!=='tension') y = Math.max(0, y); // éviter valeurs négatives pour certains thèmes
+      return [x,y];
+    });
+
+    // questions : 2 images pour des x entiers et 1 antécédent pour un y entier “présent” sur la courbe
+    const askX = shuffle(xs.filter(x=>x!==0)).slice(0,2).sort((u,v)=>u-v);
+    const askY = choice(pts.map(p=>p[1]));
+
+    return {T, pts, askX, askY};
+  },
+  render(host, st){
+    host.innerHTML = "";
+    const r = buildRepereSVG_ex3(AMP); host.appendChild(r.svg);
+    drawPolyline(r.plot, st.pts, r.X, r.Y);
+    drawDots(r.plot, st.pts, r.X, r.Y);
+
+    const c = document.createElement('div'); c.className='equ';
+    c.innerHTML = `<p>${st.T.txt}</p>`;
+    host.prepend(c);
+
+    const q = document.createElement('div'); q.className='qa';
+    q.innerHTML = `
+      <div class="qmark">1.</div>
+      <div>Quelles légendes placer au bout des flèches ? (Répondre en précisant grandeurs et unités.)</div>
+
+      <div class="qmark">2.</div>
+      <div>Donner l’image en <strong>${fmtFR(st.askX[0])}</strong> et en <strong>${fmtFR(st.askX[1])}</strong>.
+        <div class="answer">f(${fmtFR(st.askX[0])}) = <input type="text" id="q2a" placeholder="entier"></div>
+        <div class="answer">f(${fmtFR(st.askX[1])}) = <input type="text" id="q2b" placeholder="entier"></div>
+      </div>
+
+      <div class="qmark">3.</div>
+      <div>Donner la(les) valeur(s) de <strong>x</strong> telle(s) que f(x) = <strong>${fmtFR(st.askY)}</strong>.
+        <div class="answer"><input type="text" id="q3" placeholder="x ; …"></div>
+      </div>
+    `;
+    host.appendChild(q);
+  },
+  check(root, st){
+    let ok=0, tot=0;
+    // Q1 : on accepte n’importe quoi (texte libre) -> non compté
+    // Q2 :
+    const yA = st.pts.find(p=>p[0]===st.askX[0])[1];
+    const yB = st.pts.find(p=>p[0]===st.askX[1])[1];
+    const vA = +($('#q2a',root)?.value||'').replace(",",".");
+    const vB = +($('#q2b',root)?.value||'').replace(",",".");
+    tot+=2; if(Number.isFinite(vA) && vA===yA) ok++; if(Number.isFinite(vB) && vB===yB) ok++;
+    // Q3 :
+    const xs = st.pts.filter(p=>p[1]===st.askY).map(p=>p[0]).sort((a,b)=>a-b);
+    const ans = ($('#q3',root)?.value||'').split(/[;,]/).map(s=>s.trim()).filter(Boolean).map(Number).sort((a,b)=>a-b);
+    tot++; if(xs.length===ans.length && xs.every((x,i)=>x===ans[i])) ok++;
+    return {ok, tot};
+  },
+  solution(root, st){
+    const L=[];
+    // Q1 contextualisée
+    L.push(`1. Il faut mettre en abscisse : ${st.T.xlab} et en ordonnée : ${st.T.ylab}.`);
+    // Q2
+    const yA = st.pts.find(p=>p[0]===st.askX[0])[1];
+    const yB = st.pts.find(p=>p[0]===st.askX[1])[1];
+    L.push(`2. Au bout de ${fmtFR(st.askX[0])}, la ${st.T.id==='tension'?'tension':'valeur de la fonction'} est de ${fmtFR(yA)}.`);
+    L.push(`   Au bout de ${fmtFR(st.askX[1])}, la ${st.T.id==='tension'?'tension':'valeur de la fonction'} est de ${fmtFR(yB)}.`);
+    // Q3
+    const xs = st.pts.filter(p=>p[1]===st.askY).map(p=>fmtFR(p[0])).join(' ; ') || 'aucun';
+    L.push(`3. ${st.T.id==='tension'?'La tension':'La valeur'} est de ${fmtFR(st.askY)} au bout de ${xs}.`);
+    $('#res').innerHTML = `<div class="steps">${L.map(s=>`<div class="step">${s}</div>`).join('')}</div>`;
+    document.body.classList.add('solution-active');
+  }
+},
+
+/* === Exercice 4 – Tableaux (correction fiabilisée) ======================= */
+{
+  id:'rg4',
+  title:'Tableaux images & antécédents',
+  lead:'Compléter les tableaux puis vérifier.',
+  gen(){
+    const a=AMP, xs=[]; for(let x=a.xmin; x<=a.xmax; x++) xs.push(x);
+    const pts = xs.map(x => [x, clamp(Math.round( (Math.sin(x*0.8))*((a.ymax-a.ymin)/3) ), a.ymin+1, a.ymax-1)]);
+    const askX = shuffle(xs).slice(0,4).sort((u,v)=>u-v);
+    const askY = shuffle(pts.map(p=>p[1])).slice(0,4);
+    return {pts, askX, askY};
+  },
+  render(host, st){
+    host.innerHTML = `<div class="equ"><em>Compléter les tableaux.</em></div>`;
+    const r = buildRepereSVG(AMP); host.appendChild(r.svg);
+    drawPolyline(r.plot, st.pts, r.X, r.Y,"curve");
+    const c=document.createElement('div');
+    c.innerHTML = `
+      <p><strong>Images</strong></p>
+      ${st.askX.map((x,i)=>`<div class="answer">f(${fmtFR(x)}) = <input type="text" id="tx${i}" placeholder="valeur"></div>`).join('')}
+      <p><strong>Antécédents</strong></p>
+      ${st.askY.map((y,i)=>`<div class="answer">x tels que f(x)=${fmtFR(y)} : <input type="text" id="ty${i}" placeholder="x ; … ou 'aucun'"></div>`).join('')}
+    `;
+    host.appendChild(c);
+  },
+  check(root, st){
+    let ok=0, tot=0;
+    st.askX.forEach((x,i)=>{ tot++; const y=st.pts.find(p=>p[0]===x)[1]; const v = +($('#tx'+i,root)?.value||'').replace(",","."); if(Number.isFinite(v)&&v===y) ok++; });
+    st.askY.forEach((y,i)=>{ tot++; const xs = st.pts.filter(p=>p[1]===y).map(p=>p[0]).sort((a,b)=>a-b);
+      const raw = ($('#ty'+i,root)?.value||'').trim().toLowerCase();
+      if(raw==="aucun"){ if(xs.length===0) ok++; }
+      else{
+        const L = raw.split(/[;,]/).map(s=>s.trim()).filter(Boolean).map(Number).sort((a,b)=>a-b);
+        if(xs.length===L.length && xs.every((x,j)=>x===L[j])) ok++;
+      }
+    });
+    return {ok, tot};
+  },
+  solution(root, st){
+    const A=[];
+    A.push("Images :"); st.askX.forEach(x=>{ const y=st.pts.find(p=>p[0]===x)[1]; A.push(`f(${fmtFR(x)}) = ${fmtFR(y)}`); });
+    A.push("Antécédents :"); st.askY.forEach(y=>{ const xs = st.pts.filter(p=>p[1]===y).map(p=>fmtFR(p[0])).join(' ; ') || 'aucun'; A.push(`Pour ${fmtFR(y)} : ${xs}`); });
+    $('#res').innerHTML = `<div class="steps">${A.map(s=>`<div class="step">${s}</div>`).join('')}</div>`;
+    document.body.classList.add('solution-active');
+  }
+}
+];
+
+/* ========= Application ========= */
+function populate(){
+  const sel = $('#exo-select'); sel.innerHTML='';
+  REGISTRY.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=d.title; sel.appendChild(o); });
+}
+let CUR = REGISTRY[0], STATE=null;
+
+function buildOne(){
+  const host = $('#host'); const res = $('#res');
+  host.innerHTML=''; res.innerHTML='';
+  CUR = REGISTRY.find(d=>d.id === $('#exo-select').value) || REGISTRY[0];
+  STATE = (typeof CUR.gen==='function') ? CUR.gen() : {};
+  // en-tête simple (non gras sur “Ensemble de définition” -> on ne touche pas aux labels)
+  const lead = document.createElement('div'); lead.className='small'; lead.textContent = CUR.lead || '';
+  host.appendChild(lead);
+  CUR.render(host, STATE);
+  // total attendu pour le score
+  const chk = CUR.check(host, STATE);
+  $('#total').textContent = chk.tot;
+  $('#score').textContent = '0';
+}
+function checkNow(){
+  const {ok, tot} = CUR.check($('#host'), STATE);
+  $('#score').textContent = String(ok); $('#total').textContent = String(tot);
+}
+function showSolution(){ if(typeof CUR.solution==='function') CUR.solution($('#host'), STATE); }
+function resetAll(){ $('#host').innerHTML=''; $('#res').innerHTML=''; $('#score').textContent='0'; $('#total').textContent='0'; }
+
+/* Entrée -> Vérifier */
+document.addEventListener('keydown', e=>{
+  const a=document.activeElement;
+  if(e.key==='Enter' && a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA')){
+    e.preventDefault(); checkNow();
+  }
+});
+
+/* Boutons */
+document.getElementById('btn-new').addEventListener('click', ()=>buildOne());
+document.getElementById('btn-check').addEventListener('click', checkNow);
+document.getElementById('btn-solution').addEventListener('click', showSolution);
+document.getElementById('btn-reset').addEventListener('click', resetAll);
+document.getElementById('btn-amp').addEventListener('click', applyAMP);
+document.getElementById('exo-select').addEventListener('change', ()=>buildOne());
+
+/* PDF — UI montée par la lib fournie */
+window.addEventListener('DOMContentLoaded', ()=>{
+  populate(); buildOne();
+  if(window.ExoPDF && typeof ExoPDF.init==='function'){
+    ExoPDF.init({
+      title: document.title,
+      leadByDefId: { rg1:REGISTRY[0].lead, rg2:REGISTRY[1].lead, rg3:REGISTRY[2].lead, rg4:REGISTRY[3].lead },
+      mountAfterSelector: '.controls.card'
+    });
+  }
+});
+</script>
+</body>
+</html>

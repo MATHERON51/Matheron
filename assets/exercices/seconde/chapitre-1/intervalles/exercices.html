@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Chapitre 1 – Intervalles – Exercices</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow:visible}
+.controls{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap;color:#111}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr minmax(240px,340px);
+  grid-template-areas:
+    'lab inp'
+    'res res';
+  gap:10px;
+  align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row input[type=text], .row .col-extra{grid-area:inp}
+.row #res{grid-area:res;margin-top:2px}
+
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Monaco, monospace; font-size:.95rem; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.equ{font-weight:600}
+.hint{opacity:.92;margin:.35rem 0 .6rem}
+
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+}
+.equ-offscreen .consigne{margin-bottom:6px;font-weight:600}
+
+.c-label{font-weight:600;margin-right:.35rem;white-space:nowrap}
+.c-text{word-spacing:.12rem}
+.c-text strong{margin:0 .25ch}
+
+.sol-card{ margin-top:.6rem; background:#f5f5f5; border:1px solid #e3e3e3; border-radius:10px; }
+.sol-title{font-weight:700;padding:.6rem .8rem;border-bottom:1px solid #e9e9e9}
+.sol-body{padding:.7rem .8rem}
+.sol-graph{width:100%;max-width:980px}
+
+.card.small ul{margin:8px 0 0 18px}
+
+/* Color tags for A and B */
+.tagA{color:#11823b;font-weight:700;display:inline-block;margin:0 .3ch}
+.tagB{color:#b00020;font-weight:700;display:inline-block;margin:0 .3ch}
+.sep{opacity:.6;margin:0 .4ch}
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 1 – <strong>Intervalles</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select">
+        <option value="ex1">Exercice 1 — Inégalité → Intervalle</option>
+        <option value="ex2">Exercice 2 — Intervalle → Inégalité</option>
+        <option value="ex3">Exercice 3 — Appartenance (∈ / ∉)</option>
+        <option value="ex7">Exercice 4 — Lire une droite graduée → Intervalle</option>
+        <option value="ex8">Exercice 5 — Lire une droite graduée → Inégalité</option>
+        <option value="ex4">Exercice 6 — Intersection d’intervalles</option>
+        <option value="ex5">Exercice 7 — Réunion d’intervalles</option>
+        <option value="ex6">Exercice 8 — Complémentaire d’un intervalle</option>
+      </select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+  <strong>Saisie &amp; réponses acceptées :</strong>
+  <ul>
+    <li>Intervalles : <code class="code">[a;b[</code>, <code class="code">]a;b]</code>, <code class="code">]−∞;b]</code>, <code class="code">[a;+∞[</code>… Union : <code class="code">∪</code> (ou <code class="code">U</code>).</li>
+    <li>Inégalités (chaînes uniquement, jamais d’infini dans une chaîne) : <code class="code">a &lt; x &lt; b</code>, <code class="code">x ≥ a</code>…</li>
+    <li>Infinis : <code class="code">-oo</code>, <code class="code">+oo</code>, <code class="code">-∞</code>, <code class="code">+∞</code> et <code class="code">∞</code> acceptés. <em>Jamais de crochets au bout des ±∞ sur les droites.</em></li>
+    <li>Ensemble vide : <code class="code">∅</code>.</li>
+    <li>Droite graduée : si la couleur va jusqu’au bout de l’axe, cela signifie que l’on représente l’infini.</li>
+    <li>Droite graduée : si une borne est notée avec un crochet vers le coloriage, la borne est incluse&nbsp;; s’il est de l’autre côté, la borne est exclue.</li>
+    <li>Règles :
+      <ul>
+        <li>Réunion → toutes les valeurs contenant du coloriage</li>
+        <li>Intersection → valeurs contenant les deux coloriages (sinon <code class="code">∅</code>)</li>
+        <li>Complémentaire → valeurs non coloriées</li>
+      </ul>
+    </li>
+    <li>Pictos / symboles :
+      <ul>
+        <li><strong>ℝ</strong> : ensemble des réels</li>
+        <li><strong>∪</strong> : réunion</li>
+        <li><strong>∩</strong> : intersection</li>
+        <li><strong>∅</strong> : ensemble vide</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<script>
+(function(){'use strict';
+
+/* ===== Utils ===== */
+const $ = (s,root=document)=>root.querySelector(s);
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== Interval helpers ===== */
+function fmtNum(x){
+  if (x===undefined || x===null) return '';
+  if (x===Infinity || x==='+∞') return '+∞';
+  if (x===-Infinity || x==='−∞' || x==='-∞') return '−∞';
+  const n = (typeof x==='number') ? x : Number(String(x).replace(',','.').replace('−','-'));
+  if (Number.isFinite(n)){
+    if (Math.trunc(n)===n) return String(n).replace('-', '−');
+    return String(Math.round(n*100)/100).replace('-', '−');
+  }
+  return String(x);
+}
+function fmtInterval(obj){ if(!obj) return '∅'; const {a,b,leftClosed,rightClosed} = obj;
+  const L = leftClosed ? '[' : ']';
+  const R = rightClosed ? ']' : '[';
+  return `${L}${fmtNum(a)};${fmtNum(b)}${R}`;
+}
+
+// === Safe formatter for complement, handles ±∞ and unions ===
+function fmtComplement(I){
+  if(!I) return '∅';
+  var J = normalizeAB(cloneI(I));
+  // left part: (-∞ ; a] if a != -∞
+  var left = (J.a !== -Infinity) ? {a:-Infinity, b:J.a, leftClosed:false, rightClosed:!J.leftClosed} : null;
+  // right part: [b ; +∞) if b != +∞
+  var right = (J.b !== Infinity) ? {a:J.b, b:Infinity, leftClosed:!J.rightClosed, rightClosed:false} : null;
+  var parts = [];
+  if(left) parts.push(left);
+  if(right) parts.push(right);
+  if(parts.length === 0) return '∅';
+  return parts.map(fmtInterval).join(' ∪ ');
+}
+// === Clean complement parts for drawing (handles ±∞ without phantom segments) ===
+function complementParts(I){
+  if(!I) return [];
+  var J = normalizeAB(cloneI(I));
+  var parts = [];
+  if(J.a !== -Infinity){
+    parts.push({a:-Infinity, b:J.a, leftClosed:false, rightClosed:!J.leftClosed});
+  }
+  if(J.b !== Infinity){
+    parts.push({a:J.b, b:Infinity, leftClosed:!J.rightClosed, rightClosed:false});
+  }
+  return parts;
+}
+
+
+
+
+function cloneI(i){return {a:i.a,b:i.b,leftClosed:i.leftClosed,rightClosed:i.rightClosed};}
+function normalizeAB(i){
+  if (i.a>i.b){ const t=i.a; i.a=i.b; i.b=t; const tl=i.leftClosed; i.leftClosed=i.rightClosed; i.rightClosed=tl; }
+  return i;
+}
+function intersect(A,B){
+  const a = Math.max(A.a,B.a);
+  const b = Math.min(A.b,B.b);
+  if (a>b || (a===b && !(A.rightClosed && B.leftClosed))) return null;
+  return {a,b, leftClosed:(a===A.a?A.leftClosed:B.leftClosed), rightClosed:(b===A.b?A.rightClosed:B.rightClosed)};
+}
+function unite(A,B){
+  const touch = (A.b===B.a) && (A.rightClosed || B.leftClosed);
+  const overlap = (A.a<B.b && B.a<A.b) || touch || (A.b>B.a && B.b>A.a);
+  if (overlap){
+    const a = Math.min(A.a,B.a);
+    const b = Math.max(A.b,B.b);
+    return [{a,b,leftClosed:(a===A.a?A.leftClosed:B.leftClosed), rightClosed:(b===A.b?A.rightClosed:B.rightClosed)}];
+  }
+  return [cloneI(A), cloneI(B)].sort((p,q)=>p.a-q.a);
+}
+function complement(I){
+  const parts = [];
+  if (I.a !== -Infinity) parts.push({a:-Infinity, b:I.a, leftClosed:false, rightClosed:!I.leftClosed});
+  if (I.b !==  Infinity) parts.push({a:I.b, b:Infinity, leftClosed:!I.rightClosed, rightClosed:false});
+  return parts;
+}
+
+/* ===== Random intervals (numeric endpoints) ===== */
+function buildRandomInterval(){
+  const mode = choice(['finite','finite','oneinf']);
+  if (mode==='finite'){
+    let a = rnd(-6,4);
+    let b = rnd(a+1, a+8);
+    return {a,b,leftClosed:Math.random()<.5,rightClosed:Math.random()<.5};
+  } else {
+    const leftSide = Math.random()<.5;
+    if (leftSide){
+      const b = rnd(-2,8);
+      return {a:-Infinity,b,leftClosed:false,rightClosed:Math.random()<.5};
+    } else {
+      const a = rnd(-6,4);
+      return {a,b:Infinity,leftClosed:Math.random()<.5,rightClosed:false};
+    }
+  }
+}
+
+/* ===== Number line with crochets (infinity-safe) ===== */
+function drawNumberLineWithBrackets(container, intervals, opt = {}){
+  const W = opt.width || 980, H = opt.height || 110, M = 36;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  container.innerHTML = '';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', H);
+  container.appendChild(svg);
+
+  // collect bounds and detect infinities
+  let xmin = Infinity, xmax = -Infinity, hasNegInf=false, hasPosInf=false;
+  (function collect(arr){
+    arr.forEach(intv=>{
+      if (Array.isArray(intv)) return collect(intv);
+      if (intv.a===-Infinity) hasNegInf=true; else if (Number.isFinite(intv.a)) { xmin = Math.min(xmin, intv.a); xmax = Math.max(xmax, intv.a); }
+      if (intv.b===Infinity)  hasPosInf=true; else if (Number.isFinite(intv.b)) { xmin = Math.min(xmin, intv.b); xmax = Math.max(xmax, intv.b); }
+    });
+  })(intervals);
+
+  if (!Number.isFinite(xmin) || !Number.isFinite(xmax)) { xmin = -5; xmax = 5; }
+  if (xmin === xmax) { xmin -= 1; xmax += 1; }
+  const span = Math.max(2, (xmax - xmin));
+  // strong extension if infinity is present
+  if (hasNegInf) xmin -= Math.max(10, Math.ceil(span*0.9)+2);
+  if (hasPosInf) xmax += Math.max(10, Math.ceil(span*0.9)+2);
+
+  // extra padding for brackets
+  const pad = (xmax - xmin) * 0.08 + 0.5;
+  xmin -= pad; xmax += pad;
+
+  const xToPx = x => M + ( (x - xmin) / (xmax - xmin) ) * (W - 2*M);
+  const midY = Math.round(H/2);
+
+  // defs and axis
+  const defs = document.createElementNS(svgNS, 'defs');
+  defs.innerHTML = `<marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+    <path d="M0,0 L10,3 L0,6 z" fill="#222"></path></marker>`;
+  svg.appendChild(defs);
+
+  const axis = document.createElementNS(svgNS, 'line');
+  axis.setAttribute('x1', M); axis.setAttribute('y1', midY);
+  axis.setAttribute('x2', W-M); axis.setAttribute('y2', midY);
+  axis.setAttribute('stroke', '#222'); axis.setAttribute('stroke-width', '1.6');
+  axis.setAttribute('marker-end', 'url(#arrow)');
+  svg.appendChild(axis);
+
+  // integer ticks
+  const step = 1;
+  const firstTick = Math.ceil(xmin);
+  for (let t = firstTick; t <= xmax; t += step) {
+    const x = xToPx(t);
+    const tick = document.createElementNS(svgNS, 'line');
+    tick.setAttribute('x1', x); tick.setAttribute('y1', midY-6);
+    tick.setAttribute('x2', x); tick.setAttribute('y2', midY+6);
+    tick.setAttribute('stroke', '#333');
+    svg.appendChild(tick);
+
+    const lab = document.createElementNS(svgNS, 'text');
+    lab.setAttribute('x', x); lab.setAttribute('y', midY+20);
+    lab.setAttribute('text-anchor', 'middle');
+    lab.setAttribute('font-size', '12');
+    lab.textContent = String(t).replace('-', '−');
+    svg.appendChild(lab);
+  }
+
+  function drawSegment(a, b, color, dashed) {
+    const xa = Number.isFinite(a) ? xToPx(a) : M;
+    const xb = Number.isFinite(b) ? xToPx(b) : (W - M);
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', xa); line.setAttribute('y1', midY);
+    line.setAttribute('x2', xb); line.setAttribute('y2', midY);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '4');
+    if (dashed) line.setAttribute('stroke-dasharray', '8 6');
+    svg.appendChild(line);
+    return {xa, xb};
+  }
+
+  // brackets; never at ±∞
+  function drawBracket(boundary, xPx, included, color, isInfinite){
+  if (isInfinite) return;
+  const h = 18, half = h/2;
+  const facesRight = (boundary==='left') ? !!included : !included;
+  const dir = facesRight ? +1 : -1;
+  const x0 = xPx; // 
+
+    const path = document.createElementNS(svgNS, 'path');
+    const v1x = x0, v1y = midY - half;
+    const v2x = x0 + dir*8, v2y = midY - half;
+    const v3x = x0 + dir*8, v3y = midY + half;
+    const v4x = x0,          v4y = midY + half;
+    path.setAttribute('d', `M ${v2x} ${v2y} L ${v1x} ${v1y} L ${v4x} ${v4y} L ${v3x} ${v3y}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '2.5');
+    svg.appendChild(path);
+  }
+
+  function renderOne({a,b,leftClosed,rightClosed,color='#11823b',dashed=false}){
+    if (!Number.isFinite(a)) leftClosed = false;
+    if (!Number.isFinite(b)) rightClosed = false;
+    const seg = drawSegment(a,b,color,dashed);
+    drawBracket('left',  seg.xa, !!leftClosed,  color, !Number.isFinite(a));
+    drawBracket('right', seg.xb, !!rightClosed, color, !Number.isFinite(b));
+  }
+
+  (function travel(list){
+    list.forEach(intv=>{
+      if (Array.isArray(intv)) return travel(intv);
+      renderOne(intv);
+    });
+  })(intervals);
+}
+
+/* ===== DOM CONSIGNE BUILDERS (avoid cleaner removing ±∞) ===== */
+function buildConsigneAB_DOM(type, A, B){
+  const wrap = document.createElement('div');
+  wrap.className = 'consigne';
+  const lab = document.createElement('span'); lab.className='c-label'; lab.textContent='Consigne :'; wrap.appendChild(lab);
+  const text = document.createElement('span'); text.className='c-text'; wrap.appendChild(text);
+
+  function spanTag(cls, txt){ const s=document.createElement('span'); s.className=cls; s.textContent=txt; if(cls==='tagA'){s.style.color='#11823b';s.style.fontWeight='700';} if(cls==='tagB'){s.style.color='#b00020';s.style.fontWeight='700';} return s; }
+  function pushText(str){ text.appendChild(document.createTextNode(str)); }
+
+  if(type==='compl'){
+    pushText(' Dans ℝ, donner le complémentaire de l’intervalle ');
+    const sA = spanTag('tagA', 'A = ' + fmtInterval(A)); text.appendChild(sA);
+    pushText('.');
+  } else {
+    pushText(' Soient ');
+    const sA = spanTag('tagA', 'A = ' + fmtInterval(A)); text.appendChild(sA);
+    pushText(' et ');
+    const sB = spanTag('tagB', 'B = ' + fmtInterval(B)); text.appendChild(sB);
+    pushText('. Donner ' + (type==='inter' ? 'A ∩ B' : 'A ∪ B') + '.');
+  }
+  return wrap;
+}
+function applyConsigneDOM(host, node){
+  const targets = host.querySelectorAll('.consigne.normalized .c-text');
+  if (!targets || !targets.length) return;
+  const t = node.querySelector('.c-text');
+  targets.forEach(p=>{
+    p.textContent = ' ';
+    if (t) t.childNodes.forEach(n=>p.appendChild(n.cloneNode(true)));
+  });
+}
+
+// Guard to keep consigne text (with ±∞) against cleaners and late mutations
+function startConsigneGuard(host, node){
+  if(!host || !node) return;
+  // Keep a private clone as source of truth
+  host.__consigneSourceNode = node.cloneNode(true);
+  function apply(){
+    const src = host.__consigneSourceNode; if(!src) return;
+    const t = src.querySelector('.c-text');
+    host.querySelectorAll('.consigne .c-text').forEach(p=>{
+      // Compare normalized strings; if different, replace by cloned nodes
+      const want = t ? Array.from(t.childNodes).map(n=>n.nodeType===3?n.nodeValue:n.textContent).join('') : '';
+      const got = p.textContent || '';
+      if(want.replace(/\s+/g,' ').trim() !== got.replace(/\s+/g,' ').trim()){
+        p.textContent = ' ';
+        if (t) t.childNodes.forEach(n=>p.appendChild(n.cloneNode(true)));
+      }
+    });
+  }
+  if (host.__consigneObserver) try{ host.__consigneObserver.disconnect(); }catch(e){}
+  const mo = new MutationObserver(()=>apply());
+  mo.observe(host, {subtree:true, childList:true, characterData:true});
+  host.__consigneObserver = mo;
+  apply(); setTimeout(apply, 60); setTimeout(apply, 240); setTimeout(apply, 800);
+}
+
+
+/* ===== DOM + UI helpers ===== */
+function el(tag, attrs={}, html=''){
+  const n = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{ if (k==='class') n.className=v; else n.setAttribute(k,v); });
+  if (html) n.innerHTML = html;
+  return n;
+}
+function makeRow(host, consigneHTML, placeholder='Réponse…', extraRightHTML=''){
+  host.innerHTML = '';
+  const row = el('div', {class:'row'});
+  // Use structural label + text; never inject raw HTML inside .c-text
+  const consigneNode = document.createElement('div');
+  consigneNode.className = 'consigne normalized';
+  const lab = document.createElement('span'); lab.className='c-label'; lab.textContent='Consigne :'; consigneNode.appendChild(lab);
+  const txt = document.createElement('span'); txt.className='c-text'; txt.textContent = consigneHTML ? (' '+consigneHTML.replace(/<[^>]*>/g,'')) : ' '; consigneNode.appendChild(txt);
+
+  const off = consigneNode.cloneNode(true);
+  off.classList.add('equ-offscreen');
+
+  row.appendChild(off);
+  const left = document.createElement('div'); left.className='col-label';
+  left.appendChild(consigneNode);
+  row.appendChild(left);
+
+  if (extraRightHTML){
+    const box = document.createElement('div'); box.className='col-extra'; box.innerHTML = extraRightHTML; row.appendChild(box);
+  } else {
+    const input = document.createElement('input'); input.type='text'; input.id='ans'; input.setAttribute('inputmode','text'); input.autocomplete='off'; input.placeholder=placeholder;
+    row.appendChild(input);
+  }
+  const res = document.createElement('div'); res.id='res'; row.appendChild(res);
+  host.appendChild(row);
+  return row;
+}
+function buildSolCard(host){
+  let sol = host.querySelector('.sol-card');
+  if (!sol){
+    sol = document.createElement('div');
+    sol.className = 'sol-card';
+    sol.innerHTML = '<div class="sol-body" contenteditable="plaintext-only"><div class="sol-graph"></div><div class="sol-steps"></div></div>';
+    host.appendChild(sol);
+  }
+  return sol;
+}
+function showResult(host, ok,msg){
+  const res = host.querySelector('#res'); if(!res) return;
+  res.className = ok ? 'res-ok' : 'res-ko';
+  res.textContent = msg;
+}
+function normalizeInput(s){
+  s = String(s||'').trim();
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/-oo/gi,'-∞').replace(/\+oo/gi,'+∞');
+  s = s.replace(/\u2212/g,'-');
+  s = s.replace(/(^|[^+\-])∞/g,'$1+∞');
+  s = s.replace(/\+\s*∞/g,'+∞').replace(/-\s*∞/g,'-∞');
+  return s;
+}
+/* ===== EXERCICES ===== */
+const EX = {};
+
+/* Ex1: ineq -> interval */
+EX.ex1 = {
+  id:'ex1',
+  gen(){
+    const family = choice(['double','left','right']);
+    const I = (family==='double') ? (function(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };})()
+          : (family==='left')    ? (function(){ const b=rnd(-4,10); return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };})()
+                                  : (function(){ const a=rnd(-6,6); return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };})();
+    function intervalLabel(L){
+      const left = (L.a==='−∞' || L.aOpen) ? ']' : '[';
+      const right = (L.b==='+∞' || !L.bClose) ? '[' : ']';
+      return left + L.a + ';' + L.b + right;
+    }
+    function intervalToIneq(I){
+      if(I.a==='−∞' && I.b!=='+∞'){ return I.bClose ? ('x ≤ ' + I.b) : ('x < ' + I.b); }
+      if(I.a!=='−∞' && I.b==='+∞'){ return I.aOpen ? ('x > ' + I.a) : ('x ≥ ' + I.a); }
+      return (I.aOpen ? (I.a+' < x') : (I.a+' ≤ x')) + (I.bClose ? ' ≤ ' : ' < ') + I.b;
+    }
+    return { I, ineq: intervalToIneq(I), answer: intervalLabel(I) };
+  },
+  render(host, st){ makeRow(host, `Donner l’intervalle des x tels que ${st.ineq}.`, 'Ex : [a;b[ ou ]−∞;b]'); },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+ const ok = (normalizeInput($('#ans').value)===normalizeInput(st.answer)); showResult(host, ok, ok?'Correct.':`Incorrect. (Attendu : ${st.answer})`); return ok; },
+  solution(host, st){ $('#ans').value = st.answer; const sol = buildSolCard(host); const steps=sol.querySelector('.sol-steps'); const graph=sol.querySelector('.sol-graph'); if(graph) graph.innerHTML=''; steps.innerHTML=''; const line=document.createElement('div'); line.className='step'; const strong=document.createElement('strong'); strong.className='equ'; strong.textContent=st.answer; line.append('Résultat : ', strong); steps.appendChild(line);}
+};
+
+/* Ex2: interval -> ineq */
+EX.ex2 = {
+  id:'ex2',
+  gen(){
+    function randomFinite(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };}
+    function randomLeft(){ const b=rnd(-4,10); return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };}
+    function randomRight(){ const a=rnd(-6,6); return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };}
+    const family = choice(['double','left','right']);
+    const I = (family==='double') ? randomFinite() : (family==='left' ? randomLeft() : randomRight());
+    const label = ((I.a==='−∞'||I.aOpen)?']':'[') + I.a + ';' + I.b + ((I.b==='+∞'||!I.bClose)?'[':']');
+    function toIneq(I){
+      if(I.a==='−∞' && I.b!=='+∞'){ return I.bClose ? ('x ≤ ' + I.b) : ('x < ' + I.b); }
+      if(I.a!=='−∞' && I.b==='+∞'){ return I.aOpen ? ('x > ' + I.a) : ('x ≥ ' + I.a); }
+      return (I.aOpen ? (I.a+' < x') : (I.a+' ≤ x')) + (I.bClose ? ' ≤ ' : ' < ') + I.b;
+    }
+    return { I, answer: toIneq(I), label };
+  },
+  render(host, st){ makeRow(host, `Soit l’intervalle <strong>${st.label}</strong>. Écrire l’inégalité correspondante.`, 'Ex : x ≤ b ou a ≤ x < b'); },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+
+    const norm = s => s.trim().replace(/\s+/g,' ').replace(/<=/g,'≤').replace(/>=/g,'≥')
+      .replace(/\s*<\s*/g,' < ').replace(/\s*>\s*/g,' > ').replace(/\s*≤\s*/g,' ≤ ').replace(/\s*≥\s*/g,' ≥ ').trim();
+    const ok = (norm($('#ans').value)===norm(st.answer));
+    showResult(host, ok, ok?'Correct.':`Incorrect. (Attendu : ${st.answer})`); return ok;
+  },
+  solution(host, st){ $('#ans').value = st.answer; const sol = buildSolCard(host); const steps=sol.querySelector('.sol-steps'); const graph=sol.querySelector('.sol-graph'); if(graph) graph.innerHTML=''; steps.innerHTML=''; const line=document.createElement('div'); line.className='step'; const strong=document.createElement('strong'); strong.className='equ'; strong.textContent=st.answer; line.append('Résultat : ', strong); steps.appendChild(line);}
+};
+
+/* Ex3: appartenance */
+EX.ex3 = {
+  id:'ex3',
+  gen(){
+    function randomFinite(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };}
+    function randomLeft(){ const b=rnd(-4,10); return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };}
+    function randomRight(){ const a=rnd(-6,6); return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };}
+    const family = choice(['double','left','right']);
+    const I = (family==='double') ? randomFinite() : (family==='left' ? randomLeft() : randomRight());
+    const a = (I.a==='−∞')? -Infinity : parseFloat(I.a.replace(',','.'));
+    const b = (I.b==='+∞')? +Infinity : parseFloat(I.b.replace(',','.'));
+    const cand=[]; if(I.a!=='−∞'){ cand.push(a, a+(I.aOpen?0.5:0), a-1); } if(I.b!=='+∞'){ cand.push(b, b-(I.bClose?0:0.5), b+1); } cand.push(rnd(-8,8));
+    const x = Math.round(choice(cand)*2)/2;
+    const leftOK = (I.a==='−∞') ? true : (I.aOpen ? (x>a) : (x>=a));
+    const rightOK = (I.b==='+∞') ? true : (I.bClose ? (x<=b) : (x<b));
+    const truth = leftOK && rightOK;
+    const label = ((I.a==='−∞'||I.aOpen)?']':'[') + I.a + ';' + I.b + ((I.b==='+∞'||!I.bClose)?'[':']');
+    return { I, x, truth, label };
+  },
+  render(host, st){
+    const group = 'g'+Math.floor(Math.random()*1e6);
+    const extra = `<div class="col-extra"><label><input type="radio" name="${group}" value="in"> ∈</label>
+      <label style="margin-left:10px"><input type="radio" name="${group}" value="out"> ∉</label></div>`;
+    const row = makeRow(host, `Dire si <strong>x = ${st.x}</strong> appartient à <strong>${st.label}</strong>.`, '', extra);
+    row.dataset.group = group;
+  },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+
+    const group = host.querySelector('.row').dataset.group;
+    const chosen = (host.querySelector(`input[name="${group}"]:checked`)||{value:''}).value;
+    const ok = (chosen === (st.truth?'in':'out'));
+    showResult(host, ok, ok?'Correct.':'Incorrect.'); return ok;
+  },
+  solution(host, st){
+    const group = host.querySelector('.row').dataset.group;
+    const elt = host.querySelector(`input[name="${group}"][value="${st.truth?'in':'out'}"]`);
+    if (elt) elt.checked=true;
+    const sol = buildSolCard(host);
+    const steps=sol.querySelector('.sol-steps');
+    const graph=sol.querySelector('.sol-graph'); if(graph) graph.innerHTML='';
+    steps.innerHTML='';
+    const line=document.createElement('div'); line.className='step';
+    const strong=document.createElement('strong'); strong.className='equ';
+    strong.textContent = 'x ' + (st.truth?'∈ ':'∉ ') + st.label;
+    line.append('Réponse : ', strong);
+    steps.appendChild(line);
+    showResult(host, true, 'Réponse : ' + (st.truth?'x ∈ ':'x ∉ ') + st.label);
+  }
+};
+
+/* Ex7 (#4): droite -> interval */
+EX.ex7 = {
+  id:'ex7',
+  gen(){
+    function randomFinite(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };}
+    function randomLeft(){ const b=rnd(-4,10); return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };}
+    function randomRight(){ const a=rnd(-6,6); return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };}
+    const family = choice(["finite","left","right","finite","finite"]);
+    const I = (family==="finite") ? randomFinite() : (family==="left" ? randomLeft() : randomRight());
+    const label = ((I.a==='−∞'||I.aOpen)?']':'[') + I.a + ';' + I.b + ((I.b==='+∞'||!I.bClose)?'[':']');
+    return { I, answer: label };
+  },
+  render(host, st){
+    const row = makeRow(host, `Lire l’intervalle représenté et le saisir.`, 'Ex : ]−∞;b]  ou  [a;b[  ou  [a;+∞[');
+    const box = document.createElement('div'); box.className='sol-graph'; box.style.gridArea='res'; row.insertBefore(box, $('#res'));
+    const toN = x => x==='−∞' ? -Infinity : (x==='+∞'? Infinity : parseFloat(String(x).replace(',','.')));
+    drawNumberLineWithBrackets(box, [{ a:toN(st.I.a), b:toN(st.I.b), leftClosed: !(st.I.a==='−∞' || st.I.aOpen), rightClosed: (st.I.b!=='+'+'∞') && st.I.bClose, color:'#1976d2'}]);
+  },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+ const ok = (normalizeInput($('#ans').value)===normalizeInput(st.answer)); showResult(host, ok, ok?'Correct.':`Incorrect. (Attendu : ${st.answer})`); return ok; },
+  solution(host, st){
+    $('#ans').value = st.answer;
+    const sol = buildSolCard(host), graph=sol.querySelector('.sol-graph'), steps=sol.querySelector('.sol-steps'); graph.innerHTML=''; steps.innerHTML='';
+    const toN = x => x==='−∞' ? -Infinity : (x==='+∞'? Infinity : parseFloat(String(x).replace(',','.')));
+    drawNumberLineWithBrackets(graph, [{ a:toN(st.I.a), b:toN(st.I.b), leftClosed: !(st.I.a==='−∞' || st.I.aOpen), rightClosed: (st.I.b!=='+'+'∞') && st.I.bClose, color:'#1976d2'}]);
+    const line=document.createElement('div'); line.className='step'; const strong=document.createElement('strong'); strong.className='equ'; strong.textContent=st.answer; line.append('Résultat : ', strong); steps.appendChild(line);
+  }
+};
+
+/* Ex8 (#5): droite -> ineq */
+EX.ex8 = {
+  id:'ex8',
+  gen(){
+    function randomFinite(){ let a=rnd(-6,6), b=rnd(a+1,a+6); return { aOpen: Math.random()<.5, a: String(a), b: String(b), bClose: Math.random()<.5 };}
+    function randomLeft(){ const b=rnd(-4,10); return { aOpen:true, a:'−∞', b:String(b), bClose: Math.random()<.5 };}
+    function randomRight(){ const a=rnd(-6,6); return { aOpen: Math.random()<.5, a:String(a), b:'+∞', bClose:true };}
+    const family = choice(["finite","left","right","finite"]);
+    const I = (family==="finite") ? randomFinite() : (family==="left" ? randomLeft() : randomRight());
+    function toIneq(I){
+      if(I.a==='−∞' && I.b!=='+∞'){ return I.bClose ? ('x ≤ ' + I.b) : ('x < ' + I.b); }
+      if(I.a!=='−∞' && I.b==='+∞'){ return I.aOpen ? ('x > ' + I.a) : ('x ≥ ' + I.a); }
+      return (I.aOpen ? (I.a+' < x') : (I.a+' ≤ x')) + (I.bClose ? ' ≤ ' : ' < ') + I.b;
+    }
+    return { I, answer: toIneq(I) };
+  },
+  render(host, st){
+    const row = makeRow(host, `Donner l’inégalité qui correspond au coloriage sur la droite graduée.`, 'Ex : x ≤ b  ou  x > a  ou  a ≤ x < b');
+    const box = document.createElement('div'); box.className='sol-graph'; box.style.gridArea='res'; row.insertBefore(box, $('#res'));
+    const toN = x => x==='−∞' ? -Infinity : (x==='+∞'? Infinity : parseFloat(String(x).replace(',','.')));
+    drawNumberLineWithBrackets(box, [{ a:toN(st.I.a), b:toN(st.I.b), leftClosed: !(st.I.a==='−∞' || st.I.aOpen), rightClosed: (st.I.b!=='+'+'∞') && st.I.bClose, color:'#1976d2'}]);
+  },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+
+    const norm = s => s.trim().replace(/\s+/g,' ').replace(/<=/g,'≤').replace(/>=/g,'≥')
+      .replace(/\s*<\s*/g,' < ').replace(/\s*>\s*/g,' > ').replace(/\s*≤\s*/g,' ≤ ').replace(/\s*≥\s*/g,' ≥ ').trim();
+    const ok = (norm($('#ans').value)===norm(st.answer));
+    showResult(host, ok, ok?'Correct.':`Incorrect. (Attendu : ${st.answer})`); return ok;
+  },
+  solution(host, st){
+    $('#ans').value = st.answer;
+    const sol = buildSolCard(host), graph=sol.querySelector('.sol-graph'), steps=sol.querySelector('.sol-steps'); graph.innerHTML=''; steps.innerHTML='';
+    const toN = x => x==='−∞' ? -Infinity : (x==='+∞'? Infinity : parseFloat(String(x).replace(',','.')));
+    drawNumberLineWithBrackets(graph, [{ a:toN(st.I.a), b:toN(st.I.b), leftClosed: !(st.I.a==='−∞' || st.I.aOpen), rightClosed: (st.I.b!=='+'+'∞') && st.I.bClose, color:'#1976d2'}]);
+    const line=document.createElement('div'); line.className='step'; const strong=document.createElement('strong'); strong.className='equ'; strong.textContent=st.answer; line.append('Résultat : ', strong); steps.appendChild(line);
+  }
+};
+
+/* Ex4 (#6): intersection */
+EX.ex4 = {
+  id:'ex4',
+  gen(){
+    const A = buildRandomInterval();
+    const B = buildRandomInterval();
+    const I = (function(A,B){ const AA=normalizeAB(cloneI(A)), BB=normalizeAB(cloneI(B)); const I = intersect(AA,BB); return I? fmtInterval(I) : '∅'; })(A,B);
+    return { A, B, answer: I };
+  },
+  render(host, st){
+    st.__consigneNode = buildConsigneAB_DOM('inter', st.A, st.B);
+    makeRow(host, '', 'Ex : [0;5] ou ∅');
+    applyConsigneDOM(host, st.__consigneNode);
+    document.dispatchEvent(new CustomEvent('Exo:consigneReady', {detail: st.__consigneNode}));
+    startConsigneGuard(host, st.__consigneNode);
+  },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+ const ok = (normalizeInput($('#ans').value)===normalizeInput(st.answer)); showResult(host, ok, ok?'Correct.':'Incorrect.'); return ok; },
+  solution(host, st){
+    const sol = buildSolCard(host), graph=sol.querySelector('.sol-graph'), steps=sol.querySelector('.sol-steps');
+    graph.innerHTML=''; steps.innerHTML='';
+
+    const green = c => Object.assign({color:'#11823b', dashed:false}, c);
+    const red   = c => Object.assign({color:'#b00020', dashed:true}, c);
+    drawNumberLineWithBrackets(graph, [green(st.A), red(st.B)]);
+    const l2=document.createElement('div'); l2.className='step';
+    const strong=document.createElement('strong'); strong.className='equ'; strong.textContent='A ∩ B = ' + st.answer;
+    l2.appendChild(strong);
+    steps.append(l2);
+
+  }
+};
+
+/* Ex5 (#7): réunion */
+EX.ex5 = {
+  id:'ex5',
+  gen(){
+    const A = buildRandomInterval();
+    const B = buildRandomInterval();
+    const uni = (function(A,B){ const L=unite(normalizeAB(cloneI(A)), normalizeAB(cloneI(B))); return L.length===1 ? fmtInterval(L[0]) : `${fmtInterval(L[0])} ∪ ${fmtInterval(L[1])}`; })(A,B);
+    return { A, B, answer: uni };
+  },
+  render(host, st){
+    st.__consigneNode = buildConsigneAB_DOM('union', st.A, st.B);
+    makeRow(host, '', 'Ex : [−2;3] ou ]−∞;0] ∪ [2;+∞[');
+    applyConsigneDOM(host, st.__consigneNode);
+    document.dispatchEvent(new CustomEvent('Exo:consigneReady', {detail: st.__consigneNode}));
+    startConsigneGuard(host, st.__consigneNode);
+  },
+  check(host, st){
+    // Do not mark incorrect on empty input
+    try{
+      var __ansEl = (typeof $==='function') ? $('#ans') : null;
+      var __ans = __ansEl ? __ansEl.value : '';
+      if(!__ans || !String(__ans).trim()){
+        // Skip marking; silently return false without red "Faux"
+        return false;
+      }
+    }catch(_){}
+
+    const pack = s => normalizeInput(s).split(/U|∪/).map(x=>x.trim()).filter(Boolean).sort().join('∪');
+    const ok = (pack($('#ans').value)===pack(st.answer)); showResult(host, ok, ok?'Correct.':'Incorrect.'); return ok;
+  },
+  solution(host, st){
+    const sol = buildSolCard(host), graph=sol.querySelector('.sol-graph'), steps=sol.querySelector('.sol-steps');
+    graph.innerHTML=''; steps.innerHTML='';
+
+    const green = c => Object.assign({color:'#11823b', dashed:false}, c);
+    const red   = c => Object.assign({color:'#b00020', dashed:true}, c);
+    drawNumberLineWithBrackets(graph, [green(st.A), red(st.B)]);
+    const l2=document.createElement('div'); l2.className='step';
+    const strong=document.createElement('strong'); strong.className='equ'; strong.textContent='A ∪ B = ' + st.answer;
+    l2.appendChild(strong);
+    steps.append(l2);
+
+  }
+};
+
+/* Ex6 (#8): complémentaire */
+EX.ex6 = {
+  id:'ex6',
+  gen(){
+    const I = buildRandomInterval();
+    const answer = fmtComplement(I);
+    return { I, answer };
+  },
+  render(host, st){
+    st.__consigneNode = buildConsigneAB_DOM('compl', st.I);
+    makeRow(host, '', 'Ex : ]−∞;0] ∪ [2;+∞[');
+    applyConsigneDOM(host, st.__consigneNode);
+    document.dispatchEvent(new CustomEvent('Exo:consigneReady', {detail: st.__consigneNode}));
+    startConsigneGuard(host, st.__consigneNode);
+  },
+  check(host, st){
+    try{
+      var el = (typeof $==='function') ? $('#ans') : null;
+      var val = el ? el.value : '';
+      if(!val || !String(val).trim()){ return false; }
+      const pack = s => normalizeInput(s).split(/U|∪/).map(x=>x.trim()).filter(Boolean).sort().join('∪');
+      const ok = (pack($('#ans').value) === pack(st.answer));
+      showResult(host, ok, ok? 'Correct.' : 'Incorrect.');
+      return ok;
+    }catch(e){ console.error(e); return false; }
+  },
+  solution(host, st){
+    const sol = buildSolCard(host), graph=sol.querySelector('.sol-graph'), steps=sol.querySelector('.sol-steps');
+    graph.innerHTML=''; steps.innerHTML='';
+    // Colors: A in GREEN, complement R in RED
+    const green = c => Object.assign({color:'#11823b'}, c);
+    const red   = c => Object.assign({color:'#b00020'}, c);
+    const R = complementParts(st.I);
+    const drawParts = R.map(red).concat([green(st.I)]);
+    drawNumberLineWithBrackets(graph, drawParts);
+    const compTxt = st.answer;
+const l3 = document.createElement('div'); l3.className='step';
+    const strong = document.createElement('strong'); strong.className='equ';
+    strong.textContent = 'Dans ℝ, le complémentaire de l’intervalle A est : ' + compTxt;
+    l3.appendChild(strong); steps.append(l3);
+  }
+};;
+
+
+// === Global override: safeComplement (fix phantom unions with ±∞) ===
+(function(){
+  function cloneI(I){ return I? {a:I.a, b:I.b, leftClosed:!!I.leftClosed, rightClosed:!!I.rightClosed} : null; }
+  function norm(I){
+    if(!I) return null;
+    var a = (I.a==null? -Infinity : I.a);
+    var b = (I.b==null?  Infinity : I.b);
+    var L = !!I.leftClosed, R = !!I.rightClosed;
+    if(a>b){ var t=a; a=b; b=t; var t2=L; L=R; R=t2; }
+    return {a:a,b:b,leftClosed:L,rightClosed:R};
+  }
+  function cleanPart(p){
+    if(!p) return null;
+    if(p.a===-Infinity && p.b===Infinity) return null; // empty
+    if(p.a===p.b) return null; // no measure
+    return p;
+  }
+  function safeComplement(I){
+    var J = norm(cloneI(I));
+    if(!J) return null;
+    var out = [];
+    if(J.a !== -Infinity){
+      out.push({a:-Infinity, b:J.a, leftClosed:false, rightClosed:!J.leftClosed});
+    }
+    if(J.b !== Infinity){
+      out.push({a:J.b, b:Infinity, leftClosed:!J.rightClosed, rightClosed:false});
+    }
+    out = out.map(cleanPart).filter(Boolean);
+    if(out.length===0) return null;
+    if(out.length===1) return out[0];
+    return out;
+  }
+  try{
+    window.complement = safeComplement;
+  }catch(e){}
+})();
+/* ===== Registry / Engine ===== */
+const REGISTRY = [EX.ex1, EX.ex2, EX.ex3, EX.ex7, EX.ex8, EX.ex4, EX.ex5, EX.ex6];
+window.REGISTRY = REGISTRY;
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+function newState(def){ return def.gen(); }
+function buildOne(){ try{ window.stopConsigneGuard && stopConsigneGuard(document.getElementById('host')); }catch(e){};  var host=document.getElementById('host'); try{ window.stopConsigneGuard && stopConsigneGuard(host);}catch(e){};  const def=REGISTRY.find(e=>e.id===$('#exo-select').value); if(!def) return; const st=newState(def); var host=$('#host'); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st); def.render(host, st); scoreOK=0; scoreTot=1; updateScore(); }
+function activeDef(){ const id=$('#host').dataset.active; return REGISTRY.find(e=>e.id===id); }
+function activeState(){ const s=$('#host').dataset.state; return s? JSON.parse(s):null; }
+function check(){ const def=activeDef(), st=activeState(); if(!def||!st) return; const ok = def.check($('#host'), st); scoreOK = ok?1:0; scoreTot=1; updateScore(); }
+function showSolution(){ const def=activeDef(), st=activeState(); if(!def||!st) return; try{ def.solution($('#host'), st);}catch(e){ const res=$('#host #res'); if(res){res.className='res-ko'; res.textContent='Erreur dans la solution : '+(e.message||e);} console.error(e);} }
+function resetAll(){ try{ window.stopConsigneGuard && stopConsigneGuard(document.getElementById('host')); }catch(e){};  var host=document.getElementById('host'); try{ window.stopConsigneGuard && stopConsigneGuard(host);}catch(e){};  const def=activeDef(), st=activeState(); if(!def||!st) return; def.render($('#host'), st); scoreOK=0; scoreTot=1; updateScore(); }
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelector('#exo-select').addEventListener('change', buildOne);
+  document.querySelector('#btn-new').addEventListener('click', buildOne);
+  document.querySelector('#btn-check').addEventListener('click', check);
+  document.querySelector('#btn-solution').addEventListener('click', showSolution);
+  document.querySelector('#btn-reset').addEventListener('click', resetAll);
+  document.addEventListener('keydown', e=>{ if (e.key==='Enter') check(); });
+  buildOne();
+});
+})();
+// --- Patch: re-apply consigne content after DevRules cleaner ---
+(function(){
+  function textOfConsigne(node){
+    const t = node && node.querySelector('.c-text');
+    let buf=''; if(!t) return null;
+    t.childNodes.forEach(n=>{ if(n.nodeType===3) buf+=n.nodeValue; else buf+=n.textContent; });
+    return buf;
+  }
+  function sameText(a,b){ return String(a||'').replace(/\s+/g,' ').trim() === String(b||'').replace(/\s+/g,' ').trim(); }
+  function reapplyOnce(host){
+    const orig = host.__consigneSourceNode || null;
+    if(!orig) return;
+    const want = textOfConsigne(orig);
+    host.querySelectorAll('.sol-card .consigne .c-text, .consigne.normalized .c-text').forEach(p=>{
+      const got = p.textContent;
+      if(!sameText(got, want)){ p.textContent=' '; const t=orig.querySelector('.c-text'); if(t){ t.childNodes.forEach(n=>p.appendChild(n.cloneNode(true))); } }
+    });
+  }
+  document.addEventListener('Exo:consigneReady', function(e){
+    const host = document.getElementById('host'); if(!host) return;
+    host.__consigneSourceNode = e.detail || null;
+    setTimeout(()=>reapplyOnce(host), 60);
+    setTimeout(()=>reapplyOnce(host), 240);
+  });
+})();
+
+</script>
+
+<script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+
+<script>
+
+
+// === MatHeron v31 Patch (consigne, PDF droites, doublons sol) ===
+(function(){
+  function insertPatch(){
+    // 1) Stop consigne guard to avoid frozen instructions when switching 6-8 -> others
+    window.stopConsigneGuard = function(host){
+      try{
+        if(!host) host = document.getElementById('host');
+        if(!host) return;
+        if (host.__consigneObserver && typeof host.__consigneObserver.disconnect==='function'){
+          host.__consigneObserver.disconnect();
+        }
+        host.__consigneObserver = null;
+        host.__consigneSourceNode = null;
+      }catch(e){}
+    };
+
+    // Wrap buildOne/resetAll if present
+    try{
+      if (typeof window.buildOne === 'function'){
+        const __orig_buildOne = window.buildOne;
+        window.buildOne = function(){
+          try{ window.stopConsigneGuard && stopConsigneGuard(document.getElementById('host')); }catch(e){}
+          return __orig_buildOne.apply(this, arguments);
+        };
+      }
+      if (typeof window.resetAll === 'function'){
+        const __orig_resetAll = window.resetAll;
+        window.resetAll = function(){
+          try{ window.stopConsigneGuard && stopConsigneGuard(document.getElementById('host')); }catch(e){}
+          return __orig_resetAll.apply(this, arguments);
+        };
+      }
+    }catch(e){}
+
+    // 2) Patch ExoPDF.init to (a) add droite for ex4/ex5 in enoncé, (b) dedupe solutions, (c) safe fallback for ex6-8
+    try{
+      if (window.ExoPDF && typeof ExoPDF.init === 'function'){
+        const __orig_init = ExoPDF.init;
+        ExoPDF.init = function(cfg){
+          cfg = cfg || {};
+          const oldBR = cfg.beforeRender;
+          cfg.beforeRender = function(def, st, withSolutions){
+            var html = '';
+            try{
+              if (typeof oldBR === 'function') html = oldBR(def, st, withSolutions);
+            }catch(e){
+              html = withSolutions
+                ? '<div class="sol-card"><div class="steps"><div class="step">Correction indisponible.</div></div></div>'
+                : '<div>Énoncé indisponible.</div>';
+            }
+            try{
+              var tmp = document.createElement('div');
+              tmp.innerHTML = html || '';
+              if (withSolutions){
+                // (b) dedupe
+                var cards = tmp.querySelectorAll('.sol-card');
+                for (var i=1;i<cards.length;i++) cards[i].remove();
+                return tmp.innerHTML || html;
+              } else {
+                if (def && (def.id==='ex7' || def.id==='ex8')){
+                  var graph = document.createElement('div');
+                  graph.style.marginTop = '8px';
+                  function toN(x){
+                    if (x===-Infinity || x==='−∞' || x==='-∞') return -Infinity;
+                    if (x===Infinity  || x==='+∞') return Infinity;
+                    var s = (''+x).replace('−','-').replace(',','.');
+                    var v = parseFloat(s);
+                    return isNaN(v)? null : v;
+                  }
+                  try{
+                    var A = st && st.A ? {
+                      a: toN(st.A.a), b: toN(st.A.b),
+                      leftClosed: !!st.A.leftClosed, rightClosed: !!st.A.rightClosed,
+                      color:'#11823b'
+                    } : null;
+                    var B = st && st.B ? {
+                      a: toN(st.B.a), b: toN(st.B.b),
+                      leftClosed: !!st.B.leftClosed, rightClosed: !!st.B.rightClosed,
+                      color:'#b00020', dashed:true
+                    } : null;
+                    if (typeof drawNumberLineWithBrackets === 'function' && A && B){
+                      drawNumberLineWithBrackets(graph, [A, B]);
+                      tmp.appendChild(graph);
+                      return tmp.innerHTML;
+                    }
+                  }catch(e){}
+                }
+                return tmp.innerHTML || html;
+              }
+            }catch(e){
+              return html;
+            }
+          };
+          return __orig_init.call(this, cfg);
+        };
+      }
+    }catch(e){}
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', insertPatch, {once:true});
+  } else {
+    insertPatch();
+  }
+})();
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof ExoPDF!=='undefined' && ExoPDF && typeof ExoPDF.init==='function'){
+    ExoPDF.init({
+      title: 'Seconde – Chapitre 1 – Intervalles',
+      max: 50,
+      mountAfterSelector: '.card.small',
+      beforeRender: function(def, st, withSolutions){
+// Build PDF content in a safe offscreen container
+try{
+  const tmp = document.createElement('div');
+  tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+  tmp.style.width='1200px'; tmp.style.overflow='visible';
+  document.body.appendChild(tmp);
+
+  // Always render the exercise offscreen first
+  try{ if (typeof def.render === 'function') def.render(tmp, st); }catch(_e){}
+
+  if (!withSolutions) {
+    // -------- ENONCE --------
+    const wrap = document.createElement('div');
+
+    // Clone consigne and drop "Consigne :" label to avoid duplicates
+    try{
+      const cons = tmp.querySelector('.consigne.normalized') || tmp.querySelector('.consigne');
+      if (cons) {
+        const c = cons.cloneNode(true);
+        try{ c.querySelectorAll('.c-label').forEach(n=>n.remove()); }catch(_){}
+        // Remove any naked node whose text is exactly "Consigne"
+        try{
+          c.querySelectorAll('*').forEach(function(n){
+            const t=(n.textContent||'').trim().toLowerCase();
+            if(t==='consigne' || t==='consigne :') n.remove();
+          });
+        }catch(_){}
+        wrap.appendChild(c);
+      }
+    }catch(_){}
+
+    // Add number line ONLY for ex4 and ex5
+    if (def && (def.id==='ex7' || def.id==='ex8')) {
+      // If the graph is only created by solution(), run it offscreen just to capture the graph
+      try{ if(typeof def.solution==='function') def.solution(tmp, st); }catch(_){}
+      // Prefer a dedicated graph container if present
+      let g = tmp.querySelector('.sol-graph');
+      if (!g) {
+        const svgs = tmp.querySelectorAll('svg');
+        if (svgs && svgs[0]) g = svgs[0];
+      }
+      if (g) {
+        wrap.appendChild(g.cloneNode(true));
+      } else {
+        // Fallback: redraw a simple number line from state if available
+        const graph = document.createElement('div'); graph.className='sol-graph'; graph.style.marginTop='8px';
+        wrap.appendChild(graph);
+        if (typeof drawNumberLineWithBrackets === 'function') {
+          const toN = function(x){
+            if (x==='−∞' || x==='-∞') return -Infinity;
+            if (x==='+∞' || x==='∞') return Infinity;
+            const s = String(x).replace(',','.').replace('−','-');
+            return parseFloat(s);
+          };
+          try{
+            if (st && st.I) {
+              const I = { a: toN(st.I.a), b: toN(st.I.b), leftClosed: !(st.I.a==='−∞' || st.I.aOpen), rightClosed: (st.I.b!=='+'+'∞') && st.I.bClose, color: '#1976d2' };
+              drawNumberLineWithBrackets(graph, [I]);
+            } else if (st && st.A && st.B) {
+              const A = { a: toN(st.A.a), b: toN(st.A.b), leftClosed: !!st.A.leftClosed, rightClosed: !!st.A.rightClosed, color: '#11823b' };
+              const B = { a: toN(st.B.a), b: toN(st.B.b), leftClosed: !!st.B.leftClosed, rightClosed: !!st.B.rightClosed, color: '#b00020', dashed: true };
+              drawNumberLineWithBrackets(graph, [A, B]);
+            }
+          }catch(_){}
+        }
+      }
+    }
+
+    document.body.removeChild(tmp);
+    return wrap.innerHTML || 'Énoncé indisponible';
+  } else {
+    // -------- CORRIGE --------
+    try{
+      if (typeof def.solution === 'function') def.solution(tmp, st);
+      else if (typeof def.correct === 'function') def.correct(tmp, st);
+    }catch(_){}
+
+    // Choose main solution container
+    let sol = tmp.querySelector('.sol-card') || tmp;
+
+    // Remove ANY "Corrigé" label/line (step or strong or titles)
+    try{
+      sol.querySelectorAll('*').forEach(function(n){
+        const t=(n.textContent||'').trim().toLowerCase();
+        if(t==='corrigé' || t==='corrigé :'){
+          n.remove();
+        }
+      });
+    }catch(_){}
+
+    // Remove curves from corrections for ex3, ex4, ex5 only
+    if(def && (def.id==='ex7' || def.id==='ex8')){ try{ sol.querySelectorAll('.sol-graph, svg, .nl, canvas').forEach(function(n){ n.remove(); }); }catch(_){} }
+
+    
+    // --- Remove graphs in corrections for ex4 & ex5; keep for ex6..ex8 ---
+    try{
+      if(def && (def.id==='ex7' || def.id==='ex8')){ try{ sol.querySelectorAll('.sol-graph, svg, .nl, canvas').forEach(function(n){ n.remove(); }); }catch(_){} }
+    }catch(_){}
+
+    // --- Ensure A= is green in corrections for ex6 & ex7 ---
+    try{
+      if(def && (def.id==='ex6' || def.id==='ex7')){
+        sol.querySelectorAll('.tagA').forEach(function(n){
+          n.setAttribute('style', (n.getAttribute('style')||'') + ';color:#11823b;font-weight:700;');
+        });
+      }
+    }catch(_){}
+
+    // --- Ensure A= is green for corrections of Intersection/Réunion (code ex4/ex5) ---
+    try{
+      if(def && (def.id==='ex4' || def.id==='ex5')){
+        sol.querySelectorAll('.tagA').forEach(function(n){
+          n.setAttribute('style', (n.getAttribute('style')||'') + ';color:#11823b;font-weight:700;');
+        });
+      }
+    }catch(_){}
+const out = sol.outerHTML || 'Corrigé non disponible';
+    document.body.removeChild(tmp);
+    return out;
+  }
+}catch(e){
+  try{ document.body.removeChild(tmp); }catch(_){}
+  return 'Contenu non disponible';
+}
+}
+    });
+  }
+
+  // Nettoyeur (positionnement + espacement)
+  if (window.DevRules && DevRules.attachCleaner) DevRules.attachCleaner();
+
+  function movePdfControls() {
+    const anchor = document.querySelector('.card.small');
+    if (!anchor) return;
+    const pdfCtrl = document.querySelector('[data-exopdf-controls]') 
+                 || document.querySelector('#exopdf-controls')
+                 || document.querySelector('.exopdf-card')
+                 || null;
+    if (!pdfCtrl) return;
+    const card = pdfCtrl.closest('.card') || pdfCtrl;
+    if (card && card.previousElementSibling !== anchor) {
+      anchor.insertAdjacentElement('afterend', card);
+    }
+  }
+  movePdfControls(); setTimeout(movePdfControls, 200); setTimeout(movePdfControls, 800);
+  document.addEventListener('ExoPDF:ready', movePdfControls);
+});
+</script>
+
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const host = document.getElementById('host');
+  if(!host) return;
+  function purge(root){
+    try{
+      root.querySelectorAll('*').forEach(function(n){
+        const t=(n.textContent||'').trim().toLowerCase();
+        if(t==='corrigé' || t==='corrigé :'){
+          n.remove();
+        }
+      });
+    }catch(_){}
+  }
+  const obs = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes && m.addedNodes.forEach(function(nd){
+        if(nd.nodeType===1) purge(nd);
+      });
+    });
+  });
+  try{ obs.observe(host, {childList:true, subtree:true}); }catch(_){}
+  purge(host);
+});
+</script>
+
+<script>
+// On-screen cleanup: remove graphs from corrections for "Lire une droite" (exos 4 & 5 UI)
+// and enforce A green for Intersection/Réunion (exos 6 & 7 UI)
+document.addEventListener('DOMContentLoaded', function(){
+  const root = document.getElementById('host') || document.body;
+  function isLireConsigne(container){
+    try{
+      const cons = container.querySelector('.consigne');
+      const t = (cons? cons.textContent : '').toLowerCase();
+      return t.includes("lire l’intervalle représenté") || t.includes("lire l'intervalle représenté")
+          || t.includes("lire l’inégalité représentée") || t.includes("l'inégalité représentée");
+    }catch(_){ return false; }
+  }
+  function isInterOrReunion(container){
+    try{
+      const cons = container.querySelector('.consigne');
+      const s = (cons? cons.textContent : '').toLowerCase();
+      return s.includes("intersection d’") || s.includes("intersection d'")
+          || s.includes("réunion d’") || s.includes("réunion d'");
+    }catch(_){ return false; }
+  }
+  function processSolCard(sol){
+    const card = sol.closest('.card') || root;
+    if(isLireConsigne(card)){
+      try{ sol.querySelectorAll('.sol-graph, svg, .nl, canvas').forEach(n=>n.remove()); }catch(_){}
+    }else if(isInterOrReunion(card)){
+      try{ sol.querySelectorAll('.tagA').forEach(n=>{ n.style.color='#11823b'; n.style.fontWeight='700'; }); }catch(_){}
+    }
+  }
+  const mo = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes && m.addedNodes.forEach(function(nd){
+        if(nd.nodeType===1){
+          if(nd.matches && nd.matches('.sol-card')) processSolCard(nd);
+          const inside = nd.querySelectorAll ? nd.querySelectorAll('.sol-card') : [];
+          inside && inside.forEach && inside.forEach(processSolCard);
+        }
+      });
+    });
+  });
+  try{ mo.observe(root, {childList:true, subtree:true}); }catch(_){}
+  // also process already present cards
+  try{ root.querySelectorAll('.sol-card').forEach(processSolCard); }catch(_){}
+});
+</script>
+</body></html>

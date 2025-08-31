@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Seconde — Représentation graphique</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:12px 16px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+
+  .controls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+  .btn{padding:6px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer;flex:0 0 auto}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto;flex:0 0 auto}
+
+  .row{display:grid;grid-template-columns:540px 1fr;gap:12px;align-items:start}
+  .row.single{grid-template-columns:1fr}
+  @media (max-width:980px){ .row{grid-template-columns:1fr} }
+
+  .statement{font-size:18px}
+  .consigne{opacity:.9;margin-bottom:6px}
+
+  /* Repères */
+  svg.repere{display:block;margin:.25rem auto;max-width:520px;width:520px;height:auto}
+
+  .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
+  .qa .a{display:block}
+  .qmark{min-width:1.2em;text-align:center;font-weight:700}
+
+  .input-wrap input[type="text"]{margin:0 6px}  /* espace visuel avant/après chaque champ */
+  .input-wrap select{margin:0 4px}
+
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  .tbl{border-collapse:collapse;margin:.3rem 0;max-width:100%}
+  .tbl th,.tbl td{border:1px solid #000;padding:3px 4px;text-align:center}
+  .tbl input{width:6ch}
+
+  /* Ex.5 – tuiles */
+  .mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media (max-width:980px){ .mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (max-width:640px){ .mini-grid{grid-template-columns:1fr} }
+  .mini{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:8px;overflow:hidden}
+  .mini .title{font-weight:600;margin-bottom:6px;text-align:center}
+  .mini svg.repere{width:100% !important;height:auto !important}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">Seconde — <strong>Représentation graphique</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Correction</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <!-- Amplitude pour Ex.1, 2 et 4 -->
+    <div class="controls card" id="ampbar">
+      <strong>Amplitude (max ±12)&nbsp;:</strong>
+      x ∈ [&nbsp;<input id="xmin" type="number" value="-5" min="-12" max="12" step="1">&nbsp;;&nbsp;
+      <input id="xmax" type="number" value="6"  min="-12" max="12" step="1">&nbsp;],
+      y ∈ [&nbsp;<input id="ymin" type="number" value="-6" min="-12" max="12" step="1">&nbsp;;&nbsp;
+      <input id="ymax" type="number" value="6"  min="-12" max="12" step="1">&nbsp;]
+      <button id="amp-apply" class="btn">↴ Appliquer</button>
+
+      <span style="margin-left:12px"></span>
+      <label><small># images</small> <input id="cfg-img" type="number" min="1" max="10" value="2" style="width:64px"></label>
+      <label><small># antécédents</small> <input id="cfg-ant" type="number" min="1" max="10" value="2" style="width:64px"></label>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <!-- Ancre pour l'UI PDF (identique à l'exemple) -->
+    <div class="card small"></div>
+
+    <div class="card" data-math-kbd></div>
+  </div>
+
+<!-- libs -->
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/repere_patch_0813.js" defer></script>
+
+<script>
+(function(){
+'use strict';
+
+/* ========= Utils ========= */
+window.$ = window.$ || ((s,r=document)=>r.querySelector(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function parseNum(s){ return Number(String(s||'').replace(/\u2212/g,'-').replace(',','.').trim()); }
+function parseList(s){ if(!s) return []; return String(s).replace(/[{}[\]()]/g,'').split(/[;,]/).map(parseNum).filter(Number.isFinite); }
+function uniq(arr,eq=(a,b)=>a===b){ const out=[]; arr.forEach(v=>{ if(!out.some(u=>eq(u,v))) out.push(v); }); return out; }
+/* shuffle robuste */
+function shuffle(a){ a = Array.isArray(a) ? [...a] : []; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const COLORS = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+const nbsp = '\u00A0';
+const nbu  = (n, unit) => unit ? (String(n)+nbsp+unit) : String(n);
+
+/* === Amplitude contrôlable (ex.1,2,4) === */
+const AMP = { xmin:-5, xmax:6, ymin:-6, ymax:6 };
+function applyAMP(){
+  let xi=+$('#xmin').value, xa=+$('#xmax').value, yi=+$('#ymin').value, ya=+$('#ymax').value;
+  if(!(xi<=xa)) [xi,xa]=[xa,xi];
+  if(!(yi<=ya)) [yi,ya]=[ya,yi];
+  xi=Math.max(-12,Math.min(12,xi)); xa=Math.max(-12,Math.min(12,xa));
+  yi=Math.max(-12,Math.min(12,yi)); ya=Math.max(-12,Math.min(12,ya));
+  if(xi===xa) xa=xi+1; if(yi===ya) ya=yi+1;
+  Object.assign(AMP,{xmin:xi,xmax:xa,ymin:yi,ymax:ya});
+  buildOne();
+}
+
+/* ===== Repère SVG (grille & labels : X bas, Y gauche) ===== */
+let __clipId=0;
+function buildRepereSVG(opts){
+  const W=520,H=320, xmin=opts.xmin,xmax=opts.xmax,ymin=opts.ymin,ymax=opts.ymax;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 520 320'); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.classList.add('repere');
+
+  /* defs (clip + flèche) */
+  const defs=document.createElementNS(svg.namespaceURI,'defs');
+  const clip=document.createElementNS(svg.namespaceURI,'clipPath'); const cid='clip'+(++__clipId);
+  clip.setAttribute('id',cid); const crect=document.createElementNS(svg.namespaceURI,'rect');
+  crect.setAttribute('x',0); crect.setAttribute('y',0); crect.setAttribute('width',W); crect.setAttribute('height',H); clip.appendChild(crect);
+  const marker=document.createElementNS(svg.namespaceURI,'marker'); marker.setAttribute('id','arrow'); marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8'); marker.setAttribute('refX','6'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto'); 
+  const tri=document.createElementNS(svg.namespaceURI,'path'); tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
+  defs.appendChild(marker); defs.appendChild(clip); svg.appendChild(defs);
+
+  const axes=document.createElementNS(svg.namespaceURI,'g'); const plot=document.createElementNS(svg.namespaceURI,'g');
+  plot.classList.add('plot'); plot.setAttribute('clip-path','url(#'+cid+')'); svg.appendChild(axes); svg.appendChild(plot);
+  const X=x=>(x-xmin)*W/(xmax-xmin), Y=y=>H-(y-ymin)*H/(ymax-ymin);
+
+  /* cadre */
+  const frame=document.createElementNS(svg.namespaceURI,'rect'); frame.setAttribute('x',0); frame.setAttribute('y',0);
+  frame.setAttribute('width',W); frame.setAttribute('height',H); frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111'); axes.appendChild(frame);
+
+  /* grille + labels (X bas, Y gauche) */
+  if(opts.grid){
+    const g=document.createElementNS(svg.namespaceURI,'g'); g.setAttribute('stroke','#000'); g.setAttribute('stroke-width','0.6'); g.setAttribute('opacity','0.45');
+    const tx=document.createElementNS(svg.namespaceURI,'g'); const ty=document.createElementNS(svg.namespaceURI,'g');
+    if(opts.ticks && opts.ticks.x){ const step=opts.ticks.x; const start=Math.ceil(xmin/step)*step;
+      for(let xv=start;xv<=xmax;xv+=step){ const l=document.createElementNS(svg.namespaceURI,'line'); const x=X(xv);
+        l.setAttribute('x1',x);l.setAttribute('y1',0);l.setAttribute('x2',x);l.setAttribute('y2',H); g.appendChild(l);
+        const t=document.createElementNS(svg.namespaceURI,'text'); t.textContent=String(xv); t.setAttribute('x',x+2); t.setAttribute('y',H-4); t.setAttribute('font-size','11'); tx.appendChild(t); }
+    } else { for(let xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){ const l=document.createElementNS(svg.namespaceURI,'line'); const x=X(xv); l.setAttribute('x1',x);l.setAttribute('y1',0);l.setAttribute('x2',x);l.setAttribute('y2',H); g.appendChild(l); } }
+    if(opts.ticks && opts.ticks.y){ const step=opts.ticks.y; const start=Math.ceil(ymin/step)*step;
+      for(let yv=start;yv<=ymax;yv+=step){ const l=document.createElementNS(svg.namespaceURI,'line'); const y=Y(yv);
+        l.setAttribute('x1',0); l.setAttribute('y1',y); l.setAttribute('x2',W); l.setAttribute('y2',y); g.appendChild(l);
+        const t=document.createElementNS(svg.namespaceURI,'text'); t.textContent=String(yv); t.setAttribute('x',4); t.setAttribute('y',y-3); t.setAttribute('font-size','11'); ty.appendChild(t); }
+    } else { for(let yv=Math.ceil(ymin);yv<=Math.floor(ymax);yv++){ const l=document.createElementNS(svg.namespaceURI,'line'); const y=Y(yv); l.setAttribute('x1',0); l.setAttribute('y1',y); l.setAttribute('x2',W); l.setAttribute('y2',y); g.appendChild(l); } }
+    axes.appendChild(g); axes.appendChild(tx); axes.appendChild(ty);
+  }
+
+  /* axes (flèches visibles) */
+  const x0 = Math.max(8, Math.min(H-8, Y(0)));
+  const y0 = Math.max(8, Math.min(W-8, X(0)));
+
+  const axX=document.createElementNS(svg.namespaceURI,'line');
+  axX.setAttribute('x1',0); axX.setAttribute('x2',W-8);
+  axX.setAttribute('y1',x0); axX.setAttribute('y2',x0);
+  axX.setAttribute('stroke','#111'); axX.setAttribute('stroke-width','3');
+  if(opts.arrows){ axX.setAttribute('marker-end','url(#arrow)'); }
+  axes.appendChild(axX);
+
+  const axY=document.createElementNS(svg.namespaceURI,'line');
+  axY.setAttribute('x1',y0); axY.setAttribute('x2',y0);
+  axY.setAttribute('y1',H);  axY.setAttribute('y2',8);
+  axY.setAttribute('stroke','#111'); axY.setAttribute('stroke-width','3');
+  if(opts.arrows){ axY.setAttribute('marker-end','url(#arrow)'); }
+  axes.appendChild(axY);
+
+  /* points O, I, J (optionnels) */
+  if(opts.basis!==false){
+    function dot(x,y,label,dx,dy){ const c=document.createElementNS(svg.namespaceURI,'circle'); c.setAttribute('cx',X(x)); c.setAttribute('cy',Y(y)); c.setAttribute('r',3.2); c.setAttribute('fill','#111'); axes.appendChild(c);
+      const t=document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',X(x)+(dx||6)); t.setAttribute('y',Y(y)-(dy||6)); t.setAttribute('font-size','12'); t.textContent=label; axes.appendChild(t);}
+    if(xmin<=0 && 0<=xmax && ymin<=0 && 0<=ymax) dot(0,0,'O',-12,-6);
+    if(xmin<=1 && 1<=xmax && ymin<=0 && 0<=ymax) dot(1,0,'I',6,-6);
+    if(xmin<=0 && 0<=xmax && ymin<=1 && 1<=ymax) dot(0,1,'J',6,-6);
+  }
+  return {svg,plot,axes,X,Y,xmin,xmax,ymin,ymax,W,H};
+}
+function addPath(g,d,st){ const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d',d);
+  p.setAttribute('fill','none'); p.setAttribute('stroke',st?.stroke||'#000');
+  if(st?.['stroke-dasharray']) p.setAttribute('stroke-dasharray',st['stroke-dasharray']);
+  if(st?.['stroke-opacity']) p.setAttribute('stroke-opacity',st['stroke-opacity']);
+  p.setAttribute('stroke-width',st?.['stroke-width']||2.2); p.setAttribute('stroke-linejoin','round'); p.setAttribute('stroke-linecap','round'); g.appendChild(p); return p; }
+function addLine(g,x1,y1,x2,y2,st){ const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1); l.setAttribute('y1',y1); l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+  l.setAttribute('stroke',st?.stroke||'#000'); if(st?.['stroke-dasharray']) l.setAttribute('stroke-dasharray',st['stroke-dasharray']);
+  if(st?.['stroke-opacity']) l.setAttribute('stroke-opacity',st['stroke-opacity']); l.setAttribute('stroke-width',st?.['stroke-width']||2); g.appendChild(l); return l; }
+
+/* ===== Catmull–Rom → Bézier ===== */
+function catmullRomPath(points){
+  if(points.length<2) return '';
+  const P=i=>points[Math.max(0,Math.min(points.length-1,i))];
+  let d=`M ${points[0].x} ${points[0].y}`;
+  for(let i=0;i<points.length-1;i++){
+    const p0=P(i-1), p1=P(i), p2=P(i+1), p3=P(i+2);
+    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+    d+=` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+/* ==== Générateur “entier→entier” (Ex.1/4) ==== */
+function genCurveIntegerGrid(R, forceCross=true){
+  const xs=[], ys=[];
+  for(let x=R.xmin; x<=R.xmax; x++){
+    ys.push(rnd(R.ymin+1,R.ymax-1)); xs.push(x);
+  }
+  if(forceCross){
+    ys[Math.floor(xs.length/4)]=rnd(-3,-1);
+    ys[Math.floor(xs.length/2)]=rnd(1,3);
+    ys[Math.floor(3*xs.length/4)]=rnd(-3,-1);
+    if(xs.includes(0)) ys[xs.indexOf(0)]=rnd(R.ymin+1,R.ymax-1);
+  }
+  return { Xs:xs, Ys:ys };
+}
+function pathFromGrid(rep, grid){
+  const pts=grid.Xs.map((x,i)=>({x:rep.X(x), y:rep.Y(grid.Ys[i])}));
+  return catmullRomPath(pts);
+}
+function interpAtGrid(grid, x){
+  const {Xs,Ys}=grid;
+  if(x<Xs[0] || x> Xs[Xs.length-1]) return null;
+  const i=Math.floor(x - Xs[0]);
+  if(Math.abs(x - Math.round(x))<1e-9) return Ys[i];
+  const k=Math.floor(x), idx=k - Xs[0];
+  const y1=Ys[idx], y2=Ys[idx+1];
+  return y1 + 0.5*(y2-y1);
+}
+function antecedentsOfGrid(grid, y){
+  const out=[];
+  for(let i=0;i<grid.Xs.length-1;i++){
+    const x1=grid.Xs[i], x2=grid.Xs[i+1], y1=grid.Ys[i], y2=grid.Ys[i+1];
+    if(y===y1) out.push(x1);
+    if(y===y2) out.push(x2);
+    if((y1<y && y<y2) || (y2<y && y<y1)){
+      const t=(y-y1)/((y2-y1)||1e-9); const x=x1+t*(x2-x1); out.push(x);
+    }
+  }
+  return uniq(out,(a,b)=>Math.abs(a-b)<1e-6);
+}
+
+/* ===== Vues ===== */
+function mkRow(host,consigneHTML){
+  host.innerHTML='';
+  const row=document.createElement('div'); row.className='row';
+  const st=document.createElement('div'); st.className='statement';
+  st.innerHTML = `<div class="consigne">${consigneHTML||''}</div>`;
+  const form=document.createElement('div'); form.className='input-wrap';
+  const res=document.createElement('div'); res.id='res';
+  row.appendChild(st); row.appendChild(form); row.appendChild(res);
+  host.appendChild(row);
+  return {row,st,form,res};
+}
+function showSteps(host, steps){ $('#res',host).innerHTML = '<div class="steps">'+steps.map(s=>'<div class="step">'+s+'</div>').join('')+'</div>'; }
+function clearMarks(host){ host.querySelectorAll('.qmark').forEach(m=>m.textContent=''); $('#res',host).textContent=''; const plot=host.querySelector('.plot'); if(plot){ plot.querySelectorAll('line[stroke-dasharray]').forEach(n=>n.remove()); } }
+
+/* ========================== EXERCICE 1 ========================== */
+const ex1 = {
+  id:'rg1',
+  title:'Lecture graphique',
+  gen(){
+    const R={...AMP};
+    const grid = genCurveIntegerGrid(R, Math.random()<0.9);
+    const needI = clamp(parseInt($('#cfg-img').value||2,10),1,10);
+    const needA = clamp(parseInt($('#cfg-ant').value||2,10),1,10);
+    const Ximg=uniq(shuffle([...grid.Xs]).slice(0,needI)).sort((a,b)=>a-b);
+    const Yimg=Ximg.map(x=>interpAtGrid(grid,x));
+    let Ycands=uniq(grid.Ys).filter(y=>!Yimg.includes(y));
+    const Yask=uniq(shuffle(Ycands).slice(0,needA)).sort((a,b)=>a-b);
+    return {R, grid, Ximg, Yask};
+  },
+  render(host,st){
+    const ui=mkRow(host,'Lecture graphique.');
+    const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
+    addPath(rep.plot, pathFromGrid(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
+    ui.st.appendChild(rep.svg);
+
+    let html = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="aD" type="text" placeholder="[${st.R.xmin} ; ${st.R.xmax}]"><span id="aDm" class="qmark"></span></div></div>`;
+    st.Ximg.forEach((x,i)=>{
+      html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de&nbsp;<b style="color:${COLORS[i%COLORS.length]}">${x}</b>&nbsp;:&nbsp;<input id="aI${i}" type="text" placeholder=""><span id="aI${i}m" class="qmark"></span></div></div>`;
+    });
+    st.Yask.forEach((y,j)=>{
+      const k=2+st.Ximg.length+j;
+      html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de&nbsp;<b style="color:${COLORS[(j+6)%COLORS.length]}">${y}</b>&nbsp;:&nbsp;<input id="aA${j}" type="text" placeholder=""><span id="aA${j}m" class="qmark"></span></div></div>`;
+    });
+    ui.form.innerHTML=html;
+    host.dataset.state=JSON.stringify(st); host.dataset.active='rg1';
+  },
+  solution(host,st){
+    const rep = host.querySelector('svg.repere');
+    const {X,Y}= (function(){ const xmin=st.R.xmin,xmax=st.R.xmax,ymin=st.R.ymin,ymax=st.R.ymax; const W=520,H=320; return { X:x=>(x-xmin)*W/(xmax-xmin), Y:y=>H-(y-ymin)*H/(ymax-ymin) }; })();
+    st.Ximg.forEach((x,i)=>{
+      const col=COLORS[i%COLORS.length], y=interpAtGrid(st.grid,x);
+      addLine(rep.querySelector('.plot'), X(x),Y(y), X(x),Y(st.R.ymin), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+      addLine(rep.querySelector('.plot'), X(st.R.xmin),Y(y), X(x),Y(y), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+    });
+    st.Yask.forEach((y,j)=>{
+      const col=COLORS[(j+6)%COLORS.length];
+      antecedentsOfGrid(st.grid,y).forEach(x=>{
+        addLine(rep.querySelector('.plot'), X(x),Y(y), X(x),Y(st.R.ymin), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+        addLine(rep.querySelector('.plot'), X(st.R.xmin),Y(y), X(x),Y(y), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+      });
+    });
+    const steps=[`Ensemble de définition : [${st.R.xmin} ; ${st.R.xmax}]`];
+    st.Ximg.forEach((x,i)=>steps.push(`f(${x}) = ${interpAtGrid(st.grid,x)}`));
+    st.Yask.forEach((y,j)=>{ const A=antecedentsOfGrid(st.grid,y).filter(v=>Math.abs(v-Math.round(v))<1e-9).map(v=>Math.round(v)); steps.push(`Antécédent(s) de ${y} : ${A.length?A.join(' ; '):'aucun'}`); });
+    showSteps(host,steps);
+  },
+  correct(host,st){
+    clearMarks(host);
+    let okAll=true;
+
+    const v=$('#aD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+    const okDom = (v.length===2 && +v[0]===st.R.xmin && +v[1]===st.R.xmax);
+    $('#aDm',host).textContent = okDom?'✔':'✘'; $('#aDm',host).style.color=okDom?'#14532d':'#991b1b';
+    okAll = okAll && okDom;
+
+    st.Ximg.forEach((x,i)=>{
+      const want=interpAtGrid(st.grid,x), got=parseInt($('#aI'+i,host).value.replace(/\u2212/g,'-'),10);
+      const ok=Number.isInteger(got)&&got===want;
+      const m=$('#aI'+i+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b';
+      okAll = okAll && ok;
+    });
+
+    st.Yask.forEach((y,j)=>{
+      const t=$('#aA'+j,host).value.trim().toLowerCase();
+      const A = antecedentsOfGrid(st.grid,y).filter(v=>Math.abs(v-Math.round(v))<1e-9).map(v=>Math.round(v));
+      let ok=false;
+      if(!t || t==='aucun'){ ok = (A.length===0); }
+      else{
+        const L = uniq(parseList(t)).map(v=>Math.round(v));
+        ok = (L.length===A.length) && L.every(v=>A.includes(v));
+      }
+      const m=$('#aA'+j+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b';
+      okAll = okAll && ok;
+    });
+
+    $('#res',host).textContent = okAll ? '✔' : '✘';
+    return {ok:okAll,total:1};
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); }
+};
+
+/* ========================== EXERCICE 2 ========================== */
+const ex2 = {
+  id:'rg2',
+  title:'Lecture graphique',
+  gen(){
+    const R={...AMP};
+    const grid = genCurveIntegerGrid(R, Math.random()<0.9);
+    const needI = clamp(parseInt($('#cfg-img').value||2,10),1,10);
+    const needA = clamp(parseInt($('#cfg-ant').value||2,10),1,10);
+    const Xc=[]; for(let k=R.xmin*2;k<=R.xmax*2;k++) Xc.push(k/2); // entiers ou .5
+    const Ximg=uniq(shuffle(Xc).slice(0,needI)).sort((a,b)=>a-b);
+    const Yimg=Ximg.map(x=>interpAtGrid(grid,x));
+    const Ycands=uniq(grid.Ys);
+    const Yask=uniq(shuffle(Ycands.filter(y=>!Yimg.some(v=>Math.round(v)===y))).slice(0,needA)).sort((a,b)=>a-b);
+    return {R,grid,Ximg,Yask};
+  },
+  render(host,st){
+    const ui=mkRow(host,'Lecture graphique.');
+    const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
+    addPath(rep.plot, pathFromGrid(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
+    ui.st.appendChild(rep.svg);
+
+    let html = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="bD" type="text" placeholder="[${st.R.xmin} ; ${st.R.xmax}]"><span id="bDm" class="qmark"></span></div></div>`;
+    st.Ximg.forEach((x,i)=>{
+      html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de&nbsp;<b style="color:${COLORS[i%COLORS.length]}">${x.toFixed(1).replace('.0','')}</b>&nbsp;:&nbsp;<input id="bI${i}" type="text" placeholder=""><span id="bI${i}m" class="qmark"></span></div></div>`;
+    });
+    st.Yask.forEach((y,j)=>{
+      const k=2+st.Ximg.length+j;
+      html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de&nbsp;<b style="color:${COLORS[(j+6)%COLORS.length]}">${y}</b>&nbsp;:&nbsp;<input id="bA${j}" type="text" placeholder=""><span id="bA${j}m" class="qmark"></span></div></div>`;
+    });
+    ui.form.innerHTML=html;
+    host.dataset.state=JSON.stringify(st); host.dataset.active='rg2';
+  },
+  solution(host,st){
+    const rep = host.querySelector('svg.repere');
+    const {X,Y}= (function(){ const xmin=st.R.xmin,xmax=st.R.xmax,ymin=st.R.ymin,ymax=st.R.ymax; const W=520,H=320; return { X:x=>(x-xmin)*W/(xmax-xmin), Y:y=>H-(y-ymin)*H/(ymax-ymin) }; })();
+    st.Ximg.forEach((x,i)=>{
+      const col=COLORS[i%COLORS.length], y=Math.round(interpAtGrid(st.grid,x)*2)/2;
+      addLine(rep.querySelector('.plot'), X(x),Y(y), X(x),Y(st.R.ymin), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+      addLine(rep.querySelector('.plot'), X(st.R.xmin),Y(y), X(x),Y(y), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+    });
+    st.Yask.forEach((y,j)=>{
+      const col=COLORS[(j+6)%COLORS.length];
+      antecedentsOfGrid(st.grid,y).forEach(x=>{
+        addLine(rep.querySelector('.plot'), X(x),Y(y), X(x),Y(st.R.ymin), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+        addLine(rep.querySelector('.plot'), X(st.R.xmin),Y(y), X(x),Y(y), {stroke:col,'stroke-width':2.8,'stroke-dasharray':'6 5','stroke-opacity':0.95});
+      });
+    });
+    const steps=[`Ensemble de définition : [${st.R.xmin} ; ${st.R.xmax}]`];
+    st.Ximg.forEach((x,i)=>steps.push(`f(${x.toFixed(1).replace('.0','')}) ≈ ${(Math.round(interpAtGrid(st.grid,x)*2)/2).toFixed(1)}`));
+    st.Yask.forEach((y,j)=>{ const A=antecedentsOfGrid(st.grid,y).map(v=>Math.round(v*10)/10); steps.push(`Antécédent(s) de ${y} : ${A.length?A.join(' ; '):'aucun'}`); });
+    showSteps(host,steps);
+  },
+  correct(host,st){
+    clearMarks(host);
+    let okAll=true;
+
+    const v=$('#bD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+    const okDom = (v.length===2 && +v[0]===st.R.xmin && +v[1]===st.R.xmax);
+    $('#bDm',host).textContent = okDom?'✔':'✘'; $('#bDm',host).style.color=okDom?'#14532d':'#991b1b';
+    okAll = okAll && okDom;
+
+    st.Ximg.forEach((x,i)=>{
+      const want=Math.round(interpAtGrid(st.grid,x)*2)/2;
+      const got=parseNum($('#bI'+i,host).value);
+      const ok=Number.isFinite(got) && Math.abs(got - want) <= 0.25;
+      const m=$('#bI'+i+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b';
+      okAll = okAll && ok;
+    });
+
+    st.Yask.forEach((y,j)=>{
+      const t=$('#bA'+j,host).value.trim().toLowerCase();
+      const A = antecedentsOfGrid(st.grid,y).map(v=>Math.round(v*10)/10);
+      let ok=false;
+      if(!t || t==='aucun'){ ok = (A.length===0); }
+      else{
+        const L = uniq(parseList(t)).map(v=>Math.round(v*10)/10);
+        ok = (L.length===A.length) && L.every(u=>A.some(v=>Math.abs(u-v)<=0.15));
+      }
+      const m=$('#bA'+j+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b';
+      okAll = okAll && ok;
+    });
+
+    $('#res',host).textContent = okAll ? '✔' : '✘';
+    return {ok:okAll,total:1};
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); }
+};
+
+/* ========================== EXERCICE 3 — Thèmes (phrases EXACTES) ========================== */
+const THEMES = [
+  {id:'tension',     title:'Tension d’une lampe',        ctx:"On a mesuré la tension aux bornes d’une lampe en fonction du temps écoulé.", x:[0,10,1], y:[0,300,50],  shapes:['exp_decay','damped_sine'], xUnit:'ms', yUnit:'V', q2:(r1,r2)=>`D’après la courbe « Tension d’une lampe », donner la tension (en V) à ${nbu(r1,'ms')}&nbsp;<input id="c2a" class="q" type="text"> et à ${nbu(r2,'ms')}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Tension d’une lampe », au bout de combien de temps la tension vaut ${nbu(y,'V')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'à'},
+  {id:'petrole',     title:'Prix du pétrole',            ctx:"Évolution du prix moyen du baril de pétrole au fil des années.",           x:[2000,2010,1], y:[0,150,20], shapes:['sine_mix','piecewise_linear'], yUnit:'USD', q2:(r1,r2)=>`D’après la courbe « Prix du pétrole », donner le prix (en USD) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Prix du pétrole », pour quelle(s) année(s) le prix vaut ${nbu(y,'USD')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'naiss',       title:'Naissances',                 ctx:"Nombre annuel de naissances (en milliers) dans un pays.",                  x:[2005,2017,1], y:[0,900,100],shapes:['piecewise_linear','sine_mix'], yUnit:'milliers', q2:(r1,r2)=>`D’après la courbe « Naissances », donner le nombre de naissances (en milliers) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Naissances », pour quelle(s) année(s) le nombre de naissances vaut ${y} milliers&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'co2',         title:'Émissions de CO₂',           ctx:"Émissions annuelles de CO₂ d’un pays (en mégatonnes).",                    x:[1995,2007,1], y:[0,900,100],shapes:['piecewise_linear','sine_mix'], yUnit:'Mt', q2:(r1,r2)=>`D’après la courbe « Émissions de CO₂ », donner les émissions de CO₂ (en Mt) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Émissions de CO₂ », pour quelle(s) année(s) les émissions de CO₂ valent ${nbu(y,'Mt')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'temperature', title:'Température d’une journée',  ctx:"Température (en °C) au cours d’une journée en fonction de l’heure.",       x:[0,24,2],      y:[-10,40,5], shapes:['daily_temp'], xUnit:'h', yUnit:'°C', q2:(r1,r2)=>`D’après la courbe « Température d’une journée », donner la température (en °C) à ${nbu(r1,'h')}&nbsp;<input id="c2a" class="q" type="text"> et à ${nbu(r2,'h')}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Température d’une journée », à quelle(s) heure(s) la température vaut ${nbu(y,'°C')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'à'},
+  {id:'achat',       title:'Pouvoir d’achat',            ctx:"Indice de pouvoir d’achat (base 100 au début de la période).",             x:[2010,2020,1], y:[0,140,10], shapes:['monotone_up','piecewise_linear_up'], q2:(r1,r2)=>`D’après la courbe « Pouvoir d’achat », donner l’indice de pouvoir d’achat en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Pouvoir d’achat », pour quelle(s) année(s) l’indice de pouvoir d’achat vaut ${y}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'incendies',   title:'Incendies de forêt',         ctx:"Nombre d’incendies de forêt recensés chaque année.",                       x:[2010,2022,1], y:[0,1200,100],shapes:['spiky','piecewise_linear'], q2:(r1,r2)=>`D’après la courbe « Incendies de forêt », donner le nombre d’incendies en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Incendies de forêt », pour quelle(s) année(s) le nombre d’incendies vaut ${y}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'population',  title:'Population (ville)',         ctx:"Population d’une ville (en millions d’habitants).",                        x:[2000,2015,1], y:[5,20,1],    shapes:['logistic','monotone_up'], yUnit:'millions', q2:(r1,r2)=>`D’après la courbe « Population (ville) », donner la population (en millions) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Population (ville) », pour quelle(s) année(s) la population vaut ${y} millions&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'vitesse',     title:'Vitesse d’un mobile',        ctx:"Vitesse d’un mobile (m·s⁻¹) en fonction du temps (s).",                    x:[0,10,1],      y:[0,50,5],   shapes:['bell','piecewise_updown'], xUnit:'s', yUnit:'m/s', q2:(r1,r2)=>`D’après la courbe « Vitesse d’un mobile », donner la vitesse (en m/s) à ${nbu(r1,'s')}&nbsp;<input id="c2a" class="q" type="text"> et à ${nbu(r2,'s')}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Vitesse d’un mobile », au bout de combien de secondes la vitesse vaut ${nbu(y,'m/s')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'à'},
+  {id:'luminosite',  title:'Luminosité d’une étoile',    ctx:"Luminosité relative d’une étoile variable en fonction du temps (jours).",  x:[0,12,1],      y:[0,10,1],   shapes:['pure_sine','sine_mix_small'], q2:(r1,r2)=>`D’après la courbe « Luminosité d’une étoile », donner la luminosité (valeur relative) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Luminosité d’une étoile », pour quel(s) jour(s) la luminosité vaut ${y}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'seismes',     title:'Activité sismique',          ctx:"Nombre d’événements sismiques enregistrés par mois.",                      x:[1,12,1],      y:[0,60,5],   shapes:['spiky'], q2:(r1,r2)=>`D’après la courbe « Activité sismique », donner le nombre d’événements en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Activité sismique », pour quel(s) mois le nombre d’événements vaut ${y}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'reaction',    title:'Concentration d’un réactif', ctx:"Concentration (mol·L⁻¹) d’un réactif au cours d’une réaction.",            x:[0,10,1],      y:[0,3,0.5],  shapes:['exp_decay'], xUnit:'s', yUnit:'mol·L⁻¹', q2:(r1,r2)=>`D’après la courbe « Concentration d’un réactif », donner la concentration (en mol·L⁻¹) à ${nbu(r1,'s')}&nbsp;<input id="c2a" class="q" type="text"> et à ${nbu(r2,'s')}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Concentration d’un réactif », au bout de combien de secondes la concentration vaut ${nbu(y,'mol·L⁻¹')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'à'},
+  {id:'debit',       title:'Débit d’un fleuve',          ctx:"Débit moyen d’un fleuve (m³·s⁻¹) selon le mois.",                          x:[1,12,1],      y:[0,2000,200],shapes:['seasonal'], yUnit:'m³/s', q2:(r1,r2)=>`D’après la courbe « Débit d’un fleuve », donner le débit (en m³/s) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Débit d’un fleuve », pour quel(s) mois le débit vaut ${nbu(y,'m³/s')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'niveau',      title:'Niveau d’un lac',            ctx:"Niveau d’un lac (m) au fil des mois.",                                     x:[1,12,1],      y:[10,30,2],  shapes:['seasonal_soft'], yUnit:'m', q2:(r1,r2)=>`D’après la courbe « Niveau d’un lac », donner le niveau (en m) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Niveau d’un lac », pour quel(s) mois le niveau vaut ${nbu(y,'m')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+  {id:'panier',      title:'Prix d’un panier',           ctx:"Prix moyen d’un panier de biens (en euros) par mois.",                     x:[1,12,1],      y:[0,200,20], shapes:['monotone_up','piecewise_linear_up'], yUnit:'€', q2:(r1,r2)=>`D’après la courbe « Prix d’un panier », donner le prix (en €) en ${r1}&nbsp;<input id="c2a" class="q" type="text"> et en ${r2}&nbsp;<input id="c2b" class="q" type="text">.`, q3:y=>`D’après la courbe « Prix d’un panier », pour quel(s) mois le prix vaut ${nbu(y,'€')}&nbsp;?&nbsp;<input id="c3a" class="q" type="text">`, conn:'en'},
+];
+
+/* ========= Familles de formes ========= */
+function lerp(a,b,t){ return a+(b-a)*t; }
+function clampv(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function makeShape(kind, th){
+  const [xmin,xmax] = th.x, [ymin,ymax] = th.y;
+  const H = ymax-ymin, W = xmax-xmin;
+
+  switch(kind){
+    case 'exp_decay':{
+      const A = Math.max(0.4*H, rand(0.55,0.85)*H);
+      const k = rand(0.25,0.6);
+      const base = Math.max(0, ymin + 0.01*H);
+      return x => Math.max(0, base + A*Math.exp(-k*(x-xmin)));
+    }
+    case 'damped_sine':{
+      const A = rand(0.25,0.45)*H, k = rand(0.12,0.3), w = rand(1.6,2.6), phi = rand(-Math.PI,Math.PI);
+      const base = ymin + 0.02*H;
+      return x => base + A*Math.exp(-k*(x-xmin))*Math.abs(Math.sin(w*(x-xmin)+phi));
+    }
+    case 'sine_mix':{
+      const A = rand(0.25,0.4)*H, base = ymin + 0.06*H;
+      const w1 = rand(0.4,0.7), w2 = rand(0.9,1.3), p1 = rand(-Math.PI,Math.PI), p2 = rand(-Math.PI,Math.PI);
+      return x => base + A*(0.6*Math.sin(w1*x+p1)+0.4*Math.sin(w2*x+p2)+1.2);
+    }
+    case 'piecewise_linear':{
+      const K = 6;
+      const xs = Array.from({length:K},(_,i)=> xmin + (i*(W)/(K-1)));
+      const ys = xs.map(()=> ymin + 0.1*H + rand(0.1,0.85)*H);
+      return x =>{
+        let i=0; while(i<xs.length-1 && x>xs[i+1]) i++;
+        if(i>=xs.length-1) return ys[ys.length-1];
+        const t=(x-xs[i])/(xs[i+1]-xs[i]); return lerp(ys[i],ys[i+1],t);
+      };
+    }
+    case 'piecewise_linear_up':{
+      const baseUp = rand(0.35,0.6)*H;
+      return x => ymin + 0.02*H + (baseUp*(x-xmin)/W) + 0.08*H*Math.sin(1.1*x+0.7*Math.sin(2.2*x));
+    }
+    case 'monotone_up':{
+      const A = rand(0.45,0.75)*H, k = rand(0.4,0.8);
+      return x => ymin + A*(1 - Math.exp(-k*(x-xmin)/W));
+    }
+    case 'logistic':{
+      const L = rand(0.45,0.8)*H, k = rand(4,8)/W, x0 = xmin + rand(0.35,0.65)*W;
+      const base = ymin + 0.05*H;
+      return x => base + L / (1 + Math.exp(-k*(x-x0)));
+    }
+    case 'bell':{
+      const A = rand(0.45,0.8)*H, sigma = rand(0.18,0.28)*W, x0 = xmin + rand(0.35,0.65)*W;
+      const base = ymin + 0.02*H;
+      return x => base + A*Math.exp(-((x-x0)*(x-x0))/(2*sigma*sigma));
+    }
+    case 'daily_temp':{
+      const A = rand(0.35,0.45)*H, base = ymin + 0.55*H;
+      return x => base + A*Math.sin((x-6)*Math.PI/12) + 0.15*A*Math.sin((x-6)*Math.PI/3);
+    }
+    case 'seasonal':{
+      const A = rand(0.35,0.5)*H, base = ymin + 0.06*H;
+      return x => base + A*(1.05*Math.sin((x-3)*2*Math.PI/12) + 0.15*Math.sin((x-3)*4*Math.PI/12));
+    }
+    case 'seasonal_soft':{
+      const A = rand(0.25,0.35)*H, base = ymin + 0.5*H;
+      return x => base + A*Math.sin((x-3)*2*Math.PI/12);
+    }
+    case 'spiky':{
+      const base = ymin + 0.05*H, A = rand(0.18,0.28)*H;
+      const peaks = Array.from({length: (rand(3,5)|0)},()=> xmin + rand(0.1,0.9)*W);
+      const widths = peaks.map(()=> rand(0.04,0.09)*W);
+      return x =>{
+        let y = base + A*(0.6*Math.sin(0.6*x)+0.4*Math.sin(1.1*x)+1.1);
+        for(let i=0;i<peaks.length;i++){
+          const d = (x-peaks[i])/widths[i];
+          y += 0.55*H*Math.exp(-d*d);
+        }
+        return y;
+      };
+    }
+    case 'piecewise_updown':{
+      const x0 = xmin + rand(0.25,0.5)*W, x1 = xmin + rand(0.6,0.85)*W;
+      const y0 = ymin + 0.12*H, ymid = ymin + rand(0.55,0.85)*H, y1 = ymin + rand(0.2,0.45)*H;
+      return x => (x<=x0) ? lerp(y0,ymid,(x-xmin)/(x0-xmin))
+                 : (x<=x1) ? lerp(ymid,y1,(x-x0)/(x1-x0))
+                 :          y1;
+    }
+    default: return x => ymin + 0.5*H;
+  }
+}
+function makeCurveForTheme(th){
+  const [xmin,xmax,stepX]=th.x, [ymin,ymax,stepY]=th.y;
+  const f = makeShape(pick(th.shapes), th);
+  const n = Math.max(60,(xmax-xmin)*12);
+  const xs = Array.from({length:n+1},(_,k)=> xmin + k*(xmax-xmin)/n);
+  let ys = xs.map(x=> f(x));
+  ys = ys.map(y=> clampv(y, Math.max(0, ymin + 0.01*(ymax-ymin)), ymax - 0.01*(ymax-ymin)));
+  return {xs,ys};
+}
+
+const ex3 = {
+  id:'rg3',
+  title:'Utiliser une courbe représentative (thèmes)',
+  gen(){
+    const last = window.__rg3_last_theme;
+    const th = last ? THEMES.find(t=>t.id===last) : pick(THEMES);
+    const [xmin,xmax,stepX]=th.x, [ymin,ymax,stepY]=th.y;
+    const {xs,ys} = makeCurveForTheme(th);
+
+    const gx=[]; for(let v=xmin; v<=xmax+1e-9; v+=stepX) gx.push(v);
+    const read1=gx[Math.max(1,Math.floor(gx.length/3))], read2=gx[Math.max(2,Math.floor(2*gx.length/3))];
+
+    const gy=[]; for(let v=ymin; v<=ymax+1e-9; v+=stepY) gy.push(v);
+    function crosses(yv){ for(let i=0;i<xs.length-1;i++){ const a=ys[i]-yv, b=ys[i+1]-yv; if(a===0 || a*b<0) return true; } return false; }
+    let yTarget = gy[Math.floor(gy.length/2)];
+    for(let k=0;k<gy.length;k++){ const idx=(Math.floor(gy.length/2)+k)%gy.length; if(crosses(gy[idx])){ yTarget=gy[idx]; break; } }
+
+    return {th,xmin,xmax,stepX,ymin,ymax,stepY,xs,ys,read1,read2,yTarget};
+  },
+  render(host,st){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row single';
+    const box=document.createElement('div'); box.className='statement'; row.appendChild(box); host.appendChild(row);
+
+    const sel=document.createElement('select'); sel.id='themeSel';
+    THEMES.forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.title; sel.appendChild(o); });
+    sel.value=st.th.id; window.__rg3_last_theme = st.th.id;
+
+    const p=document.createElement('p'); p.textContent = st.th.ctx;
+    const cons=document.createElement('div'); cons.className='consigne'; cons.appendChild(p); cons.appendChild(sel); box.appendChild(cons);
+
+    const rep=buildRepereSVG({ xmin:st.xmin,xmax:st.xmax,ymin:st.ymin,ymax:st.ymax, grid:true,basis:false,arrows:true, ticks:{x:st.stepX,y:st.stepY}});
+    const pts = st.xs.map((x,i)=>({x:rep.X(x),y:rep.Y(st.ys[i])}));
+    addPath(rep.plot, catmullRomPath(pts), {stroke:'#000','stroke-width':2.6});
+    box.appendChild(rep.svg);
+
+    const form=document.createElement('div'); form.className='input-wrap'; row.appendChild(form);
+
+    const q1 = `Quelles légendes placer au bout des flèches&nbsp;?
+      abscisses&nbsp;:&nbsp;<input id="c1x" type="text" placeholder="…">
+      ordonnées&nbsp;:&nbsp;<input id="c1y" type="text" placeholder="…">`;
+
+    const q2 = st.th.q2(st.read1, st.read2);
+    const q3 = st.th.q3(st.yTarget);
+
+    form.innerHTML=`
+      <div class="qa"><div class="q">1.</div><div class="a">${q1}</div></div>
+      <div class="qa"><div class="q">2.</div><div class="a">${q2}</div></div>
+      <div class="qa"><div class="q">3.</div><div class="a">${q3}</div></div>
+    `;
+
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+
+    host.dataset.state=JSON.stringify(st); host.dataset.active='rg3';
+
+    sel.addEventListener('change',()=>{ 
+      window.__rg3_last_theme = sel.value; 
+      const st2 = ex3.gen(); ex3.render(host,st2);
+    });
+  },
+  solution(host,st){
+    function interp(xs,ys,x){ let i=0; while(i<xs.length-1 && xs[i+1]<x) i++; const x1=xs[i],x2=xs[i+1],y1=ys[i],y2=ys[i+1]; const t=(x-x1)/(x2-x1); return y1+(y2-y1)*t; }
+    const y1 = interp(st.xs,st.ys,st.read1), y2 = interp(st.xs,st.ys,st.read2);
+    function antecedentsFor(yv){ const out=[]; for(let i=0;i<st.xs.length-1;i++){ const a=st.ys[i]-yv, b=st.ys[i+1]-yv; if(a===0) out.push(st.xs[i]); if(a*b<0){ const t=(-a)/((b-a)||1e-9); out.push( +(st.xs[i]+t*(st.xs[i+1]-st.xs[i])).toFixed(2) ); }} return Array.from(new Set(out)); }
+    const Ax = antecedentsFor(st.yTarget);
+
+    showSteps(host,[
+      `1) Légendes : abscisses = ${st.th.xUnit ? (st.th.id==='tension'?'Temps (ms)': st.th.id==='vitesse' || st.th.id==='reaction' ? 'Temps (s)' : st.th.id==='temperature' ? 'Temps (h)' : 'Année/Mois') : 'Année/Mois'} ; ordonnées = ${st.th.title.includes('Prix')?'Prix': st.th.title.includes('Naissances')?'Naissances': st.th.title.includes('CO₂')?'Émissions': st.th.title.includes('Température')?'Température': st.th.title.includes('Pouvoir')?'Indice de pouvoir d’achat': st.th.title.includes('Incendies')?'Nombre d’incendies': st.th.title.includes('Population')?'Population': st.th.title.includes('Vitesse')?'Vitesse': st.th.title.includes('Luminosité')?'Luminosité': st.th.title.includes('sismique')?'Nombre d’événements': st.th.title.includes('Concentration')?'Concentration': st.th.title.includes('Débit')?'Débit': st.th.title.includes('Niveau')?'Niveau': 'Prix'}.`,
+      `2) Lecture : ${st.th.conn} ${st.read1}${st.th.xUnit?nbsp+st.th.xUnit:''} → ${y1.toFixed(2)} ; ${st.th.conn} ${st.read2}${st.th.xUnit?nbsp+st.th.xUnit:''} → ${y2.toFixed(2)}.`,
+      `3) Ordonnée = ${st.yTarget} pour abscisse ${Ax.length?Ax.join(' ; '):'—'}.`
+    ]);
+  },
+  correct(){ $('#btn-solution').click(); return {ok:true,total:1}; },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); }
+};
+
+/* ========================== EXERCICE 4 (TABLEAUX) ========================== */
+const ex4 = {
+  id:'rg4',
+  title:'Compléter les tableaux par lecture graphique',
+  gen(){
+    const R={...AMP};
+    const grid = genCurveIntegerGrid(R, Math.random()<0.9);
+    const wantI = Math.max(4, clamp(parseInt($('#cfg-img').value||4,10),1,10));
+    const wantA = Math.max(4, clamp(parseInt($('#cfg-ant').value||4,10),1,10));
+    const Xs = uniq(shuffle(grid.Xs).slice(0,wantI)).sort((a,b)=>a-b);
+    const yImg = Xs.map(x=>interpAtGrid(grid,x));
+    let Yc = uniq(grid.Ys).filter(y=>!yImg.includes(y));
+    const Ys = uniq(shuffle(Yc).slice(0,wantA)).sort((a,b)=>a-b);
+    return {R,grid,Xs,Ys};
+  },
+  render(host,st){
+    host.innerHTML='';
+    const row1=document.createElement('div'); row1.className='row single'; host.appendChild(row1);
+    const stBox=document.createElement('div'); stBox.className='statement'; row1.appendChild(stBox);
+    stBox.innerHTML='<div class="consigne">Compléter les tableaux par lecture graphique.</div>';
+    const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
+    addPath(rep.plot, pathFromGrid(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
+    stBox.appendChild(rep.svg);
+
+    const row2=document.createElement('div'); row2.className='row single'; host.appendChild(row2);
+    const box=document.createElement('div'); row2.appendChild(box);
+    const t1=`<table class="tbl"><thead><tr><th>x</th>${st.Xs.map(x=>`<th>${x}</th>`).join('')}</tr></thead>
+      <tbody><tr><th>f(x)</th>${st.Xs.map(()=>`<td><input class="c1" type="text" placeholder=""></td>`).join('')}</tr></tbody></table>`;
+    const t2=`<table class="tbl"><thead><tr><th>y</th>${st.Ys.map(y=>`<th>${y}</th>`).join('')}</tr></thead>
+      <tbody><tr><th>Antécédent(s)</th>${st.Ys.map(()=>`<td><input class="c2" type="text" placeholder=""></td>`).join('')}</tr></tbody></table>`;
+    box.innerHTML = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="dD" type="text" placeholder="[${st.R.xmin} ; ${st.R.xmax}]"><span id="dDm" class="qmark"></span></div></div>
+    <div class="qa"><div class="q">2.</div><div class="a">${t1}</div></div>
+    <div class="qa"><div class="q">3.</div><div class="a">${t2}</div></div>`;
+
+    host.dataset.state=JSON.stringify(st); host.dataset.active='rg4';
+  },
+  solution(host,st){
+    const fAt=x=>interpAtGrid(st.grid,x);
+    const Aofy=y=>antecedentsOfGrid(st.grid,y);
+    const t1='<table class="tbl"><tbody><tr><th>x</th>'+st.Xs.map(x=>'<td>'+x+'</td>').join('')+'</tr>'+
+             '<tr><th>f(x)</th>'+st.Xs.map(x=>'<td>'+fAt(x)+'</td>').join('')+'</tr></tbody></table>';
+    const t2='<table class="tbl"><tbody><tr><th>y</th>'+st.Ys.map(y=>'<td>'+y+'</td>').join('')+'</tr>'+
+             '<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y); return '<td>'+(A.length?A.map(v=>v.toFixed(1).replace('.0','')).join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
+    showSteps(host,[`Ensemble de définition : [${st.R.xmin} ; ${st.R.xmax}]`,'Tableau images :<br>'+t1,'Antécédents :<br>'+t2]);
+  },
+  correct(host,st){
+    clearMarks(host);
+    let okAll=true;
+    const v=$('#dD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+    const okDom = (v.length===2 && +v[0]===st.R.xmin && +v[1]===st.R.xmax);
+    $('#dDm',host).textContent = okDom?'✔':'✘'; $('#dDm',host).style.color=okDom?'#14532d':'#991b1b';
+    okAll = okAll && okDom;
+    $('#res',host).textContent = okAll ? '✔' : '✘';
+    return {ok:okAll,total:1};
+  },
+  reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); }
+};
+
+/* ========================== EXERCICE 5 (Fonction ou pas ?) ========================== */
+/* 4 modèles “fonction” + 15 modèles “non-fonction”, tirage sans doublon : 2 fonctions + 3 non-fonctions */
+function addMiniPath(g,d){ addPath(g.plot,d,{stroke:'#000','stroke-width':2}); }
+function drawParab(g){ const pts=[]; for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(0.5*x*x-2)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawAbs(g){ const pts=[]; for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(Math.abs(x)-1)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawSigm(g){ const pts=[]; for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(3/(1+Math.exp(-x))-1.5)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawLine(g){ addLine(g.plot, g.X(-4), g.Y(-2), g.X(4), g.Y(2), {stroke:'#000','stroke-width':2}); }
+
+/* 15 non-fonctions “simples et jolis” */
+function drawCircle(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.01;t+=0.02){ const x=2.6*Math.cos(t), y=2.0*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawEllipse(g){ const a=3,b=1.6,ang=Math.PI/6; const pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const x=a*Math.cos(t), y=b*Math.sin(t); const xr=x*Math.cos(ang)-y*Math.sin(ang), yr=x*Math.sin(ang)+y*Math.cos(ang); pts.push({x:g.X(xr),y:g.Y(yr)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawRect(g){ const r=[[-2.8,-1.8],[2.8,-1.8],[2.8,1.8],[-2.8,1.8],[-2.8,-1.8]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
+function drawDiamond(g){ const r=[[0,3],[-3,0],[0,-3],[3,0],[0,3]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
+function drawStar5(g){ const R=3,r=1.3,pts=[]; for(let k=0;k<10;k++){ const a=(Math.PI/5)*k - Math.PI/2; const rad=(k%2? r : R); pts.push({x:g.X(rad*Math.cos(a)),y:g.Y(rad*Math.sin(a))}); } pts.push(pts[0]); addMiniPath(g,catmullRomPath(pts)); }
+function drawInfinity(g){ const pts=[]; for(let t=-Math.PI;t<=Math.PI+0.001;t+=0.02){ const x=3*Math.sin(t), y=2*Math.sin(2*t)/1.5; pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawHeart(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const x=0.16* (16*Math.sin(t)**3)*1.6, y=0.16*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)); pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawSpiral(g){ const pts=[]; for(let t=0;t<=4*Math.PI+0.001;t+=0.03){ const r=0.3*t, x=r*Math.cos(t), y=r*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawFlower(g){ const pts=[]; for(let t=0; t<=2*Math.PI+0.001; t+=0.012){ const r = 2 + 1.2*Math.cos(4*t); const x = 0.9*r*Math.cos(t); const y = 0.9*r*Math.sin(t); pts.push({x:g.X(x), y:g.Y(y)}); } addMiniPath(g, catmullRomPath(pts)); }
+function drawClover3(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const r=2.2*Math.cos(3*t); const x=r*Math.cos(t), y=r*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawClover4(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const r=2.2*Math.cos(2*t); const x=r*Math.cos(t), y=r*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawCrescent(g){ const outer=[], inner=[]; const R=3, r=2; for(let a=-0.6*Math.PI;a<=0.6*Math.PI;a+=0.02){ outer.push({x:g.X(R*Math.cos(a)), y:g.Y(R*Math.sin(a))}); } for(let a=0.6*Math.PI; a>=-0.6*Math.PI; a-=0.02){ inner.push({x:g.X(1+ r*Math.cos(a)), y:g.Y(r*Math.sin(a))}); } addMiniPath(g,catmullRomPath([...outer,...inner, outer[0]])); }
+function drawTeardrop(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const rr=1.8*(1+Math.sin(t)); const x=rr*Math.cos(t), y=rr*Math.sin(t)-1.2; pts.push({x:g.X(x),y:g.Y(y)}); } addMiniPath(g,catmullRomPath(pts)); }
+function drawXLetter(g){ addLine(g.plot, g.X(-3), g.Y(3), g.X(3), g.Y(-3), {stroke:'#000','stroke-width':2}); addLine(g.plot, g.X(-3), g.Y(-3), g.X(3), g.Y(3), {stroke:'#000','stroke-width':2}); }
+function drawSLetter(g){ const pts1=[], pts2=[]; for(let t=-3.2; t<=0; t+=0.2){ pts1.push({ x: g.X(t), y: g.Y(1.3*Math.sin(-t) + 1.2) }); } for(let t=0; t<=3.2; t+=0.2){ pts2.push({ x: g.X(t), y: g.Y(1.3*Math.sin(-t) - 1.2) }); } addMiniPath(g, catmullRomPath(pts1)); addMiniPath(g, catmullRomPath(pts2)); }
+
+/* banques */
+const FUN_BANK = [
+  {name:'Parabole',     draw:drawParab,  isFn:true},
+  {name:'Valeur absolue', draw:drawAbs,  isFn:true},
+  {name:'Sigmoïde (S)', draw:drawSigm,   isFn:true},
+  {name:'Droite',       draw:drawLine,   isFn:true},
+];
+const NON_BANK = [
+  {name:'Cercle',          draw:drawCircle,  isFn:false},
+  {name:'Ellipse',         draw:drawEllipse, isFn:false},
+  {name:'Rectangle',       draw:drawRect,    isFn:false},
+  {name:'Losange',         draw:drawDiamond, isFn:false},
+  {name:'Étoile',          draw:drawStar5,   isFn:false},
+  {name:'Infini',          draw:drawInfinity,isFn:false},
+  {name:'Cœur',            draw:drawHeart,   isFn:false},
+  {name:'Spirale',         draw:drawSpiral,  isFn:false},
+  {name:'Fleur (rosace)',  draw:drawFlower,  isFn:false},
+  {name:'Trèfle (3)',      draw:drawClover3, isFn:false},
+  {name:'Trèfle (4)',      draw:drawClover4, isFn:false},
+  {name:'Croissant',       draw:drawCrescent,isFn:false},
+  {name:'Goutte',          draw:drawTeardrop,isFn:false},
+  {name:'Lettre X',        draw:drawXLetter, isFn:false},
+  {name:'Lettre S',        draw:drawSLetter, isFn:false},
+];
+
+const ex5 = {
+  id:'rg5',
+  title:'Pour chaque courbe, dire si elle représente une fonction',
+  gen(){
+    /* 2 modèles “fonction” + 3 modèles “non-fonction” — sans doublon */
+    const tiles = shuffle( shuffle(FUN_BANK).slice(0,2).concat( shuffle(NON_BANK).slice(0,3) ) );
+    return {tiles};
+  },
+  render(host,st){
+    const row=document.createElement('div'); row.className='row single'; host.innerHTML=''; host.appendChild(row);
+    const s=document.createElement('div'); s.className='statement'; row.appendChild(s);
+    s.innerHTML='<div class="consigne">Pour chaque courbe, dire si elle représente une fonction.</div>';
+    const grid=document.createElement('div'); grid.className='mini-grid';
+    st.tiles.forEach((m,i)=> {
+      const r=buildRepereSVG({xmin:-4,xmax:4,ymin:-4,ymax:4,grid:true,arrows:true});
+      m.draw(r);
+      const box=document.createElement('div'); box.className='mini';
+      const title=document.createElement('div'); title.className='title'; title.textContent='Courbe '+String.fromCharCode(65+i);
+      const ans=document.createElement('div'); ans.innerHTML='Réponse&nbsp;: <select class="yesno"><option value="">—</option><option>Oui</option><option>Non</option></select>';
+      r.svg.dataset.ok=m.isFn?'Oui':'Non'; r.svg.dataset.real=m.name;
+      box.appendChild(title); box.appendChild(r.svg); box.appendChild(ans);
+      grid.appendChild(box);
+    });
+    s.appendChild(grid);
+    host.dataset.active='rg5'; host.dataset.state=JSON.stringify(st);
+  },
+  solution(host){
+    Array.from(host.querySelectorAll('.mini')).forEach((box,i)=>{
+      const svg=box.querySelector('svg'); box.querySelector('.title').textContent=`Courbe ${String.fromCharCode(65+i)} — ${svg.dataset.real}`;
+    });
+    showSteps(host,['Rappel : une courbe représente une fonction quand toute droite verticale la coupe au plus une fois.']);
+  },
+  correct(host){
+    let ok=true;
+    host.querySelectorAll('.mini').forEach(box=>{
+      const want=(box.querySelector('svg').dataset.ok||'').toLowerCase();
+      const got=(box.querySelector('.yesno').value||'').toLowerCase();
+      if(!want || want!==got) ok=false;
+    });
+    $('#res',host).textContent = ok?'✔':'✘';
+    return {ok,total:1};
+  },
+  reset(host){ host.querySelectorAll('.yesno').forEach(s=>s.value=''); clearMarks(host); }
+};
+
+/* ===== Registry & moteur ==== */
+const REGISTRY=[ex1,ex2,ex3,ex4,ex5];
+window.REGISTRY = REGISTRY; // exposé pour PDF
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host"), def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st=def.gen?def.gen():{};
+  host.dataset.state=JSON.stringify(st); host.dataset.active=def.id;
+  def.render(host,st); $('#res',host).textContent='';
+}
+function check(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host,st); scoreTot += (r?.total||1); scoreOK += (r?.ok?1:0); updateScore(); }
+function solution(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; def.reset(host); scoreOK=0; scoreTot=0; updateScore(); }
+
+/* ==== Init ==== */
+document.addEventListener('DOMContentLoaded',()=>{
+  $('#amp-apply').addEventListener('click',applyAMP);
+  const sel=$("#exo-select"); REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change',buildOne);
+  $("#btn-new").addEventListener('click', buildOne);      // Ex.3 reste sur le même thème
+  $("#btn-check").addEventListener('click', check);
+  $("#btn-solution").addEventListener('click', solution);
+  $("#btn-reset").addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+});
+})();
+</script>
+
+<script>
+/* ==== PDF (même UI que ton exemple) ==== */
+window.addEventListener('load',function(){
+  if(!(window.ExoPDF && ExoPDF.init)) return;
+  ExoPDF.init({
+    title: 'Seconde — Représentation graphique',
+    max: 50,
+    lead: '',
+    leadByDefId: { rg1:'', rg2:'', rg3:'', rg4:'', rg5:'' },
+    mountAfterSelector: '.card.small'
+  });
+});
+</script>
+</body>
+</html>

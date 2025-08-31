@@ -1,0 +1,622 @@
+<html lang='fr'>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Évolutions successives</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+.res{grid-area:res; padding:12px; border-radius:10px; background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{ display:grid; grid-template-columns:1fr; grid-template-areas:'lab' 'inp' 'res'; gap:10px; align-items:start; }
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+
+.eq .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.eq .frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.eq .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+</style>
+</head>
+
+<body>
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Seconde – <strong>Évolutions successives</strong></h1>
+  <div class="wrap" style="padding:0 18px">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card"><div id="host"></div></div>
+
+  <div class="card small">
+    <div><strong>Consignes de saisie :</strong></div>
+    <ul class="tips">
+      <li>Décimaux : virgule <em>ou</em> point (ex. <code>1,25</code> ↔ <code>1.25</code>).</li>
+      <li>Pourcentages : possible avec <code>%</code> (ex. <code>12%</code>) ou en décimal (ex. <code>0,12</code>).</li>
+      <li>Arrondis : valeurs au <strong>centième</strong> près sauf quand la situation impose des entiers.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+/* ======= Outils ======= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=L=>L[rnd(0,L.length-1)];
+const fmtDecFR=(x,d=2)=>String(Math.round(x*10**d)/10**d).replace('.',',');
+function tidyDecFR(v,d=2){ let s=fmtDecFR(v,d); if(s.includes(',')) s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; }
+const same02=(a,b)=>Math.round(a*100)===Math.round(b*100);
+const same0001=(a,b)=>Math.round(a*10000)===Math.round(b*10000);
+const stripU=s=>String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s=stripU(String(s||'').trim());
+  const m=s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(m) return parseFloat(m[1].replace(',', '.'))/100;
+  return parseFloat(s.replace(',', '.'));
+}
+function parseNumberFR_noPct(s){
+  s=stripU(String(s||'').trim());
+  if(/%/.test(s)) return NaN;
+  return parseFloat(s.replace(',', '.'));
+}
+function fracHTML(n,d){ return '<span class="frac"><span class="num">'+n+'</span><span class="bar"></span><span class="den">'+d+'</span></span>'; }
+function addTicks(host){
+  $$('#host input[type=text]').forEach(inp=>{
+    if(!inp.nextElementSibling || !inp.nextElementSibling.classList || !inp.nextElementSibling.classList.contains('tick')){
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+    }
+  });
+}
+function setTick(inp, ok){
+  const t = inp.nextElementSibling && inp.nextElementSibling.classList.contains('tick') ? inp.nextElementSibling : null;
+  if(!t) return; t.textContent = ok===null?'':(ok?'✔':'✘'); t.className='tick '+(ok?'ok':'ko');
+}
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
+function rto(v,d=2){ return Math.round(v*10**d)/10**d; }
+function eqSign(exact, shown){ return (Math.abs(exact - shown) < 1e-12) ? '=' : '≈'; }
+// Signes équilibrés pour Ex. 2 et Ex. 3 : 25% chaque combinaison
+function pickSignsBalanced(){
+  const combos = [['+','+'], ['+','−'], ['−','+'], ['−','−']];
+  return combos[rnd(0, combos.length - 1)];
+}
+// Texte pour le signe
+const verb = s => s === '+' ? 'augmente' : 'diminue';
+const noun = s => s === '+' ? 'hausse'   : 'baisse';
+
+// Injecte les mots manquants dans un énoncé déjà produit par la banque
+// Corrige les énoncés en injectant les mots manquants.
+// 1) Si on voit "après ... puis ...", on traite PRIORITAIREMENT ce cas (Ex. 3).
+// 2) Sinon, on complète seulement "puis 12%" → "puis augmente/diminue de 12%" (Ex. 2).
+function injectSignsTxt(txt, s1, s2){
+  // Ex. 3 : "après 10% puis 20%" → "après une hausse/baisse de 10% puis une ... de 20%"
+  const reAfter = /(après\s*)(\d+(?:[.,]\d+)?)\s*%\s*(puis)\s*(\d+(?:[.,]\d+)?)\s*%/i;
+  if (reAfter.test(txt)){
+    return txt.replace(reAfter, (_, a, pA, mid, pB) =>
+      `${a}une ${noun(s1)} de ${pA}% ${mid} une ${noun(s2)} de ${pB}%`
+    );
+  }
+
+  // Ex. 2 : "... puis 20%" → "... puis augmente/diminue de 20%"
+  return txt.replace(/puis\s+(\d+(?:[.,]\d+)?)\s*%/i,
+                     (_, x) => `puis ${verb(s2)} de ${x}%`);
+}
+/* ======= Banque (25 contextes) ======= */
+function bank25(){
+  const B=[
+    // int:true => objets/personnes/végétaux (entiers)
+    {name:'adhérents d’un club', unit:'adhérents', int:true, dec:0, vi:()=>rnd(100,800),
+      t2:(vi,p1,s1,p2,s2)=>`Un club compte ${vi} adhérents. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien d’adhérents ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un club compte ${vf} adhérents après une ${s1==='+'?'hausse':'baisse'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien avant ?`,
+      t4:(vi,p,n)=>`L’effectif augmente de ${p}% par an. Il était de ${vi} adhérents en année 0. Combien en année ${n} ?`},
+    {name:'population d’une ville', unit:'habitants', int:true, dec:0, vi:()=>rnd(15000,150000),
+      t2:(vi,p1,s1,p2,s2)=>`La population d’une ville est de ${vi} habitants. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Une ville compte ${vf} habitants après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien avant ?`,
+      t4:(vi,p,n)=>`La population augmente de ${p}%/an à partir de ${vi} habitants. Combien en année ${n} ?`},
+    {name:'arbres plantés', unit:'arbres', int:true, dec:0, vi:()=>rnd(200,5000),
+      t2:(vi,p1,s1,p2,s2)=>`On a planté ${vi} arbres l’an dernier. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien cette année ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, on compte ${vf} arbres. Combien au départ ?`,
+      t4:(vi,p,n)=>`Le nombre d’arbres progresse de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
+    {name:'spectateurs d’un concert', unit:'spectateurs', int:true, dec:0, vi:()=>rnd(500,8000),
+      t2:(vi,p1,s1,p2,s2)=>`Un concert réunit ${vi} spectateurs. L’affluence ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au concert suivant ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un concert a réuni ${vf} spectateurs après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au précédent ?`,
+      t4:(vi,p,n)=>`Le nombre de spectateurs augmente de ${p}%/mois à partir de ${vi}. Combien après ${n} mois ?`},
+    {name:'élèves d’un lycée', unit:'élèves', int:true, dec:0, vi:()=>rnd(300,2000),
+      t2:(vi,p1,s1,p2,s2)=>`Un lycée compte ${vi} élèves. L’effectif ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un lycée compte ${vf} élèves après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
+      t4:(vi,p,n)=>`L’effectif progresse de ${p}%/an à partir de ${vi}. Combien dans ${n} ans ?`},
+    {name:'stock d’un magasin', unit:'pièces', int:true, dec:0, vi:()=>rnd(200,5000),
+      t2:(vi,p1,s1,p2,s2)=>`Le stock d’un magasin est de ${vi} pièces. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le stock final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Le stock d’un magasin est ${vf} pièces après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le stock initial ?`,
+      t4:(vi,p,n)=>`La production augmente de ${p}%/mois à partir de ${vi} pièces. Quel stock après ${n} mois ?`},
+    {name:'arbustes d’un parc', unit:'arbustes', int:true, dec:0, vi:()=>rnd(500,9000),
+      t2:(vi,p1,s1,p2,s2)=>`Un parc compte ${vi} arbustes. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau nombre ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un parc compte ${vf} arbustes. Combien au départ ?`,
+      t4:(vi,p,n)=>`Le nombre d’arbustes croît de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
+    // non entiers (monnaie, mesures ...)
+    {name:'salaire', unit:'€', int:false, dec:2, vi:()=>rnd(1200,3200)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un salaire est ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le salaire final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un salaire vaut ${tidyDecFR(vf,2)} €. Quel était-il avant ?`,
+      t4:(vi,p,n)=>`Un salaire évolue de ${p}%/an. Il vaut ${tidyDecFR(vi,2)} € à l’année 0. Combien à l’année ${n} ?`},
+    {name:'prix d’un billet', unit:'€', int:false, dec:2, vi:()=>rnd(8,120)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un billet coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un billet coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le prix initial ?`,
+      t4:(vi,p,n)=>`Le prix d’un billet augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
+    {name:'loyer', unit:'€', int:false, dec:2, vi:()=>rnd(400,1600)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un loyer est ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau loyer ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un loyer vaut ${tidyDecFR(vf,2)} €. Quel était-il avant ?`,
+      t4:(vi,p,n)=>`Un loyer évolue de ${p}%/an et vaut ${tidyDecFR(vi,2)} €. Quel sera-t-il dans ${n} ans ?`},
+    {name:'prix d’un ordinateur', unit:'€', int:false, dec:2, vi:()=>rnd(300,1500)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un ordinateur coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un ordinateur coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était son prix initial ?`,
+      t4:(vi,p,n)=>`Le prix d’un ordinateur varie de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
+    {name:'facture d’électricité', unit:'€', int:false, dec:2, vi:()=>rnd(50,250)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Une facture d’électricité est ${tidyDecFR(vi,2)} €. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le montant final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, une facture est ${tidyDecFR(vf,2)} €. Quel était le montant initial ?`,
+      t4:(vi,p,n)=>`La facture évolue de ${p}%/an. Montant initial ${tidyDecFR(vi,2)} €. Quel montant dans ${n} ans ?`},
+    {name:'consommation électrique', unit:'kWh', int:true, dec:0, vi:()=>rnd(1800,6000),
+      t2:(vi,p1,s1,p2,s2)=>`La consommation annuelle d’un foyer est ${vi} kWh. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle consommation ?`,
+      t3:(vf,p1,s1,p2,s2)=>`La consommation annuelle est ${vf} kWh après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
+      t4:(vi,p,n)=>`La consommation croît de ${p}%/an. Elle est de ${vi} kWh l’année 0. Quelle valeur en année ${n} ?`},
+    {name:'distance d’un parcours', unit:'km', int:false, dec:2, vi:()=>rnd(2,30)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`La distance d’un parcours est ${tidyDecFR(vi,2)} km. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la distance finale ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un parcours mesure ${tidyDecFR(vf,2)} km après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était sa longueur initiale ?`,
+      t4:(vi,p,n)=>`Une distance augmente de ${p}%/an. Longueur initiale ${tidyDecFR(vi,2)} km. Quelle longueur dans ${n} ans ?`},
+    {name:'volume d’un réservoir', unit:'L', int:false, dec:1, vi:()=>rnd(50,300)/10,
+      t2:(vi,p1,s1,p2,s2)=>`Le volume d’un réservoir est ${tidyDecFR(vi,1)} L. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le volume final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Le volume d’un réservoir est ${tidyDecFR(vf,1)} L après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le volume initial ?`,
+      t4:(vi,p,n)=>`Le volume augmente de ${p}%/an, à partir de ${tidyDecFR(vi,1)} L. Quel volume après ${n} ans ?`},
+    {name:'vitesse moyenne', unit:'km/h', int:false, dec:1, vi:()=>rnd(30,120)/1,
+      t2:(vi,p1,s1,p2,s2)=>`La vitesse moyenne d’un trajet est ${tidyDecFR(vi,1)} km/h. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle vitesse ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Une vitesse moyenne atteint ${tidyDecFR(vf,1)} km/h après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était-elle auparavant ?`,
+      t4:(vi,p,n)=>`La vitesse progresse de ${p}%/an. Elle est ${tidyDecFR(vi,1)} km/h l’année 0. Quelle vitesse dans ${n} ans ?`},
+    {name:'durée d’un trajet', unit:'min', int:true, dec:0, vi:()=>rnd(20,120),
+      t2:(vi,p1,s1,p2,s2)=>`La durée d’un trajet est ${vi} minutes. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle durée ?`,
+      t3:(vf,p1,s1,p2,s2)=>`La durée d’un trajet est ${vf} minutes après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la durée initiale ?`,
+      t4:(vi,p,n)=>`La durée diminue de ${p}%/an à partir de ${vi} minutes. Quelle durée après ${n} ans ?`},
+    {name:'surface d’un appartement', unit:'m²', int:true, dec:0, vi:()=>rnd(30,150),
+      t2:(vi,p1,s1,p2,s2)=>`La surface d’un appartement est ${vi} m². Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle surface ?`,
+      t3:(vf,p1,s1,p2,s2)=>`La surface d’un appartement est ${vf} m² après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la surface initiale ?`,
+      t4:(vi,p,n)=>`La surface utile augmente de ${p}%/an à partir de ${vi} m². Quelle surface dans ${n} ans ?`},
+    {name:'prix d’un sandwich', unit:'€', int:false, dec:2, vi:()=>rnd(2,8)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un sandwich coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau prix ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un sandwich coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le prix initial ?`,
+      t4:(vi,p,n)=>`Le prix d’un sandwich augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
+    {name:'masse d’un colis', unit:'kg', int:false, dec:1, vi:()=>rnd(5,120)/10,
+      t2:(vi,p1,s1,p2,s2)=>`La masse d’un colis est ${tidyDecFR(vi,1)} kg. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle masse ?`,
+      t3:(vf,p1,s1,p2,s2)=>`La masse d’un colis est ${tidyDecFR(vf,1)} kg après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la masse au départ ?`,
+      t4:(vi,p,n)=>`La masse varie de ${p}%/an. Quelle masse après ${n} ans si elle vaut ${tidyDecFR(vi,1)} kg au départ ?`},
+    {name:'longueur d’un câble', unit:'m', int:false, dec:2, vi:()=>Math.round((rnd(50,500)/10 + Math.random())*100)/100,
+      t2:(vi,p1,s1,p2,s2)=>`La longueur d’un câble est ${tidyDecFR(vi,2)} m. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle longueur ?`,
+      t3:(vf,p1,s1,p2,s2)=>`La longueur d’un câble est ${tidyDecFR(vf,2)} m après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la longueur initiale ?`,
+      t4:(vi,p,n)=>`La longueur du câble augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} m. Quelle longueur dans ${n} ans ?`},
+    {name:'prix d’un téléphone', unit:'€', int:false, dec:2, vi:()=>rnd(150,1200)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un téléphone coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un téléphone coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était son prix initial ?`,
+      t4:(vi,p,n)=>`Le prix d’un téléphone évolue de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
+    {name:'billets vendus', unit:'billets', int:true, dec:0, vi:()=>rnd(100,5000),
+      t2:(vi,p1,s1,p2,s2)=>`Une salle vend ${vi} billets. Les ventes ${s1==='+'?'augmentent':'diminuent'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Une salle vend ${vf} billets après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
+      t4:(vi,p,n)=>`Les ventes progressent de ${p}%/mois, à partir de ${vi} billets. Combien après ${n} mois ?`},
+    {name:'arbres fruitiers', unit:'arbres', int:true, dec:0, vi:()=>rnd(50,800),
+      t2:(vi,p1,s1,p2,s2)=>`Un verger compte ${vi} arbres fruitiers. Leur nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un verger compte ${vf} arbres après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au début ?`,
+      t4:(vi,p,n)=>`Le verger grandit de ${p}%/an et commence à ${vi} arbres. Combien après ${n} ans ?`},
+    {name:'clients par jour', unit:'clients', int:true, dec:0, vi:()=>rnd(40,600),
+      t2:(vi,p1,s1,p2,s2)=>`Un commerce reçoit ${vi} clients par jour. La fréquentation ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un commerce reçoit ${vf} clients après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
+      t4:(vi,p,n)=>`La fréquentation progresse de ${p}%/mois à partir de ${vi} clients. Combien après ${n} mois ?`},
+    {name:'lits d’hôpital', unit:'lits', int:true, dec:0, vi:()=>rnd(500,50000),
+      t2:(vi,p1,s1,p2,s2)=>`Un hôpital dispose de ${vi} lits. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le total final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un hôpital compte ${vf} lits après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le total initial ?`,
+      t4:(vi,p,n)=>`Le nombre de lits augmente de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
+    {name:'arbres replantés', unit:'arbres', int:true, dec:0, vi:()=>rnd(100,3000),
+      t2:(vi,p1,s1,p2,s2)=>`Une commune replante ${vi} arbres. Elle ${s1==='+'?'augmente':'diminue'} ce nombre de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Une commune annonce ${vf} arbres après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au départ ?`,
+      t4:(vi,p,n)=>`Les plantations augmentent de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
+  ];
+  // Compléter à 25 en dupliquant quelques non-entiers variés
+  while(B.length<25){
+    B.push({name:'prix d’un article', unit:'€', int:false, dec:2, vi:()=>rnd(5,80)+rnd(0,99)/100,
+      t2:(vi,p1,s1,p2,s2)=>`Un article coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
+      t3:(vf,p1,s1,p2,s2)=>`Un article coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le prix initial ?`,
+      t4:(vi,p,n)=>`Le prix de l’article évolue de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`});
+  }
+  // Post-traitement : forcer l'affichage des mots "augmente/diminue" et "hausse/baisse"
+const wrapWithSigns = f => (...args) => {
+  const [_, p1, s1, p2, s2] = args;            // _ = Vi ou Vf selon t2/t3
+  return injectSignsTxt(f(...args), s1, s2);
+};
+B.forEach(ctx => {
+  if (typeof ctx.t2 === 'function') ctx.t2 = wrapWithSigns(ctx.t2);
+  if (typeof ctx.t3 === 'function') ctx.t3 = wrapWithSigns(ctx.t3);
+});
+
+  return B;
+}
+
+/* ======= Tirage de deux pourcentages au % près ======= */
+function pickPercents(){
+  const p1 = rnd(5,50);
+  const p2 = rnd(5,50);
+  const s1 = Math.random()<0.5 ? '+' : '−';
+  const s2 = Math.random()<0.5 ? '+' : '−';
+  return {p1,p2,s1,s2};
+}
+
+/* ======= Contraintes entières pour EX2/EX3 ======= */
+function stepForViIntegerVf(p1,s1,p2,s2){
+  const a = (s1==='+'?100+p1:100-p1);
+  const b = (s2==='+'?100+p2:100-p2);
+  const N = a*b, D = 10000;
+  const g = gcd(N, D);
+  return D/g; // Vi multiple de M
+}
+function stepForVfIntegerVi(p1,s1,p2,s2){
+  const a = (s1==='+'?100+p1:100-p1);
+  const b = (s2==='+'?100+p2:100-p2);
+  const N = a*b, D = 10000;
+  const g = gcd(N, D);
+  return N/g; // Vf multiple de K
+}
+
+
+/* ======= Générateurs ======= */
+function gen_ex1(){
+  const bank = bank25(); const t = choice(bank);
+  const {p1,p2,s1,s2} = pickPercents();
+  return {ctx:t, p1,p2,s1,s2};
+}
+function gen_ex2(){
+  const bank = bank25();
+  const t = choice(bank);
+
+  // 25% ++, 25% +−, 25% −+, 25% −−
+  const [s1, s2] = pickSignsBalanced();
+  const p1 = rnd(5, 50);
+  const p2 = rnd(5, 50);
+
+  // Vi choisi ; si contexte entier → contraindre pour que Vf tombe entier
+  let Vi = t.vi();
+  if (t.int){
+    const M = stepForViIntegerVf(p1, s1, p2, s2);
+    Vi = Math.max(M, Math.round(Vi / M) * M);
+  }
+
+  const a = (s1 === '+' ? 1 + p1/100 : 1 - p1/100);
+  const b = (s2 === '+' ? 1 + p2/100 : 1 - p2/100);
+  const Vf = Vi * a * b;
+
+  return {
+    ctx: t,
+    Vi: t.int ? Math.round(Vi) : rto(Vi, 2),
+    p1, p2, s1, s2,
+    Vf: t.int ? Math.round(Vf) : rto(Vf, 2)
+  };
+}
+
+
+function pickSignsBalanced(){
+  const combos = [['+','+'], ['+','−'], ['−','+'], ['−','−']];
+  return combos[rnd(0, combos.length - 1)];
+}
+
+// Ex. 2
+function gen_ex2(){
+  const bank = bank25(); const t = choice(bank);
+  const [s1, s2] = pickSignsBalanced();
+  const p1 = rnd(5,50), p2 = rnd(5,50);
+
+  let Vi = t.vi();
+  if (t.int){
+    const M = stepForViIntegerVf(p1, s1, p2, s2);
+    Vi = Math.max(M, Math.round(Vi/M)*M);
+  }
+  const a = (s1==='+'?1+p1/100:1-p1/100);
+  const b = (s2==='+'?1+p2/100:1-p2/100);
+  const Vf = Vi*a*b;
+
+  return { ctx:t, Vi: t.int?Math.round(Vi):rto(Vi,2), p1,p2,s1,s2, Vf: t.int?Math.round(Vf):rto(Vf,2) };
+}
+
+// Ex. 3
+function gen_ex3(){
+  const bank = bank25(); const t = choice(bank);
+  const [s1, s2] = pickSignsBalanced();
+  const p1 = rnd(5,50), p2 = rnd(5,50);
+
+  const K = stepForVfIntegerVi(p1, s1, p2, s2);
+  let Vf = t.vi();
+  Vf = t.int ? Math.max(K, Math.round(Vf/K)*K) : rto(Vf,2);
+
+  const a = (s1==='+'?1+p1/100:1-p1/100);
+  const b = (s2==='+'?1+p2/100:1-p2/100);
+  const Vi = Vf/(a*b);
+
+  return { ctx:t, Vf: t.int?Math.round(Vf):rto(Vf,2), p1,p2,s1,s2, Vi: t.int?Math.round(Vi):rto(Vi,2) };
+}
+
+
+function gen_ex4(){
+  const bank = bank25(); const t = choice(bank);
+  const p = rnd(3,20); const n=rnd(3,12);
+  let Vi = t.vi();
+  const c = Math.pow(1+p/100, n);
+  const Vf = t.int ? Math.round(Vi*c) : rto(Vi*c,2);
+  return {ctx:t, p, n, Vi: t.int?Math.round(Vi):rto(Vi,2), Vf};
+}
+
+/* ======= Exercices ======= */
+const EX1={
+  id:'succ_calc_coeffs',
+  title:"Exercice 1 — Coefficients & taux globaux (2 évolutions)",
+  gen: gen_ex1,
+  render(host, st){
+    const inner = (host.innerHTML='<div class="inner"></div>', host.querySelector('.inner'));
+    inner.innerHTML = `
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        <div>Calculer le coefficient multiplicateur de chaque évolution, puis le coefficient global et le taux global.</div>
+        <ul class="small" style="margin:.5rem 0 .3rem 1.2rem">
+          <li>1<sup>re</sup> évolution : ${st.s1==='+'?'hausse':'baisse'} de <strong>${Math.abs(st.p1)}%</strong></li>
+          <li>2<sup>e</sup> évolution : ${st.s2==='+'?'hausse':'baisse'} de <strong>${Math.abs(st.p2)}%</strong></li>
+        </ul>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponses :</strong></div>
+        <div class="input-line">
+          <input id="c1" type="text" placeholder="c1 (ex. 1,10)">
+          <input id="c2" type="text" placeholder="c2 (ex. 0,85)" style="margin-left:8px">
+          <input id="cg" type="text" placeholder="c global (ex. 0,935)" style="margin-left:8px">
+          <input id="tg" type="text" placeholder="t global (ex. -6,5% ou -0,065)" style="margin-left:8px;min-width:230px">
+        </div>
+      </div>
+      <div id="res" class="res"></div>`;
+    addTicks(inner);
+  },
+  correct(host, st){
+    const inner=host.querySelector('.inner');
+    const c1u=parseNumberFR_noPct($('#c1',inner).value);
+    const c2u=parseNumberFR_noPct($('#c2',inner).value);
+    const c1=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const c2=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const cgu=parseNumberFR_noPct($('#cg',inner).value);
+    const tgu=parseNumberFR($('#tg',inner).value);
+    const cg=c1*c2, tg=cg-1;
+    const ok1=isFinite(c1u)&&same0001(c1u,c1);
+    const ok2=isFinite(c2u)&&same0001(c2u,c2);
+    const okg=isFinite(cgu)&&same0001(cgu,cg);
+    const okt=isFinite(tgu)&&same0001(tgu,tg);
+    setTick($('#c1',inner),ok1); setTick($('#c2',inner),ok2); setTick($('#cg',inner),okg); setTick($('#tg',inner),okt);
+    const ok=ok1&&ok2&&okg&&okt;
+    const res=$('#res',inner); res.textContent=ok?'Tout est correct.':'Il y a des erreurs.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:4};
+  },
+  solution(host, st){
+    const inner=host.querySelector('.inner');
+    const c1=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const c2=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const cg=c1*c2, tg=cg-1;
+    $('#res',inner).innerHTML=`
+      <div class="eq">
+        <div>c<sub>1</sub> = 1 ${st.s1==='+'?'+':'−'} ${fracHTML(Math.abs(st.p1),'100')} ${eqSign(c1,rto(c1,4))} ${tidyDecFR(rto(c1,4),4)}</div>
+        <div>c<sub>2</sub> = 1 ${st.s2==='+'?'+':'−'} ${fracHTML(Math.abs(st.p2),'100')} ${eqSign(c2,rto(c2,4))} ${tidyDecFR(rto(c2,4),4)}</div>
+        <div>c<sub>global</sub> = ${tidyDecFR(rto(c1,4),4)} × ${tidyDecFR(rto(c2,4),4)} ${eqSign(cg,rto(cg,4))} ${tidyDecFR(rto(cg,4),4)}</div>
+        <div>t<sub>global</sub> = c<sub>global</sub> − 1 ${eqSign(tg,rto(tg,4))} ${tidyDecFR(rto(tg,4),4)} (${tidyDecFR(rto(tg*100,2),2)}%)</div>
+      </div>`;
+    $('#res',inner).className='res eq';
+  },
+  reset(host){ host.querySelector('.inner').innerHTML=''; }
+};
+
+const EX2={
+  id:'succ_Vi_to_Vf',
+  title:"Exercice 2 — Vi donné, deux évolutions → valeur finale",
+  gen: gen_ex2,
+  render(host, st){
+    const t=st; const inner=(host.innerHTML='<div class="inner"></div>', host.querySelector('.inner'));
+    inner.innerHTML=`
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        <div>${t.ctx.t2(t.Vi, t.p1, t.s1, t.p2, t.s2)}</div>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse (nombre uniquement) :</strong></div>
+        <div class="input-line"><input id="ans" type="text" placeholder="ex. 420"></div>
+      </div>
+      <div id="res" class="res"></div>`;
+    addTicks(inner);
+  },
+  correct(host, st){
+    const inner=host.querySelector('.inner');
+    const v=parseNumberFR($('#ans',inner).value);
+    const a=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const b=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const exp=st.Vi*a*b;
+    const ok=isFinite(v)&&same02(v, exp);
+    setTick($('#ans',inner),ok);
+    const res=$('#res',inner); res.textContent=ok?'Correct.':'Incorrect.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const inner=host.querySelector('.inner');
+    const a=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const b=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const cg=a*b; const vf = st.Vi*cg; const vfShow = st.ctx.int ? Math.round(vf) : rto(vf,2);
+    $('#res',inner).innerHTML=`
+      <div class="eq">
+        <div>c<sub>1</sub> = 1 ${st.s1==='+'?'+':'−'} ${fracHTML(Math.abs(st.p1),'100')} ${eqSign(a,rto(a,4))} ${tidyDecFR(rto(a,4),4)}</div>
+        <div>c<sub>2</sub> = 1 ${st.s2==='+'?'+':'−'} ${fracHTML(Math.abs(st.p2),'100')} ${eqSign(b,rto(b,4))} ${tidyDecFR(rto(b,4),4)}</div>
+        <div>c<sub>global</sub> = ${tidyDecFR(rto(a,4),4)} × ${tidyDecFR(rto(b,4),4)} ${eqSign(cg,rto(cg,4))} ${tidyDecFR(rto(cg,4),4)}</div>
+        <div>V<sub>f</sub> = V<sub>i</sub> × c<sub>global</sub> = ${tidyDecFR(st.Vi, st.ctx.int?0:2)} × ${tidyDecFR(rto(cg,4),4)} ${eqSign(vf,vfShow)} <strong>${tidyDecFR(vfShow, st.ctx.int?0:2)}</strong></div>
+      </div>`;
+    $('#res',inner).className='res eq';
+  },
+  reset(host){ host.querySelector('.inner').innerHTML=''; }
+};
+
+const EX3={
+  id:'succ_Vf_to_Vi',
+  title:"Exercice 3 — Vf donné, deux évolutions → valeur initiale",
+  gen: gen_ex3,
+  render(host, st){
+    const t=st; const inner=(host.innerHTML='<div class="inner"></div>', host.querySelector('.inner'));
+    inner.innerHTML=`
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        <div>${t.ctx.t3(t.Vf, t.p1, t.s1, t.p2, t.s2)}</div>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse (nombre uniquement) :</strong></div>
+        <div class="input-line"><input id="ans" type="text" placeholder="ex. 350"></div>
+      </div>
+      <div id="res" class="res"></div>`;
+    addTicks(inner);
+  },
+  correct(host, st){
+    const inner=host.querySelector('.inner');
+    const v=parseNumberFR($('#ans',inner).value);
+    const a=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const b=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const exp=st.Vf/(a*b);
+    const ok=isFinite(v)&&same02(v, exp);
+    setTick($('#ans',inner),ok);
+    const res=$('#res',inner); res.textContent=ok?'Correct.':'Incorrect.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const inner=host.querySelector('.inner');
+    const a=(st.s1==='+'?1+st.p1/100:1-st.p1/100);
+    const b=(st.s2==='+'?1+st.p2/100:1-st.p2/100);
+    const cg=a*b; const vi = st.Vf/cg; const viShow = st.ctx.int ? Math.round(vi) : rto(vi,2);
+    $('#res',inner).innerHTML=`
+      <div class="eq">
+        <div>c<sub>1</sub> = 1 ${st.s1==='+'?'+':'−'} ${fracHTML(Math.abs(st.p1),'100')} ${eqSign(a,rto(a,4))} ${tidyDecFR(rto(a,4),4)}</div>
+        <div>c<sub>2</sub> = 1 ${st.s2==='+'?'+':'−'} ${fracHTML(Math.abs(st.p2),'100')} ${eqSign(b,rto(b,4))} ${tidyDecFR(rto(b,4),4)}</div>
+        <div>c<sub>global</sub> = ${tidyDecFR(rto(a,4),4)} × ${tidyDecFR(rto(b,4),4)} ${eqSign(cg,rto(cg,4))} ${tidyDecFR(rto(cg,4),4)}</div>
+        <div>V<sub>i</sub> = ${fracHTML('V<sub>f</sub>','c<sub>global</sub>')} = ${fracHTML(tidyDecFR(st.Vf, st.ctx.int?0:2), tidyDecFR(rto(cg,4),4))} ${eqSign(vi,viShow)} <strong>${tidyDecFR(viShow, st.ctx.int?0:2)}</strong></div>
+      </div>`;
+    $('#res',inner).className='res eq';
+  },
+  reset(host){ host.querySelector('.inner').innerHTML=''; }
+};
+
+const EX4={
+  id:'succ_sur_n_ans',
+  title:"Exercice 4 — Même pourcentage appliqué n fois",
+  gen: gen_ex4,
+  render(host, st){
+    const t=st; const inner=(host.innerHTML='<div class="inner"></div>', host.querySelector('.inner'));
+    inner.innerHTML=`
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        <div>${t.ctx.t4(t.Vi, t.p, t.n)}</div>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse (nombre uniquement) :</strong></div>
+        <div class="input-line"><input id="ans" type="text" placeholder="ex. 52,13"></div>
+      </div>
+      <div id="res" class="res"></div>`;
+    addTicks(inner);
+  },
+  correct(host, st){
+    const inner=host.querySelector('.inner');
+    const v=parseNumberFR($('#ans',inner).value);
+    const c=Math.pow(1+st.p/100, st.n);
+    const exp=st.Vi*c;
+    const ok=isFinite(v)&&same02(v, exp);
+    setTick($('#ans',inner),ok);
+    const res=$('#res',inner); res.textContent=ok?'Correct.':'Incorrect.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  // --- Exercice 4 : même pourcentage appliqué n fois ---
+// Remplacer EX4.solution(...) par :
+solution(host, st){
+  const inner = host.querySelector('.inner');
+
+  const p = st.p;          // pourcentage annuel
+  const n = st.n;          // nombre d'années (ou périodes)
+
+  // c = 1 + p/100
+  const c1Exact = 1 + p/100;
+  const c1Show  = tidyDecFR(rto(c1Exact, 4), 4);   // affichage lisible (ex. 1,1)
+
+  // c_global = c^n
+  const cGlobExact = Math.pow(c1Exact, n);
+
+  // Valeur finale
+  const vfExact = st.Vi * cGlobExact;
+  const vfShow  = st.ctx.int ? Math.round(vfExact) : rto(vfExact, 2);
+  const unit    = st.ctx && st.ctx.unit ? ' ' + st.ctx.unit : '';
+
+  $('#res', inner).innerHTML = `
+    <div class="eq">
+      <div>c = 1 + ${fracHTML(p,'100')} = ${c1Show}</div>
+      <div>c<sub>global</sub> = c<sup>${n}</sup> = ${c1Show}<sup>${n}</sup></div>
+      <br>
+      <div>V<sub>f</sub> = V<sub>i</sub> × c<sub>global</sub> = V<sub>i</sub> × ${c1Show}<sup>${n}</sup>
+           ${eqSign(vfExact, vfShow)} <strong>${tidyDecFR(vfShow, st.ctx.int?0:2)}${unit}</strong></div>
+    </div>`;
+  $('#res', inner).className = 'res eq';
+},
+
+  reset(host){ host.querySelector('.inner').innerHTML=''; }
+};
+
+/* ======= Moteur ======= */
+const REGISTRY=[EX1,EX2,EX3,EX4];
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent=`Score : ${scoreOK} / ${scoreTot}`; }
+function buildOne(){ const host=$('#host'); const sel=$('#exo-select'); const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return; const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st); def.render(host, st); $('#res',host).textContent=''; $('#res',host).className='res'; }
+function check(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host, st); if(r){ scoreOK+=(r.ok?1:0); scoreTot+=(r.total||1); updateScore(); } }
+function solution(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return; const st=JSON.parse(host.dataset.state||'{}'); def.solution(host, st); }
+function resetAll(){ scoreOK=0; scoreTot=0; updateScore(); const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const sel=$('#exo-select'); REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  document.addEventListener('keydown', (ev)=>{
+    const a=document.activeElement;
+    if(a && a.closest('#host') && a.tagName==='INPUT' && ev.key==='Enter'){ ev.preventDefault(); check(); }
+  });
+});
+</script>
+
+</body>
+</html>

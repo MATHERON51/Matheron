@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seconde – Chapitre 2 – Images et antécédents</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+.row{display:grid;grid-template-columns:1fr auto 280px;gap:8px;align-items:center}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.equ{font-weight:600}
+
+/* Fractions jolies */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Étapes (une égalité par ligne) */
+.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.2rem 0}
+
+/* Tableau produit nul */
+.t-pnul{border-collapse:collapse;margin:.4rem 0;width:max-content;min-width:420px}
+.t-pnul th,.t-pnul td{border:1px solid #e1e1e1;padding:.35rem .55rem;text-align:left}
+.t-pnul th{background:#f7f7f7;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 2 – <strong>Images et antécédents</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select" aria-label="Choisir l'exercice"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+      <span id="status" class="small"></span>
+    </div>
+
+    <div class="card" id="host" aria-live="polite"></div>
+
+    <div class="card small">
+      <strong>Saisie :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li>Tu peux écrire <span class="code">x = 3</span> ou simplement <span class="code">3</span>. Décimaux avec <span class="code">,</span> ou <span class="code">.</span>.</li>
+        <li>Fractions : <span class="code">a/b</span> (elles s’affichent automatiquement en « jolies fractions »).</li>
+        <li>Domaines : <span class="code">ℝ</span>, <span class="code">]-∞; +∞[</span> (ou <span class="code">-oo</span>, <span class="code">+oo</span>, ou le signe <span class="code">∞</span>), union <span class="code">∪</span> ou <span class="code">U</span>.</li>
+        <li>Plusieurs solutions : séparer par <span class="code">;</span> (ex. <span class="code">0 ; -2/3</span>).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex;justify-content:center"></div>
+    </div>
+  </div>
+
+<!-- libs -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.js" defer></script>
+
+<script>
+(function(){'use strict';
+
+/* ===== utils ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== rationnels & fractions ===== */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function norm(p,q){ if(q===0) throw new Error("denominator 0"); let g=gcd(p,q); p/=g; q/=g; if(q<0){ p=-p; q=-q; } return {p,q}; }
+function makeR(p,q){ return norm(p,q||1); }
+function addR(A,B){ return norm(A.p*B.q + B.p*A.q, A.q*B.q); }
+function subR(A,B){ return norm(A.p*B.q - B.p*A.q, A.q*B.q); }
+function mulR(A,B){ return norm(A.p*B.p, A.q*B.q); }
+function divR(A,B){ if(B.p===0) throw new Error("div by 0"); return norm(A.p*B.q, A.q*B.p); }
+function toNumber(R){ return R.p/R.q; }
+
+function fracHTML(p,q){
+  const neg = (p<0)!==(q<0);
+  p=Math.abs(p); q=Math.abs(q);
+  if(q===1) return (neg?'-':'')+String(p);
+  return (neg?'<span class="frac-sign">-</span>':'')+
+         '<span class="frac"><span class="num">'+p+'</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+}
+function fmtConstHTML(R){ return (R.q===1? String(R.p) : fracHTML(R.p,R.q)); }
+function asFrac(R){ return (R.q===1? String(R.p) : R.p+'/'+R.q); } // pour parsing / saisie uniquement
+
+/* ===== affichage fonctions ===== */
+function fmtCoeffXHTML(A){ // A*x
+  if(A.p===A.q) return "x";
+  if(A.p===-A.q) return "−x";
+  return fmtConstHTML(A)+"x";
+}
+function fmtSignedCoeffXHTML(B){ // + Bx
+  if(B.p===0) return "";
+  const sign = (B.p>0? " + " : " − ");
+  const abs = {p:Math.abs(B.p), q:B.q};
+  if(abs.p===abs.q) return sign+"x";
+  return sign+fmtConstHTML(abs)+"x";
+}
+function fmtSignedConstHTML(B){ // + c
+  if(B.p===0) return "";
+  const sign = (B.p>0? " + " : " − ");
+  const abs = {p:Math.abs(B.p), q:B.q};
+  return sign+fmtConstHTML(abs);
+}
+function sideHTML(A,B){ return fmtCoeffXHTML(A)+fmtSignedConstHTML(B); }
+
+/* ===== normalisation de texte ===== */
+function normText(s){
+  return String(s||"")
+    .replace(/\u2212/g,'-')
+    .replace(/∞/g,'oo')
+    .replace(/ℝ/g,'R')
+    .replace(/∪/g,'U')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function numberFromText(s){
+  const t = normText(s);
+  const mFrac = t.match(/([-+]?\d+)\s*\/\s*([-+]?\d+)/);
+  if(mFrac){ const p=+mFrac[1], q=+mFrac[2]; if(q!==0) return p/q; return NaN; }
+  const mDec = t.match(/[-+]?\d+(?:[.,]\d+)?/);
+  if(mDec) return parseFloat(mDec[0].replace(',','.'));
+  return NaN;
+}
+function sameNumber(user, target){
+  const v = numberFromText(user);
+  return !Number.isNaN(v) && Math.abs(v-target)<1e-9;
+}
+function listNumbers(s){
+  const t = normText(s).replace(/^x\s*=\s*/i,'').replace(/;/g,',');
+  if(!t) return [];
+  return t.split(',').map(e=>e.trim()).filter(Boolean).map(numberFromText);
+}
+function sameSet(user, targets){
+  const a=listNumbers(user).sort((x,y)=>x-y);
+  const b=[...targets].sort((x,y)=>x-y);
+  if(a.length!==b.length) return false;
+  for(let i=0;i<a.length;i++) if(Math.abs(a[i]-b[i])>1e-9) return false;
+  return true;
+}
+
+/* ===== règles d’écriture dans les étapes ===== */
+// 1) parenthèses autour d’un nombre négatif **seulement après une multiplication**
+function fmtNumAfterTimes(n, isFirst=false){ return (n<0 && !isFirst) ? '('+n+')' : String(n); }
+function timesTerm(a, b, isFirst=false){ return fmtNumAfterTimes(a, isFirst)+'×'+fmtNumAfterTimes(b, false); }
+// 2) jamais "--" / "+-" / "-+" : on nettoie chaque ligne avant affichage
+function normalizeSigns(txt){
+  return txt
+    .replace(/\+\s*-\s*/g, ' - ')
+    .replace(/-\s*\+\s*/g, ' - ')
+    .replace(/-\s*-\s*/g, ' + ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/* ===== domaines ===== */
+function normDomStr(s){
+  return String(s||"")
+    .replace(/\u2212/g,'-').replace(/∞/g,'oo').replace(/ℝ/g,'R')
+    .replace(/\s+/g,'').replace(/∪/g,'U').replace(/,/g,';').toLowerCase();
+}
+function checkDomAffine(input){
+  const t=normDomStr(input);
+  return t==='r' || t===']-oo;+oo[';
+}
+function checkDomSqrtAffine(input,a,b){
+  const thr = divR(makeR(-b,1), makeR(a,1)); // -b/a
+  const t = toNumber(thr), tStr = asFrac(thr);
+  const n = normDomStr(input);
+  if(a>0){
+    if(n.includes('x>=')){ const v=numberFromText(n); if(Math.abs(v-t)<1e-9) return true; }
+    if(n.includes('x≥')){ const v=numberFromText(n); if(Math.abs(v-t)<1e-9) return true; }
+    if(n===normDomStr('['+tStr+'; +∞[') || n===normDomStr('['+t+'; +∞[')) return true;
+  }else{
+    if(n.includes('x<=')){ const v=numberFromText(n); if(Math.abs(v-t)<1e-9) return true; }
+    if(n.includes('x≤')){ const v=numberFromText(n); if(Math.abs(v-t)<1e-9) return true; }
+    if(n===normDomStr(']-∞; '+tStr+']') || n===normDomStr(']-∞; '+t+']')) return true;
+  }
+  return false;
+}
+function checkDomHomographic(input,c,d){
+  const pole = divR(makeR(-d,1), makeR(c,1)); // -d/c
+  const x0 = toNumber(pole), x0s = asFrac(pole);
+  const n = normDomStr(input);
+  if(n.startsWith('r\\{') && n.endsWith('}')){ const v=numberFromText(n); if(Math.abs(v-x0)<1e-9) return true; }
+  if(n===normDomStr(']-∞; '+x0s+'[U]'+x0s+'; +∞[') || n===normDomStr(']-∞; '+x0+'[U]'+x0+'; +∞[')) return true;
+  return false;
+}
+
+/* ===== Exercices ===== */
+
+/* A1 — Image f(x)=ax+b */
+const exA1 = {
+  id:'img_affine', title:'Image : f(x)=ax+b → f(x₀)',
+  gen(){ let a=0; while(a===0) a=rnd(-5,5); const b=rnd(-9,9), x0=rnd(-6,6);
+    const A=makeR(a,1), B=makeR(b,1), X0=makeR(x0,1);
+    const val = addR(mulR(A,X0), B);
+    return {A,B,X0,val}; },
+  text(s){ return 'Soit <strong>f(x) = '+sideHTML(s.A,s.B)+'</strong>. Calculer <strong>f('+s.X0.p+')</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='nombre ou fraction'; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = sameNumber($('#reponse',host).value, toNumber(s.val));
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : '+fmtConstHTML(s.val)+')';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const a=s.A.p,b=s.B.p,x0=s.X0.p, ax=a*x0, sum=ax+b;
+    const steps=[
+      `f(${fmtNumAfterTimes(x0,true)}) = ${timesTerm(a,x0,true)} + ${b}`,
+      `f(${fmtNumAfterTimes(x0,true)}) = ${ax} + ${b}`,
+      `f(${fmtNumAfterTimes(x0,true)}) = ${sum}`
+    ].map(normalizeSigns);
+    $('#reponse',host).value=String(sum);
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* A2 — Image P(x)=ax²+bx+c (avec bx bien affiché, parenthèses après ×, lignes propres) */
+const exA2 = {
+  id:'img_poly', title:'Image : P(x)=ax²+bx+c → P(x₀)',
+  gen(){ let a=0; while(a===0) a=rnd(-3,3); const b=rnd(-5,5), c=rnd(-6,6), x0=rnd(-4,4);
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1), X0=makeR(x0,1);
+    const x02 = makeR(x0*x0,1);
+    const val = addR(addR(mulR(A,x02), mulR(B,X0)), C);
+    return {A,B,C,X0,x02,val}; },
+  text(s){ return 'Soit <strong>P(x) = '+fmtConstHTML(s.A)+'x²'+fmtSignedCoeffXHTML(s.B)+fmtSignedConstHTML(s.C)+'</strong>. Calculer <strong>P('+s.X0.p+')</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='nombre ou fraction'; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = sameNumber($('#reponse',host).value, toNumber(s.val));
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : '+fmtConstHTML(s.val)+')';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const a=s.A.p, b=s.B.p, c=s.C.p, x0=s.X0.p;
+    const x02 = x0*x0, ax2=a*x02, bx=b*x0, sum=ax2+bx+c;
+    const steps=[
+      `P(${fmtNumAfterTimes(x0,true)}) = ${a}×(${fmtNumAfterTimes(x0,true)})² + ${timesTerm(b,x0,false)} + ${c}`,
+      `P(${fmtNumAfterTimes(x0,true)}) = ${ax2} + ${bx} + ${c}`,
+      `P(${fmtNumAfterTimes(x0,true)}) = ${sum}`
+    ].map(normalizeSigns);
+    $('#reponse',host).value=String(sum);
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* B1 — Antécédent pour affine */
+const exB1 = {
+  id:'ant_affine', title:'Antécédent : f(x)=ax+b, résoudre f(x)=y₀',
+  gen(){ let a=0; while(a===0) a=rnd(-9,9); const b=rnd(-12,12), y0=rnd(-12,12);
+    const A=makeR(a,1), B=makeR(b,1), Y=makeR(y0,1);
+    const rhs = subR(Y,B); // y0 - b
+    const S = divR(rhs, A);
+    const raw = {p: rhs.p*A.q, q: rhs.q*A.p}; // (y0-b)/a non réduit
+    return {A,B,Y,rhs,S,raw}; },
+  text(s){ return 'Antécédent de <strong>'+fmtConstHTML(s.Y)+'</strong> pour <strong>f(x) = '+sideHTML(s.A,s.B)+'</strong> : trouver <strong>x</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='x = …'; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = sameNumber($('#reponse',host).value, toNumber(s.S));
+    $('#res',host).innerHTML = ok? '✔' : ('✘ (attendu : x = '+fmtConstHTML(s.S)+')');
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const steps=[
+      `${sideHTML(s.A,s.B)} = ${fmtConstHTML(s.Y)}`,
+      `${fmtCoeffXHTML(s.A)} = ${fmtConstHTML(s.Y)} − ${fmtConstHTML(s.B)}`,
+      `${fmtCoeffXHTML(s.A)} = ${fmtConstHTML(s.rhs)}`,
+      `x = ${fracHTML(s.raw.p, s.raw.q)}`,
+      `x = ${fmtConstHTML(s.S)}`
+    ].map(normalizeSigns);
+    $('#reponse',host).value = asFrac(s.S);
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* B2 — Antécédent de c dans ax²+bx+c (factorisation) avec tableau produit nul */
+const exB2 = {
+  id:'ant_quad_c', title:'Antécédents de c pour g(x)=ax²+bx+c (factorisation)',
+  gen(){ let a=0; while(a===0) a=rnd(-5,5); const b=rnd(-9,9), c=rnd(-6,6);
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1);
+    const X1=makeR(0,1), X2=divR(makeR(-b,1), makeR(a,1)); // -b/a
+    return {A,B,C,X1,X2}; },
+  text(s){ return 'Antécédents de <strong>'+fmtConstHTML(s.C)+'</strong> pour <strong>g(x) = '+fmtConstHTML(s.A)+'x²'+fmtSignedCoeffXHTML(s.B)+fmtSignedConstHTML(s.C)+'</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='x = 0 ; -b/a (ex. 0 ; -2/3)'; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = sameSet($('#reponse',host).value, [0, toNumber(s.X2)]);
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : x = 0 ; '+fmtConstHTML(s.X2)+')';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const a=s.A.p, b=s.B.p, c=s.C.p, x2=fmtConstHTML(s.X2);
+    const plus = (b>=0? ' + ' : ' − ');
+    const enonce = `${a}x²${plus}${Math.abs(b)}x ${c>=0?'+':'−'} ${Math.abs(c)} = ${c}`;
+    const etape1 = `${a}x²${plus}${Math.abs(b)}x = 0`;
+    const factor = `x(${a}x${plus}${Math.abs(b)}) = 0`;
+
+    const tab = `
+      <table class="t-pnul">
+        <thead><tr><th>Produit nul</th><th>Facteur</th><th>Équation</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="2">x(${a}x${plus}${Math.abs(b)}) = 0</td><td><code>x</code></td><td>x = 0</td><td>x = 0</td></tr>
+          <tr><td><code>${a}x${plus}${Math.abs(b)}</code></td><td>${a}x = ${-b}</td><td>x = ${fracHTML(-b,a)}</td></tr>
+        </tbody>
+      </table>`.replace(/\s+\n/g,'\n');
+
+    const fin = `Solutions : x = 0 ; ${x2}`;
+
+    $('#reponse',host).value = `0 ; ${asFrac(s.X2)}`; // saisie libre a/b, affichage joli
+    $('#res',host).innerHTML =
+      `<div class="steps">
+        <div class="step">${normalizeSigns(enonce)}</div>
+        <div class="step">${normalizeSigns(etape1)}</div>
+        <div class="step">${normalizeSigns(factor)}</div>
+      </div>${tab}
+      <div class="steps"><div class="step">${normalizeSigns(fin)}</div></div>`;
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* B4 — Antécédent pour homographique, exclut solution qui annule le dénominateur */
+const exB4 = {
+  id:'ant_homo', title:'Antécédent : (ax+b)/(cx+d) = k (sans dénominateur nul)',
+  gen(){
+    let a=0,c=0; while(a===0) a=rnd(-6,6); while(c===0) c=rnd(-6,6);
+    const b=rnd(-8,8), d=rnd(-8,8), k=choice([-2,-1,1,2,3]);
+    const num = k*d - b, den = a - k*c;
+    if(den===0) return this.gen();
+    const sol = makeR(num,den);
+    const pole = makeR(-d,c);
+    if(Math.abs(toNumber(sol)-toNumber(pole))<1e-9) return this.gen();
+    return {a,b,c,d,k,sol,pole};
+  },
+  text(s){
+    const N = s.a+'x '+(s.b>=0?'+':'−')+' '+Math.abs(s.b);
+    const D = s.c+'x '+(s.d>=0?'+':'−')+' '+Math.abs(s.d);
+    return 'Pour <strong>p(x)=('+N+')/('+D+')</strong>, déterminer l’antécédent de <strong>'+s.k+'</strong>.';
+  },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='x = … (nombre ou fraction)'; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = sameNumber($('#reponse',host).value, toNumber(s.sol));
+    $('#res',host).innerHTML = ok? '✔' : ('✘ (attendu : x = '+fmtConstHTML(s.sol)+')');
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const a=s.a,b=s.b,c=s.c,d=s.d,k=s.k;
+    const N = a+'x '+(b>=0?'+':'−')+' '+Math.abs(b);
+    const D = c+'x '+(d>=0?'+':'−')+' '+Math.abs(d);
+    const steps=[
+      `(${N})/(${D}) = ${k}`,
+      `${N} = ${k}(${D})`,
+      `${a}x ${(b>=0?'+':'−')} ${Math.abs(b)} = ${(k*c)}x ${((k*d)>=0?'+':'−')} ${Math.abs(k*d)}`,
+      `${a - k*c}x = ${k*d - b}`,
+      `x = ${fracHTML(k*d - b, a - k*c)}`,
+      `Condition : ${D} ≠ 0  ⇒  x ≠ ${fracHTML(-d, c)}`
+    ].map(normalizeSigns);
+    $('#reponse',host).value = asFrac(s.sol);
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* C1 — Domaine : affine */
+const exC1 = {
+  id:'dom_affine', title:'Ensemble de définition : affine',
+  gen(){ let a=rnd(-9,9); if(a===0) a=1; const b=rnd(-9,9); return {a,b}; },
+  text(s){ return 'Donner l’ensemble de définition de <strong>f(x) = '+s.a+'x '+(s.b>=0?'+':'−')+' '+Math.abs(s.b)+'</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='ℝ  ou  ]-∞; +∞['; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host){
+    const ok = checkDomAffine($('#reponse',host).value);
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : ℝ  ou  ]-∞; +∞[)';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host){
+    const steps=['Une affine est définie pour tout réel.','D = ℝ (ou ]-∞; +∞[)'];
+    $('#reponse',host).value='ℝ';
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* C2 — Domaine : √(ax+b) */
+const exC2 = {
+  id:'dom_sqrt', title:'Ensemble de définition : √(ax+b)',
+  gen(){ let a=0; while(a===0) a=rnd(-5,5); const b=rnd(-9,9); return {a,b}; },
+  text(s){ return 'Donner l’ensemble de définition de <strong>g(x) = √('+s.a+'x '+(s.b>=0?'+':'−')+' '+Math.abs(s.b)+')</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder=(s.a>0? '[ -'+s.b+'/'+s.a+' ; +∞[' : ']-∞ ; -'+s.b+'/'+s.a+']'); row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = checkDomSqrtAffine($('#reponse',host).value, s.a, s.b);
+    const thr = divR(makeR(-s.b,1), makeR(s.a,1));
+    const expected = (s.a>0? '['+asFrac(thr)+' ; +∞[' : ']-∞ ; '+asFrac(thr)+']');
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : '+expected+'  ou  x '+(s.a>0?'≥':'≤')+' '+fmtConstHTML(thr)+')';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const thr = divR(makeR(-s.b,1), makeR(s.a,1)), tStr=fmtConstHTML(thr);
+    const steps = (s.a>0)
+      ? [ `${s.a}x ${(s.b>=0?'+':'−')} ${Math.abs(s.b)} ≥ 0`, `x ≥ ${tStr}`, `D = [${tStr} ; +∞[` ]
+      : [ `${s.a}x ${(s.b>=0?'+':'−')} ${Math.abs(s.b)} ≥ 0`, `x ≤ ${tStr}`, `D = ]-∞ ; ${tStr}]` ];
+    $('#reponse',host).value=(s.a>0? '['+asFrac(thr)+' ; +∞[' : ']-∞ ; '+asFrac(thr)+']');
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(normalizeSigns).map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* C3 — Domaine : (ax+b)/(cx+d) */
+const exC3 = {
+  id:'dom_homo', title:'Ensemble de définition : (ax+b)/(cx+d)',
+  gen(){ let c=0; while(c===0) c=rnd(-6,6); const a=rnd(-6,6), b=rnd(-8,8), d=rnd(-8,8);
+    const pole = divR(makeR(-d,1), makeR(c,1));
+    return {a,b,c,d,pole}; },
+  text(s){ return 'Donner l’ensemble de définition de <strong>h(x) = ('+s.a+'x '+(s.b>=0?'+':'−')+' '+Math.abs(s.b)+')/('+s.c+'x '+(s.d>=0?'+':'−')+' '+Math.abs(s.d)+')</strong>.'; },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder='ℝ\\{x₀}  ou  ]-∞ ; x₀[ U ]x₀ ; +∞['; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const ok = checkDomHomographic($('#reponse',host).value, s.c, s.d);
+    const x0 = fmtConstHTML(s.pole);
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : ℝ\\{'+x0+'}  ou  ]-∞ ; '+x0+'[ ∪ ]'+x0+' ; +∞[)';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    const x0 = fmtConstHTML(s.pole);
+    const steps=[
+      'On cherche les valeurs interdites en résolvant l’équation <em>dénominateur</em> = 0 :',
+      `(${s.c}x ${(s.d>=0?'+':'−')} ${Math.abs(s.d)}) = 0`,
+      `${s.c}x = ${-s.d}`,
+      `x = ${x0}`,
+      `Réponse : ℝ\\{${x0}}  (ou  ]-∞ ; ${x0}[ ∪ ]${x0} ; +∞[)`
+    ].map(normalizeSigns);
+    $('#reponse',host).value='ℝ\\{'+asFrac(s.pole)+'}';
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* E — Petits formats à trous (mix) */
+const exE = {
+  id:'mini', title:'Formats à trous (mix)',
+  gen(){
+    const t = choice([1,2,3,4,5,6]);
+    if(t===1){ const a=rnd(1,5)*choice([1,-1]), b=rnd(-6,6), x0=rnd(-4,4); return {fmt:1,a,b,x0,val:a*x0+b}; }
+    if(t===2){ return {fmt:2}; }
+    if(t===3){ return {fmt:3}; }
+    if(t===4){ const n=rnd(1,5); return {fmt:4,n}; }
+    if(t===5){ return {fmt:5}; }
+    if(t===6){ return {fmt:6}; }
+  },
+  text(s){
+    if(s.fmt===1) return 'Soit <strong>f(x)='+s.a+'x '+(s.b>=0?'+':'−')+' '+Math.abs(s.b)+'</strong>. Calculer <strong>f('+s.x0+')</strong>.';
+    if(s.fmt===2) return 'Pour <strong>g(x)=x²-1</strong>, antécédents de <strong>0</strong>.';
+    if(s.fmt===3) return 'Pour <strong>h(x)=√(x+4)</strong>, donner <strong>D_h</strong>.';
+    if(s.fmt===4) return 'Pour <strong>p(x)=(x-3)/(x+'+s.n+')</strong>, donner <strong>D_p</strong>.';
+    if(s.fmt===5) return 'Résoudre <strong>(x-3)/(x+2) = 1</strong>.';
+    if(s.fmt===6) return 'Pour <strong>k(x)=√(4-x)/(x-3)</strong>, donner <strong>D_k</strong>.';
+  },
+  render(host, s){
+    host.innerHTML='';
+    const row=document.createElement('div'); row.className='row';
+    const lab=document.createElement('div'); lab.className='equ'; lab.innerHTML=this.text(s); row.appendChild(lab);
+    const ph = (s.fmt===1? 'nombre'
+              : s.fmt===2? '-1 ; 1'
+              : s.fmt===3? '[-2 ; +∞['
+              : s.fmt===4? 'ℝ\\{-'+s.n+'}  ou  ]-∞ ; -'+s.n+'[ U ]-'+s.n+' ; +∞['
+              : s.fmt===5? 'aucune solution'
+              : ']-∞ ; 3[ U ]3 ; 4]');
+    const inp=document.createElement('input'); inp.type='text'; inp.id='reponse'; inp.placeholder=ph; row.appendChild(inp);
+    const res=document.createElement('div'); res.id='res'; row.appendChild(res);
+    host.appendChild(row); inp.focus();
+  },
+  correct(host, s){
+    const val = $('#reponse',host).value;
+    let ok=false, exp='';
+    if(s.fmt===1){ ok=sameNumber(val, s.val); exp=String(s.val); }
+    if(s.fmt===2){ ok=sameSet(val, [-1,1]); exp='x = -1 ; 1'; }
+    if(s.fmt===3){ ok=checkDomSqrtAffine(val, 1, 4); exp='[-2 ; +∞[  (ou  x ≥ -2)'; }
+    if(s.fmt===4){ ok=checkDomHomographic(val, 1, s.n); exp='ℝ\\{-'+s.n+'}  (ou  ]-∞ ; -'+s.n+'[ ∪ ]-'+s.n+' ; +∞[)'; }
+    if(s.fmt===5){ const t=normDomStr(val); ok=(t==='aucunesolution'||t==='pasdesolution'); exp='aucune solution'; }
+    if(s.fmt===6){ ok=(normDomStr(val)===normDomStr(']-∞ ; 3[ U ]3 ; 4]')); exp=']-∞ ; 3[ ∪ ]3 ; 4]'; }
+    $('#res',host).innerHTML = ok? '✔' : '✘ (attendu : '+exp+')';
+    $('#res',host).className = ok? 'res-ok' : 'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, s){
+    let steps=[];
+    if(s.fmt===1){ const a=s.a,b=s.b,x0=s.x0, ax=a*x0, sum=ax+b;
+      steps=[
+        `f(${fmtNumAfterTimes(x0,true)}) = ${timesTerm(a,x0,true)} + ${b}`,
+        `f(${fmtNumAfterTimes(x0,true)}) = ${ax} + ${b}`,
+        `f(${fmtNumAfterTimes(x0,true)}) = ${sum}`
+      ];
+      $('#reponse',host).value=String(sum);
+    }
+    if(s.fmt===2){ steps=['x² - 1 = 0','(x - 1)(x + 1) = 0','x = 1  ou  x = -1']; $('#reponse',host).value='-1 ; 1'; }
+    if(s.fmt===3){ steps=['x + 4 ≥ 0','x ≥ -2','D = [-2 ; +∞[']; $('#reponse',host).value='[-2 ; +∞['; }
+    if(s.fmt===4){ steps=['Dénominateur : x + '+s.n+' ≠ 0','x ≠ -'+s.n,'D = ℝ\\{-'+s.n+'} (ou ]-∞ ; -'+s.n+'[ ∪ ]-'+s.n+' ; +∞[)']; $('#reponse',host).value='ℝ\\{-'+s.n+'}'; }
+    if(s.fmt===5){ steps=['(x-3)/(x+2) = 1','x - 3 = x + 2','0 = 5  ⇒  aucune solution']; $('#reponse',host).value='aucune solution'; }
+    if(s.fmt===6){ steps=['4 - x ≥ 0  ⇒  x ≤ 4','x - 3 ≠ 0  ⇒  x ≠ 3','D = ]-∞ ; 3[ ∪ ]3 ; 4]']; $('#reponse',host).value=']-∞ ; 3[ U ]3 ; 4]'; }
+    steps = steps.map(normalizeSigns);
+    $('#res',host).innerHTML='<div class="steps">'+steps.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
+    $('#res',host).className='small';
+  },
+  reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; }
+};
+
+/* ===== REGISTRY ===== */
+const REGISTRY = [exA1, exA2, exB1, exB2, exB4, exC1, exC2, exC3, exE];
+window.REGISTRY = REGISTRY;
+
+/* ===== score & UI ===== */
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = scoreOK+' / '+scoreTot; }
+function buildOne(){
+  const sel=$('#exo-select'), host=$('#host');
+  const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def){ host.textContent='(Aucun exercice)'; return; }
+  const state=def.gen();
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(state);
+  def.render(host, state);
+}
+function check(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r = def.correct(host, st);
+  if(r){ scoreOK += r.ok?1:0; scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}');
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def) def.reset(host);
+}
+
+/* ===== boot ===== */
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const sel=$('#exo-select');
+    REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+    sel.addEventListener('change', buildOne);
+    $('#btn-new').addEventListener('click', buildOne);
+    $('#btn-check').addEventListener('click', check);
+    $('#btn-solution').addEventListener('click', solution);
+    $('#btn-reset').addEventListener('click', resetAll);
+
+    sel.value = REGISTRY[0].id;
+    buildOne();
+    updateScore();
+    $('#status').textContent='';
+  }catch(err){
+    console.error(err);
+    $('#status').textContent='(Erreur d’init : voir la console)';
+  }
+});
+
+/* ===== PDF (garde tes chemins) ===== */
+document.addEventListener('DOMContentLoaded', function(){
+  if(window.ExoPDF && ExoPDF.init){
+    ExoPDF.init({ title:'Seconde – Chapitre 2 – Images et antécédents', lead:'Compléter / calculer / résoudre :', max:50 });
+  }
+});
+})();
+</script>
+<script>
+// Affiche un entier avec parenthèses SEULEMENT après × si négatif
+function fmtNumAfterTimes(n, isFirst=false){ return (n<0 && !isFirst) ? '('+n+')' : String(n); }
+
+// ===== A2 : P(x)=ax²+bx+c — style "− 4×3" et jamais "+-" / "-+" / "--"
+exA2.solution = function(host, st){
+  const a=st.A.p, b=st.B.p, c=st.C.p, x0=st.X0.p;
+  const ax2 = a*(x0*x0), bx = b*x0, sum = ax2+bx+c;
+
+  const signB = (b>=0) ? ' + ' : ' − ';
+  const signC = (c>=0) ? ' + ' : ' − ';
+  const termB1 = Math.abs(b) + '×' + fmtNumAfterTimes(x0,false);
+
+  const L1 = `P(${fmtNumAfterTimes(x0,true)}) = ${a}×(${fmtNumAfterTimes(x0,true)})²${signB}${termB1}${signC}${Math.abs(c)}`;
+  const L2 = `P(${fmtNumAfterTimes(x0,true)}) = ${ax2} ${(bx>=0?'+':'−')} ${Math.abs(bx)} ${(c>=0?'+':'−')} ${Math.abs(c)}`;
+  const L3 = `P(${fmtNumAfterTimes(x0,true)}) = ${sum}`;
+
+  const steps = [L1,L2,L3].map(s=>s
+    .replace(/\+\s*-\s*/g,' - ')
+    .replace(/-\s*\+\s*/g,' - ')
+    .replace(/-\s*-\s*/g,' + ')
+  );
+
+  host.querySelector('#reponse').value = String(sum);
+  host.querySelector('#res').innerHTML =
+    `<div class="steps">${steps.map(t=>`<div class="step">${t}</div>`).join('')}</div>`;
+  host.querySelector('#res').className = 'small';
+};
+
+// ===== A1 : f(x)=ax+b — même logique de signe
+exA1.solution = function(host, st){
+  const a=st.A.p, b=st.B.p, x0=st.X0.p;
+  const ax = a*x0, sum = ax + b;
+
+  const signB = (b>=0) ? ' + ' : ' − ';
+  const L1 = `f(${fmtNumAfterTimes(x0,true)}) = ${a}×${fmtNumAfterTimes(x0,false)}${signB}${Math.abs(b)}`;
+  const L2 = `f(${fmtNumAfterTimes(x0,true)}) = ${ax} ${(b>=0?'+':'−')} ${Math.abs(b)}`;
+  const L3 = `f(${fmtNumAfterTimes(x0,true)}) = ${sum}`;
+
+  const steps = [L1,L2,L3].map(s=>s
+    .replace(/\+\s*-\s*/g,' - ')
+    .replace(/-\s*\+\s*/g,' - ')
+    .replace(/-\s*-\s*/g,' + ')
+  );
+
+  host.querySelector('#reponse').value = String(sum);
+  host.querySelector('#res').innerHTML =
+    `<div class="steps">${steps.map(t=>`<div class="step">${t}</div>`).join('')}</div>`;
+  host.querySelector('#res').className = 'small';
+};
+</script>
+
+</body>
+</html>

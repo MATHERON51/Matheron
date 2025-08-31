@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Exercices — a (signe) et c (valeur) d’un trinôme</title>
+<style>
+  :root{
+    --bg:#0b1020; --card:#0f1730; --ink:#e8edff; --muted:#a7b3e6; --accent:#67b7ff;
+    --ok:#21c17a; --ko:#ff6b6b; --line:#233060;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:linear-gradient(180deg,#0b1020,#121a36);color:var(--ink);font:16px/1.6 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  header{position:sticky;top:0;background:#0f1730;border-bottom:1px solid var(--line);z-index:5}
+  header .bar{display:flex;gap:10px;align-items:center;padding:12px 14px}
+  select,button,input{font:16px/1.05 system-ui,Segoe UI,Roboto,Arial;border:1px solid var(--line);background:#0b1330;color:var(--ink);border-radius:10px;padding:8px 10px}
+  button{cursor:pointer}
+  button.primary{background:#12306a;border-color:#345dbe}
+  button.primary:hover{filter:brightness(1.1)}
+  main{display:grid;grid-template-columns:1.4fr .9fr;gap:14px;margin-top:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  h1{font-size:1.15rem;margin:.2rem 0 .6rem}
+  .lead{background:#0b1330;border:1px solid #1d2b55;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .equ{font-weight:600}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  .pill{display:inline-block;border:1px solid #30407a;border-radius:999px;background:#0b1330;padding:2px 8px;color:#bcd1ff;font-size:.88rem;margin-right:6px}
+  .small{color:var(--muted);font-size:.95rem}
+  .steps{background:#0b1330;border:1px solid #1d2b55;border-radius:10px;padding:10px 12px;line-height:1.5}
+  .ok{color:var(--ok);font-weight:600}
+  .ko{color:var(--ko);font-weight:600}
+  .score{font-weight:700}
+  canvas{background:#0b1330;border:1px solid #22306a;border-radius:10px;display:block;width:100%;height:auto}
+  .kbd{border:1px solid #1d2b55;border-radius:10px;padding:10px;background:#0b1330}
+  .right h2{margin:.2rem 0 .4rem;font-size:1rem;color:#cfe1ff}
+  .right .card{position:sticky;top:78px}
+  .hint{color:#9fc2ff}
+</style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <label for="menu">Exercice :</label>
+      <select id="menu">
+        <option value="e1">1 — A partir de l’expression f(x)=ax²+bx+c</option>
+        <option value="e2">2 — A partir de la parabole de f</option>
+      </select>
+      <button id="btnNew">Nouvel énoncé</button>
+      <button id="btnCheck" class="primary">Vérifier ⏎</button>
+      <button id="btnSol">Solution</button>
+      <button id="btnReset">Réinitialiser</button>
+      <div style="flex:1"></div>
+      <div class="pill">Score : <span id="score">0</span></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <main>
+      <section class="card">
+        <h1 id="title">Exercice 1 — Expression donnée</h1>
+        <div id="host"></div>
+      </section>
+      <aside class="right">
+        <section class="card">
+          <h2>Saisie & réponses acceptées</h2>
+          <div class="small">
+            <ul>
+              <li><b>a</b> : sélectionner <em>positif</em> ou <em>négatif</em>.</li>
+              <li><b>c</b> : saisir un entier (virgule ou point acceptés).</li>
+              <li>La touche <b>Entrée</b> déclenche <em>Vérifier</em>.</li>
+            </ul>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+<script>
+/* ===== Utilitaires ===== */
+const UMINUS = "−";
+const rnd = (a,b)=>{ const m=Math.floor(Math.random()*(b-a+1))+a; return m; };
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const $ = (sel,root=document) => root.querySelector(sel);
+function onEnter(el,cb){ el.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); cb(); } }); }
+
+/* ===== State global score ===== */
+let SCORE = 0;
+function setScore(v){ SCORE = Math.max(0, v|0); $("#score").textContent = SCORE; }
+
+/* ===== Exercice 1 : expression ===== */
+const ex1 = {
+  id:"e1",
+  title:"Exercice 1 — Expression donnée",
+  build(host){
+    const a = choice([-3,-2,-1,1,2,3]);
+    const b = rnd(-6,6);
+    const c = rnd(-8,8);
+
+    const fmt = (n)=>{
+      if(n===0) return "0";
+      const sign = n<0 ? UMINUS : "";
+      return sign + Math.abs(n);
+    };
+    const term = (coef,txt)=>{
+      if(coef===0) return "";
+      if(txt==="x²"){
+        if(coef===1) return "x²";
+        if(coef===-1) return UMINUS+"x²";
+        return fmt(coef)+"x²";
+      }
+      if(txt==="x"){
+        if(coef===1) return " + x";
+        if(coef===-1) return " "+UMINUS+" x";
+        return (coef>0?" + ":" "+UMINUS+" ")+Math.abs(coef)+"x";
+      }
+      // constant
+      return (coef>0?" + ":" "+UMINUS+" ")+Math.abs(coef);
+    };
+
+    const expr = (term(a,"x²") + term(b,"x") + (c?((c>0?" + ":" "+UMINUS+" ")+Math.abs(c)):"")).replace(/^ \+ /,"");
+    host.innerHTML = `
+      <div class="lead"><div class="equ">
+        On considère la fonction <b>f(x) = ${expr || "0"}</b>.
+        Indiquer si <b>a</b> est positif ou négatif et donner la valeur de <b>c</b>.
+      </div></div>
+      <div class="row">
+        a :
+        <select id="signa">
+          <option value=""></option>
+          <option value="pos">positif</option>
+          <option value="neg">négatif</option>
+        </select>
+        c : <input id="valc" type="text" inputmode="decimal" style="width:90px"/>
+        <span class="small hint">(Entier)</span>
+      </div>
+      <div id="res" class="small"></div>
+    `;
+    host.__state = {a,b,c};
+    onEnter($("#valc",host), ()=>window.__doCheck());
+  },
+  check(host){
+    const {a,c} = host.__state;
+    const sign = $("#signa",host).value;
+    const valc = ($("#valc",host).value||"").trim().replace(",","."); // accept comma
+    let ok=0, tot=0; const steps=[];
+    // a
+    tot++;
+    if(sign==="pos" || sign==="neg"){
+      if((a>0 && sign==="pos") || (a<0 && sign==="neg")){ ok++; steps.push(`<span class="ok">a : correct</span>`); }
+      else steps.push(`<span class="ko">a : incorrect</span>`);
+    }else steps.push(`<span class="ko">a : non renseigné</span>`);
+    // c
+    tot++;
+    if(valc!==""){
+      const n = Number(valc);
+      if(!Number.isNaN(n) && n===c){ ok++; steps.push(`<span class="ok">c : ${c}</span>`); }
+      else steps.push(`<span class="ko">c : attendu ${c}</span>`);
+    }else steps.push(`<span class="ko">c : non renseigné</span>`);
+
+    $("#res",host).innerHTML = `<div class="steps">${steps.join("<br>")}</div>`;
+    setScore(SCORE + ok);
+    return {ok,total:tot};
+  },
+  solution(host){
+    const {a,c} = host.__state;
+    $("#res",host).innerHTML = `<div class="steps">
+      <div>a ${a>0?"positif":"négatif"} (car le coefficient de x<sup>2</sup> est ${a>0?"&gt; 0":"&lt; 0"})</div>
+      <div>c = ${c} (terme constant de f)</div>
+    </div>`;
+    // auto-fill
+    $("#signa",host).value = (a>0?"pos":"neg");
+    $("#valc",host).value = String(c);
+  },
+  reset(host){ $("#res",host).textContent = ""; $("#signa",host).value=""; $("#valc",host).value=""; }
+};
+
+/* ===== Exercice 2 : parabole ===== */
+const ex2 = {
+  id:"e2",
+  title:"Exercice 2 — Parabole donnée",
+  build(host){
+    const a = choice([-3,-2,-1,1,2,3]);
+    const b = rnd(-5,5);
+    const c = rnd(-8,8);
+    host.innerHTML = `
+      <div class="lead"><div class="equ">
+        Voici la courbe d’une fonction <b>f</b> de la forme <b>ax²+bx+c</b> dans un repère.
+        Indiquer si <b>a</b> est positif ou négatif et donner la valeur de <b>c</b> (ordonnée à l’origine).
+      </div></div>
+      <div class="row"><canvas id="cv" width="700" height="420" aria-label="parabole"></canvas></div>
+      <div class="row">
+        a :
+        <select id="signa">
+          <option value=""></option>
+          <option value="pos">positif</option>
+          <option value="neg">négatif</option>
+        </select>
+        c : <input id="valc" type="text" inputmode="decimal" style="width:90px"/>
+        <span class="small hint">(Lire l’ordonnée au point x=0)</span>
+      </div>
+      <div id="res" class="small"></div>
+    `;
+    host.__state = {a,b,c};
+    drawParabola($("#cv",host), a,b,c);
+    onEnter($("#valc",host), ()=>window.__doCheck());
+  },
+  check(host){
+    const {a,c} = host.__state;
+    const sign = $("#signa",host).value;
+    const valc = ($("#valc",host).value||"").trim().replace(",","."); // accept comma
+    let ok=0, tot=0; const steps=[];
+    // a
+    tot++;
+    if(sign==="pos" || sign==="neg"){
+      if((a>0 && sign==="pos") || (a<0 && sign==="neg")){ ok++; steps.push(`<span class="ok">a : correct</span>`); }
+      else steps.push(`<span class="ko">a : incorrect</span>`);
+    }else steps.push(`<span class="ko">a : non renseigné</span>`);
+    // c
+    tot++;
+    if(valc!==""){
+      const n = Number(valc);
+      if(!Number.isNaN(n) && n===c){ ok++; steps.push(`<span class="ok">c : ${c}</span>`); }
+      else steps.push(`<span class="ko">c : attendu ${c}</span>`);
+    }else steps.push(`<span class="ko">c : non renseigné</span>`);
+
+    $("#res",host).innerHTML = `<div class="steps">${steps.join("<br>")}</div>`;
+    setScore(SCORE + ok);
+    return {ok,total:tot};
+  },
+  solution(host){
+    const {a,c} = host.__state;
+    $("#res",host).innerHTML = `<div class="steps">
+      <div>a ${a>0?"positif":"négatif"} (parabole ${a>0?"ouverte vers le haut":"ouverte vers le bas"})</div>
+      <div>c = ${c} (intersection avec l’axe des ordonnées en x=0)</div>
+    </div>`;
+    $("#signa",host).value = (a>0?"pos":"neg");
+    $("#valc",host).value = String(c);
+  },
+  reset(host){ $("#res",host).textContent = ""; $("#signa",host).value=""; $("#valc",host).value=""; }
+};
+
+/* ===== Dessin parabole (repère simple) ===== */
+function drawParabola(canvas,a,b,c){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  // coords
+  const xMin = -10, xMax = 10, yMin = -10, yMax = 10;
+  const X = x => (x - xMin) / (xMax - xMin) * W;
+  const Y = y => H - (y - yMin) / (yMax - yMin) * H;
+
+  // grid
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#1c2750";
+  for(let x=Math.ceil(xMin); x<=xMax; x++){
+    const Xp = X(x);
+    ctx.beginPath(); ctx.moveTo(Xp,0); ctx.lineTo(Xp,H); ctx.stroke();
+  }
+  for(let y=Math.ceil(yMin); y<=yMax; y++){
+    const Yp = Y(y);
+    ctx.beginPath(); ctx.moveTo(0,Yp); ctx.lineTo(W,Yp); ctx.stroke();
+  }
+  // axes
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#9fc2ff";
+  // x-axis
+  ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  // y-axis
+  ctx.beginPath(); ctx.moveTo(X(0),0); ctx.lineTo(X(0),H); ctx.stroke();
+  // ticks / labels
+  ctx.fillStyle = "#cfe1ff";
+  ctx.font = "12px system-ui,Segoe UI,Roboto,Arial";
+  for(let x=-10; x<=10; x++){
+    const Xp = X(x), Y0 = Y(0);
+    ctx.beginPath(); ctx.moveTo(Xp, Y0-4); ctx.lineTo(Xp, Y0+4); ctx.strokeStyle="#9fc2ff"; ctx.stroke();
+    if(x!==0) ctx.fillText(String(x), Xp-3, Y0+14);
+  }
+  for(let y=-10; y<=10; y++){
+    const Yp = Y(y), X0 = X(0);
+    ctx.beginPath(); ctx.moveTo(X(0)-4, Yp); ctx.lineTo(X(0)+4, Yp); ctx.strokeStyle="#9fc2ff"; ctx.stroke();
+    if(y!==0) ctx.fillText(String(y), X0+6, Yp+4);
+  }
+
+  // parabola
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#67b7ff";
+  ctx.beginPath();
+  let first = true;
+  for(let x=xMin; x<=xMax; x+=0.05){
+    const y = a*x*x + b*x + c;
+    const Xp = X(x), Yp = Y(y);
+    if(first){ ctx.moveTo(Xp,Yp); first=false; } else ctx.lineTo(Xp,Yp);
+  }
+  ctx.stroke();
+
+  // draw point at (0,c)
+  ctx.fillStyle="#21c17a";
+  ctx.beginPath(); ctx.arc(X(0), Y(c), 4, 0, Math.PI*2); ctx.fill();
+}
+
+/* ===== Orchestrateur ===== */
+const REGISTRY = { e1:ex1, e2:ex2 };
+let CURRENT = ex1;
+
+function render(){
+  $("#title").textContent = CURRENT.title;
+  $("#host").innerHTML = "";
+  CURRENT.build($("#host"));
+}
+
+window.__doCheck = function(){
+  if(CURRENT && CURRENT.check) CURRENT.check($("#host"));
+};
+
+function doSolution(){ if(CURRENT && CURRENT.solution) CURRENT.solution($("#host")); }
+function doReset(){ if(CURRENT && CURRENT.reset) CURRENT.reset($("#host")); }
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  $("#menu").addEventListener('change', e=>{
+    CURRENT = REGISTRY[e.target.value] || ex1;
+    render();
+  });
+  $("#btnNew").addEventListener('click', ()=>render());
+  $("#btnCheck").addEventListener('click', ()=>window.__doCheck());
+  $("#btnSol").addEventListener('click', ()=>doSolution());
+  $("#btnReset").addEventListener('click', ()=>doReset());
+  render();
+});
+</script>
+</body>
+</html>

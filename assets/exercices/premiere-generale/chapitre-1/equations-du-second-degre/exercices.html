@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Première - Chapitre 1 – Équations du second degré</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+
+  .equ{font-variant-numeric:tabular-nums}
+  .table{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+  .table th{background:#f3f3f6;text-align:left}
+  .steps{margin:.45rem 0 0 .15rem;padding:.45rem .6rem;background:#f7f8fb;border:1px dashed #c7d2fe;border-radius:10px}
+  .tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+  .tick.ok{color:#11823b}.tick.ko{color:#b00020}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;vertical-align:middle;line-height:1}
+  .frac .bar{display:block;border-top:1px solid #000;width:100%;margin:.08em 0}
+  .frac .num,.frac .den{padding:0 .15em}
+  .frac-sign{display:inline-block;margin-right:.08em;vertical-align:middle}
+  
+  .answers{ display:flex; flex-wrap:wrap; gap:.4rem .5rem; }
+.answers .qa-row{
+  flex-basis:100%;           /* ← casse la ligne dans un conteneur flex */
+  display:flex; 
+  align-items:center; 
+  gap:.4rem;
+  margin-top:.35rem;
+}
+.answers .qa-row label{ margin-right:.3rem; }
+
+  @media print{ .controls{display:none !important;} }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem"><strong>Première - Chapitre 1 – Équations du second degré</strong> </h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Entrée ⏎ déclenche <b>Vérifier</b>.</li>
+        <li>Fractions possibles : écrire <code>a/b</code> (affichage en pile côté solution).</li>
+        <li>Éviter <b>1x</b>, <b>−1x</b>, <b>+0</b>, <b>−0</b> ; l’outil corrige et vérifie ces cas.</li>
+        <li>Puissances : <code>x^2</code>, <code>x²</code>, …</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- Dépendances (laisser les noms tels quels si vos fichiers sont dans le même dossier) -->
+   <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+  <script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+  <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+  <!-- === VOTRE JS — 1er bloc (inchangé) === -->
+  <script>
+'use strict';
+
+  /* ===== Utilities ===== */
+  const $  = (s,r)=> (r||document).querySelector(s);
+  const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+  let scoreOK=0, scoreTot=0;
+  function updateScore(){ const el=$("#score"); if(el) el.textContent = scoreOK+" / "+scoreTot; }
+  const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const choice=a=>a[Math.floor(Math.random()*a.length)];
+  const UMINUS = (window.DevRules && DevRules.consts && DevRules.consts.UMINUS) || '−';
+  function scanFractions(root){ try{ if(window.FractionSignClarity && FractionSignClarity.scan){ FractionSignClarity.scan(root||document); } }catch(_){ } }
+
+  /* ===== Math helpers ===== */
+  function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){const t=a%b;a=b;b=t;}return a||1;}
+  function isSquare(n){ if(n<0) return false; const r=Math.floor(Math.sqrt(n)); return r*r===n; }
+
+  function fracNum(p,q){ // fraction simplifiée (signe devant)
+    const neg = (p<0)!==(q<0);
+    p=Math.abs(p); q=Math.abs(q);
+    const g=gcd(p,q); p/=g; q/=g;
+    const sgn = neg?('<span class="frac-sign">'+UMINUS+'</span>'):'';
+    if(q===1) return sgn + p;
+    return sgn+'<span class="frac"><span class="num">'+p+'</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+  }
+  function fracStr(numStr, denStr){
+    return '<span class="frac"><span class="num">'+numStr+'</span><span class="bar"></span><span class="den">'+denStr+'</span></span>';
+  }
+  function fracNumRaw(p,q){ // non simplifiée
+    const s=n=>String(n).replace(/-/g,'−');
+    return '<span class="frac"><span class="num">'+s(p)+'</span><span class="bar"></span><span class="den">'+s(q)+'</span></span>';
+  }
+
+  function sqrtDecomp(N){ let k=1,n=N; for(let d=2; d*d<=n; d++){ while(n%(d*d)===0){ n/=d*d; k*=d; } } return [k,n]; }
+  function numEval(expr){
+    let s = String(expr||'').trim();
+    s = s.replace(/−/g,'-').replace(/[×·]/g,'*').replace(/√/g,'Math.sqrt').replace(/\^/g,'**');
+    s = s.replace(/(\d),(\d)/g,'$1.$2');
+    // multiplications implicites
+    s = s.replace(/\)\s*\(/g, ')*(')
+         .replace(/(\d)\s*\(/g, '$1*(')
+         .replace(/\)\s*x/g, ')*x')
+         .replace(/x\s*\(/g, 'x*(')
+         .replace(/(\d)\s*x/g, '$1*x');
+    try{ return Number(Function('"use strict";return ('+s+')')()); }catch(_){ return NaN; }
+  }
+  function almost(a,b,eps=1e-9){ return Math.abs(a-b)<=eps; }
+  function poly(a,b,c,x){ return a*x*x + b*x + c; }
+
+  /* ===== Poly render ===== */
+  function fmtCoeff(k, varPow){
+    if(k===0) return '';
+    const sign = k>0 ? ' + ' : ' '+UMINUS+' ';
+    const a = Math.abs(k);
+    if(varPow==='') return sign + a;
+    if(a===1) return sign + varPow;
+    return sign + a + varPow;
+  }
+  function polyHTML(a,b,c){
+    let s='';
+    if(a!==0){
+      if(a===1) s='x<sup>2</sup>';
+      else if(a===-1) s=UMINUS+'x<sup>2</sup>';
+      else s=(a<0? UMINUS+' ' : '')+Math.abs(a)+'x<sup>2</sup>';
+    }
+    s += fmtCoeff(b,'x').replace(' + -',' '+UMINUS+' ');
+    s += fmtCoeff(c,'').replace(' + -',' '+UMINUS+' ');
+    s = s.replace(/^ \+ /,'');
+    return s||'0';
+  }
+
+  /* ===== Helpers pour l'affichage en 4 lignes ===== */
+
+function fmtAx2(a){
+  // Affiche "2×a" sans parenthèses si a est positif
+  // Affiche "2×(−n)" si a est négatif
+  return '2×' + (a < 0 ? '(' + a + ')' : a);
+}
+
+  function pushIfNew(arr, html){ if(!arr.length || arr[arr.length-1]!==html) arr.push(html); }
+  function line(label, rhs){ return '<div class="line"><b>'+label+'</b> = '+rhs+'</div>'; }
+
+  /* ===== Énoncé (même structure) ===== */
+  function buildHostHTML(st){
+    const P = polyHTML(st.a,st.b,st.c);
+    return `
+      <div class="card">
+        <div class="equ"><strong>Soit</strong> P(x) = ${P}. <strong>Résoudre :</strong> ${P} = 0</div>
+        <div class="answers">
+  <div class="qa-row">
+    <label for="ansS"><strong>S =</strong></label>
+    <input id="ansS" class="inp" placeholder="S = { … } ou ∅" style="min-width:280px">
+          <span id="tickS" class="tick" style="margin-left:6px"></span>
+  </div>
+
+  <div class="qa-row">
+    <label for="ansF"><strong>Forme factorisée (si possible) :</strong></label>
+    <input id="ansF" class="inp" placeholder="(x − r1)(x − r2) ; (x − r)^2 ; …" style="min-width:360px">
+          <span id="tickF" class="tick" style="margin-left:6px"></span>
+  </div>
+</div>
+      </div>
+      <div id="res"></div>
+    `;
+  }
+
+
+  /* ===== Correction (4 lignes par inconnue) ===== */
+  function solutionHTML(st){
+    const a=st.a,b=st.b,c=st.c,D=st.delta;
+    const out=[];
+    out.push('<div class="step"><i>a</i> = '+a+' ; <i>b</i> = '+b+' <b>et</b> <i>c</i> = '+c+'</div>');
+{
+  const prod4ac = 4 * a * c;
+  const b2 = b*b;
+const prettyProd = '4 × ' + (a<0 ? '('+a+')' : a) + ' × ' + (c<0 ? '('+c+')' : c);
+  const middle = prod4ac < 0 ? (b2+' + '+Math.abs(prod4ac)) : (b2+' − '+prod4ac);
+  const tail = D>0 ? ' > 0' : (D<0 ? ' < 0' : ' = 0');
+  out.push(
+    '<div class="step" style="color:#b00020"><b>Δ = b² − 4ac</b> = '+
+    b2+' − '+prettyProd+' = '+middle+' = '+D+tail+'</div>'
+  );
+}
+
+    if(D<0){
+      out.push('<div class="step">Ainsi l’équation n’admet pas de solution réelle.</div>');
+      out.push('<div class="step" style="text-align:center;font-weight:700">S = ∅</div>');
+      out.push('<div class="step"><i>P(x)</i> n’a pas de forme factorisée.</div>');
+      return '<div class="steps">'+out.join('')+'</div>';
+    }
+
+    if(D===0){
+      const L=[];
+      L.push(line('α', fracStr('−b','2a')));                 // (1) formule
+      L.push(line('α', fracStr(String(-b), fmtAx2(a))));      // (2) remplacement
+      L.push(line('α', fracNumRaw(-b, 2*a)));                 // (3) num/den
+      const g=gcd(Math.abs(-b), Math.abs(2*a));
+      const Pn=(-b)/g, Qn=(2*a)/g;
+      pushIfNew(L, line('α', Qn!==1 ? fracNum(Pn,Qn) : String(Pn))); // (4) résultat
+      const alpha = Pn/Qn;
+      out.push('<div class="step">Ainsi l’équation admet une seule solution :</div>');
+      out.push('<div class="step">'+L.join('')+'</div>');
+      out.push('<div class="step" style="text-align:center;font-weight:700">S = { '+alpha+' }</div>');
+      out.push('<div class="step">La forme factorisée est : P(x) = '+(a===1?'':' '+a)+'(x '+(alpha<0?'+ '+Math.abs(alpha):'− '+Math.abs(alpha))+')²</div>');
+      return '<div class="steps">'+out.join('')+'</div>';
+    }
+
+    function xiThreeLines(signPM){
+      const label = signPM<0 ? 'x₁' : 'x₂';
+      const pm    = signPM<0 ? '−'  : ' + ';
+      const lines = [];
+
+      lines.push(line(label, fracStr('−b '+pm+' √Δ', '2a'))); // (1) formule
+
+      if(isSquare(D)){
+        const r=Math.sqrt(D);
+        lines.push(line(label, fracStr(String(-b)+' '+pm+' '+r, fmtAx2(a)))); // (2) remplacement
+        const num = -b + (signPM<0 ? -r : r), den = 2*a;
+        lines.push(line(label, fracNumRaw(num, den)));                         // (3) num/den
+        const g=gcd(Math.abs(num), Math.abs(den));                             // (4) résultat
+        const Pn=num/g, Qn=den/g;
+        pushIfNew(lines, line(label, Qn!==1 ? fracNum(Pn,Qn) : String(Pn)));
+      } else {
+        const [kfac,nrest]=sqrtDecomp(D);
+        const num2 = ((-b)+' '+pm+' '+(kfac>1 ? (kfac+'√'+nrest) : ('√'+nrest))).replace(/\s+/g,' ').trim();
+        lines.push(line(label, fracStr(num2, fmtAx2(a))));        // (2) remplacement
+        lines.push(line(label, fracStr(num2, String(2*a))));      // (3) 2a
+        const g = gcd(gcd(Math.abs(b), Math.abs(kfac)), Math.abs(2*a)); // (4) simplif éventuelle
+        if(g>1){
+          const num3 = (((-b)/g)+' '+pm+' '+(((kfac/g)>1) ? ((kfac/g)+'√'+nrest) : ('√'+nrest))).replace(/\s+/g,' ').trim();
+          pushIfNew(lines, line(label, fracStr(num3, String((2*a)/g))));
+        }
+      }
+      return lines.join('');
+    }
+
+    if(isSquare(D)){
+      out.push('<div class="step">Et √Δ = '+Math.sqrt(D)+'</div>');
+      out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
+      const L = xiThreeLines(-1), R = xiThreeLines(+1);
+      out.push('<table class="table"><thead><tr><th>x₁</th><th>x₂</th></tr></thead><tbody><tr><td>'+L+'</td><td>'+R+'</td></tr></tbody></table>');
+      const r=Math.sqrt(D); const x1 = (-b - r)/(2*a), x2 = (-b + r)/(2*a);
+      const Ssorted = [x1,x2].sort((u,v)=>u-v);
+      out.push('<div class="step" style="text-align:center;font-weight:700">S = { '+Ssorted[0]+' ; '+Ssorted[1]+' }</div>');
+      out.push('<div class="step">La forme factorisée est : P(x) = '+(a===1?'':' '+a)+'(x '+(x1<0?'+ '+Math.abs(x1):'− '+Math.abs(x1))+')(x '+(x2<0?'+ '+Math.abs(x2):'− '+Math.abs(x2))+')</div>');
+    } else {
+      out.push('<div class="step">Et √Δ = √'+D+'</div>');
+      out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
+      const L = xiThreeLines(-1), R = xiThreeLines(+1);
+      out.push('<table class="table"><thead><tr><th>x₁</th><th>x₂</th></tr></thead><tbody><tr><td>'+L+'</td><td>'+R+'</td></tr></tbody></table>');
+
+      const [kfac,nrest]=sqrtDecomp(D);
+      let den = 2*a; const gCommon = gcd(gcd(Math.abs(b), Math.abs(kfac)), Math.abs(den)); if(gCommon>1) den/=gCommon;
+      const num1 = ((-b/gCommon)||(-b)) + ' − ' + (((kfac/gCommon)>1? (kfac/gCommon+'√'+nrest) : ('√'+nrest)));
+      const num2 = ((-b/gCommon)||(-b)) + ' + ' + (((kfac/gCommon)>1? (kfac/gCommon+'√'+nrest) : ('√'+nrest)));
+      const approx1 = (-b - Math.sqrt(D))/(2*a), approx2 = (-b + Math.sqrt(D))/(2*a);
+      const pair = [{v:approx1, s:fracStr(num1,String(den))}, {v:approx2, s:fracStr(num2,String(den))}].sort((p,q)=>p.v-q.v);
+      out.push('<div class="step" style="text-align:center;font-weight:700">S = { '+pair[0].s+' ; '+pair[1].s+' }</div>');
+      out.push('<div class="step">La forme factorisée est : P(x) = '+(a===1?'':' '+a)+'(x − '+pair[0].s+')(x − '+pair[1].s+')</div>');
+    }
+
+    return '<div class="steps">'+out.join('')+'</div>';
+  }
+
+  /* ===== Vérification ===== */
+  function parseSetInput(val){
+    if(!val) return {empty:false, items:[]};
+    let s = String(val).trim();
+    s = s.replace(/^S\s*=\s*/i,'').trim();
+    if (s==='∅' || /(vide|aucun|aucune)/i.test(s) || /ensemble\s*vide/i.test(s)) return {empty:true, items:[]};
+    s = s.replace(/^[{]/,'').replace(/[}]$/,'');
+    if(!s.trim()) return {empty:false, items:[]};
+    const items = s.split(/[;,]+/).map(t=>t.trim()).filter(Boolean);
+    return {empty:false, items};
+  }
+  function setOK_S(a,b,c,delta, inp){
+    const parsed = parseSetInput(inp);
+    if(delta<0){
+      return parsed.empty || parsed.items.length===0 || /∅/.test(inp);
+    }
+    const D = delta, r1 = (-b - Math.sqrt(D))/(2*a), r2 = (-b + Math.sqrt(D))/(2*a);
+    const target = D===0 ? [r1] : [r1,r2];
+    const nums = parsed.items.map(t=> numEval(t)).filter(v=> Number.isFinite(v));
+    if(nums.length !== target.length) return false;
+    const used = new Array(nums.length).fill(false);
+    for(const t of target){
+      let ok=false;
+      for(let i=0;i<nums.length;i++){
+        if(used[i]) continue;
+        if(almost(nums[i], t, 1e-6)){ used[i]=true; ok=true; break; }
+      }
+      if(!ok) return false;
+    }
+    return true;
+  }
+  function evalFactorizedAt(expr,x){
+    if(!expr) return NaN;
+    let s = String(expr);
+    s = s.replace(/−/g,'-')
+         .replace(/[×·]/g,'*')
+         .replace(/\^/g,'**')
+         .replace(/√/g,'Math.sqrt')
+         .replace(/sqrt/gi,'Math.sqrt');
+    // * implicites
+    s = s.replace(/\)\s*\(/g, ')*(')
+         .replace(/(\d)\s*\(/g, '$1*(')
+         .replace(/\)\s*x/g, ')*x')
+         .replace(/x\s*\(/g, 'x*(')
+         .replace(/(\d)\s*x/g, '$1*x');
+    s = s.replace(/(?<![A-Za-z_])x(?![A-Za-z_])/g, '('+x+')');
+    try{ return Function('"use strict";return ('+s+')')(); }catch(_){ return NaN; }
+  }
+  function factorOK_S(a,b,c,delta, inp){
+    if(!inp || !String(inp).trim()) return (delta<0);
+    if(delta<0 && /non\s*factoris/i.test(inp)) return true;
+    if(delta<0 && /aucune/i.test(inp)) return true;
+    const xs = [-3,-1,0,1,2,3,4];
+    for(const x of xs){
+      const got = evalFactorizedAt(inp, x);
+      const ref = poly(a,b,c,x);
+      if(!Number.isFinite(got) || Math.abs(got-ref)>1e-6) return false;
+    }
+    return true;
+  }
+
+  /* ===== Générateurs ===== */
+  function polyFromRoots(a, r1, r2){ return {a:a, b:-a*(r1+r2), c:a*r2*r1}; }
+  function genDeltaPosSquare(){ const a=choice([1,-1,2,-2]); let r1=rnd(-8,8), r2=rnd(-8,8); while(r2===r1){ r2=rnd(-8,8); } const p=polyFromRoots(a,r1,r2); const delta=p.b*p.b-4*p.a*p.c; return {a:p.a,b:p.b,c:p.c,delta, kind:'D>0 (carré parfait)'}; }
+  function genDeltaNeg(){ let a,b,c,D; for(let tries=0;tries<999;tries++){ a=choice([1,2,-1,-2]); b=rnd(-10,10); c=rnd(-10,10); D=b*b-4*a*c; if(D<0) return {a,b,c,delta:D, kind:'D<0'}; } return {a:1,b:2,c:5,delta:-16, kind:'D<0'}; }
+  function genDeltaZero(){ const a=choice([1,2,-1,-2]); const r=rnd(-8,8); const p=polyFromRoots(a,r,r); return {a:p.a,b:p.b,c:p.c,delta:0, kind:'D=0'}; }
+  function genDeltaPosNonSquare(){ let a,b,c,D; for(let tries=0;tries<999;tries++){ a=choice([1,2,-1,-2]); b=rnd(-12,12); c=rnd(-12,12); D=b*b-4*a*c; if(D>0 && !isSquare(D)) return {a,b,c,delta:D, kind:'D>0 (pas carré)'}; } return {a:1,b:1,c:-1,delta:5, kind:'D>0 (pas carré)'}; }
+
+  /* ===== Affichage des ✓/✗ près des champs ===== */
+  function setTicks(host, tS, tF){
+    const setTick=(sel,val)=>{ const el=$(sel,host); if(!el) return;
+      el.className='tick '+(val===true?'ok':val===false?'ko':''); el.textContent=(val===true?'✓':val===false?'✗':'—');
+    };
+    setTick('#tickS', tS);
+    setTick('#tickF', tF);
+  }
+
+  /* ===== Exercices ===== */
+  const exDposPF = { id:'dpospf', title:'Δ > 0 (carré parfait)',
+    gen(host){ const st=genDeltaPosSquare(); host.innerHTML=buildHostHTML(st); host.dataset.state=JSON.stringify(st); },
+    correct(host, st){
+      const Sval=$('#ansS',host)?.value||''; const Fval=$('#ansF',host)?.value||'';
+      const hasS=Sval.trim().length>0, hasF = (Fval.trim().length>0) || (st.delta<0);
+      let add=0, ok=0; let tS=null,tF=null;
+      if(hasS){ tS=setOK_S(st.a,st.b,st.c,st.delta,Sval); add++; ok+= tS?1:0; }
+      if(hasF){ tF=factorOK_S(st.a,st.b,st.c,st.delta,Fval); add++; ok+= tF?1:0; }
+      scoreTot+=add; scoreOK+=ok; updateScore();
+      setTicks(host, hasS?tS:null, hasF?tF:null);
+},
+    solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); scanFractions(host); },
+    reset(host){ $('#res',host).textContent=''; setTicks(host,null,null); }
+  };
+  const exDneg = { id:'dneg', title:'Δ < 0',
+    gen(host){ const st=genDeltaNeg(); host.innerHTML=buildHostHTML(st); host.dataset.state=JSON.stringify(st); },
+    correct(host, st){
+      const Sval=$('#ansS',host)?.value||''; const Fval=$('#ansF',host)?.value||'';
+      const hasS=Sval.trim().length>0, hasF = (Fval.trim().length>0) || (st.delta<0);
+      let add=0, ok=0; let tS=null,tF=null;
+      if(hasS){ tS=setOK_S(st.a,st.b,st.c,st.delta,Sval); add++; ok+= tS?1:0; }
+      if(hasF){ tF=factorOK_S(st.a,st.b,st.c,st.delta,Fval); add++; ok+= tF?1:0; }
+      scoreTot+=add; scoreOK+=ok; updateScore();
+      setTicks(host, hasS?tS:null, hasF?tF:null);
+},
+    solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); scanFractions(host); },
+    reset(host){ $('#res',host).textContent=''; setTicks(host,null,null); }
+  };
+  const exDzero = { id:'dzero', title:'Δ = 0',
+    gen(host){ const st=genDeltaZero(); host.innerHTML=buildHostHTML(st); host.dataset.state=JSON.stringify(st); },
+    correct(host, st){
+      const Sval=$('#ansS',host)?.value||''; const Fval=$('#ansF',host)?.value||'';
+      const hasS=Sval.trim().length>0, hasF = (Fval.trim().length>0) || (st.delta<0);
+      let add=0, ok=0; let tS=null,tF=null;
+      if(hasS){ tS=setOK_S(st.a,st.b,st.c,st.delta,Sval); add++; ok+= tS?1:0; }
+      if(hasF){ tF=factorOK_S(st.a,st.b,st.c,st.delta,Fval); add++; ok+= tF?1:0; }
+      scoreTot+=add; scoreOK+=ok; updateScore();
+      setTicks(host, hasS?tS:null, hasF?tF:null);
+},
+    solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); scanFractions(host); },
+    reset(host){ $('#res',host).textContent=''; setTicks(host,null,null); }
+  };
+  const exMix = { id:'mix', title:'Mélange',
+    gen(host){
+      const r=Math.random(); let st;
+      if(r<0.40) st=genDeltaPosSquare();
+      else if(r<0.55) st=genDeltaNeg();
+      else if(r<0.80) st=genDeltaZero();
+      else st=genDeltaPosNonSquare();
+      host.innerHTML=buildHostHTML(st); host.dataset.state=JSON.stringify(st);
+    },
+    correct(host, st){
+      const Sval=$('#ansS',host)?.value||''; const Fval=$('#ansF',host)?.value||'';
+      const hasS=Sval.trim().length>0, hasF = (Fval.trim().length>0) || (st.delta<0);
+      let add=0, ok=0; let tS=null,tF=null;
+      if(hasS){ tS=setOK_S(st.a,st.b,st.c,st.delta,Sval); add++; ok+= tS?1:0; }
+      if(hasF){ tF=factorOK_S(st.a,st.b,st.c,st.delta,Fval); add++; ok+= tF?1:0; }
+      scoreTot+=add; scoreOK+=ok; updateScore();
+      setTicks(host, hasS?tS:null, hasF?tF:null);
+},
+    solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); scanFractions(host); },
+    reset(host){ $('#res',host).textContent=''; setTicks(host,null,null); }
+  };
+
+  const REG = [exDposPF, exDneg, exDzero, exMix];
+  window.REG=REG; window.REGISTRY=REG;
+
+  function mount(){
+    const sel=$("#exo-select"); if(!sel) return;
+    sel.innerHTML=REG.map((e,i)=>`<option value="${e.id}">${i+1}. ${e.title}</option>`).join('');
+    function get(){ const id=sel.value||REG[0].id; return REG.find(e=>e.id===id)||REG[0]; }
+    function newOne(){ const ex=get(); const host=$("#host"); ex.gen(host); scanFractions(host); }
+    function check(){ const ex=get(); ex.correct($("#host"), JSON.parse($("#host").dataset.state||'{}')); }
+    function sol(){ const ex=get(); ex.solution($("#host"), JSON.parse($("#host").dataset.state||'{}')); }
+    function reset(){ const ex=get(); ex.reset($("#host")); }
+
+    sel.onchange=newOne;
+    $("#btn-new").onclick=newOne;
+    $("#btn-check").onclick=check;
+    $("#btn-solution").onclick=sol;
+    $("#btn-reset").onclick=reset;
+
+    document.addEventListener('keydown', e=>{ if(e.key==='Enter'){ check(); }});
+    sel.value=REG[0].id; newOne();
+  }
+  document.addEventListener('DOMContentLoaded', mount);
+  </script>
+
+  <!-- === VOTRE JS — 2e bloc (inchangé) === -->
+  <script>
+// === MatHeron — PATCH remarques & Δ (jamais "=0=0") ===
+(function(){
+  const UMINUS = (window.DevRules && DevRules.consts && DevRules.consts.UMINUS) || '−';
+  const isSquare = window.isSquare || function(n){ if(n<0) return false; const r=Math.floor(Math.sqrt(n)); return r*r===n; };
+  const gcd = window.gcd || function(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; };
+  const fracNum = window.fracNum || function(p,q){
+    const neg = (p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q);
+    const g=gcd(p,q); p/=g; q/=g; const sgn = neg?('<span class="frac-sign">'+UMINUS+'</span>'):'';
+    if(q===1) return sgn + p;
+    return sgn+'<span class="frac"><span class="num">'+p+'</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+  };
+  function simp(p,q){
+    if(q<0){ p=-p; q=-q; }
+    const g=gcd(Math.abs(p),Math.abs(q)); return [p/g,q/g];
+  }
+  function fracStr(numStr, denStr){
+    return '<span class="frac"><span class="num">'+numStr+'</span><span class="bar"></span><span class="den">'+denStr+'</span></span>';
+  }
+  function ax(a){ if(a===1) return 'x'; if(a===-1) return UMINUS+'x'; if(a<0) return UMINUS+' '+Math.abs(a)+'x'; return a+'x'; }
+  function ax2(a){ if(a===1) return 'x<sup>2</sup>'; if(a===-1) return UMINUS+'x<sup>2</sup>'; if(a<0) return UMINUS+' '+Math.abs(a)+'x<sup>2</sup>'; return a+'x<sup>2</sup>'; }
+  function signJoin(coef){ return coef<0 ? (' '+UMINUS+' '+Math.abs(coef)) : (' + '+coef); }
+
+  function remarkBlock(st){
+    const a=st.a,b=st.b,c=st.c,D=st.delta;
+    const steps=[];
+    const push=s=>steps.push('<div class="step">'+s+'</div>');
+
+    if(a!==0 && c===0 && b!==0){
+      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+      let eq = (a === 1) ? 'x²' : (a === -1) ? '−x²' : a + 'x²';
+      if (b !== 0) eq += (b > 0 ? ' + ' : ' ') + b + 'x';
+      eq += ' = 0';
+      push(eq);
+      push('x(' + ax(a) + signJoin(b).replace(/^ \+ /,' + ') + ') = 0');
+      push('x = 0 ou ' + ax(a) + signJoin(b).replace(/^ \+ /,' + ') + ' = 0');
+      const [p,q]=simp(-b,a);
+      push('x = 0 ou x = ' + fracNum(p,q));
+      return steps.join('');
+    }
+
+    if(a!==0 && b===0 && c!==0){
+      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+      push((a===1?'x²':a===-1?'−x²':ax2(a)) + signJoin(c) + ' = 0');
+      push(a+'x<sup>2</sup> = ' + String(-c));
+      const [pn,qn] = simp(-c,a);
+      push('x<sup>2</sup> = ' + fracNum(pn,qn));
+      const t = (-c)/a;
+      if(t<0){ push('Pas de solution réelle.'); return steps.join(''); }
+      if(t===0){ push('x = 0'); return steps.join(''); }
+      const num = Math.abs(pn), den = Math.abs(qn);
+      let sqrtRight = (den===1 ? String(num) : '(' + fracStr(String(num),String(den)) + ')');
+      push('x = '+UMINUS+'√'+sqrtRight+' ou x = √'+sqrtRight);
+      const rn = Math.sqrt(num), rd = Math.sqrt(den);
+      if(Number.isInteger(rn) && Number.isInteger(rd)){
+        const pp = rn|0, qq = rd|0;
+        const [sp,sq] = simp(pp,qq);
+        if(sq===1){ push('x = '+UMINUS+sp+' ou x = '+sp); }
+        else{ push('x = '+UMINUS+fracNum(sp,sq)+' ou x = '+fracNum(sp,sq)); }
+      }
+      return steps.join('');
+    }
+
+    if(a!==0 && b===0 && c===0){
+      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+      push(a+'x<sup>2</sup> = 0'); push('x<sup>2</sup> = 0'); push('x = 0');
+      return steps.join('');
+    }
+
+    if(a!==0 && D===0){
+      const [p,q] = simp(-b, 2*a);
+      const alpha    = fracNum(p, q);
+      const alphaAbs = fracNum(Math.abs(p), q);
+      const op = (p < 0 ? ' + ' : ' − ');
+      push('<b>Remarque :</b> On aurait pu utiliser la méthode suivante :');
+      push(`${a}x² ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c} = 0`);
+      if (a !== 1) {
+        const [bp, bq] = simp(b, a);
+        const [cp, cq] = simp(c, a);
+        let termBx = ''; if (b !== 0) { const signB = (bp >= 0 ? ' + ' : ' − '); const magB  = Math.abs(bp) === bq ? '' : fracNum(Math.abs(bp), bq); termBx = signB + magB + 'x'; }
+        let termC  = ''; if (c !== 0) { const signC = (cp >= 0 ? ' + ' : ' − '); const magC  = fracNum(Math.abs(cp), cq); termC = signC + magC; }
+        push(a + '(x²' + termBx + termC + ') = 0');
+      }
+      if (a !== 1) { push(a + '(x' + op + alphaAbs + ')<sup>2</sup> = 0'); }
+      if (p === 0) { push('x<sup>2</sup> = 0'); push('x = 0'); }
+      else { push('(x' + op + alphaAbs + ')<sup>2</sup> = 0'); push('x' + op + alphaAbs + ' = 0'); push('x = ' + alpha); }
+      return steps.join('');
+    }
+    return '';
+  }
+
+  const _origSolution = window.solutionHTML;
+  if(typeof _origSolution === 'function'){
+    window.solutionHTML = function(st){
+      let html = _origSolution(st);
+      html = html.replace(/=\s*0\s*=\s*0/g,'= 0');
+      const ins = remarkBlock(st);
+      if(ins){
+        html = html.replace(/<\/div>\s*$/,'<div class=\"sep\" style=\"height:1px;background:#e5e7eb;margin:.4rem 0\"></div>'+ins+'</div>');
+      }
+      html = html.replace(/\+\s*−/g,' − ').replace(/−\s*−/g,' + ').replace(/−\s*\+/g,' − ');
+      return html;
+    };
+  }
+})();
+  </script>
+
+ <!-- === Adaptateur PDF côté HTML (corrigé) === -->
+<script>
+(function(){
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+ // Remplace le "petit -" ASCII par le "grand −" Unicode U+2212
+    // uniquement quand il s'agit d'un signe moins (devant un nombre, x, ( … ))
+    function normalizeMinusIn(node) {
+      const W = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+      const UMIN = '−';
+      const pieces = [];
+      while (W.nextNode()) pieces.push(W.currentNode);
+      for (const t of pieces) {
+        // 1) espaces + - + espaces -> " − " (opérateur binaire)
+        let s = t.nodeValue.replace(/ ?- ?/g, m => m.replace('-', UMIN));
+        // 2) signe unaire devant nombres/variables/parenthèses : -3, -x, -(2x+1)
+        s = s
+          // début de ligne ou après ( = + × ; , [ { espace )
+          .replace(/(^|[=\+×;,·:\[\{\(\s])-(?=(\d|\(|x|X))/g, '$1' + UMIN)
+          // cas "a = -10" dans les listes : déjà couvert par la ligne au‑dessus
+          ;
+        t.nodeValue = s;
+      }
+    }
+    ExoPDF.init({
+      title: document.title,
+
+      // 1) Tirage une seule fois : on renvoie l'état "st" à utiliser partout
+      beforeGen(def, _st, ctx){
+        const host = document.createElement('div');
+        // ta gen() écrit host.dataset.state ; on s’en sert pour récupérer st
+        if (def && typeof def.gen === 'function') def.gen(host);
+        let st = {};
+        try{ st = JSON.parse(host.dataset.state||'{}'); }catch(_){}
+        return st; // <-- clé : on fige l’état pour cet exercice
+      },
+
+      // 2) Rendu écran/PDF en réutilisant exactement "st"
+      beforeRender(def, st, withSolutions){
+        try{
+          const host = document.createElement('div');
+          host.id = 'pdf-host';
+          host.style.position='fixed';
+          host.style.left='-10000px';
+          host.style.top='-10000px';
+          document.body.appendChild(host);
+
+          // IMPORTANT : ne PAS regénérer; reconstruire depuis "st"
+          if (typeof window.buildHostHTML === 'function'){
+            host.innerHTML = buildHostHTML(st);
+          } else if (def && typeof def.render === 'function'){
+            def.render(host, st);
+          }
+          host.dataset.state = JSON.stringify(st);
+
+          // Solution : même "st"
+          if (withSolutions && def && typeof def.solution === 'function'){
+            def.solution(host, st);
+          }
+
+          // Purge inputs
+          (host.querySelectorAll('input, textarea, select, [contenteditable="true"]')||[])
+            .forEach(el=>{
+              const t = document.createTextNode(el.value||' ');
+              el.replaceWith(t);
+            });
+
+          // Bordures inline pour tables (impression)
+          (host.querySelectorAll('table')||[]).forEach(table=>{
+            const csT = getComputedStyle(table);
+            table.style.borderCollapse = csT.borderCollapse;
+            table.style.borderSpacing  = csT.borderSpacing;
+            const hasOuter = ['Top','Right','Bottom','Left']
+              .some(side=>csT['border'+side+'Width']!=='0px');
+            if (hasOuter){
+              table.style.borderTop    = csT.borderTopWidth+' '+csT.borderTopStyle+' '+csT.borderTopColor;
+              table.style.borderRight  = csT.borderRightWidth+' '+csT.borderRightStyle+' '+csT.borderRightColor;
+              table.style.borderBottom = csT.borderBottomWidth+' '+csT.borderBottomStyle+' '+csT.borderBottomColor;
+              table.style.borderLeft   = csT.borderLeftWidth+' '+csT.borderLeftStyle+' '+csT.borderLeftColor;
+            } else { table.style.border = 'none'; }
+            (table.querySelectorAll('th,td')||[]).forEach(td=>{
+              const cs = getComputedStyle(td);
+              td.style.borderTop    = cs.borderTopWidth+' '+cs.borderTopStyle+' '+cs.borderTopColor;
+              td.style.borderRight  = cs.borderRightWidth+' '+cs.borderRightStyle+' '+cs.borderRightColor;
+              td.style.borderBottom = cs.borderBottomWidth+' '+cs.borderBottomStyle+' '+cs.borderBottomColor;
+              td.style.borderLeft   = cs.borderLeftWidth+' '+cs.borderLeftStyle+' '+cs.borderLeftColor;
+              td.style.verticalAlign = 'top';
+            });
+          });
+
+          // Sortie : #res si correction demandée, sinon tout
+          const outHTML = withSolutions
+            ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
+            : host.innerHTML;
+
+          document.body.removeChild(host);
+          return outHTML;
+        }catch(e){
+          console.error('PDF beforeRender error:', e);
+          return null;
+        }
+      }
+    });
+  });
+})();
+</script>
+
+ 
+
+
+
+<!-- === SHIM universel : rend vos exos compatibles quand le kit appelle gen(st) === -->
+<script>
+(function(){
+  function isHost(x){ return x && x.nodeType===1; }
+  function scaffold(host){
+    if(!host) return;
+    ['enonce','res','solution','statement'].forEach(function(id){
+      if(!host.querySelector('#'+id)){ var d=document.createElement('div'); d.id=id; host.appendChild(d); }
+    });
+  }
+  function wrapDef(def){
+    if(!def || typeof def!=='object') return;
+
+    // Wrap gen
+    var oldGen = def.gen;
+    if(typeof oldGen==='function'){
+      def.gen = function(a,b){
+        // cas normal écran : gen(host, st)
+        if(isHost(a)) return oldGen.call(this, a, b);
+        // cas PDF : gen(st) -> on fabrique un host temporaire
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div');
+        scaffold(host);
+        var r = oldGen.call(this, host, st);
+        if(!host.dataset.state) try{ host.dataset.state = JSON.stringify(st||{}); }catch(_){}
+        return host; // permet au kit de récupérer .innerHTML
+      };
+      // fournir render(host, st) si absent
+      if(typeof def.render!=='function'){
+        def.render = function(host, st){ scaffold(host); return oldGen.call(this, host, st); };
+      }
+    }
+
+    // Wrap solution pour supporter solution(st)
+    var oldSol = def.solution;
+    if(typeof oldSol==='function'){
+      def.solution = function(a,b){
+        if(isHost(a)) return oldSol.call(this, a, b);
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div'); scaffold(host);
+        return oldSol.call(this, host, st);
+      };
+    }
+  }
+
+  function apply(){
+    var list = (window.REGISTRY || window.REG || []);
+    if(Array.isArray(list)) list.forEach(wrapDef);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+})();
+</script>
+
+</body>
+</html>

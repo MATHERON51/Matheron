@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Seconde – Chapitre 1 – Équations produit (produit nul) – Exercices</title>
+<link href="../../../../css/math-kbd.css" rel="stylesheet"/>
+<style>
+  :root{ --card-bg:#fff; --card-bd:#e6e6e6; --muted:#6b7280; }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:system-ui, Segoe UI, Roboto, Arial, sans-serif; background:#fafafa; color:#111; line-height:1.55}
+
+  .header{position:sticky; top:0; background:#fff; border-bottom:1px solid #eee}
+  .header .wrap{padding:12px 16px}
+
+  .wrap{max-width:1100px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:12px}
+  .card{background:var(--card-bg); border:1px solid var(--card-bd); border-radius:12px; padding:14px}
+
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  #exo-select{min-width:320px}
+  select,button,input[type=text]{font-size:15px}
+  .btn{padding:8px 12px; border:1px solid #dadada; border-radius:10px; background:#f7f7f7; cursor:pointer}
+  .btn:hover{background:#efefef}
+
+  .row{display:grid; grid-template-columns:1fr; gap:12px; align-items:start}
+  .statement .consigne{opacity:.85; margin-bottom:6px}
+  .ans-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .ans-row input[type=text]{flex:1; min-width:240px}
+  .steps{background:#f6f7f8; border:1px dashed #cfd3d7; border-radius:10px; padding:.7rem .8rem; min-height:52px}
+  .steps .line{white-space:pre-wrap; color:var(--muted)}
+
+  .accept .title{font-weight:600}
+  .kbd-wrap{display:flex; justify-content:center}
+</style>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+
+/* ligne exo : large zone de correction, en une ligne (interface) */
+.row{display:grid;grid-template-columns:1fr auto minmax(560px,1fr);gap:8px;align-items:center}
+.row > div:last-child{overflow-x:auto}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.equ{font-weight:700}
+
+/* Fractions “pile” (sans LaTeX) */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em; white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Étapes (interface : pas de retour à la ligne) */
+.steps{margin:.5rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.2rem 0;white-space:nowrap}
+.hint{color:#444}
+
+/* “Tableau invisible” */
+.proof-table{display:grid;column-gap:14px;row-gap:0;margin-top:.4rem;white-space:nowrap}
+.proof-table .cell{align-self:start}
+.proof-table .ou{align-self:start;text-align:center;color:#555;white-space:nowrap;padding:.35rem .5rem}
+
+/* Sous-bloc PDF */
+.pdf-controls{display:flex;flex-direction:column;gap:10px}
+.pdf-controls .row-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pdf-controls input[type=number]{width:72px}
+.pdf-controls input[type=text]{min-width:220px}
+
+@media print{ .header{position:static} }
+</style></head>
+<body>
+<!-- En-tête -->
+<div class="header">
+<div class="wrap">
+<div class="controls"><div class="controls card">
+<label for="exo-select"><strong>Type d’exercice :</strong></label>
+<select id="exo-select"></select>
+<button class="btn" id="btn-new">🔄 Nouvel énoncé</button>
+<button class="btn" id="btn-check">✅ Vérifier</button>
+<button class="btn" id="btn-solution">💡 Solution</button>
+<button class="btn" id="btn-reset">🧹 Réinitialiser</button>
+<span class="score">Score : <span id="score">0 / 0</span></span>
+</div><span class="small" id="status"></span></div>
+</div>
+</div>
+<!-- Corps -->
+<div class="wrap">
+<!-- Énoncé + saisie + corrigé -->
+<div class="card" id="host"><div class="card pdf-controls">
+<div class="small" style="font-weight:600">Générer une fiche (PDF)</div>
+<div class="row-inline">
+<label for="pdf-count">Nombre d’exercices (≤ 50) :</label>
+<input id="pdf-count" max="50" min="1" type="number" value="10"/>
+<label style="display:inline-flex;align-items:center;gap:6px">
+<input checked="" id="pdf-mix" type="checkbox"/> mélanger
+        </label>
+<label style="display:inline-flex;align-items:center;gap:6px">
+<input id="pdf-sol" type="checkbox"/> avec corrigés
+        </label>
+<button class="btn" id="btn-pdf">🖨️ Générer la fiche</button>
+</div>
+<div class="row-inline">
+<input id="pdf-etab" placeholder="Établissement (optionnel)" type="text"/>
+<input id="pdf-classe" placeholder="Classe (ex. 2nde A)" type="text"/>
+<label style="display:inline-flex;align-items:center;gap:6px">
+<input checked="" id="pdf-blanks" type="checkbox"/> afficher lignes Nom / Prénom / Date
+        </label>
+</div>
+<div class="small" style="color:#555">Dans la boîte d’impression, décoche “En-têtes et pieds de page” pour ne pas afficher l’URL.</div>
+</div><div class="card" id="host"></div><div class="card small">
+<strong>Saisie (obligatoire) :</strong>
+<ul style="margin:8px 0 0 18px">
+<li><strong>Format imposé</strong> : <code class="code">S = { … }</code> avec <strong>accolades</strong>. Exemples :
+          <code class="code">S = { 2 ; -3/4 }</code>, <code class="code">S={0}</code>.</li>
+<li>Séparateurs internes acceptés : <code class="code">;</code>, <code class="code">,</code>, espace, <code class="code">ou</code>. On tolère <code>x=…</code> dans les éléments.</li>
+</ul>
+</div><div class="card">
+<div data-math-kbd="" style="display:flex; justify-content:center"></div>
+</div></div>
+<!-- Saisie & réponses acceptées (volontairement vide) -->
+<div class="card accept" id="accept"><div class="title">Saisie &amp; réponses acceptées :</div></div>
+<!-- L’UI PDF se montera ici (après #accept) -->
+<!-- Clavier math (auto-mount par la lib) -->
+<div class="card kbd-wrap">
+<div data-math-kbd=""></div>
+</div>
+</div>
+<!-- JS (versions *.multiplicatif uniquement) -->
+
+
+
+
+
+<!-- Orchestration minimale (sans exercices) -->
+
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ========= Fractions “pile” ========= */
+function fracHTML(p,q){
+  const sign = (p<0) ? '−' : '';
+  p = Math.abs(p); q = Math.abs(q);
+  if(q===1) return sign + String(p);
+  return (sign ? `<span class="frac-sign">${sign}</span>` : '') +
+         `<span class="frac"><span class="num">${p}</span><span class="bar"></span><span class="den">${q}</span></span>`;
+}
+function fracExprHTML(numerHTML, den){
+  return `<span class="frac"><span class="num">${numerHTML}</span><span class="bar"></span><span class="den">${den}</span></span>`;
+}
+
+/* ========= Rationnels ========= */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function norm(p,q){ if(q===0) throw new Error("denominator 0"); let g=gcd(p,q); p/=g; q/=g; if(q<0){ p=-p; q=-q; } return {p,q}; }
+function addR(A,B){ return norm(A.p*B.q + B.p*A.q, A.q*B.q); }
+function subR(A,B){ return norm(A.p*B.q - B.p*A.q, A.q*B.q); }
+function mulR(A,B){ return norm(A.p*B.p, A.q*B.q); }
+function divR(A,B){ if(B.p===0) throw new Error("div by 0"); return norm(A.p*B.q, A.q*B.p); }
+function isZero(R){ return R.p===0; }
+function toNumber(R){ return R.p / R.q; }
+function makeR(p,q){ return norm(p,q||1); }
+function absR(R){ return makeR(Math.abs(R.p), R.q); }
+function negR(R){ return makeR(-R.p, R.q); }
+function quotientRaw(N,D){ let num = N.p * D.q, den = N.q * D.p; if(den<0){ num = -num; den = -den; } return {p:num, q:den}; }
+function needsSimplify(fr){ return gcd(Math.abs(fr.p), Math.abs(fr.q)) > 1; }
+
+/* ========= Affichage équations/coeffs ========= */
+function isOne(R){ return R.q===1 && R.p===1; }
+function isNegOne(R){ return R.q===1 && R.p===-1; }
+function fmtCoeffXHTML(A){ if(isOne(A)) return "x"; if(isNegOne(A)) return "−x"; return `${fracHTML(A.p,A.q)}x`; }
+function fmtConstHTML(B){ return (B.q===1? String(B.p) : fracHTML(B.p,B.q)); }
+function fmtSignedConstHTML(B){ if(isZero(B)) return ""; const abs = absR(B); const core = fmtConstHTML(abs); return (B.p>0? " + " : " − ") + core; }
+function sideHTML(A,B){ return fmtCoeffXHTML(A) + fmtSignedConstHTML(B); }
+
+/* ========= Nettoyage signes pour les étapes ========= */
+function normalizeSigns(html){
+  return html
+    .replace(/\+\s*[−-]/g, ' − ')
+    .replace(/[−-]\s*\+/g, ' − ')
+    .replace(/[−-]\s*[−-]/g, ' + ')
+    .replace(/\+\s*\+/g, ' + ')
+    .replace(/\s{2,}/g, ' ');
+}
+
+/* ========= Parsing des réponses (format strict S={...}) ========= */
+function parseNumberOrFrac(str){
+  if(!str) return null;
+  let s = str.trim().replace(/\u2212/g,'-');
+  if(/^[-+]?(\d+([.,]\d+)?|\d*[.,]\d+)$/.test(s)){ s=s.replace(',','.'); return parseFloat(s); }
+  const m = s.match(/^([-+]?\d+)\s*\/\s*([-+]?\d+)$/);
+  if(m){ const p = parseInt(m[1],10), q = parseInt(m[2],10); if(q===0) return null; return p/q; }
+  return null;
+}
+function sameNumber(a,b){ const na=parseFloat(a), nb=parseFloat(b); if(Number.isNaN(na)||Number.isNaN(nb)) return false; return Math.abs(na-nb)<1e-9; }
+function parseSolutionsStrict(str){
+  if(!str) return {okFormat:false, values:[]};
+  const full = str.trim();
+  const m = full.match(/^S\s*=\s*\{([\s\S]*)\}$/i);
+  if(!m) return {okFormat:false, values:[]}; // exige S={...}
+  let inner = m[1].trim();
+  inner = inner
+    .replace(/\bou\b/gi,';')
+    .replace(/,/g,';')
+    .replace(/\s*;\s*/g,';')
+    .replace(/\s+/g,' ')
+    .replace(/x\s*=\s*/gi,'')
+    .replace(/\s*\/\s*/g,'/'); // pour les fractions
+  const parts = inner.split(/[;\s]+/).filter(Boolean);
+  const vals=[];
+  for(const tok of parts){
+    const v = parseNumberOrFrac(tok);
+    if(v!==null) vals.push(v);
+  }
+  const uniq=[];
+  vals.forEach(v=>{ if(!uniq.some(u=>sameNumber(u,v))) uniq.push(v); });
+  return {okFormat:true, values:uniq.sort((a,b)=>a-b)};
+}
+function cmpSets(ans, exp){
+  if(ans.length!==exp.length) return false;
+  const A=[...ans].sort((x,y)=>x-y), B=[...exp].sort((x,y)=>x-y);
+  for(let i=0;i<A.length;i++){ if(!sameNumber(A[i],B[i])) return false; }
+  return true;
+}
+
+/* ========= Rendu commun ========= */
+function renderOne(host, htmlEq){
+  host.innerHTML="";
+  const row0=document.createElement("div"); row0.className="row";
+  const lab0=document.createElement("div"); lab0.className="equ"; lab0.innerHTML=htmlEq; row0.appendChild(lab0);
+  const spacer=document.createElement("div"); spacer.textContent=""; row0.appendChild(spacer);
+  const res0=document.createElement("div"); res0.textContent=""; row0.appendChild(res0);
+  host.appendChild(row0);
+
+  const row1=document.createElement("div"); row1.className="row";
+  const lab1=document.createElement("div"); lab1.innerHTML='Réponse (format <span class="code">S = { … }</span>)';
+  const inp1=document.createElement("input"); inp1.type="text"; inp1.id="reponse"; inp1.placeholder="ex.  S = { 2 ; -3/4 }";
+  const res1=document.createElement("div"); res1.id="res";
+  row1.appendChild(lab1); row1.appendChild(inp1); row1.appendChild(res1);
+  host.appendChild(row1);
+
+  return {inp1, res1};
+}
+
+/* ========= Générateurs d’exercices ========= */
+function rintNZ(min,max){ let x=0; while(x===0){ x=rnd(min,max); } return x; }
+function rint(min,max){ return rnd(min,max); }
+function genLinear(){
+  const a=rintNZ(-9,9), b=rint(-9,9);
+  const A=makeR(a,1), B=makeR(b,1);
+  const S = divR(negR(B), A);
+  const raw = quotientRaw(negR(B), A);
+  return {A,B,S,raw};
+}
+
+/* ========= “Tableau invisible” (HTML) ========= */
+function factorStepsHTML(f){
+  const arr = [
+    `${sideHTML(f.A,f.B)} = 0`,
+    `${fmtCoeffXHTML(f.A)} = ${fmtConstHTML(negR(f.B))}`,
+    `x = ${fracHTML(f.raw.p, f.raw.q)}`
+  ];
+  if(needsSimplify(f.raw)) arr.push(`x = ${f.S.q===1? f.S.p : fracHTML(f.S.p,f.S.q)}`);
+  return `<div class="steps">${arr.map(s=>`<div class="step">${normalizeSigns(s)}</div>`).join("")}</div>`;
+}
+function factorGridHTML(factors){
+  const cols = [];
+  for(let i=0;i<factors.length;i++){ cols.push('1fr'); if(i<factors.length-1) cols.push('auto'); }
+  let html = `<div class="proof-table" style="grid-template-columns:${cols.join(' ')}">`;
+  for(let i=0;i<factors.length;i++){
+    html += `<div class="cell">${factorStepsHTML(factors[i])}</div>`;
+    if(i<factors.length-1) html += `<div class="ou">ou</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+/* ========= Exercices ========= */
+const ex1 = {
+  id:"prod2_int",
+  title:"(ax + b)(cx + d) = 0",
+  gen(){ const f1=genLinear(), f2=genLinear(); return {f1,f2}; },
+  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+  render(host, st){ renderOne(host, this.text(st)); },
+  correct(host, st){
+    const exp=[toNumber(st.f1.S), toNumber(st.f2.S)];
+    const expU=[]; exp.forEach(v=>{ if(!expU.some(u=>sameNumber(u,v))) expU.push(v); });
+    const parsed = parseSolutionsStrict($("#reponse",host).value);
+    if(!parsed.okFormat){
+      $("#res",host).innerHTML = "✘ (format attendu : S = { … })";
+      $("#res",host).className = "res-ko";
+      return {ok:false,total:1};
+    }
+    const ok = cmpSets(parsed.values, expU);
+    const want = `S = { ${expU.map(v=>Number.isInteger(v)? v : v.toString()).join(' ; ')} }`;
+    $("#res",host).innerHTML = ok? "✔" : `✘ (attendu : ${want})`;
+    $("#res",host).className = ok? "res-ok":"res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const s1=st.f1.S, s2=st.f2.S;
+    const wrap = document.createElement('div');
+    wrap.className = 'steps';
+    wrap.innerHTML = `<div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div>`;
+    wrap.insertAdjacentHTML('beforeend', factorGridHTML([st.f1, st.f2]));
+    wrap.insertAdjacentHTML('beforeend', `<div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div>`);
+    $("#res",host).innerHTML = wrap.outerHTML;
+    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+  },
+  printSolutionHTML(st){
+    const s1=st.f1.S, s2=st.f2.S;
+    let html = `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`;
+    html += factorGridHTML([st.f1, st.f2]);
+    html += `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`;
+    return html;
+  },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+const ex2 = {
+  id:"k_prod2",
+  title:"k(ax + b)(cx + d) = 0 (k ≠ 0)",
+  gen(){ const k=rnd(-6,6)||1, f1=genLinear(), f2=genLinear(); return {k,f1,f2}; },
+  text(st){ return `${st.k}·(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+  render: ex1.render,
+  correct: ex1.correct,
+  solution(host, st){
+    const s1=st.f1.S, s2=st.f2.S;
+    const wrap = document.createElement('div');
+    wrap.className = 'steps';
+    wrap.innerHTML = `<div class="step">${this.text(st)}</div><div class="step"><span class="hint">Comme ${st.k} ≠ 0, le facteur ${st.k} n’influence pas l’égalité à 0.</span></div>`;
+    wrap.insertAdjacentHTML('beforeend', factorGridHTML([st.f1, st.f2]));
+    wrap.insertAdjacentHTML('beforeend', `<div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div>`);
+    $("#res",host).innerHTML = wrap.outerHTML;
+    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+  },
+  printSolutionHTML(st){
+    const s1=st.f1.S, s2=st.f2.S;
+    let html = `<div class="steps"><div class="step">${this.text(st)}</div><div class="step"><span class="hint">Comme ${st.k} ≠ 0, le facteur ${st.k} n’influence pas l’égalité à 0.</span></div></div>`;
+    html += factorGridHTML([st.f1, st.f2]);
+    html += `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`;
+    return html;
+  },
+  reset: ex1.reset
+};
+const ex3 = {
+  id:"prod3_int",
+  title:"(ax + b)(cx + d)(ex + f) = 0",
+  gen(){ const f1=genLinear(), f2=genLinear(), f3=genLinear(); return {f1,f2,f3}; },
+  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)})(${sideHTML(st.f3.A,st.f3.B)}) = 0`; },
+  render: ex1.render,
+  correct(host, st){
+    const exp=[toNumber(st.f1.S), toNumber(st.f2.S), toNumber(st.f3.S)];
+    const expU=[]; exp.forEach(v=>{ if(!expU.some(u=>sameNumber(u,v))) expU.push(v); });
+    const parsed = parseSolutionsStrict($("#reponse",host).value);
+    if(!parsed.okFormat){
+      $("#res",host).innerHTML = "✘ (format attendu : S = { … })";
+      $("#res",host).className = "res-ko";
+      return {ok:false,total:1};
+    }
+    const ok=cmpSets(parsed.values, expU);
+    const want = `S = { ${expU.map(v=>Number.isInteger(v)? v : v.toString()).join(' ; ')} }`;
+    $("#res",host).innerHTML = ok? "✔" : `✘ (attendu : ${want})`;
+    $("#res",host).className = ok? "res-ok":"res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const s1=st.f1.S, s2=st.f2.S, s3=st.f3.S;
+    const wrap = document.createElement('div');
+    wrap.className = 'steps';
+    wrap.innerHTML = `<div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div>`;
+    wrap.insertAdjacentHTML('beforeend', factorGridHTML([st.f1, st.f2, st.f3]));
+    wrap.insertAdjacentHTML('beforeend', `<div class="step">S = { ${[s1,s2,s3].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div>`);
+    $("#res",host).innerHTML = wrap.outerHTML;
+    $("#reponse",host).value = `S = { ${[s1,s2,s3].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+  },
+  printSolutionHTML(st){
+    const s1=st.f1.S, s2=st.f2.S, s3=st.f3.S;
+    let html = `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`;
+    html += factorGridHTML([st.f1, st.f2, st.f3]);
+    html += `<div class="steps"><div class="step">S = { ${[s1,s2,s3].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`;
+    return html;
+  },
+  reset: ex1.reset
+};
+const ex4 = {
+  id:"prod2_frac",
+  title:"(coefficients fractionnaires) = 0",
+  gen(){
+    function randRat(opts={allowZero:true}){
+      const isFrac = Math.random()<0.5;
+      if(!isFrac){
+        let v = opts.allowZero ? rint(-9,9) : rintNZ(-9,9);
+        return makeR(v,1);
+      }
+      const d = choice([2,3,4,5,6]);
+      const n = opts.allowZero ? rint(-9,9) : rintNZ(-9,9);
+      return makeR(n,d);
+    }
+    function genLinR(){
+      let A = randRat({allowZero:false});
+      const B = randRat({allowZero:true});
+      const S = divR(negR(B), A);
+      const raw = quotientRaw(negR(B), A);
+      return {A,B,S,raw};
+    }
+    const f1=genLinR(), f2=genLinR();
+    return {f1,f2};
+  },
+  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+  render: ex1.render,
+  correct: ex1.correct,
+  solution(host, st){
+    const s1=st.f1.S, s2=st.f2.S;
+    const wrap = document.createElement('div');
+    wrap.className = 'steps';
+    wrap.innerHTML = `<div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div>`;
+    wrap.insertAdjacentHTML('beforeend', factorGridHTML([st.f1, st.f2]));
+    wrap.insertAdjacentHTML('beforeend', `<div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div>`);
+    $("#res",host).innerHTML = wrap.outerHTML;
+    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+  },
+  printSolutionHTML(st){
+    const s1=st.f1.S, s2=st.f2.S;
+    let html = `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`;
+    html += factorGridHTML([st.f1, st.f2]);
+    html += `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`;
+    return html;
+  },
+  reset: ex1.reset
+};
+const ex5 = {
+  id:"square_prod",
+  title:"(ax + b)² (cx + d) = 0",
+  gen(){ const f1=genLinear(), f2=genLinear(); return {f1,f2}; },
+  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})²(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+  render: ex1.render,
+  correct: ex1.correct,
+  solution(host, st){
+    const s1=st.f1.S, s2=st.f2.S;
+    const wrap = document.createElement('div');
+    wrap.className = 'steps';
+    wrap.innerHTML = `<div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div>`;
+    wrap.insertAdjacentHTML('beforeend', `<div class="steps"><div class="step">(${sideHTML(st.f1.A,st.f1.B)})² = 0 ⟺ ${sideHTML(st.f1.A,st.f1.B)} = 0</div></div>`);
+    wrap.insertAdjacentHTML('beforeend', factorGridHTML([st.f1, st.f2]));
+    wrap.insertAdjacentHTML('beforeend', `<div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div>`);
+    $("#res",host).innerHTML = wrap.outerHTML;
+    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+  },
+  printSolutionHTML(st){
+    const s1=st.f1.S, s2=st.f2.S;
+    let html = `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`;
+    html += `<div class="steps"><div class="step">(${sideHTML(st.f1.A,st.f1.B)})² = 0 ⟺ ${sideHTML(st.f1.A,st.f1.B)} = 0</div></div>`;
+    html += factorGridHTML([st.f1, st.f2]);
+    html += `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p) : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`;
+    return html;
+  },
+  reset: ex1.reset
+};
+
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+
+/* ========= Score & actions ========= */
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponse",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ const inp=$("#reponse",host); if(inp) inp.value=""; const res=$("#res",host); if(res) res.textContent=""; }
+}
+
+/* ========= PDF builder ========= */
+function pickDef(mix){
+  const sel = document.querySelector('#exo-select');
+  if(mix) return REGISTRY[Math.floor(Math.random()*REGISTRY.length)];
+  return REGISTRY.find(e => e.id === (sel? sel.value : null)) || REGISTRY[0];
+}
+function exerciseHTML(def, state){
+  if(typeof def.textHTML === 'function') return def.textHTML(state);
+  if(typeof def.text === 'function')     return def.text(state);
+  return 'Énoncé indisponible';
+}
+function solutionHTML(def, state){
+  if(typeof def.printSolutionHTML === 'function') return def.printSolutionHTML(state);
+  return `<div class="steps"><div class="step">Corrigé non disponible pour ce type.</div></div>`;
+}
+
+function buildPrintableHTML(nb, mix, withSolutions, header){
+  const today = new Date().toLocaleDateString('fr-FR');
+  const title = "Seconde – Chapitre 1 – Équations produit (produit nul)";
+  const safe = s => (s||"").toString().replace(/[<>]/g, '');
+
+  let items = [];
+  for(let i=1;i<=nb;i++){
+    const def = pickDef(mix);
+    const st  = def.gen();
+    const enonce = exerciseHTML(def, st);
+    let block = `<div class="ex"><span class="n">${i}.</span> <span class="lead">Résoudre l’équation :</span> ${enonce}`;
+    if(withSolutions){
+      block += `<div class="solution"><div class="title">Corrigé</div>${solutionHTML(def, st)}</div>`;
+    }
+    block += `</div>`;
+    items.push(block);
+  }
+
+  return `<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<title>${title} — Fiche</title>
+<style>
+  @page{size:A4;margin:14mm}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;color:#111}
+  .wrap{padding:0 2mm}
+  header{margin:0 0 8mm 0;padding:0 0 6mm 0;border-bottom:1px solid #ddd}
+  header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  .h-left{display:flex;flex-direction:column;gap:2px}
+  .h-etab{font-weight:700}
+  .h-classe{color:#555;font-size:12px}
+  .h-blanks{font-size:12px;color:#444;white-space:nowrap}
+  .h-blanks .lbl{margin:0 6px 0 0}
+  .h-blanks .line{display:inline-block;border-bottom:1px dotted #999;height:12px;vertical-align:baseline;margin:0 14px 0 6px}
+  .h-blanks .line.lg{min-width:68mm}   /* lignes longues : Nom, Prénom */
+  .h-blanks .line.sm{min-width:36mm}   /* ligne courte : Date */
+  h1{font-size:18px;margin:6px 0 0 0}
+  .meta{color:#666;font-size:12px;margin-top:2mm}
+  .ex{margin:10px 0;page-break-inside:avoid}
+  .ex .n{font-weight:700;margin-right:6px}
+  .lead{font-weight:600;margin-right:6px}
+  .solution{margin:6px 0 0 0;padding:6px 10px;background:#f9f9f9;border-left:3px solid #ddd}
+  .solution .title{font-weight:700;font-size:13px;margin-bottom:4px}
+  .steps{margin:.35rem 0 0 0;padding:.3rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:6px}
+  /* côté PDF : on laisse revenir à la ligne (pas de scroll ⇒ pas de “flèches”) */
+  .step{margin:.18rem 0;white-space:normal}
+  .proof-table{display:grid;column-gap:12px;row-gap:0;margin-top:.3rem;white-space:normal}
+  .proof-table .cell{align-self:start}
+  .proof-table .ou{text-align:center;color:#555;white-space:nowrap;padding:.25rem .4rem}
+  /* Fractions “pile” */
+  .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+  .frac .num,.frac .den{padding:0 .20em;white-space:nowrap}
+  .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+  .frac-sign{margin-right:.15em}
+  /* pas de scroll horizontal dans la fiche */
+  .ex{overflow:visible;white-space:normal}
+  /* pied de page fixe */
+  footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;color:#777;font-size:11px}
+</style>
+</head>
+<body>
+  <footer class="print-footer">© MatHeron</footer>
+  <div class="wrap">
+    <header>
+      <div class="top">
+        <div class="h-left">
+          <div class="h-etab">${safe(header.etab)}</div>
+          <div class="h-classe">${safe(header.classe?('Classe : '+header.classe):'')}</div>
+        </div>
+        ${header.blanks? `
+        <div class="h-blanks">
+          <span class="lbl">Nom :</span><span class="line lg"></span>
+          <span class="lbl">Prénom :</span><span class="line lg"></span>
+          <span class="lbl">Date :</span><span class="line sm"></span>
+        </div>` : ``}
+      </div>
+      <h1>${title} — Fiche d’exercices</h1>
+      <div class="meta">Date : ${today} · NB d’exercices : ${nb} · ${mix?'Types mélangés':'Type sélectionné'}${withSolutions?' · corrigés inclus':''}</div>
+    </header>
+    ${items.join('')}
+  </div>
+</body></html>`;
+}
+
+function openPrint(nb, mix, withSolutions, header){
+  const html = buildPrintableHTML(nb, mix, withSolutions, header);
+  // Ouvre via une URL Blob pour éviter l'URL “about:blank” dans les pieds imprimés
+  const blob = new Blob([html], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank');
+  if(!w){ alert("Le bloqueur de fenêtres empêche l’ouverture. Autorise temporairement les pop-ups pour générer le PDF."); return; }
+  // on lance l'impression après rendu
+  const trigger = () => { try{ w.focus(); w.print(); } catch(e){} };
+  // petite temporisation pour laisser le temps de peindre
+  setTimeout(trigger, 350);
+  // libère l’URL après un moment
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+}
+
+/* ========= Boot ========= */
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+
+  // PDF
+  $("#btn-pdf").addEventListener("click", function(){
+    const n = Math.max(1, Math.min(50, parseInt(($("#pdf-count")||{}).value || '10', 10)));
+    const mix = !!($("#pdf-mix")||{}).checked;
+    const withSol = !!($("#pdf-sol")||{}).checked;
+    const header = {
+      etab: ($("#pdf-etab")||{}).value || '',
+      classe: ($("#pdf-classe")||{}).value || '',
+      blanks: !!($("#pdf-blanks")||{}).checked
+    };
+    openPrint(n, mix, withSol, header);
+  });
+
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+});
+})();
+</script><script defer="" src="../../../../js/algebra-eval-patch.js"></script><script defer="True" src="../../../../js/math-kbd.multiplicatif.js"></script><script id="move-exopdf-ui">window.addEventListener('load',function(){var ui=document.querySelector('.exopdf-ui');var acc=document.getElementById('accept');if(ui&&acc){acc.parentNode.insertBefore(ui, acc.nextSibling);}});</script><script id="fix-spaces-robust">(function(){function f(e){var h=e.innerHTML;h=h.replace(/([A-Za-zÀ-ÖØ-öø-ÿ0-9])\(/g,'$1 (');h=h.replace(/\)(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])/g,') ');h=h.replace(/([A-Za-zÀ-ÖØ-öø-ÿ])([A-Za-z])\(/g,'$1 $2(');h=h.replace(/,\s*/g,', ');h=h.replace(/\s{2,}/g,' ');e.innerHTML=h.trim()}function r(){['.equ','.statement','.consigne','.hint','#res','#resSet','.steps','.step','.legend'].forEach(function(s){document.querySelectorAll(s).forEach(f)})}document.addEventListener('DOMContentLoaded',function(){r();['#btn-new','#btn-solution','#btn-check','#btn-reset'].forEach(function(id){var b=document.querySelector(id);if(b)b.addEventListener('click',function(){setTimeout(r,0)});});var sel=document.querySelector('#exo-select');if(sel)sel.addEventListener('change',function(){setTimeout(r,0)});});})();</script></body>
+</html>

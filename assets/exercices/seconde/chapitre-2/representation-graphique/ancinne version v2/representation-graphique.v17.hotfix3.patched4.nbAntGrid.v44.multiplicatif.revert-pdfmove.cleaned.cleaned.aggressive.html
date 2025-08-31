@@ -1,0 +1,2028 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Seconde — Représentation graphique</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+
+<style>*{box-sizing:border-box}body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:12px 16px;z-index:5}.wrap{max-width:1200px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.btn{padding:6px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}.btn:hover{background:#f6f6f6}.score{margin-left:auto}.row{display:grid;grid-template-columns:560px 1fr;gap:12px;align-items:start}.row.single{grid-template-columns:1fr}@media (max-width:980px){.row{grid-template-columns:1fr}}.statement{font-size:18px}.consigne{opacity:.9;margin-bottom:6px}svg.repere{display:block;margin:.25rem auto;width:min(560px,100%);height:auto;aspect-ratio:560/360}body.solution-active svg.repere{width:min(520px,100%)}.qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}.qmark{min-width:1.2em;text-align:center;font-weight:700}.num::before{content:" "}.num::after{content:" "}.input-wrap input[type="text"],.tbl input[type="text"]{margin:0 6px}.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}.step{margin:.2rem 0}.tbl{border-collapse:collapse;margin:.3rem 0;max-width:100%}.tbl th,.tbl td{border:1px solid #000;padding:3px 4px;text-align:center}.tbl input{width:6ch}.mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}@media (max-width:980px){.mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:640px){.mini-grid{grid-template-columns:1fr}}.mini{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:8px;overflow:hidden}.mini .title{font-weight:600;margin-bottom:6px;text-align:center}.badge{display:inline-block;font-size:.8rem;border-radius:999px;padding:2px 8px;margin-left:6px}.ok{background:#e6f4ea;color:#14532d;border:1px solid #b7e0c2}.ko{background:#fee2e2;color:#991b1b;border:1px solid #f6b3b3}svg.repere[data-heavylabels="1"] text{font-size:12.5px;font-weight:600}.thin-grid{opacity:.6}.heavy-grid{opacity:.78}@media print{.tbl{border-collapse:collapse}.tbl th,.tbl td{border:1px solid #000 !important;padding:2px 6px}.header,.controls{display:none !important}.wrap{max-width:100%}.card{border:none;box-shadow:none;padding:0}.row{grid-template-columns:1fr}svg.repere{height:auto}}@media print{#themeSel{display:none !important}select#themeSel{display:none !important}}.helper-line{vector-effect:non-scaling-stroke;stroke-linecap:butt}.plot path{stroke-linecap:round;stroke-linejoin:round}.helper-line{vector-effect:non-scaling-stroke;stroke-linecap:butt}</style>
+<style>.tbl{table-layout:auto;border-collapse:collapse}.tbl th,.tbl td{padding:6px 10px}.tbl td{min-width:120px}</style>
+<style>.qa .a b{margin:0 0.12em}</style>
+</head>
+<body>
+<script>(function(){
+const sel = document.getElementById('cfg-ant');
+if(sel){
+
+if(sel.type === 'number'){
+if(!sel.max || parseInt(sel.max,10) > 5) sel.max = '5';
+if(parseInt(sel.value||'0',10) > 5) sel.value = '5';
+}
+
+if(sel.tagName === 'SELECT'){
+Array.from(sel.options).forEach(op=>{
+
+if(v>5) op.remove();
+});
+if(parseInt(sel.value||'0',10) > 5) sel.value = '5';
+}
+}
+})();</script>
+
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">Seconde — <strong>Représentation graphique</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="controls card" id="ampbar">
+      <strong>Amplitude (max ±12)&nbsp;:</strong>
+      x ∈ [&nbsp;<input id="xmin" type="number" value="-5" min="-12" max="12" step="1">&nbsp;;&nbsp;
+      <input id="xmax" type="number" value="6"  min="-12" max="12" step="1">&nbsp;],
+      y ∈ [&nbsp;<input id="ymin" type="number" value="-6" min="-12" max="12" step="1">&nbsp;;&nbsp;
+      <input id="ymax" type="number" value="6"  min="-12" max="12" step="1">&nbsp;]
+      <button id="amp-apply" class="btn">↴ Appliquer</button>
+
+      <span style="margin-left:12px"></span>
+      <label><small># images</small> <input id="cfg-img" type="number" min="1" max="10" value="2" style="width:64px"></label>
+      <label><small># antécédents</small> <input id="cfg-ant" type="number" min="1" max="5" value="2" style="width:64px"></label>
+      <label class="small" style="margin-left:12px"><input id="pdfRandAmp" type="checkbox"> PDF : amplitude aléatoire</label>
+      <label class="small" style="margin-left:10px"><input id="pdfRandNA" type="checkbox"> PDF : # images/antécédents aléatoire</label>
+      <label class="small" style="margin-left:10px"><input id="pdfRandTheme" type="checkbox"> PDF : thème aléatoire (exo&nbsp;3)</label>
+    </div>
+
+    <div class="card" id="host"></div>
+    <div class="card small" id="saisie-card">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li><b>Ensemble de définition</b> : format <span class="code">[a ; b]</span> — ex. <span class="code">[−6 ; 6]</span>. Espaces facultatifs : <span class="code">[−6;6]</span> accepté.</li>
+        <li><b>Image</b> (valeur de <span class="code">f(x)</span>) : nombre entier ou décimal — virgule <span class="code">2,5</span> ou point <span class="code">2.5</span> acceptés ; signe « − » normalisé.</li>
+        <li><b>Antécédent(s)</b> : liste séparée par points-virgules — ex. −4 ; 0 ; 3. L’ordre n’a pas d’importance.</li>
+<li>Si un y n’a aucun antécédent, écrire <span class=\"code\">aucun</span> dans la barre de saisie.</li>
+      </ul>
+    </div>
+    <div class="card small" id="pdf-slot"><div id="pdf-mount"></div></div>
+
+    <div class="card" data-math-kbd></div>
+  </div>
+
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js"></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+<script>(function(){
+'use strict';
+
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function uniq(arr,eq=(a,b)=>a===b){  arr.forEach(v=>{ if(!out.some(u=>eq(u,v))) out.push(v); }); return out; }
+function shuffle(a){ a = Array.isArray(a) ? [...a] : []; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const FRfmt = new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2, useGrouping:false});
+const fmtFR = n => FRfmt.format(n).replace('-', '−');
+const fmtNum = n => `<span class="num">${fmtFR(n)}</span>`;
+const fmtUnit = (n,u)=> `${fmtNum(n)}&nbsp;${u||''}`;
+const parseNumFR = s => Number(String(s||'').replace(/\u2212/g,'-').replace(',','.').trim());
+const parseListFR = s => !s ? [] : String(s).replace(/[{}()[\]]/g,'').split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);
+
+let AMP={ xmin:-5,xmax:6,ymin:-6,ymax:6 };
+function applyAMP(){
+let xi=+$('#xmin').value, xa=+$('#xmax').value, yi=+$('#ymin').value, ya=+$('#ymax').value;
+if(!(xi<=xa)) [xi,xa]=[xa,xi];
+if(!(yi<=ya)) [yi,ya]=[ya,yi];
+xi=clamp(xi,-12,12); xa=clamp(xa,-12,12);
+yi=clamp(yi,-12,12); ya=clamp(ya,-12,12);
+if(xi===xa) xa=xi+1; if(yi===ya) ya=yi+1;
+AMP={ xmin:xi,xmax:xa,ymin:yi,ymax:ya };
+document.body.classList.remove('solution-active');
+buildOne();
+}
+
+let __clipId=0;
+function buildRepereSVG(opts){
+const W0=560, H0=360; const mLeft=28, mTop=6, mRight=6, mBottom=24; const W=W0+mLeft+mRight, H=H0+mTop+mBottom;
+
+svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.classList.add('repere');
+
+const clip=document.createElementNS(svg.namespaceURI,'clipPath'); const cid='clip'+(++__clipId);
+clip.setAttribute('id',cid); const crect=document.createElementNS(svg.namespaceURI,'rect');
+crect.setAttribute('x',mLeft);
+crect.setAttribute('y',mTop);
+crect.setAttribute('width',W0);
+crect.setAttribute('height',H0); clip.appendChild(crect);
+ marker.setAttribute('id','arrow'); marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8'); marker.setAttribute('refX','6'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto');
+ tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
+defs.appendChild(marker); defs.appendChild(clip); svg.appendChild(defs);
+
+plot.classList.add('plot'); plot.setAttribute('clip-path','url(#'+cid+')'); svg.appendChild(axes); svg.appendChild(plot);
+
+const X=x=>mLeft + (x-xmin)*W0/(xmax-xmin);
+const Y=y=>mTop + H0 - (y-ymin)*H0/(ymax-ymin);
+
+frame.setAttribute('x',mLeft); frame.setAttribute('y',mTop); frame.setAttribute('width',W0); frame.setAttribute('height',H0);
+frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111'); axes.appendChild(frame);
+
+frame.setAttribute('class','frame');
+const clipId = 'clip-'+Math.random().toString(36).slice(2);
+const cp=document.createElementNS(svg.namespaceURI,'clipPath'); cp.setAttribute('id',clipId);
+const r2=document.createElementNS(svg.namespaceURI,'rect');
+r2.setAttribute('x',mLeft); r2.setAttribute('y',mTop); r2.setAttribute('width',W0); r2.setAttribute('height',H0);
+cp.appendChild(r2); defs.appendChild(cp);
+plot.setAttribute('clip-path','url(#'+clipId+')');
+
+const yAxisY = clamp(Y(0), mTop+10, mTop+H0-10);
+const xAxisX = clamp(X(0), mLeft+10, mLeft+W0-10);
+
+if(opts.grid){
+ g.setAttribute('stroke','#000'); g.setAttribute('stroke-width','0.7'); g.setAttribute('class','thin-grid');
+
+const stepX=(opts.ticks && opts.ticks.x)||1;
+for( xv<=xmax+1e-9; xv+=stepX){
+
+ l.setAttribute('x1',xx); l.setAttribute('y1',0); l.setAttribute('x2',xx); l.setAttribute('y2',H); g.appendChild(l);
+ t.textContent=fmtFR(xv);
+t.setAttribute('x', clamp(xx, mLeft+14, mLeft+W0-14) );
+t.setAttribute('y', clamp(yAxisY+14, mTop+14, mTop+H0+12) );
+t.setAttribute('font-size','12'); t.setAttribute('text-anchor','middle');
+tx.appendChild(t);
+}
+
+const stepY=(opts.ticks && opts.ticks.y)||1;
+for( yv<=ymax+1e-9; yv+=stepY){
+
+ l.setAttribute('x1',0); l.setAttribute('y1',yy); l.setAttribute('x2',W); l.setAttribute('y2',yy); g.appendChild(l);
+ t.textContent=fmtFR(yv);
+t.setAttribute('x', clamp(xAxisX-6, mLeft+6, mLeft+W0-8) );
+t.setAttribute('y', clamp(yy+4, mTop+10, mTop+H0-6) );
+t.setAttribute('font-size','12'); t.setAttribute('text-anchor','end');
+ty.appendChild(t);
+}
+
+axes.appendChild(g); axes.appendChild(tx); axes.appendChild(ty);
+}
+
+axX.setAttribute('x1',mLeft); axX.setAttribute('x2',mLeft+W0-8);
+axX.setAttribute('y1',yAxisY); axX.setAttribute('y2',yAxisY);
+axX.setAttribute('stroke','#111'); axX.setAttribute('stroke-width','3'); if(opts.arrows){ axX.setAttribute('marker-end','url(#arrow)'); } axes.appendChild(axX);
+
+axY.setAttribute('x1',xAxisX); axY.setAttribute('x2',xAxisX);
+axY.setAttribute('y1',mTop+H0); axY.setAttribute('y2',mTop+8);
+axY.setAttribute('stroke','#111'); axY.setAttribute('stroke-width','3'); if(opts.arrows){ axY.setAttribute('marker-end','url(#arrow)'); } axes.appendChild(axY);
+
+return {svg,plot,axes,X,Y,xmin,xmax,ymin,ymax,W,H};
+}
+
+function buildRepereOrtho(opts){
+
+const xmin=opts.xmin, xmax=opts.xmax, ymin=opts.ymin, ymax=opts.ymax;
+const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+svg.setAttribute('viewBox','0 0 560 360'); svg.classList.add('repere');
+
+const defs=document.createElementNS(svg.namespaceURI,'defs');
+const marker=document.createElementNS(svg.namespaceURI,'marker'); marker.setAttribute('id','arrow_o'); marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8'); marker.setAttribute('refX','6'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto');
+const tri=document.createElementNS(svg.namespaceURI,'path'); tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
+defs.appendChild(marker); svg.appendChild(defs);
+
+const axes=document.createElementNS(svg.namespaceURI,'g'); const plot=document.createElementNS(svg.namespaceURI,'g');
+plot.classList.add('plot'); svg.appendChild(axes); svg.appendChild(plot);
+
+const frame=document.createElementNS(svg.namespaceURI,'rect');
+frame.setAttribute('x',0); frame.setAttribute('y',0); frame.setAttribute('width',W); frame.setAttribute('height',H);
+frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111'); axes.appendChild(frame);
+
+const sx=W/(xmax-xmin), sy=H/(ymax-ymin), s=Math.min(sx,sy);
+const cx=W/2, cy=H/2;
+const X=x=>cx + s*x, Y=y=>cy - s*y;
+
+const yAxisY = Y(0), xAxisX = X(0);
+
+const g=document.createElementNS(svg.namespaceURI,'g'); g.setAttribute('stroke','#000'); g.setAttribute('stroke-width','0.7'); g.setAttribute('class','heavy-grid');
+const tx=document.createElementNS(svg.namespaceURI,'g'); const ty=document.createElementNS(svg.namespaceURI,'g');
+const stepX=(opts.ticks&&opts.ticks.x)||1;
+for(let xv=Math.ceil(xmin/stepX)*stepX; xv<=xmax+1e-9; xv+=stepX){
+const xx=X(xv);
+ l.setAttribute('x1',xx); l.setAttribute('y1',0); l.setAttribute('x2',xx); l.setAttribute('y2',H); g.appendChild(l);
+ t.textContent=fmtFR(xv);
+t.setAttribute('x', clamp(xx,14,W-14) ); t.setAttribute('y', clamp(yAxisY+14,14,H-4) );
+t.setAttribute('font-size','12'); t.setAttribute('text-anchor','middle'); tx.appendChild(t);
+}
+const stepY=(opts.ticks&&opts.ticks.y)||1;
+for(let yv=Math.ceil(ymin/stepY)*stepY; yv<=ymax+1e-9; yv+=stepY){
+
+const l=document.createElementNS(svg.namespaceURI,'line'); l.setAttribute('x1',0); l.setAttribute('y1',yy); l.setAttribute('x2',W); l.setAttribute('y2',yy); g.appendChild(l);
+const t=document.createElementNS(svg.namespaceURI,'text'); t.textContent=fmtFR(yv);
+t.setAttribute('x', clamp(xAxisX-6,8,W-8) ); t.setAttribute('y', clamp(yy+4,10,H-6) );
+t.setAttribute('font-size','12'); t.setAttribute('text-anchor','end'); ty.appendChild(t);
+}
+axes.appendChild(g); axes.appendChild(tx); axes.appendChild(ty);
+
+const axX=document.createElementNS(svg.namespaceURI,'line');
+axX.setAttribute('x1',0); axX.setAttribute('x2',W-8); axX.setAttribute('y1',yAxisY); axX.setAttribute('y2',yAxisY);
+axX.setAttribute('stroke','#111'); axX.setAttribute('stroke-width','3'); axX.setAttribute('marker-end','url(#arrow_o)'); axes.appendChild(axX);
+
+const axY=document.createElementNS(svg.namespaceURI,'line');
+axY.setAttribute('x1',xAxisX); axY.setAttribute('x2',xAxisX); axY.setAttribute('y1',H); axY.setAttribute('y2',8);
+axY.setAttribute('stroke','#111'); axY.setAttribute('stroke-width','3'); axY.setAttribute('marker-end','url(#arrow_o)'); axes.appendChild(axY);
+
+return {svg,plot,axes,X,Y,xmin,xmax,ymin,ymax,W,H};
+}
+
+function catmullRomPath(points){
+if(points.length<2) return '';
+const P=i=>points[Math.max(0,Math.min(points.length-1,i))];
+let d=`M ${points[0].x} ${points[0].y}`;
+for(i<points.length-1;i++){
+const p0=P(i-1), p1=P(i), p2=P(i+1), p3=P(i+2);
+const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+d+=` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+}
+return d;
+}
+function addPath(g,d,st){ const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d',d);
+p.setAttribute('fill','none'); p.setAttribute('stroke',st?.stroke||'#000'); p.setAttribute('stroke-width',st?.['stroke-width']||2.2);
+if(st?.['stroke-dasharray']) p.setAttribute('stroke-dasharray',st['stroke-dasharray']);
+if(st?.['stroke-opacity']) p.setAttribute('stroke-opacity',st['stroke-opacity']);
+p.setAttribute('stroke-linejoin','round'); p.setAttribute('stroke-linecap','round'); g.appendChild(p); return p; }
+function addLine(g,x1,y1,x2,y2,st){ const l=document.createElementNS('http://www.w3.org/2000/svg','line'); l.setAttribute('x1',x1); l.setAttribute('y1',y1); l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+l.setAttribute('stroke',st?.stroke||'#000'); l.setAttribute('stroke-width',st?.['stroke-width']||2); if(st?.['stroke-dasharray']) l.setAttribute('stroke-dasharray',st['stroke-dasharray']); if(st?.['stroke-opacity']) l.setAttribute('stroke-opacity',st['stroke-opacity']);
+g.appendChild(l); return l; }
+
+function genCurveIntegerGrid(R, forceCross=true){
+
+for( x<=R.xmax; x++){
+ys.push(rnd(R.ymin+1,R.ymax-1)); xs.push(x);
+}
+if(forceCross){
+ys[Math.floor(xs.length/4)]=rnd(-3,-1);
+ys[Math.floor(xs.length/2)]=rnd(1,3);
+ys[Math.floor(3*xs.length/4)]=rnd(-3,-1);
+if(xs.includes(0)) ys[xs.indexOf(0)]=rnd(R.ymin+1,R.ymax-1);
+}
+return { Xs: xs, Ys: ys };
+}
+
+function buildGridWithConstraints(R, nbAnt, Yask){
+
+nbAnt = clamp(parseInt(nbAnt||1,10),1,10);
+const xs=[], ys=[];
+for(let x=R.xmin; x<=R.xmax; x++) xs.push(x);
+
+const YsAsk = (Yask||[]).filter(y=>Number.isFinite(y));
+const minY = Math.min(...YsAsk, R.ymax);
+const maxY = Math.max(...YsAsk, R.ymin);
+
+const roomBelow = (minY - (R.ymin+1)) >= 1;
+const roomAbove = ((R.ymax-1) - maxY) >= 1;
+
+let baselineRange;
+if(roomBelow){ baselineRange = [R.ymin+1, Math.floor(minY)-1]; }
+else if(roomAbove){ baselineRange = [Math.ceil(maxY)+1, R.ymax-1]; }
+else { baselineRange = [R.ymin+1, R.ymin+1]; }
+
+for(i<xs.length;i++){
+const a = baselineRange[0], b = baselineRange[1];
+ys.push(a===b? a : rnd(a,b));
+}
+
+const taken = new Set();
+(YsAsk||[]).forEach(y=>{
+let k=0, guard=0;
+while(k<nbAnt && guard<5000){
+const x = rnd(R.xmin, R.xmax);
+guard++;
+const idx = x - R.xmin;
+const key = y+':'+idx;
+if(taken.has(key)) continue;
+taken.add(key);
+ys[idx] = y;
+if(idx>0 && ys[idx-1]===y) ys[idx-1] += (roomBelow? -1 : +1);
+if(idx<ys.length-1 && ys[idx+1]===y) ys[idx+1] += (roomBelow? -1 : +1);
+k++;
+}
+});
+
+return { Xs: xs, Ys: ys };
+}
+const pathFromGrid = (rep, grid) => {
+const pts = grid.Xs.map((x,i)=>({x:rep.X(x), y:rep.Y(grid.Ys[i])}));
+if(pts.length===0) return '';
+let d = 'M '+pts[0].x+' '+pts[0].y;
+for(i<pts.length;i++){
+d += ' L '+pts[i].x+' '+pts[i].y;
+}
+return d;
+};
+
+const pathFromGridSmooth = (rep, grid) => {
+const X = rep.X, Y = rep.Y, Xs = grid.Xs, Ys = grid.Ys;
+const n = Xs.length; if(n < 2) return '';
+const forced = new Set((grid.Forced||[]).map(i=>i));
+
+const s = new Array(n-1);
+for(i<n-1;i++) s[i] = Ys[i+1]-Ys[i];
+
+const d = new Array(n);
+d[0] = s[0]; d[n-1] = s[n-2];
+for(let i=1;i<n-1;i++){
+const s0=s[i-1], s1=s[i];
+if(s0*s1 <= 0){ d[i] = 0; }
+else{
+const a=Math.abs(s0), b=Math.abs(s1);
+d[i] = (Math.sign(s0)+Math.sign(s1)) * Math.min(a,b,0.5*(a+b));
+}
+}
+
+const scale = 0.60;
+for(i<n;i++){
+if(forced.has(i)){
+d[i] = 0;
+if(i>0) d[i-1] *= 0.4;
+if(i<n-1) d[i+1] *= 0.4;
+} else {
+d[i] *= scale;
+}
+}
+
+let dstr = `M ${X(Xs[0])} ${Y(Ys[0])}`;
+for(i<n-1;i++){
+const x0=Xs[i], x1=Xs[i+1], y0=Ys[i], y1=Ys[i+1], h=x1-x0;
+const c1x=X(x0 + h/3), c1y=Y(y0 + d[i]*h/3);
+const c2x=X(x1 - h/3), c2y=Y(y1 - d[i+1]*h/3);
+dstr += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${X(x1)} ${Y(y1)}`;
+}
+return dstr;
+};
+
+function interpAtGrid(grid, x){
+const {Xs,Ys}=grid;
+if(x<Xs[0] || x> Xs[Xs.length-1]) return null;
+const i=Math.floor(x - Xs[0]);
+if(Math.abs(x - Math.round(x))<1e-9) return Ys[i];
+const k=Math.floor(x), idx=k - Xs[0];
+const y1=Ys[idx], y2=Ys[idx+1];
+return y1 + 0.5*(y2-y1);
+}
+
+function pickYsIntOrHalf(R, count){
+
+for( y<=R.ymax-1; y++){
+vals.push(y);
+if(y+0.5 < R.ymax) vals.push(y+0.5);
+}
+return uniq(shuffle(vals)).slice(0,count);
+}
+function pickXsIntOrHalf(R, count){
+const vals=[];
+for( x<=R.xmax-1; x++){
+vals.push(x);
+if(x+0.5 < R.xmax) vals.push(x+0.5);
+}
+return uniq(shuffle(vals)).slice(0,count);
+}
+
+function approxEqualList(found, expected, tol=0.2){
+if(found.length!==expected.length) return false;
+const F = found.slice().sort((a,b)=>a-b);
+const E = expected.slice().sort((a,b)=>a-b);
+for(i<F.length;i++){
+if(Math.abs(F[i]-E[i])>tol) return false;
+}
+return true;
+}
+
+function antecedentsOfGrid(grid, y){
+
+for(i<grid.Xs.length-1;i++){
+const x1=grid.Xs[i], x2=grid.Xs[i+1], y1=grid.Ys[i], y2=grid.Ys[i+1];
+if(y===y1) out.push(x1);
+if(y===y2) out.push(x2);
+if((y1<y && y<y2) || (y2<y && y<y1)){
+const t=(y-y1)/((y2-y1)||1e-9); const x=x1+t*(x2-x1); out.push(x);
+}
+}
+
+const snapped = out.map(x => (Math.abs(x - Math.round(x)) < 1e-6 ? Math.round(x) : x));
+return uniq(snapped, (a,b)=>Math.abs(a-b)<1e-9);
+
+}
+
+function mkRow(host,consigneHTML){
+host.innerHTML='';
+ row.className='row';
+const st=document.createElement('div'); st.className='statement';
+st.innerHTML='<div class="consigne">'+(consigneHTML||'')+'</div>';
+ form.className='input-wrap';
+ res.id='res';
+row.appendChild(st); row.appendChild(form); row.appendChild(res);
+host.appendChild(row);
+try { __forceWordParenSpaces(form); __forceWordParenSpaces(st); } catch(e) {}
+return {row,st,form,res};
+}
+function showSteps(host, steps){   try{  if(!r){ r=document.createElement('div'); r.id='res'; host.appendChild(r);} }catch(e){}
+$('#res',host).innerHTML = '<div class="steps">'+steps.map(s=>'<div class="step">'+s+'</div>').join('')+'</div>';
+try { __forceWordParenSpaces($('#res',host)); } catch(e) {} }
+function clearMarks(host){ host.querySelectorAll('.qmark').forEach(m=>m.textContent=''); (function(){
+
+$('#res',host).textContent = anyEmpty ? '' : okFlag;
+})(); const plot=host.querySelector('.plot'); if(plot){ plot.querySelectorAll('line[stroke-dasharray]').forEach(n=>n.remove()); } }
+
+function __forceWordParenSpaces(root){
+if(!root) return;
+const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+const reAfter = /(\))([A-Za-zÀ-ÖØ-öø-ÿ])/g;
+const reBefore = /([A-Za-zÀ-ÖØ-öø-ÿ]{2,})(\()/g;
+let n;
+while((n = walker.nextNode())){
+const s = n.nodeValue;
+const t = s.replace(reAfter, '$1\u00A0$2').replace(reBefore, '$1\u00A0$2');
+if(t !== s) n.nodeValue = t;
+}
+}
+
+const ex1 = {
+id:'rg1',
+title:`Lecture graphique (x entiers)`,
+gen(){
+const R={...AMP};
+
+const qAnt = clamp(parseInt($('#cfg-ant')?.value||2,10),1,5);
+
+const Xpool=[]; for(let x=R.xmin+1; x<=R.xmax-1; x++) Xpool.push(x);
+const Ypool=[]; for( y<=R.ymax-1; y++) Ypool.push(y);
+
+let grid=null, Ximg=null, Yimg=null, Ysolv=null, yNone=null, Yask=null;
+
+outer: for( attempt<300; attempt++){
+
+grid = genCurveIntegerGrid(R, true);
+
+let okImg=false;
+for( t<200; t++){
+const xs = uniq(shuffle(Xpool)).slice(0,qImg).sort((a,b)=>a-b);
+
+if (uniqY.length===ys.length){ Ximg=xs; Yimg=ys; okImg=true; break; }
+}
+if(!okImg) continue;
+
+const wantAntPerY =  Math.min(3, 3);
+
+for( t<400; t++){
+
+const ysTry = uniq(shuffle(Ypool)).slice(0, Math.max(0,qAnt-1));
+
+gForced = buildGridWithConstraints(R, wantAntPerY, ysTry);
+
+const allOk = ysTry.every(y=>{
+const A = antecedentsOfGrid(gForced, y);
+
+return Ai.length>=1 && Ai.length<=3 && An.length===0;
+});
+if(allOk){ ysChosen = ysTry; okAnt=true; break; }
+}
+if(!okAnt) continue;
+
+const zeroInside = Ypool.filter(y => !ysChosen.includes(y) && antecedentsOfGrid(gForced, y).length===0);
+yNone = zeroInside.length ? zeroInside[0] : (Math.random()<0.5 ? (R.ymax+1) : (R.ymin-1));
+
+grid = gForced;
+Ysolv = ysChosen;
+Yask = [...Ysolv, yNone];
+break outer;
+}
+
+return { R, grid, Ximg, Yask };
+
+},
+render(host,st){
+
+addPath(rep.plot, pathFromGridSmooth(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
+ui.st.appendChild(rep.svg);
+
+:&nbsp;<input id="aD" type="text"><span id="aDm" class="qmark"></span></div></div>`;
+st.Ximg.forEach((x,i)=>{
+html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de ${fmtNum(x)}:&nbsp;<input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span></div></div>`;
+});
+st.Yask.forEach((y,j)=>{
+
+html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de ${fmtNum(y)}:&nbsp;<input id="aA${j}" type="text"><span id="aA${j}m" class="qmark"></span></div></div>`;
+});
+ui.form.innerHTML=html;
+host.dataset.state=JSON.stringify(st); host.dataset.active='rg1';
+
+(function(){ const aD = $('#aD',host); if(aD) aD.value=''; })();
+
+try {
+
+if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
+const input = host.querySelector('#aI'+i);
+if(input && input.parentElement) {
+
+font-weight:700">'+fmtNum(x)+'</span> :';
+a.innerHTML = a.innerHTML.replace(needle, repl);
+}
+});
+if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
+const input = host.querySelector('#aA'+j);
+if(input && input.parentElement) {
+
+font-weight:700">'+fmtNum(y)+'</span> :';
+a.innerHTML = a.innerHTML.replace(needle, repl);
+}
+});
+} catch(e){}
+},
+
+solution(host,st){
+const dom = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition : <b>[${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]</b></div></div>`;
+const imgs = st.Ximg.map((x,i)=>`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de ${fmtNum(x)} : <b>${fmtNum(interpAtGrid(st.grid,x))}</b></div></div>`).join('');
+const ants = st.Yask.map((y,j)=>{
+const A=antecedentsOfGrid(st.grid,y).filter(v=>Math.abs(v-Math.round(v))<1e-9).map(v=>fmtFR(Math.round(v)));
+const n = 2 + st.Ximg.length + j;
+return `<div class="qa"><div class="q">${n}.</div><div class="a">Antécédent(s) de ${fmtNum(y)} : <b>${A.length?A.join(' ; '):'aucun'}</b></div></div>`;
+}).join('');
+showSteps(host, ['Réponses attendues :<br>'+dom+imgs+ants]);
+document.body.classList.add('solution-active');
+
+try{
+
+if(g && st && st.R){
+
+if(Array.isArray(st.Ximg)) st.Ximg.forEach(x=>{
+
+addLine(g, xx, mTop+H0, xx, yy, {'stroke':'#0ea5e9','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+addLine(g, xx, yy, mLeft, yy, {'stroke':'#0ea5e9','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+});
+
+if(Array.isArray(st.Yask)) st.Yask.forEach(y=>{
+
+if(st.grid){ (antecedentsOfGrid(st.grid, y)||[]).forEach(x=>{
+
+addLine(g, mLeft, yy, xx, yy, {'stroke':'#ef4444','stroke-width':1.6,'stroke-dasharray':'6 6','stroke-opacity':0.7});
+addLine(g, xx, yy, xx, mTop+H0, {'stroke':'#ef4444','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+}); }
+});
+}
+}catch(_){}
+
+},
+
+correct(host,st){
+clearMarks(host);
+
+const v=$('#aD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+
+$('#aDm',host).textContent = okDom?'✔':'✘'; $('#aDm',host).style.color=okDom?'#14532d':'#991b1b'; okAll&=okDom;
+
+st.Ximg.forEach((x,i)=>{
+const want=interpAtGrid(st.grid,x), got=parseInt($('#aI'+i,host).value.replace(/\u2212/g,'-').replace(',','.'),10);
+const ok=(String($('#aI'+i,host).value).trim()==='' ? true : (Number.isInteger(got)&&got===want));
+const m=$('#aI'+i+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
+});
+st.Yask.forEach((y,j)=>{
+const t=$('#aA'+j,host).value.trim().toLowerCase();
+const A=antecedentsOfGrid(st.grid,y).filter(v=>Math.abs(v-Math.round(v))<1e-9).map(v=>Math.round(v));
+
+if(!t || t==='aucun'){ ok=(A.length===0); }
+else{
+const L=uniq(parseListFR(t)).map(v=>Math.round(v));
+ok=(L.length===A.length) && L.every(v=>A.includes(v));
+}
+const m=$('#aA'+j+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
+});
+(function(){
+
+})();
+return {ok:okAll,total:1};
+},
+reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); document.body.classList.remove('solution-active'); },
+pdfStatement(s){ return buildPDFStatementFromRender(ex1, s); }
+};
+
+const ex2={
+id:'rg2',
+title:`Lecture graphique (x à 0,5 près)`,
+gen(){
+const R={...AMP};
+const qImg = clamp(parseInt($('#cfg-img')?.value||2,10),1,10);
+const qAnt = clamp(parseInt($('#cfg-ant')?.value||2,10),1,3);
+
+let okImg=false, Ximg=null, Yimg=null, grid=null;
+for( attempt<200; attempt++){
+grid = genCurveIntegerGrid(R, true);
+for( t<200; t++){
+
+if(okVals){
+
+if(uniqY.length===ys.length){ Ximg=xs; Yimg=ys; okImg=true; break; }
+}
+}
+if(okImg) break;
+}
+
+const wantPerY = 3;
+let okAnt=false, gForced=null, ysChosen=[];
+
+const Ycand = pickYsIntOrHalf(R, Math.max(5*qAnt, 20));
+for( t<1200; t++){
+
+gForced = buildGridWithConstraints(R, wantPerY, trial);
+
+return Ai.length>=1 && Ai.length<=3 && An.length===0;
+});
+if(good){ ysChosen=trial; okAnt=true; break; }
+}
+
+if(!okAnt){
+gForced = genCurveIntegerGrid(R, true);
+const allCand = pickYsIntOrHalf(R, Math.max(8*qAnt, 32));
+const goodYs = allCand.filter(y=>{
+const A = antecedentsOfGrid(gForced, y);
+
+return Ai.length>=1 && Ai.length<=3 && An.length===0;
+});
+ysChosen = uniq(goodYs).slice(0, Math.max(0,qAnt-1));
+okAnt = ysChosen.length >= Math.max(0,qAnt-1);
+}
+
+let yNone=null;
+if(okAnt){
+
+const candidates=[];
+for( y<=R.ymax-1; y+=0.5){
+const A=antecedentsOfGrid(gForced,y);
+if(A.length===0) candidates.push(y);
+}
+const zeroInside = uniq(candidates,(a,b)=>Math.abs(a-b)<1e-9);
+yNone = zeroInside.length ? zeroInside[0] : (Math.random()<0.5 ? (R.ymax+1) : (R.ymin-1));
+grid = gForced;
+}
+
+const Yask = okAnt ? [...ysChosen, yNone] : [];
+return { R, grid, Ximg, Yask };
+
+},
+render(host,st){
+const ui=mkRow(host,'Lecture graphique.');
+
+addPath(rep.plot, pathFromGridSmooth(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
+ui.st.appendChild(rep.svg);
+
+let html = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="bD" type="text"><span id="bDm" class="qmark"></span></div></div>`;
+st.Ximg.forEach((x,i)=>{
+html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de ${fmtNum(x)}:&nbsp;<input id="bI${i}" type="text"><span id="bI${i}m" class="qmark"></span></div></div>`;
+});
+st.Yask.forEach((y,j)=>{
+const k=2+st.Ximg.length+j;
+html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de ${fmtNum(y)}:&nbsp;<input id="bA${j}" type="text"><span id="bA${j}m" class="qmark"></span></div></div>`;
+});
+ui.form.innerHTML=html;
+host.dataset.state=JSON.stringify(st); host.dataset.active='rg2';
+
+try {
+const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
+const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
+const input = host.querySelector('#bI'+i);
+if(input && input.parentElement) {
+
+const needle = 'Image de ' + fmtNum(x) + ':';
+const repl = 'Image de <span style="color:'+paletteI[i%5]+';font-weight:700">'+fmtNum(x)+'</span> :';
+a.innerHTML = a.innerHTML.replace(needle, repl);
+}
+});
+if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
+const input = host.querySelector('#bA'+j);
+if(input && input.parentElement) {
+const a = input.parentElement;
+const needle = 'Antécédent(s) de ' + fmtNum(y) + ':';
+const repl = 'Antécédent(s) de <span style="color:'+paletteA[j%5]+';font-weight:700">'+fmtNum(y)+'</span> :';
+a.innerHTML = a.innerHTML.replace(needle, repl);
+}
+});
+} catch(e){}
+},
+
+solution(host,st){
+
+const qaDom = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition : <b>[${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]</b></div></div>`;
+const imgRows = (st.Ximg||[]).map((x,i)=>{
+const n = i+2;
+return `<div class="qa"><div class="q">${n}.</div><div class="a">Image de ${fmtNum(x)} : <b>${fmtNum(fAt(x))}</b></div></div>`;
+}).join('');
+const antRows = (st.Yask||[]).map((y,j)=>{
+const A = antecedentsOfGrid(st.grid, y).map(v=>Math.round(v*10)/10);
+const txt = A.length ? A.map(fmtNum).join(' ; ') : 'aucun';
+const n = j+2+(st.Ximg?st.Ximg.length:0);
+return `<div class="qa"><div class="q">${n}.</div><div class="a">Antécédent(s) de ${fmtNum(y)} : <b>${txt}</b></div></div>`;
+}).join('');
+showSteps(host, ['Réponses attendues :<br>'+qaDom+imgRows+antRows]);
+
+try{
+const svg = host.querySelector('svg.repere');
+const g = svg && svg.querySelector('.plot');
+if(g && st && st.R){
+const W0=560, H0=360, mLeft=28, mTop=6;
+const X = v => mLeft + ((v - st.R.xmin)/(st.R.xmax - st.R.xmin))*W0;
+const Y = v => mTop + H0 - ((v - st.R.ymin)/(st.R.ymax - st.R.ymin))*H0;
+
+if(Array.isArray(st.Ximg)) st.Ximg.forEach(x=>{
+const yv = interpAtGrid(st.grid,x);
+ const yy = Y(yv);
+
+addLine(g, xx, mTop+H0, xx, yy, {'stroke':'#0ea5e9','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+addLine(g, xx, yy, mLeft, yy, {'stroke':'#0ea5e9','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+});
+
+if(Array.isArray(st.Yask)) st.Yask.forEach(y=>{
+const yy = Y(y);
+if(st.grid){ (antecedentsOfGrid(st.grid, y)||[]).forEach(x=>{
+const xx = X(x);
+
+addLine(g, mLeft, yy, xx, yy, {'stroke':'#ef4444','stroke-width':1.6,'stroke-dasharray':'6 6','stroke-opacity':0.7});
+addLine(g, xx, yy, xx, mTop+H0, {'stroke':'#ef4444','stroke-width':2,'stroke-dasharray':'6 6','stroke-opacity':0.9});
+}); }
+});
+}
+}catch(_){}
+
+},
+
+correct(host,st){
+clearMarks(host);
+let okAll=true;
+
+const v=$('#bD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+
+$('#bDm',host).textContent = okDom?'✔':'✘'; $('#bDm',host).style.color=okDom?'#14532d':'#991b1b'; okAll&=okDom;
+
+st.Ximg.forEach((x,i)=>{
+const want=Math.round(interpAtGrid(st.grid,x)*2)/2;
+const got=parseNumFR($('#bI'+i,host).value);
+const ok=(Number.isFinite(got) && Math.abs(got-want)<=0.25);
+const m=$('#bI'+i+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
+});
+st.Yask.forEach((y,j)=>{
+const t=$('#bA'+j,host).value.trim().toLowerCase();
+const A=antecedentsOfGrid(st.grid,y).map(v=>Math.round(v*10)/10);
+
+if(!t || t==='aucun'){ ok=(A.length===0); }
+else{
+const L=uniq(parseListFR(t)).map(v=>Math.round(v*10)/10);
+ok=(L.length===A.length) && L.every(u=>A.some(v=>Math.abs(u-v)<=0.2));
+}
+const m=$('#bA'+j+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
+});
+(function(){
+
+})();
+return {ok:okAll,total:1};
+},
+reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); document.body.classList.remove('solution-active'); },
+pdfStatement(s){ return buildPDFStatementFromRender(ex2, s); }
+};
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+function clampv(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+function makeShape(kind, th){
+const [xmin,xmax]=th.x,[ymin,ymax]=th.y; const H=ymax-ymin, W=xmax-xmin;
+switch(kind){
+case 'exp_decay':{const A=Math.max(0.4*H,rand(0.55,0.85)*H),k=rand(0.25,0.6),base=Math.max(0,ymin+0.01*H); return x=>Math.max(0, base+A*Math.exp(-k*(x-xmin))); }
+case 'damped_sine':{const A=rand(0.25,0.45)*H,k=rand(0.12,0.3),w=rand(1.6,2.6),phi=rand(-Math.PI,Math.PI),base=ymin+0.02*H; return x=>base+A*Math.exp(-k*(x-xmin))*Math.abs(Math.sin(w*(x-xmin)+phi));}
+case 'sine_mix':{const A=rand(0.25,0.4)*H,base=ymin+0.06*H,w1=rand(0.4,0.7),w2=rand(0.9,1.3),p1=rand(-Math.PI,Math.PI),p2=rand(-Math.PI,Math.PI); return x=>clampv(base+A*(0.6*Math.sin(w1*x+p1)+0.4*Math.sin(w2*x+p2)+1.2),Math.max(0,ymin+0.01*H),ymax-0.01*H); }
+case 'piecewise_linear':{const K=6,xs=Array.from({length:K},(_,i)=>xmin+i*(W/(K-1))),ys=xs.map(()=>ymin+0.1*H+rand(0.1,0.85)*H); return x=>{let j=0; while(j<xs.length-1&&x>xs[j+1]) j++; if(j>=xs.length-1) return ys[ys.length-1]; const t=(x-xs[j])/(xs[j+1]-xs[j]); return lerp(ys[j],ys[j+1],t);} }
+case 'piecewise_linear_up':{const baseUp=rand(0.35,0.6)*H; return x=>ymin+0.02*H+(baseUp*(x-xmin)/W)+0.08*H*Math.sin(1.1*x+0.7*Math.sin(2.2*x));}
+case 'monotone_up':{const A=rand(0.45,0.75)*H,k=rand(0.4,0.8); return x=>clampv(ymin+A*(1-Math.exp(-k*(x-xmin)/W)),Math.max(0,ymin+0.01*H),ymax-0.01*H);}
+case 'logistic':{const L=rand(0.45,0.8)*H,k=rand(4,8)/W,x0=xmin+rand(0.35,0.65)*W,base=ymin+0.05*H; return x=>clampv(base+L/(1+Math.exp(-k*(x-x0))),Math.max(0,ymin+0.01*H),ymax-0.01*H);}
+case 'bell':{const A=rand(0.45,0.8)*H,sigma=rand(0.18,0.28)*W,x0=xmin+rand(0.35,0.65)*W,base=ymin+0.02*H; return x=>base+A*Math.exp(-((x-x0)*(x-x0))/(2*sigma*sigma));}
+case 'seasonal':{const A=rand(0.35,0.5)*H,base=ymin+0.06*H; return x=>clampv(base+A*(1.05*Math.sin((x-3)*2*Math.PI/12)+0.15*Math.sin((x-3)*4*Math.PI/12)),Math.max(0,ymin+0.01*H),ymax-0.01*H);}
+case 'seasonal_soft':{const A=rand(0.25,0.35)*H,base=ymin+0.5*H; return x=>base+A*Math.sin((x-3)*2*Math.PI/12);}
+case 'pure_sine':{const A5=rand(0.35,0.45)*H,base6=ymin+0.5*H,w=2*Math.PI/W,phi2=rand(-Math.PI,Math.PI); return x=>base6+A5*Math.sin(w*(x-xmin)+phi2);}
+default: return x=>ymin+0.5*H;
+}
+}
+function makeCurveForTheme(th){
+const [xmin,xmax]=th.x,[ymin,ymax]=th.y;
+const f=makeShape(pick(th.shapes), th), n=Math.max(60,(xmax-xmin)*12);
+const xs=Array.from({length:n+1},(_,k)=>xmin+k*(xmax-xmin)/n);
+let ys=xs.map(x=>f(x));
+if(th.y[0]===0){ const eps=0.01*(th.y[1]-th.y[0]); ys=ys.map(y=>Math.max(eps,y)); }
+return {xs,ys};
+}
+
+const THEMES=[
+{id:'tension',title:`Tension d’une lampe`,x:[0,10,1],y:[0,300,50],shapes:['exp_decay','damped_sine'],xUnit:`ms`,yUnit:`V`,
+context:`Hugo a mesuré la tension en fonction du temps écoulé aux bornes d’une lampe. Il a obtenu le graphique suivant, donnant la tension (en volts) en fonction du temps (en millisecondes).`,
+q2:(r1,r2)=>`D’après la courbe « Tension d’une lampe », donner la tension (en V) à ${fmtUnit(r1,'ms')} <input id="c2a" type="text"> et à ${fmtUnit(r2,'ms')} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Tension d’une lampe », au bout de combien de temps la tension vaut ${fmtUnit(y,'V')} ? <input id="c3a" type="text">`
+},
+{id:'petrole', title:`Prix du pétrole`,x:[2000,2010,1],y:[0,150,20],shapes:['sine_mix','piecewise_linear'],yUnit:`USD`,
+context:`On a relevé le prix du pétrole au fil des années. Le graphique ci‑dessous montre l’évolution du prix (en dollars) en fonction de l’année.`,
+q2:(r1,r2)=>`D’après la courbe « Prix du pétrole », donner le prix (en USD) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Prix du pétrole », pour quelle(s) année(s) le prix vaut ${fmtNum(y)} USD ? <input id="c3a" type="text">`
+},
+{id:'naiss', title:`Naissances`,x:[2005,2017,1],y:[0,900,100],shapes:['piecewise_linear','sine_mix'],yUnit:`milliers`,
+context:`Un institut a enregistré le nombre de naissances par an. Le graphique suivant donne le nombre de naissances (en milliers) en fonction de l’année.`,
+q2:(r1,r2)=>`D’après la courbe « Naissances », donner le nombre de naissances (en milliers) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Naissances », pour quelle(s) année(s) le nombre de naissances vaut ${fmtNum(y)} milliers ? <input id="c3a" type="text">`
+},
+{id:'co2', title:`Émissions de CO₂`,x:[1995,2007,1],y:[0,900,100],shapes:['piecewise_linear','sine_mix'],yUnit:`Mt`,
+context:`Le graphique ci‑après présente les émissions de CO₂ (en mégatonnes) en fonction de l’année.`,
+q2:(r1,r2)=>`D’après la courbe « Émissions de CO₂ », donner les émissions de CO₂ (en Mt) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Émissions de CO₂ », pour quelle(s) année(s) les émissions de CO₂ valent ${fmtNum(y)} Mt ? <input id="c3a" type="text">`
+},
+{id:'temperature', title:`Température d’une journée`,x:[0,24,2],y:[-10,40,5],shapes:['seasonal','seasonal_soft'],xUnit:`h`,yUnit:`°C`,
+context:`On a suivi la température au cours d’une journée. Le graphique représente la température (en °C) en fonction de l’heure (en h).`,
+q2:(r1,r2)=>`D’après la courbe « Température d’une journée », donner la température (en °C) à ${fmtUnit(r1,'h')} <input id="c2a" type="text"> et à ${fmtUnit(r2,'h')} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Température d’une journée », à quelle(s) heure(s) la température vaut ${fmtUnit(y,'°C')} ? <input id="c3a" type="text">`
+},
+{id:'achat',xLabel:`année`,yLabel:`indice du pouvoir d’achat`,yName:`le pouvoir d’achat`,context:`Le graphique montre l’indice du pouvoir d’achat en fonction de l’année.`, title:`Pouvoir d’achat`,x:[2010,2020,1],y:[0,140,10],shapes:['monotone_up','piecewise_linear_up'],
+q2:(r1,r2)=>`D’après la courbe « Pouvoir d’achat », donner l’indice de pouvoir d’achat en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Pouvoir d’achat », pour quelle(s) année(s) l’indice de pouvoir d’achat vaut ${fmtNum(y)} ? <input id="c3a" type="text">`
+},
+{id:'incendies',xLabel:`année`,yLabel:`nombre d’incendies`,yName:`le nombre d’incendies`,context:`On a comptabilisé le nombre d’incendies de forêt par an. Le graphique donne ce nombre en fonction de l’année.`, title:`Incendies de forêt`,x:[2010,2022,1],y:[0,1200,100],shapes:['sine_mix','piecewise_linear'],
+q2:(r1,r2)=>`D’après la courbe « Incendies de forêt », donner le nombre d’incendies en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Incendies de forêt », pour quelle(s) année(s) le nombre d’incendies vaut ${fmtNum(y)} ? <input id="c3a" type="text">`
+},
+{id:'population',xLabel:`année`,yLabel:`population (en millions)`,yName:`la population`,context:`On a observé la population d’une ville sur plusieurs années. Le graphique indique la population (en millions) en fonction de l’année.`, title:`Population (ville)`,x:[2000,2015,1],y:[5,20,1],shapes:['logistic','monotone_up'],yUnit:`millions`,
+q2:(r1,r2)=>`D’après la courbe « Population (ville) », donner la population (en millions) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Population (ville) », pour quelle(s) année(s) la population vaut ${fmtNum(y)} millions ? <input id="c3a" type="text">`
+},
+{id:'vitesse',xLabel:`temps (en s)`,yLabel:`vitesse (en m/s)`,yName:`la vitesse`,context:`On a mesuré la vitesse d’un mobile au cours du temps. Le graphique donne la vitesse (en m/s) en fonction du temps (en s).`, title:`Vitesse d’un mobile`,x:[0,10,1],y:[0,50,5],shapes:['bell','piecewise_linear'],xUnit:`s`,yUnit:`m/s`,
+q2:(r1,r2)=>`D’après la courbe « Vitesse d’un mobile », donner la vitesse (en m/s) à ${fmtUnit(r1,'s')} <input id="c2a" type="text"> et à ${fmtUnit(r2,'s')} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Vitesse d’un mobile », au bout de combien de secondes la vitesse vaut ${fmtUnit(y,'m/s')} ? <input id="c3a" type="text">`
+},
+{id:'luminosite',xLabel:`temps`,yLabel:`luminosité`,yName:`la luminosité`,context:`On a relevé la luminosité d’une étoile au cours du temps. Le graphique montre la luminosité en fonction du temps.`, title:`Luminosité d’une étoile`,x:[0,12,1],y:[0,10,1],shapes:['pure_sine','seasonal_soft'],
+q2:(r1,r2)=>`D’après la courbe « Luminosité d’une étoile », donner la luminosité (valeur relative) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Luminosité d’une étoile », pour quel(s) jour(s) la luminosité vaut ${fmtNum(y)} ? <input id="c3a" type="text">`
+},
+{id:'seismes',xLabel:`mois`,yLabel:`nombre d’événements`,yName:`le nombre d’événements`,context:`On a recensé l’activité sismique mois par mois. Le graphique donne le nombre d’événements en fonction du mois.`, title:`Activité sismique`,x:[1,12,1],y:[0,60,5],shapes:['sine_mix','piecewise_linear'],
+q2:(r1,r2)=>`D’après la courbe « Activité sismique », donner le nombre d’événements en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Activité sismique », pour quel(s) mois le nombre d’événements vaut ${fmtNum(y)} ? <input id="c3a" type="text">`
+},
+{id:'reaction',xLabel:`temps (en s)`,yLabel:`concentration (en mol·L⁻¹)`,yName:`la concentration`,context:`On suit l’évolution de la concentration d’un réactif au cours du temps. Le graphique donne la concentration (en mol·L⁻¹) en fonction du temps (en s).`, title:`Concentration d’un réactif`,x:[0,10,1],y:[0,3,0.5],shapes:['exp_decay'],xUnit:`s`,yUnit:`mol·L⁻¹`,
+q2:(r1,r2)=>`D’après la courbe « Concentration d’un réactif », donner la concentration (en mol·L⁻¹) à ${fmtUnit(r1,'s')} <input id="c2a" type="text"> et à ${fmtUnit(r2,'s')} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Concentration d’un réactif », au bout de combien de secondes la concentration vaut ${fmtUnit(y,'mol·L⁻¹')} ? <input id="c3a" type="text">`
+},
+{id:'debit',xLabel:`mois`,yLabel:`débit (en m³/s)`,yName:`le débit`,context:`On observe le débit d’un fleuve (en m³/s) au cours des mois.`, title:`Débit d’un fleuve`,x:[1,12,1],y:[0,2000,200],shapes:['seasonal'],yUnit:`m³/s`,
+q2:(r1,r2)=>`D’après la courbe « Débit d’un fleuve », donner le débit (en m³/s) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Débit d’un fleuve », pour quel(s) mois le débit vaut ${fmtUnit(y,'m³/s')} ? <input id="c3a" type="text">`
+},
+{id:'niveau',title:`Niveau d’un lac`,x:[1,12,1],y:[10,30,2],shapes:['seasonal_soft'],yUnit:`m`,
+q2:(r1,r2)=>`D’après la courbe « Niveau d’un lac », donner le niveau (en m) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Niveau d’un lac », pour quel(s) mois le niveau vaut ${fmtUnit(y,'m')} ? <input id="c3a" type="text">`
+},
+{id:'panier',title:`Prix d’un panier`,x:[1,12,1],y:[0,200,20],shapes:['monotone_up','piecewise_linear_up'],yUnit:`€`,
+q2:(r1,r2)=>`D’après la courbe « Prix d’un panier », donner le prix (en €) en ${fmtNum(r1)} <input id="c2a" type="text"> et en ${fmtNum(r2)} <input id="c2b" type="text">.`,
+q3:y=>`D’après la courbe « Prix d’un panier », pour quel(s) mois le prix vaut ${fmtUnit(y,'€')} ? <input id="c3a" type="text">`
+}
+];
+
+function makeCurveState(th){
+const [xmin,xmax,stepX]=th.x, [ymin,ymax,stepY]=th.y;
+const gx=[]; for(let v=xmin; v<=xmax+1e-9; v+=stepX) gx.push(v);
+const gy=[]; for(let v=ymin; v<=ymax+1e-9; v+=stepY) gy.push(v);
+const title=(th.title||'').toLowerCase();
+let mode='generic';
+if(/tension|décroiss|decroiss|réaction|reaction|radioact/.test(title)) mode='mono_down';
+if(/luminosit|sism|mois|saison|season|débit|debit|températur|temperature/.test(title)) mode='seasonal';
+function pick(arr,k){ const a=[...arr];  while(out.length<k && a.length){ out.push(a.splice((Math.random()*a.length)|0,1)[0]); } return out; }
+const innerX = gx.filter(x=>x>xmin && x<xmax);
+const innerY = gy.filter(y=>y>ymin && y<ymax);
+const xImg = innerX[(Math.random()*innerX.length)|0];
+const yImg = innerY[(Math.random()*innerY.length)|0];
+let wantedA = (mode==='mono_down') ? 1 : (1 + ((Math.random()*3)|0));
+if (wantedA>3) wantedA=3;
+let xsA = pick(innerX.filter(x=>x!==xImg), wantedA); xsA.sort((a,b)=>a-b);
+const yTarget = innerY.filter(y=>y!==yImg)[(Math.random()*innerY.length)|0] || innerY[0];
+const anchors = [];
+const yTop = Math.min(ymax, Math.max(yImg, yTarget) + 2*stepY);
+const yBot = Math.max(ymin, Math.min(yImg, yTarget) - 2*stepY);
+anchors.push({x:xmin, y: mode==='mono_down' ? yTop : yImg});
+const allX = [xImg, ...xsA].sort((a,b)=>a-b);
+allX.forEach(xk=>{ anchors.push({x:xk, y:(xk===xImg)?yImg:yTarget}); });
+anchors.push({x:xmax, y: mode==='mono_down' ? yBot : yImg});
+const xs = anchors.map(p=>p.x);
+const ys = anchors.map(p=>p.y);
+const read1 = xImg;
+
+const otherX = innerX.filter(x=>x!==xImg);
+const read2 = otherX.length ? otherX[(Math.random()*otherX.length)|0] : (xImg + stepX <= xmax ? xImg+stepX : xImg-stepX);
+return { th, xmin,xmax,stepX,ymin,ymax,stepY, xs,ys, read1, read2, yTarget, xA: xsA, xImg, yImg };
+}
+
+function __ctxX(th, x){
+const xv = fmtFR(x);
+const xu = th && th.xUnit ? ('\u00A0'+th.xUnit) : '';
+const xlab = (th && th.xLabel ? th.xLabel : `abscisse`).toLowerCase();
+if(/temps/.test(xlab)) return `Au bout de ${xv}${xu}`;
+if(/année/.test(xlab)) return `En ${xv}`;
+if(/mois/.test(xlab)) return `Au mois ${xv}`;
+return `${(th && th.xShort) ? th.xShort : 'Pour x ='} ${xv}${xu}`;
+}
+function __yWithUnit(th,y){
+const v = fmtFR(y);
+return (th && th.yUnit) ? `${v}\u00A0${th.yUnit}` : v;
+}
+function __labelsFromTheme(th){
+const xLab = (th && th.xLabel) || ((th && th.xUnit) ? `temps (en ${th.xUnit})` : 'variable en abscisse');
+const yLab = (th && th.yLabel) || ((th && th.yUnit) ? `valeur (en ${th.yUnit})` : 'valeur en ordonnée');
+return {xLab, yLab};
+}
+const ex3={
+id:'rg3',
+title:`Utiliser une courbe représentative (thèmes)`,
+gen(){
+const lock = !(document.getElementById('pdfRandTheme')?.checked);
+const last = lock ? window.__rg3_last_theme : null;
+const th = last ? THEMES.find(t=>t.id===last) : pick(THEMES);
+return makeCurveState(th);
+},
+render(host,st){
+host.innerHTML='';  row.className='row single'; host.appendChild(row);
+ box.className='statement'; row.appendChild(box);
+
+const sel=document.createElement('select'); sel.id='themeSel'; THEMES.forEach(t=>{  o.value=t.id; o.textContent=t.title; sel.appendChild(o); });
+sel.value=st.th.id; window.__rg3_last_theme = st.th.id;
+
+const p=document.createElement('p'); p.textContent = st.th.context || st.th.title;
+const cons=document.createElement('div'); cons.className='consigne'; cons.appendChild(p); cons.appendChild(sel); box.appendChild(cons);
+
+const rep=buildRepereSVG({ xmin:st.xmin,xmax:st.xmax,ymin:st.ymin,ymax:st.ymax, grid:true, arrows:true, ticks:{x:st.stepX,y:st.stepY} });
+rep.svg.setAttribute('data-heavylabels','1');
+const pts = st.xs.map((x,i)=>({x:rep.X(x), y:rep.Y(st.ys[i])}));
+addPath(rep.plot, catmullRomPath(pts), {'stroke':'#000','stroke-width':2.6});
+box.appendChild(rep.svg);
+
+const form=document.createElement('div'); form.className='input-wrap'; row.appendChild(form);
+
+const q1 = `Quelles légendes placer au bout des flèches&nbsp;?
+abscisses&nbsp;:&nbsp;<input id="c1x" type="text" placeholder="…">
+ordonnées&nbsp;:&nbsp;<input id="c1y" type="text" placeholder="…">`;
+const q2 = st.th.q2(st.read1, st.read2);
+const q3 = st.th.q3(st.yTarget);
+
+form.innerHTML=
+`<div class="qa"><div class="q">1.</div><div class="a">${q1}</div></div>`+
+`<div class="qa"><div class="q">2.</div><div class="a">${q2}</div></div>`+
+`<div class="qa"><div class="q">3.</div><div class="a">${q3}</div></div>`;
+
+;['c1x','c1y','c2a','c2b','c3a'].forEach(function(id){
+var el = $('#'+id, host);
+if(el && !document.getElementById(id+'m')){
+ sp.id = id+'m'; sp.className='qmark';
+el.insertAdjacentElement('afterend', sp);
+}
+});
+
+ res.id='res'; row.appendChild(res);
+
+host.dataset.state=JSON.stringify(st); host.dataset.active='rg3';
+
+sel.addEventListener('change',function(){
+window.__rg3_last_theme = sel.value;
+const th = THEMES.find(t=>t.id===sel.value);
+const st2 = makeCurveState(th);
+ex3.render(host,st2);
+});
+},
+
+solution(host,st){
+ const id = (th.id||'').toLowerCase();
+
+const X = {tension:'temps', vitesse:'temps', luminosite:'temps', concentration:'temps', debit:'temps', niveau:'temps', panier:'temps',
+petrole:'années', naiss:'années', co2:'années', pouvoir:'années', incendies:'années', population:'années',
+sismique:'mois', temperature:'heures'}[id] || 'temps';
+const Y = {
+tension:['tension',''],
+petrole:['Prix du pétrole','(prix accepté)'],
+naiss:['le nombre de naissances','(naissances accepté)'],
+co2:['Émissions de CO₂','(émissions accepté)'],
+temperature:['Température d’une journée','(Température accepté)'],
+pouvoir:['Pouvoir d’achat','(achat accepté)'],
+incendies:['Incendies de forêt','(Incendies accepté)'],
+population:['Population',''],
+vitesse:['Vitesse d’un mobile','(Vitesse accepté)'],
+luminosite:['Luminosité d’une étoile','(Luminosité ou étoile accepté)'],
+sismique:['le nombre d’événements','(événements accepté)'],
+concentration:['Concentration d’un réactif','(Concentration ou réactif accepté)'],
+debit:['Débit d’un fleuve','(Débit ou fleuve accepté)'],
+niveau:['Niveau d’un lac','(Niveau ou lac accepté)'],
+panier:['Prix d’un panier','(prix ou panier accepté)']
+}[id] || ['valeur',''];
+const yLab = Y[0], hint = Y[1];
+const q1 = `<div class="qa"><div class="q">1.</div><div class="a">En abscisse : <b>${X}</b> ; en ordonnée : <b>${yLab}</b> ${hint? `<i>${hint}</i>`:''}.</div></div>`;
+
+const r1=+st.read1, r2=+st.read2;
+let y1=Number.NaN, y2=Number.NaN;
+try{ y1=interp(st.xs, st.ys, r1);}catch(_){}
+try{ y2=interp(st.xs, st.ys, r2);}catch(_){}
+const y1txt = Number.isFinite(y1)? fmtNum(Math.round(y1*10)/10) : '—';
+const y2txt = Number.isFinite(y2)? fmtNum(Math.round(y2*10)/10) : '—';
+const q2 = `<div class="qa"><div class="q">2.</div><div class="a">Pour x = ${fmtNum(r1)}, <b>${yLab}</b> vaut <b>${y1txt}</b> ; Pour x = ${fmtNum(r2)}, <b>${yLab}</b> vaut <b>${y2txt}</b>.</div></div>`;
+
+} return Array.from(new Set(out)); }
+
+const q3 = `3 ) ${fmtLAB(yLab)} égale <b>${fmtNum(st.yTarget)}</b> pour x = <b>${Aneed.length?Aneed.map(fmtNum).join(' ; ') : 'aucun'}</b>.`;
+
+showSteps(host, [q1, q2, q3]);
+document.body.classList.add('solution-active');
+
+},
+
+correct(host,st){
+clearMarks(host);
+let okAll=true, total=0;
+const normLab = s => (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
+const stripPlural = t => t && t.endsWith('s') ? t.slice(0,-1) : t;
+const eq = (a,b) => { a=normLab(a); b=normLab(b); return a===b || stripPlural(a)===stripPlural(b); };
+
+ const id = ((th.id)||'').toLowerCase();
+const Xexp = ({ tension:'temps', vitesse:'temps', luminosite:'temps', concentration:'temps', debit:'temps', niveau:'temps', panier:'temps',
+petrole:'annees', naiss:'annees', co2:'annees', pouvoir:'annees', incendies:'annees', population:'annees',
+sismique:'mois', temperature:'heures' }[id] || 'temps');
+const Yexp = ({
+tension:['tension',''], petrole:['prix du petrole','prix'], naiss:['le nombre de naissances','naissances'],
+co2:['emissions de co2','emissions'], temperature:['temperature d une journee','temperature'],
+pouvoir:['pouvoir d achat','achat'], incendies:['incendies de foret','incendies'], population:['population','population'],
+vitesse:['vitesse d un mobile','vitesse'], luminosite:['luminosite d une etoile','luminosite'],
+sismique:['le nombre d evenements','evenements'], concentration:['concentration d un reactif','concentration'],
+debit:['debit d un fleuve','debit'], niveau:['niveau d un lac','niveau'], panier:['prix d un panier','prix']
+}[id] || ['valeur','']);
+
+const xIn = $('#c1x',host)?.value||'';
+const yIn = $('#c1y',host)?.value||'';
+const ySyns = Yexp.filter(Boolean);
+
+const xOk = !!xIn && (eq(xIn,Xexp));
+let yOk = !!yIn && (eq(yIn, Yexp[0]));
+if(!yOk && ySyns.length>1){
+yOk = ySyns.slice(1).some(tok=>eq(yIn, tok));
+}
+if($('#c1xm',host)) $('#c1xm',host).textContent = xOk?'✔':'✘';
+if($('#c1ym',host)) $('#c1ym',host).textContent = yOk?'✔':'✘';
+okAll = okAll && xOk && yOk; total += 2;
+
+const fAt = x => interpAtGrid(st.grid,x);
+const a = num($('#c2a',host)?.value, NaN);
+const b = num($('#c2b',host)?.value, NaN);
+const expectedA = fAt(st.read1);
+const expectedB = fAt(st.read2);
+const eqNum = (u,v) => Number.isFinite(u) && Math.abs(u - v) < 1e-9;
+const aOk = eqNum(a, expectedA), bOk = eqNum(b, expectedB);
+if($('#c2am',host)) $('#c2am',host).textContent = aOk?'✔':'✘';
+if($('#c2bm',host)) $('#c2bm',host).textContent = bOk?'✔':'✘';
+okAll = okAll && aOk && bOk; total += 2;
+
+const inTxt = ($('#c3a',host)?.value||'').replace(/[(),:]/g,';').replace(/\u2212/g,'-');
+const parts = inTxt.split(/[; ]+/).map(s=>s.trim()).filter(Boolean).map(num);
+const A = antecedentsOfGrid(st.grid, st.yTarget).map(v=>Math.round(v*10)/10);
+const sameSet = (arr1, arr2) => {
+const a1 = Array.from(new Set(arr1.filter(Number.isFinite))).sort((x,y)=>x-y);
+const a2 = Array.from(new Set(arr2.filter(Number.isFinite))).sort((x,y)=>x-y);
+return a1.length===a2.length && a1.every((v,i)=>Math.abs(v-a2[i])<1e-9);
+};
+const q3Ok = sameSet(parts, A);
+if($('#c3am',host)) $('#c3am',host).textContent = q3Ok?'✔':'✘';
+okAll = okAll && q3Ok; total += 1;
+
+return {ok:okAll, total};
+},
+
+reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); host.querySelectorAll('.qmark').forEach(m=>{ m.textContent=''; m.removeAttribute('style'); }); document.body.classList.remove('solution-active'); },
+pdfStatement(s){ return buildPDFStatementFromRender(ex3, s); }
+};
+
+const ex4={
+id:'rg4',
+title: `Tableaux images & antécédents`,
+gen(){
+const R={...AMP};
+const qImg = Math.max(5, clamp(parseInt($('#cfg-img')?.value||5,10),1,10));
+const qAnt = Math.max(3, clamp(parseInt($('#cfg-ant')?.value||3,10),1,3));
+
+let ok=false, grid=null, Xs=null;
+for(let attempt=0; attempt<300; attempt++){
+grid = genCurveIntegerGrid(R, true);
+const xs = pickXsIntOrHalf(R, qImg).sort((a,b)=>a-b);
+const ys = xs.map(x=>interpAtGrid(grid,x));
+const okVals = ys.every(v=>Math.abs(v - Math.round(v))<1e-9 || Math.abs(v*2 - Math.round(v*2))<1e-9);
+const uniqY = uniq(ys,(a,b)=>Math.abs(a-b)<1e-9);
+if(okVals && uniqY.length===ys.length){ Xs=xs; ok=true; break; }
+}
+
+let okAnt=false, gForced=null, Ys=null, yNone=null;
+const Ycand = pickYsIntOrHalf(R, Math.max(2*qAnt, 10));
+for( t<400; t++){
+const trial = uniq(shuffle(Ycand)).slice(0, Math.max(0,qAnt-1));
+gForced = buildGridWithConstraints(R, 3, trial);
+const good = trial.every(y=>{
+const A = antecedentsOfGrid(gForced, y);
+const Ai = A.filter(x=>Math.abs(x - Math.round(x))<1e-9);
+const An = A.filter(x=>Math.abs(x - Math.round(x))>=1e-9);
+return Ai.length>=1 && Ai.length<=3 && An.length===0;
+});
+if(good){ Ys=trial.sort((a,b)=>a-b); okAnt=true; break; }
+}
+if(okAnt){
+const allY=[]; for(let y=R.ymin+1; y<=R.ymax-1; y++){ allY.push(y); if(y+0.5<R.ymax) allY.push(y+0.5); }
+const zeroInside = allY.filter(y=>!Ys.includes(y) && antecedentsOfGrid(gForced, y).length===0);
+yNone = zeroInside.length ? zeroInside[0] : (Math.random()<0.5 ? (R.ymax+1) : (R.ymin-1));
+Ys=[...Ys, yNone];
+grid = gForced;
+}
+
+return { R, grid, Xs, Ys };
+
+},
+
+solution(host,st){
+
+const qa=[]
+qa.push('Réponses attendues :<br>');
+
+qa.push(`<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition : <b>[${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]</b></div></div>`);
+
+(st.Xs||[]).forEach((x,i)=>{
+const n = 2 + i;
+qa.push(`<div class="qa"><div class="q">${n}.</div><div class="a">f(${fmtNum(x)}) = <b>${fmtNum(fAt(x))}</b></div></div>`);
+});
+
+(st.Ys||[]).forEach((y,j)=>{
+const n = 2 + (st.Xs?st.Xs.length:0) + j;
+
+const txt = A.length? A.map(fmtNum).join(' ; ') : 'aucun';
+qa.push(`<div class="qa"><div class="q">${n}.</div><div class="a">Antécédent(s) de ${fmtNum(y)} : <b>${txt}</b></div></div>`);
+});
+showSteps(host, qa);
+document.body.classList.add('solution-active');
+},
+
+render(host,st){
+host.innerHTML='';
+const row1=document.createElement('div'); row1.className='row single'; host.appendChild(row1);
+const stBox=document.createElement('div'); stBox.className='statement'; row1.appendChild(stBox);
+stBox.innerHTML='<div class="consigne">Compléter les tableaux par lecture graphique.</div>';
+const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
+addPath(rep.plot, pathFromGridSmooth(rep, st.grid), {'stroke':'#c00','stroke-width':3.2});
+stBox.appendChild(rep.svg);
+
+const row2=document.createElement('div'); row2.className='row single'; host.appendChild(row2);
+ row2.appendChild(box);
+const t1=`<table class="tbl"><thead><tr><th>x</th>${st.Xs.map(x=>`<th>${fmtFR(x)}</th>`).join('')}</tr></thead>
+<tbody><tr><th>f(x)</th>${st.Xs.map(()=>`<td><input class="c1" type="text"></td>`).join('')}</tr></tbody></table>`;
+const t2=`<table class="tbl"><thead><tr><th>y</th>${st.Ys.map(y=>`<th>${fmtFR(y)}</th>`).join('')}</tr></thead>
+<tbody><tr><th>Antécédent(s)</th>${st.Ys.map(()=>`<td><input class="c2" type="text"></td>`).join('')}</tr></tbody></table>`;
+box.innerHTML = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="dD" type="text"><span id="dDm" class="qmark"></span></div></div>
+<div class="qa"><div class="q">2.</div><div class="a">${t1}</div></div>
+<div class="qa"><div class="q">3.</div><div class="a">${t2}</div></div>`;
+
+(box.querySelectorAll('input.c1')||[]).forEach((el,i)=>{
+if(!el.id) el.id = 'dI'+i;
+if(!document.getElementById(el.id+'m')){
+ sp.id = el.id+'m'; sp.className='qmark';
+el.insertAdjacentElement('afterend', sp);
+}
+});
+(box.querySelectorAll('input.c2')||[]).forEach((el,j)=>{
+if(!el.id) el.id = 'dA'+j;
+if(!document.getElementById(el.id+'m')){
+const sp = document.createElement('span'); sp.id = el.id+'m'; sp.className='qmark';
+el.insertAdjacentElement('afterend', sp);
+}
+});
+host.dataset.state=JSON.stringify(st); host.dataset.active='rg4';
+
+(function(){ const dD = $('#dD',host); if(dD) dD.value=''; })();
+
+const res=document.createElement('div'); res.id='res';
+if (row2) { row2.appendChild(res); } else { host.appendChild(res); }
+},
+solution(host,st){
+const fAt=x=>interpAtGrid(st.grid,x);
+const Aofy=y=>antecedentsOfGrid(st.grid,y);
+const t1='<table class="tbl"><tbody><tr><th>x</th>'+st.Xs.map(x=>'<td>'+fmtFR(x)+'</td>').join('')+'</tr>'+
+'<tr><th>f(x)</th>'+st.Xs.map(x=>'<td>'+fmtFR(fAt(x))+'</td>').join('')+'</tr></tbody></table>';
+const t2='<table class="tbl"><tbody><tr><th>y</th>'+st.Ys.map(y=>'<td>'+fmtFR(y)+'</td>').join('')+'</tr>'+
+'<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y).map(fmtFR); return '<td>'+(A.length?A.join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
+showSteps(host,[`Ensemble de définition : [${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]`,'Tableau images :<br>'+t1,'Antécédents :<br>'+t2]);
+},
+correct(host,st){
+:,]/);
+const okDom=(v.length===2 && v[0]!=='' && v[1]!=='' ? (+v[0]===st.R.xmin && +v[1]===st.R.xmax) : true);
+$('#dDm',host).textContent = okDom?'✔':'✘'; $('#dDm',host).style.color=okDom?'#14532d':'#991b1b';
+(function(){
+const anyEmpty = Array.from(host.querySelectorAll('input[type="text"]')).some(i=>i.value.trim()==='');
+const okFlag = true;
+})();
+return {ok:okDom,total:1};
+},
+reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); document.body.classList.remove('solution-active'); },
+pdfStatement(s){ return buildPDFStatementFromRender(ex4, s); }
+};
+
+function addMiniPath(g,d){ addPath(g.plot,d,{'stroke':'#000','stroke-width':2}); }
+function drawParab(g){  for(x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(0.5*x*x-2)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawAbs(g){  for(x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(Math.abs(x)-1)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawSigm(g){  for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(3/(1+Math.exp(-x))-1.5)}); addMiniPath(g,catmullRomPath(pts)); }
+function drawLineC(g){ addLine(g.plot, g.X(-4), g.Y(-2), g.X(4), g.Y(2), {'stroke':'#000','stroke-width':2}); }
+
+function drawCircle(g){  for(t<=2*Math.PI+0.01;t+=0.02){ const x=2.6*Math.cos(t), y=2.0*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)});} addMiniPath(g,catmullRomPath(pts)); }
+function drawEllipse(g){ const a=3,b=1.6,ang=Math.PI/6,pts=[]; for(t<=2*Math.PI+0.001;t+=0.02){ const x=a*Math.cos(t), y=b*Math.sin(t); const xr=x*Math.cos(ang)-y*Math.sin(ang), yr=x*Math.sin(ang)+y*Math.cos(ang); pts.push({x:g.X(xr),y:g.Y(yr)});} addMiniPath(g,catmullRomPath(pts)); }
+function drawRect(g){ const r=[[-2.8,-1.8],[2.8,-1.8],[2.8,1.8],[-2.8,1.8],[-2.8,-1.8]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
+function drawDiamond(g){ const r=[[0,3],[-3,0],[0,-3],[3,0],[0,3]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
+function drawStar5(g){ const R=3,r=1.3,pts=[]; for(let k=0;k<10;k++){ const a=(Math.PI/5)*k - Math.PI/2; const rad=(k%2? r : R); pts.push({x:g.X(rad*Math.cos(a)),y:g.Y(rad*Math.sin(a))}); } pts.push(pts[0]); addMiniPath(g,catmullRomPath(pts)); }
+function drawInfinity(g){  for(let t=-Math.PI;t<=Math.PI+0.001;t+=0.02){ const x=3*Math.sin(t), y=2*Math.sin(2*t)/1.5; pts.push({x:g.X(x),y:g.Y(y)});} addMiniPath(g,catmullRomPath(pts)); }
+function drawFlower(g){  for( t<=2*Math.PI+0.001; t+=0.012){ const r = 2 + 1.2*Math.cos(4*t); const x = 0.9*r*Math.cos(t); const y = 0.9*r*Math.sin(t); pts.push({x:g.X(x), y:g.Y(y)});} addMiniPath(g, catmullRomPath(pts)); }
+function drawCrescent(g){ const outer=[], inner=[]; const R=3, r=2; for(let a=-0.6*Math.PI;a<=0.6*Math.PI;a+=0.02){ outer.push({x:g.X(R*Math.cos(a)), y:g.Y(R*Math.sin(a))}); } for(let a=0.6*Math.PI; a>=-0.6*Math.PI; a-=0.02){ inner.push({x:g.X(1+ r*Math.cos(a)), y:g.Y(r*Math.sin(a))}); } addMiniPath(g,catmullRomPath([...outer,...inner, outer[0]])); }
+function drawXLetter(g){ addLine(g.plot, g.X(-3), g.Y(3), g.X(3), g.Y(-3), {'stroke':'#000','stroke-width':2}); addLine(g.plot, g.X(-3), g.Y(-3), g.X(3), g.Y(3), {'stroke':'#000','stroke-width':2}); }
+function drawSLetter(g){ const pts1=[], pts2=[]; for(let t=-3.2; t<=0; t+=0.2){ pts1.push({ x: g.X(t), y: g.Y(1.3*Math.sin(-t) + 1.2) }); } for( t<=3.2; t+=0.2){ pts2.push({ x: g.X(t), y: g.Y(1.3*Math.sin(-t) - 1.2) }); } addMiniPath(g, catmullRomPath(pts1)); addMiniPath(g, catmullRomPath(pts2)); }
+
+function drawHeart(g){
+
+for(t<=2*Math.PI+0.001;t+=0.02){
+const x=0.16*(16*Math.sin(t)**3)*1.6;
+const y=0.16*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+pts.push({ x:g.X(x), y:g.Y(y) });
+}
+addMiniPath(g, catmullRomPath(pts));
+}
+
+function drawSpiral(g){
+
+for(t<=4*Math.PI+0.001;t+=0.03){
+const r=0.3*t, x=r*Math.cos(t), y=r*Math.sin(t);
+pts.push({ x:g.X(x), y:g.Y(y) });
+}
+addMiniPath(g, catmullRomPath(pts));
+}
+
+function drawClover3(g){
+
+for(t<=2*Math.PI+0.001;t+=0.02){
+const r=2.2*Math.cos(3*t);
+
+pts.push({ x:g.X(x), y:g.Y(y) });
+}
+addMiniPath(g, catmullRomPath(pts));
+}
+
+function drawClover4(g){
+
+for(t<=2*Math.PI+0.001;t+=0.02){
+const r=2.2*Math.cos(2*t);
+const x=r*Math.cos(t), y=r*Math.sin(t);
+pts.push({ x:g.X(x), y:g.Y(y) });
+}
+addMiniPath(g, catmullRomPath(pts));
+}
+
+function drawTeardrop(g){
+const pts=[];
+for(let t=0;t<=2*Math.PI+0.001;t+=0.02){
+const rr=1.8*(1+Math.sin(t));
+const x=rr*Math.cos(t), y=rr*Math.sin(t)-1.2;
+pts.push({ x:g.X(x), y:g.Y(y) });
+}
+addMiniPath(g, catmullRomPath(pts));
+}
+
+const FUN_BANK=[
+{name:'Parabole',draw:drawParab,isFn:true},
+{name:'Valeur absolue',draw:drawAbs,isFn:true},
+{name:'Sigmoïde (S)',draw:drawSigm,isFn:true},
+{name:'Droite',draw:drawLineC,isFn:true},
+];
+const NON_BANK=[
+{name:'Cercle',draw:drawCircle,isFn:false},
+{name:'Ellipse',draw:drawEllipse,isFn:false},
+{name:'Rectangle',draw:drawRect,isFn:false},
+{name:'Losange',draw:drawDiamond,isFn:false},
+{name:'Étoile',draw:drawStar5,isFn:false},
+{name:'Infini',draw:drawInfinity,isFn:false},
+{name:'Cœur',draw:drawHeart,isFn:false},
+{name:'Spirale',draw:drawSpiral,isFn:false},
+{name:'Fleur (rosace)',draw:drawFlower,isFn:false},
+{name:'Trèfle (3)',draw:drawClover3,isFn:false},
+{name:'Trèfle (4)',draw:drawClover4,isFn:false},
+{name:'Croissant',draw:drawCrescent,isFn:false},
+{name:'Goutte',draw:drawTeardrop,isFn:false},
+{name:'Lettre X',draw:drawXLetter,isFn:false},
+{name:'Lettre S',draw:drawSLetter,isFn:false},
+];
+
+const ex5={
+id:'rg5',
+title:`Pour chaque courbe, dire si elle représente une fonction`,
+gen(){
+const tiles = shuffle( shuffle(FUN_BANK).slice(0,2).concat( shuffle(NON_BANK).slice(0,3) ) );
+return {tiles};
+},
+render(host,st){
+const row=document.createElement('div'); row.className='row single'; host.innerHTML=''; host.appendChild(row);
+const s=document.createElement('div'); s.className='statement'; row.appendChild(s);
+s.innerHTML='<div class="consigne">Pour chaque courbe, dire si elle représente une fonction.</div>';
+const grid=document.createElement('div'); grid.className='mini-grid';
+st.tiles.forEach((m,i)=>{
+const r = buildRepereOrtho({ xmin:-4, xmax:4, ymin:-4, ymax:4, ticks:{x:1,y:1} });
+m.draw(r);
+
+const box=document.createElement('div'); box.className='mini';
+const title=document.createElement('div'); title.className='title'; title.textContent='Courbe '+String.fromCharCode(65+i);
+const ans=document.createElement('div'); ans.innerHTML='Réponse&nbsp;: <select class="yesno"><option value="">—</option><option>Oui</option><option>Non</option></select>';
+r.svg.dataset.ok=m.isFn?'Oui':'Non'; r.svg.dataset.real=m.name;
+box.appendChild(title); box.appendChild(r.svg); box.appendChild(ans);
+grid.appendChild(box);
+});
+s.appendChild(grid);
+host.dataset.active='rg5'; host.dataset.state=JSON.stringify(st);
+},
+
+solution(host){
+const minis = Array.from(host.querySelectorAll('.mini'));
+minis.forEach((box,i)=>{
+const svg=box.querySelector('svg'); const want=svg.dataset.ok; const model=svg.dataset.real;
+const select=box.querySelector('.yesno'); const got=select.value||'—';
+const good = (got!=='' && got===want);
+box.querySelector('.title').innerHTML = `Courbe ${String.fromCharCode(65+i)} — ${model} <span class="badge ${good?'ok':'ko'}">${got||'—'} / ${want}</span>`;
+
+const W=560,H=360; const g=svg.querySelector('.plot');
+if(want==='Oui'){ const x= (W/2)+80; addLine(g,x,10,x,H-10,{stroke:'#22c55e','stroke-dasharray':'6 6','stroke-width':2}); }
+else{ const x1=(W/2)-70, x2=(W/2)+70; addLine(g,x1,10,x1,H-10,{stroke:'#ef4444','stroke-dasharray':'6 6','stroke-width':2}); addLine(g,x2,10,x2,H-10,{stroke:'#ef4444','stroke-dasharray':'6 6','stroke-width':2}); }
+});
+showSteps(host,['Rappel : une courbe représente une fonction quand toute droite verticale la coupe au plus une fois.']);
+document.body.classList.add('solution-active');
+},
+correct(host){
+let ok=true;
+host.querySelectorAll('.mini').forEach(box=>{
+const want=(box.querySelector('svg').dataset.ok||'').toLowerCase();
+const got=(box.querySelector('.yesno').value||'').toLowerCase();
+if(!want || want!==got) ok=false;
+});
+(function(){
+
+const okFlag = (ok?'✔':'✘');
+$('#res',host).textContent = anyEmpty ? '' : okFlag;
+})();
+return {ok,total:1};
+},
+reset(host){ host.querySelectorAll('.yesno').forEach(s=>s.value=''); clearMarks(host); document.body.classList.remove('solution-active'); },
+pdfStatement(s){ return buildPDFStatementFromRender(ex5, s); }
+};
+
+const REGISTRY=[ex1,ex2,ex3,ex4,ex5];
+window.REGISTRY = REGISTRY;
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function buildOne(){
+const sel=$("#exo-select"), host=$("#host"), def=REGISTRY.find(e=>e.id===sel.value);
+if(!def) return;
+
+try{
+const ant = document.getElementById('cfg-ant');
+if(ant){
+const maxVal = (def.id==='rg2' || def.id==='rg4') ? 3 : 5;
+ant.setAttribute('max', String(maxVal));
+if(ant.tagName === 'SELECT'){
+Array.from(ant.options).forEach(op=>{
+const v = parseInt(op.value,10);
+if(v>maxVal) op.remove();
+});
+if(parseInt(ant.value||'0',10) > maxVal) ant.value = String(maxVal);
+} else {
+if(parseInt(ant.value||'0',10) > maxVal) ant.value = String(maxVal);
+}
+}
+}catch(e){ console && console.warn &&  }
+const st=def.gen?def.gen():{};
+host.dataset.state=JSON.stringify(st); host.dataset.active=def.id;
+def.render(host,st);
+(function(){ let r=$('#res',host); if(!r){ r=document.createElement('div'); r.id='res'; host.appendChild(r);} })();
+(function(){
+
+const okFlag = ('');
+$('#res',host).textContent = anyEmpty ? '' : okFlag;
+})();
+document.body.classList.remove('solution-active');
+}
+
+function check(){
+  if(!def) return;
+
+let okAll=true, total=0, okCount=0;
+
+function mark(id, ok){
+const m = host.querySelector('#'+id);
+if(!m) return;
+m.textContent = ok ? '✔' : '✘';
+m.style.color = ok ? '#14532d' : '#991b1b';
+}
+function isEmpty(v){ return !v || v.trim()===''; }
+function getAxisLabelFromSVG(host, cls){ try{ const t=host.querySelector('svg.repere .'+cls); return t? t.textContent||'':''; }catch(_){ return ''; } }
+function normToken(tok){
+return tok.replace(/\u00A0/g,' ')
+.replace(/\u2212/g,'-')
+.replace(/\s+/g,' ')
+.trim();
+}
+
+if(def.id==='rg2'){
+
+const dRaw = ($('#bD',host)?.value||'');
+
+if(!isEmpty(d)){
+total++;
+
+mark('bDm', okD); okAll &= okD; if(okD) okCount++;
+}
+
+(st.Ximg||[]).forEach((x,i)=>{
+const raw = ($('#bI'+i,host)?.value||'');
+
+if(isEmpty(t)) return;
+total++;
+const v = Math.round(interpAtGrid(st.grid, x)*10)/10;
+
+const ok = Math.abs(parseFloat(ans) - v) <= 0.2;
+mark('bI'+i+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+
+(st.Yask||[]).forEach((y,j)=>{
+const raw = ($('#bA'+j,host)?.value||'');
+
+if(isEmpty(t)) return;
+total++;
+
+if(t==='aucun'){
+ok = (A.length===0);
+}else{
+').map(s=>normToken(s)).filter(Boolean).map(s=>parseFloat(s.replace(',', '.')));
+ok = (L.length===A.length) && L.every(u=>A.some(v=>Math.abs(u-v)<=0.2));
+}
+mark('bA'+j+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+} else if(def.id==='rg1'){
+
+const dRaw = ($('#aD',host)?.value||'');
+
+if(!isEmpty(d)){
+total++;
+
+mark('aDm', okD); okAll &= okD; if(okD) okCount++;
+}
+
+(st.Ximg||[]).forEach((x,i)=>{
+const raw = ($('#aI'+i,host)?.value||'');
+const t = normToken(raw);
+if(isEmpty(t)) return;
+total++;
+const ok = (parseInt(t,10)===interpAtGrid(st.grid,x));
+mark('aI'+i+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+
+(st.Yask||[]).forEach((y,j)=>{
+const raw = ($('#aA'+j,host)?.value||'');
+const t = normToken(raw).toLowerCase();
+if(isEmpty(t)) return;
+total++;
+const A = antecedentsOfGrid(st.grid, y).map(v=>Math.round(v));
+
+if(t==='aucun'){
+ok = (A.length===0);
+}else{
+').map(s=>normToken(s)).filter(Boolean).map(s=>parseInt(s,10));
+ok = (L.length===A.length) && L.every(v=>A.includes(v));
+}
+mark('aA'+j+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+}
+else if(def.id==='rg3'){
+function normLab(s){
+try{ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim(); }
+catch(_){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim(); }
+}
+
+const th = st.th||{}; const thId = (th.id||'').toLowerCase();
+const xTarget = {
+tension:'temps', vitesse:'temps', luminosite:'temps', concentration:'temps', debit:'temps', niveau:'temps', panier:'temps',
+petrole:'annees', naiss:'annees', co2:'annees', pouvoir:'annees', incendies:'annees', population:'annees',
+sismique:'mois', temperature:'heures'
+}[thId] || 'temps';
+const ySynsMap = {
+tension:['tension'],
+petrole:['prix','prixdupetrole'],
+naiss:['naissance','naissances'],
+co2:['emissions','co2','emission'],
+temperature:['temperature'],
+pouvoir:['pouvoirdachat','achat','pouvoir'],
+incendies:['incendie','incendies'],
+population:['population'],
+vitesse:['vitesse','vitesseunmobile','unmobile','mobile'],
+luminosite:['luminosite','etoile'],
+sismique:['evenements','seismes','activitesismique','activitesismiques'],
+concentration:['concentration','reactif'],
+debit:['debit','fleuve'],
+niveau:['niveau','lac'],
+panier:['prix','panier']
+};
+const ySyns = ySynsMap[thId] || [];
+
+let xShown = getAxisLabelFromSVG(host,'xlabel');
+let yShown = getAxisLabelFromSVG(host,'ylabel');
+const L = __labelsFromTheme(th);
+const xExp = xShown || (L.xLab||'abscisse');
+const yExp = yShown || (L.yLab||'ordonnée');
+const xAlt = xExp.split(' (')[0]; const yAlt = yExp.split(' (')[0];
+
+const xIn = normLab(($('#c1x',host)?.value||''));
+const yIn = normLab(($('#c1y',host)?.value||''));
+const xExpN = normLab(xExp), xAltN = normLab(xAlt);
+const yExpN = normLab(yExp), yAltN = normLab(yAlt);
+const xTargetN = normLab(xTarget);
+
+const xOk = !!xIn && (xIn.includes(xExpN) || xExpN.includes(xIn) || xIn.includes(xAltN) || xAltN.includes(xIn) || xIn.includes(xTargetN) || xTargetN.includes(xIn));
+let yOk = !!yIn && (yIn.includes(yExpN) || yExpN.includes(yIn) || yIn.includes(yAltN) || yAltN.includes(yIn));
+if(!yOk && ySyns.length){
+const yIn2 = yIn;
+yOk = ySyns.some(tok => { const t = normLab(tok); return t && (yIn2.includes(t) || t.includes(yIn2)); });
+}
+if(!isEmpty($('#c1x',host)?.value||'')){ total++; mark('c1xm', xOk); okAll &= xOk; if(xOk) okCount++; }
+if(!isEmpty($('#c1y',host)?.value||'')){ total++; mark('c1ym', yOk); okAll &= yOk; if(yOk) okCount++; }
+
+function interp(xs,ys,x){  while(i<xs.length-1 && xs[i+1] < x) i++; i=Math.max(0, Math.min(i, xs.length-2)); const x1=xs[i], x2=xs[i+1], y1=ys[i], y2=ys[i+1]; const t=(x-x1)/(x2-x1); return y1+(y2-y1)*t; }
+const y1 = interp(st.xs, st.ys, st.read1), y2 = interp(st.xs, st.ys, st.read2);
+const t2a = (($('#c2a',host)?.value||'').trim()); const t2b = (($('#c2b',host)?.value||'').trim());
+if(!isEmpty(t2a)){ total++; const ok = Math.abs(parseFloat(t2a.replace(',','.')) - y1) <= 0.2; mark('c2am', ok); okAll &= ok; if(ok) okCount++; }
+if(!isEmpty(t2b)){ total++; const ok = Math.abs(parseFloat(t2b.replace(',','.')) - y2) <= 0.2; mark('c2bm', ok); okAll &= ok; if(ok) okCount++; }
+
+function antecedentsFor(yv){  for(let i=0;i<st.xs.length-1;i++){ const yA=st.ys[i], yB=st.ys[i+1]; if((yA-yv)*(yB-yv)<=0){ const x = st.xs[i] + (yv - yA) * (st.xs[i+1] - st.xs[i])/(yB-yA); out.push( Math.round(x*100)/100 ); } } return Array.from(new Set(out)); }
+const Aneed = antecedentsFor(st.yTarget);
+const t3 = (($('#c3a',host)?.value||'').trim());
+if(!isEmpty(t3)){
+total++;
+const L3 = t3.split(';').map(s=>s.trim()).filter(Boolean).map(s=>parseFloat(s.replace(',','.')));
+function nearSetEq(A,B,tol){ tol=tol||0.25;
+function dedup(arr){ const out=[]; arr.forEach(v=>{ if(!out.some(w=>Math.abs(w-v)<=tol)) out.push(v); }); return out; }
+const A2 = dedup(A||[]), B2 = dedup(B||[]);
+return A2.every(a=>B2.some(b=>Math.abs(b-a)<=tol)) && B2.every(b=>A2.some(a=>Math.abs(a-b)<=tol));
+}
+const ok = nearSetEq(L3, Aneed, 0.25);
+mark('c3am', ok); okAll &= ok; if(ok) okCount++;
+}
+} else if(def.id==='rg4'){
+
+const dRaw = ($('#dD',host)?.value||''); const d = normToken(dRaw);
+if(!isEmpty(d)){
+total++; const okD = checkDomainInput(d, st.R.xmin, st.R.xmax);
+mark('dDm', okD); okAll &= okD; if(okD) okCount++;
+}
+
+const fAt = x=>Math.round(interpAtGrid(st.grid,x)*10)/10;
+(st.Xs||[]).forEach((x,i)=>{
+const el = $('#dI'+i, host) || host.querySelectorAll('input.c1')[i];
+if(!el) return;
+const t = normToken(el.value);
+if(isEmpty(t)) return;
+total++;
+const ans = t.replace(',', '.');
+const ok = Math.abs(parseFloat(ans) - fAt(x)) <= 0.2;
+mark('dI'+i+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+
+(st.Ys||[]).forEach((y,j)=>{
+const el = $('#dA'+j, host) || host.querySelectorAll('input.c2')[j];
+if(!el) return;
+const t = normToken(el.value).toLowerCase();
+if(isEmpty(t)) return;
+total++;
+const A = antecedentsOfGrid(st.grid, y).map(v=>Math.round(v*10)/10);
+let ok=false;
+if(t==='aucun'){
+ok = (A.length===0);
+}else{
+const L = t.split(';').map(s=>normToken(s)).filter(Boolean).map(s=>parseFloat(s.replace(',', '.')));
+ok = (L.length===A.length) && L.every(u=>A.some(v=>Math.abs(u-v)<=0.2));
+}
+mark('dA'+j+'m', ok); okAll &= ok; if(ok) okCount++;
+});
+}
+
+scoreTot += (total||1);
+scoreOK += (okCount||0);
+updateScore();
+document.body.classList.remove('solution-active');
+}
+
+function solution(){   if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; def.reset(host); scoreOK=0; scoreTot=0; updateScore(); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+$('#amp-apply').addEventListener('click',applyAMP);
+const sel=$("#exo-select"); REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+sel.addEventListener('change',buildOne);
+$("#btn-new").addEventListener('click', buildOne);
+$("#btn-check").addEventListener('click', check);
+
+document.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); check(); } }, {capture:true});
+$("#btn-solution").addEventListener('click', solution);
+$("#btn-reset").addEventListener('click', resetAll);
+sel.value=REGISTRY[0].id; buildOne(); updateScore();
+});
+})();</script>
+
+<script>function buildPDFStatementFromRender(def, st){
+
+def.render(tmp, st);
+const stEl = tmp.querySelector('.statement') || tmp;
+
+stEl.querySelectorAll('select,button,.optionline,.controls').forEach(el=>el.remove());
+
+stEl.querySelectorAll('input[type="text"]').forEach(inp=>{
+ span.textContent='▢';
+inp.replaceWith(span);
+});
+
+const wScreen = (document.querySelector('.statement svg.repere')?.getBoundingClientRect().width) || 560;
+stEl.querySelectorAll('svg.repere').forEach(svg=>{
+svg.style.width = Math.round(wScreen) + 'px';
+svg.style.height = 'auto';
+svg.style.maxWidth = 'none';
+svg.style.display = 'block';
+svg.style.margin = '.25rem auto';
+});
+return stEl.outerHTML;
+}</script>
+
+<script>window.addEventListener('load',function(){
+if(window.ExoPDF && ExoPDF.init){
+
+}else{
+
+const div=document.createElement('div'); div.className='controls';
+div.innerHTML='<button id="btn-print" class="btn">🖨️ Générer un PDF</button><small style="opacity:.7;margin-left:8px">Choisissez « Enregistrer au format PDF ».</small>';
+slot.appendChild(div);
+document.getElementById('btn-print').addEventListener('click',()=>window.print());
+}
+});</script>
+
+<script>(function(){
+if(window.__patched_ex4) return;
+try{
+ex4.correct = function(host, st){
+const v=$('#dD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
+const okDom=(v.length===2 && +v[0]===st.R.xmin && +v[1]===st.R.xmax);
+$('#dDm',host).textContent = okDom?'✔':'✘';
+$('#dDm',host).style.color=okDom?'#14532d':'#991b1b';
+const c1 = Array.from(host.querySelectorAll('table input.c1'));
+const c2 = Array.from(host.querySelectorAll('table input.c2'));
+let okTables = true;
+c1.forEach((inp, idx)=>{
+const want = Math.round(interpAtGrid(st.grid, st.Xs[idx]) * 10)/10;
+const got  = Number(String(inp.value).replace(',', '.').replace(/\u2212/g,'-'));
+const ok = Number.isFinite(got) && Math.abs(got - want) < 0.15;
+inp.style.background = ok ? '#e6ffed' : '#ffecec';
+okTables = okTables && ok;
+});
+c2.forEach((inp, idx)=>{
+const wantA = antecedentsOfGrid(st.grid, st.Ys[idx]).map(v=>Math.round(v*10)/10);
+const gotA = (String(inp.value||'').trim().toLowerCase()==='aucun') ? [] :
+Array.from(new Set(String(inp.value||'').replace(/[()[\]{}]/g,'').split(/[;:,]/)
+.map(s=>Number(s.replace(',', '.').replace(/\u2212/g,'-'))).filter(n=>!isNaN(n)).map(n=>Math.round(n*10)/10)));
+const ok = wantA.length===gotA.length && wantA.every(v=>gotA.some(u=>Math.abs(u-v)<=0.2));
+inp.style.background = ok ? '#e6ffed' : '#ffecec';
+okTables = okTables && ok;
+});
+const allOk = okDom && okTables;
+(function(){
+const inputs = Array.from(host.querySelectorAll('input[type="text"]'));
+const anyEmpty = inputs.some(i=>i.value.trim()==='');
+const okFlag = (allOk ? '✔' : '✘');
+$('#res',host).textContent = anyEmpty ? '' : okFlag;
+})();
+return {ok:allOk,total:1};
+};
+window.__patched_ex4 = true;
+}catch(e){}
+})();</script>
+<script>const $  = (sel, r=document)=>r.querySelector(sel);
+const $$ = (sel, r=document)=>Array.from(r.querySelectorAll(sel));
+const pick = arr => arr && arr.length ? arr[Math.floor(Math.random()*arr.length)] : null;
+
+function num(v, dflt=null){
+const n = +v; return Number.isFinite(n) ? n : dflt;
+}
+
+(function(){
+if(window.ExoPDF && typeof ExoPDF.init==='function'){
+ExoPDF.init({
+
+title: document.title.replace(/\s+–.+$/,'').trim(),
+mountAfterSelector: '#pdf-mount',
+
+beforeGen(def, st, {withSolutions}){
+try{
+
+const randAmp = !!($('#pdfRandAmp')?.checked);
+if(randAmp){
+const aMin = num($('#ampMin')?.value, -5);
+const aMax = num($('#ampMax')?.value,  5);
+st.amplitude = Math.floor(aMin + Math.random()*(aMax-aMin+1));
+}else{
+const aFix = num($('#ampFix')?.value, st.amplitude ?? 5);
+if(Number.isFinite(aFix)) st.amplitude = aFix;
+}
+
+const randNA = !!($('#pdfRandNA')?.checked);
+if(randNA){
+const nMin = num($('#naMin')?.value, 2);
+const nMax = num($('#naMax')?.value, 6);
+st.nbImages       = Math.floor(nMin + Math.random()*(nMax-nMin+1));
+st.nbAntecedents  = Math.floor(nMin + Math.random()*(nMax-nMin+1));
+}else{
+const nImg = num($('#nbImg')?.value, st.nbImages ?? 4);
+const nAnt = num($('#nbAnt')?.value, st.nbAntecedents ?? 4);
+if(Number.isFinite(nImg)) st.nbImages = nImg;
+if(Number.isFinite(nAnt)) st.nbAntecedents = nAnt;
+}
+
+const randTheme = !!($('#pdfRandTheme')?.checked);
+const selTheme  = $('#themeSel');
+if(randTheme && window.THEMES && THEMES.length){
+const th = pick(THEMES);
+if(th) st.themeId = th.id;
+}else if(selTheme){
+st.themeId = selTheme.value;
+}
+}catch(e){  }
+return st;
+},
+
+beforeRender(def, st, withSolutions){
+try{
+if(typeof def.render === 'function'){
+const tmp = document.createElement('div');
+Object.assign(tmp.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',overflow:'hidden'});
+document.body.appendChild(tmp);
+
+def.render(tmp, st);
+const row = tmp.querySelector('.row') || tmp;
+
+row.querySelectorAll('#res,.optionline,.controls,.kbd-host,button').forEach(n=>n.remove());
+
+row.querySelectorAll('input[type="text"],input[type="number"]').forEach(inp=>{
+
+span.className='sol-text';
+span.textContent='▢';
+inp.replaceWith(span);
+});
+
+row.querySelectorAll('select').forEach(sel=>{
+const t = sel.options[sel.selectedIndex]?.text || sel.value || '—';
+const span = document.createElement('span');
+span.className='sol-sel';
+span.textContent = t;
+sel.replaceWith(span);
+});
+
+const html = row.outerHTML;
+tmp.remove();
+return withSolutions ? {solution: html} : {statement: html};
+}
+}catch(e){  }
+
+}
+});
+} else {
+
+const slot=document.querySelector('#pdf-slot');
+if(slot && !slot.querySelector('.pdf-fallback')){
+const btn=document.createElement('button'); btn.className='btn pdf-fallback'; btn.textContent='Imprimer → PDF';
+btn.onclick=()=>window.print(); slot.appendChild(btn);
+}
+}
+})();</script>
+
+<script>addEventListener('click', function(ev){
+const btn = ev.target.closest('button');
+if(!btn) return;
+const label = (btn.textContent||'').toLowerCase();
+if(label.includes('vérifier')){
+const host = btn.closest('.row') || document;
+const inputs = host ? host.querySelectorAll('input[type="text"],input[type="number"]') : [];
+const anyEmpty = Array.from(inputs).some(i => (i.value||'').trim()==='');
+if(anyEmpty){
+const res = host.querySelector('#res'); if(res) res.textContent='';
+ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault();
+}
+}
+}, true);</script>
+
+<script>(function(){
+if (window.__RG_PDF_HOOKED) return;
+window.__RG_PDF_HOOKED = true;
+
+document.addEventListener('DOMContentLoaded', function(){
+['pdfRandAmp','pdfRandNA','pdfRandTheme'].forEach(function(id){
+var el = document.getElementById(id);
+if (el) el.checked = false;
+});
+});
+
+function clamp(n,a,b){ n=+n; if(n<a) return a; if(n>b) return b; return n; }
+function ri(a,b){ a=+a; b=+b; if(a>b){var t=a;a=b;b=t;} return a + Math.floor(Math.random()*(b-a+1)); }
+
+function num(v, d){ var n = Number(v); return Number.isFinite(n) ? n : d; }
+
+function getEl(id){ return document.getElementById(id); }
+
+function currentAMPFromInputs(){
+var xi = +getEl('xmin')?.value, xa = +getEl('xmax')?.value, yi = +getEl('ymin')?.value, ya = +getEl('ymax')?.value;
+if(!(xi<=xa)){ var tmp=xi; xi=xa; xa=tmp; }
+if(!(yi<=ya)){ var t2=yi; yi=ya; ya=t2; }
+xi = clamp(xi, -12, 12); xa = clamp(xa, -12, 12);
+yi = clamp(yi, -12, 12); ya = clamp(ya, -12, 12);
+if(xi===xa) xa=xi+1; if(yi===ya) ya=yi+1;
+return { xmin: xi, xmax: xa, ymin: yi, ymax: ya };
+}
+
+function applyAMPObject(obj){
+
+try{ window.AMP = { xmin: obj.xmin, xmax: obj.xmax, ymin: obj.ymin, ymax: obj.ymax }; }catch(_){}
+var xminEl=getEl('xmin'), xmaxEl=getEl('xmax'), yminEl=getEl('ymin'), ymaxEl=getEl('ymax');
+if(xminEl) xminEl.value = obj.xmin;
+if(xmaxEl) xmaxEl.value = obj.xmax;
+if(yminEl) yminEl.value = obj.ymin;
+if(ymaxEl) ymaxEl.value = obj.ymax;
+}
+
+function pickRandomAMP(){
+var xi = ri(-12,-2), xa = ri(2,12), yi = ri(-12,-2), ya = ri(2,12);
+return { xmin: Math.min(xi,xa), xmax: Math.max(xi,xa), ymin: Math.min(yi,ya), ymax: Math.max(yi,ya) };
+}
+
+function withTempConfig(applyFn, genFn, restoreFn){
+try { return genFn(); }
+finally { try{ restoreFn && restoreFn(); }catch(_){ } }
+}
+
+function str(v){ return v==null ? '' : String(v); }
+
+function overrideInit(){
+if(!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+
+var _oldInit = ExoPDF.init;
+ExoPDF.init = function(opts){
+opts = opts || {};
+var origBeforeGen    = opts.beforeGen;
+var origBeforeRender = opts.beforeRender;
+
+opts.beforeGen = function(def, st, ctx){
+
+var imgEl = getEl('cfg-img'), antEl = getEl('cfg-ant');
+var saveImg = imgEl ? imgEl.value : null;
+var saveAnt = antEl ? antEl.value : null;
+var saveAMP = (window.AMP && typeof AMP === 'object') ? { xmin: AMP.xmin, xmax: AMP.xmax, ymin: AMP.ymin, ymax: AMP.ymax } : null;
+var themeSel = getEl('themeSel'); var saveTheme = themeSel ? themeSel.value : null;
+
+var randAmp = !!(getEl('pdfRandAmp') && getEl('pdfRandAmp').checked);
+var randNA  = !!(getEl('pdfRandNA')  && getEl('pdfRandNA').checked);
+var randTh  = !!(getEl('pdfRandTheme') && getEl('pdfRandTheme').checked);
+
+if (randAmp){
+applyAMPObject(pickRandomAMP());
+} else {
+
+var visAMP = currentAMPFromInputs();
+applyAMPObject(visAMP);
+}
+
+if (def && (def.id === 'rg1' || def.id === 'rg2' || def.id === 'rg4')){
+if (randNA){
+var iMin = parseInt(imgEl?.min || '1', 10), iMax = parseInt(imgEl?.max || '10', 10);
+var aMin = parseInt(antEl?.min || '1', 10), aMax = parseInt(antEl?.max || '10', 10);
+if (imgEl) imgEl.value = str(ri(iMin, iMax));
+if (antEl) antEl.value = str(ri(aMin, aMax));
+}
+}
+
+if (def && def.id === 'rg3'){
+if (randTh){ window.__rg3_last_theme = null; }
+else if (saveTheme != null){ window.__rg3_last_theme = saveTheme; }
+}
+
+var st2;
+try{
+if (typeof origBeforeGen === 'function'){
+
+try{ origBeforeGen(def, st, ctx); }catch(_){}
+}
+}catch(_){}
+st2 = (def && typeof def.gen === 'function') ? def.gen() : st;
+
+return withTempConfig(null, function(){ return st2; }, function(){
+if (saveAMP) applyAMPObject(saveAMP);
+if (imgEl && saveImg != null) imgEl.value = saveImg;
+if (antEl && saveAnt != null) antEl.value = saveAnt;
+if (themeSel && saveTheme != null) themeSel.value = saveTheme;
+});
+};
+
+opts.beforeRender = function(def, st, withSolutions){
+
+try{
+if (typeof origBeforeRender === 'function') origBeforeRender(def, st, withSolutions);
+}catch(_){}
+
+};
+
+return _oldInit(opts);
+};
+}
+
+if (document.readyState === 'loading'){
+document.addEventListener('DOMContentLoaded', overrideInit);
+} else {
+overrideInit();
+}
+})();</script>
+
+<script>(function(){
+try{
+if(!window.pathFromGridSmooth) return;
+if (window.REGISTRY && Array.isArray(window.REGISTRY)) {
+var idxList = [0,1,3];
+idxList.forEach(function(idx){
+var it = window.REGISTRY[idx];
+if(!it) return;
+var r = it.render;
+if(typeof r === 'function'){
+it.render = function(host, st){
+
+window.pathFromGrid = window.pathFromGridSmooth;
+try { return r.apply(this, arguments); }
+finally { window.pathFromGrid = _orig; }
+};
+}
+var s = it.solution;
+if(typeof s === 'function'){
+it.solution = function(host, st){
+var _orig = window.pathFromGrid;
+window.pathFromGrid = window.pathFromGridSmooth;
+try { return s.apply(this, arguments); }
+finally { window.pathFromGrid = _orig; }
+};
+}
+});
+}
+}catch(e){ if(console && console.warn)  }
+})();</script>
+
+<script>function checkDomainInput(str, xmin, xmax){
+try{
+if(str==null) return false;
+var s = String(str).replace(/\u00A0/g,' ').replace(/\u2212/g,'-');
+s = s.replace(/[\(\)\[\]]/g,'').replace(/\s+/g,'');
+var parts = s.split(/[;:,]/).filter(Boolean);
+if(parts.length!==2) return false;
+var a = parseFloat(parts[0].replace(',', '.'));
+var b = parseFloat(parts[1].replace(',', '.'));
+if(!isFinite(a) || !isFinite(b)) return false;
+return Math.abs(a - xmin) < 1e-9 && Math.abs(b - xmax) < 1e-9;
+}catch(e){ return false; }
+}</script>
+
+</body>
+</html>
+
+<script>(function(){
+try{
+const sel = document.getElementById('themeSel');
+if(sel){
+window.__rg3_last_theme = sel.value;
+sel.addEventListener('change', function(){
+window.__rg3_last_theme = this.value;
+try{
+if(typeof buildOne === 'function' && window.REGISTRY && window.REGISTRY.def && window.REGISTRY.def.id==='rg3'){
+buildOne(window.REGISTRY.def);
+}
+}catch(e){}
+});
+}
+}catch(e){}
+})();</script>

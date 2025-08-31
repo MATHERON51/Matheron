@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Courbe lisse — passe par A(-3;2), B(0;4), C(2;2)</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 system-ui,Segoe UI,Roboto,Arial;background:#fff;color:#111}
+  .wrap{max-width:900px;margin:0 auto;padding:18px}
+  h1{font:600 18px/1.2 system-ui,Segoe UI,Roboto,Arial;margin:0 0 8px}
+  .card{border:1px solid #e6e6e6;border-radius:12px;padding:12px}
+  .canvas-wrap{position:relative;background:#fafafa;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;height:520px}
+  .legend{margin-top:8px;font-size:14px;color:#333}
+  code{background:#f2f2f2;border-radius:6px;padding:0 6px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Courbe lisse passant par A, B, C (sans tangentes)</h1>
+    <div class="card">
+      <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+      <div class="legend">
+        Courbe rouge : \(f(x)=\frac{67}{5400}x^5+\frac{16}{675}x^4-\frac{641}{5400}x^3-\frac{137}{300}x^2+4\).<br>
+        Points affichés : A(−3;2), B(0;4), C(2;2). (Aucun autre point n’est visible.)
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ----- Viewport in math units (like the screenshot) -----
+  const XMIN=-5, XMAX=5, YMIN=-1, YMAX=5;
+
+  // Polynomial matching the 6 constraints (C^1 smooth — max arrondi)
+  function f(x){
+    return (67/5400)*x**5 + (16/675)*x**4 - (641/5400)*x**3 - (137/300)*x**2 + 4;
+  }
+
+  const A = {x:-3, y:2, name:'A'};
+  const B = {x:0,  y:4, name:'B'};
+  const C = {x:2,  y:2, name:'C'};
+
+  const $cv = document.getElementById('cv');
+  const ctx = $cv.getContext('2d');
+
+  function pxW(){ return $cv.clientWidth; }
+  function pxH(){ return $cv.clientHeight; }
+  function scaleCanvasForDPI(){
+    const dpr = window.devicePixelRatio || 1;
+    const w = pxW(), h = pxH();
+    $cv.width = Math.round(w*dpr);
+    $cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // Transform (x,y) in math units -> pixels inside canvas
+  function X(x){ return (x - XMIN) * (pxW() / (XMAX - XMIN)); }
+  function Y(y){ return (YMAX - y) * (pxH() / (YMAX - YMIN)); }
+
+  function drawGrid(){
+    ctx.clearRect(0,0,pxW(),pxH());
+
+    // light grid
+    ctx.lineWidth = 1;
+    for(let x=Math.ceil(XMIN); x<=Math.floor(XMAX); x++){
+      ctx.strokeStyle = (x===0)? '#888' : '#e8e8e8';
+      ctx.beginPath();
+      ctx.moveTo(X(x), Y(YMIN));
+      ctx.lineTo(X(x), Y(YMAX));
+      ctx.stroke();
+    }
+    for(let y=Math.ceil(YMIN); y<=Math.floor(YMAX); y++){
+      ctx.strokeStyle = (y===0)? '#888' : '#e8e8e8';
+      ctx.beginPath();
+      ctx.moveTo(X(XMIN), Y(y));
+      ctx.lineTo(X(XMAX), Y(y));
+      ctx.stroke();
+    }
+
+    // axes labels (integers)
+    ctx.fillStyle = '#444';
+    ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.textAlign = 'center';
+    for(let x=Math.ceil(XMIN); x<=Math.floor(XMAX); x++){
+      if(x===0) continue;
+      ctx.fillText(String(x), X(x), Y(0)+14);
+    }
+    ctx.textAlign = 'right';
+    for(let y=Math.ceil(YMIN); y<=Math.floor(YMAX); y++){
+      if(y===0) continue;
+      ctx.fillText(String(y), X(0)-6, Y(y)+4);
+    }
+  }
+
+  function drawCurve(){
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#d12c2c'; // red
+    ctx.beginPath();
+    const steps = Math.max(800, pxW()); // dense sampling for smoothness
+    for(let i=0;i<=steps;i++){
+      const x = XMIN + (i/steps)*(XMAX - XMIN);
+      const y = f(x);
+      const px = X(x), py = Y(y);
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+
+  function dot(P, color='#111'){
+    const r = 4;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(X(P.x), Y(P.y), r, 0, 2*Math.PI);
+    ctx.fill();
+  }
+
+  function label(P){
+    ctx.fillStyle = '#111';
+    ctx.font = '13px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${P.name} (${P.x}; ${P.y})`, X(P.x)+6, Y(P.y)-8);
+  }
+
+  function render(){
+    scaleCanvasForDPI();
+    drawGrid();
+    drawCurve();
+    [A,B,C].forEach(p => { dot(p); label(p); });
+  }
+
+  // initial + responsive
+  const ro = new ResizeObserver(render);
+  ro.observe($cv);
+  render();
+})();
+</script>
+</body>
+</html>

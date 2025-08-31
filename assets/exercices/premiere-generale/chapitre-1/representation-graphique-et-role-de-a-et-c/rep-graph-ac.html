@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Première – Chapitre 1 – Polynôme du second degré — Activité</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--accent:#0b5fff;--ok:#11823b;--ko:#b00020}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .controls.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select,input[type="text"],input[type="number"]{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;min-width:160px}
+  button{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer}
+  button.primary{background:#eef3ff;border-color:#cddaff}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .lead{background:#f6f7fb;border:1px solid #e8eaf5;border-radius:10px;padding:10px 12px;margin:0 0 10px 0}
+  .equ{font-weight:600}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  .small{color:#555;font-size:.95rem}
+  .steps{background:#f6f7fb;border:1px dashed #d7daf0;border-radius:10px;padding:10px 12px;line-height:1.5;margin-top:8px}
+  .ok{color:var(--ok);font-weight:600}
+  .ko{color:var(--ko);font-weight:600}
+  canvas.graph{background:#fff;border:1px solid #d9d9d9;border-radius:10px;display:block;max-width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls card">
+    <label for="exo-select"><strong>Type d’exercice :</strong></label>
+    <select id="exo-select"></select>
+    <button class="btn" id="btn-new" title="Générer un nouvel énoncé">🔄 Nouvel énoncé</button>
+    <button class="btn" id="btn-check" title="Vérifier votre réponse (Entrée ⏎)">✅ Vérifier</button>
+    <button class="btn" id="btn-solution" title="Afficher la solution détaillée">💡 Solution</button>
+    <button class="btn" id="btn-reset" title="Réinitialiser et remettre le score à zéro">🧹 Réinitialiser</button>
+    <span class="score">Score : <span id="score">0 / 0</span></span>
+  </div>
+
+  <!-- Zone exercice -->
+  <div id="host" class="card"></div>
+</div>
+
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js"></script>
+<script src="../../../../js/dev-rules-clean.dedup.js"></script>
+<script src="../../../../js/math-kbd.multiplicatif.js"></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js"></script>
+<script>
+/* ============ Utilitaires communs (structure existante respectée) ============ */
+const UMINUS = '−';
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const $ = (s, r=document)=> (r||document).querySelector(s);
+function setScore(v){ const x=Math.max(0, v|0); $('#score').textContent = x; window.__SCORE__=x; }
+setScore(0);
+
+/* ============ Exercice 1 — Expression f(x)=ax²+bx+c (ton Ex.3 de base) ============ */
+const EX1 = {
+  id:'ex1',
+  title:'1 — a (signe) et c (valeur) à partir de l’expression',
+  gen(){
+    const a = choice([-3,-2,-1,1,2,3]);
+    const b = rnd(-6,6);
+    const c = rnd(-8,8);
+    return {a,b,c};
+  },
+  text(st){
+    return `<div class="equ">On considère la fonction <b>f(x) = ${this._expr(st)}</b>. Indiquer si <b>a</b> est positif ou négatif et donner la valeur de <b>c</b>.</div>`;
+  },
+  render(host, st){
+    const {a,b,c} = st;
+    host.innerHTML = `
+      <div class="lead"><div class="equ">
+        On considère la fonction <b> f(x) = ${this._expr(st)}</b>. Indiquer si <b>a</b> est positif ou négatif et donner la valeur de <b>c</b>.
+      </div></div>
+      <div class="row">
+        a :
+        <select id="signa">
+          <option value=""></option>
+          <option value="pos">positif</option>
+          <option value="neg">négatif</option>
+        </select>
+        c : <input id="valc" type="text" inputmode="decimal" style="width:90px" />
+        <span class="small">(entier ; virgule ou point acceptés)</span>
+      </div>
+      <div id="res" class="small"></div>
+    `;
+    host.__state = {a,b,c};
+  },
+  correct(host, st){
+    const {a,c} = host.__state || st;
+    const sign = $('#signa',host)?.value || '';
+    const valc = ($('#valc',host)?.value || '').trim().replace(',','.');
+    let ok=0, tot=0, steps=[];
+    tot++;
+    if(sign){ ((a>0 && sign==='pos')||(a<0 && sign==='neg')) ? (ok++, steps.push('<span class="ok">a : correct</span>')) : steps.push('<span class="ko">a : incorrect</span>'); }
+    else steps.push('<span class="ko">a : non renseigné</span>');
+    tot++;
+    if(valc!==''){ const n=Number(valc); (Number.isFinite(n) && n===c) ? (ok++, steps.push('<span class="ok">c : '+c+'</span>')) : steps.push('<span class="ko">c : attendu '+c+'</span>'); }
+    else steps.push('<span class="ko">c : non renseigné</span>');
+
+    $('#res',host).innerHTML = '<div class="steps">'+steps.join('<br>')+'</div>';
+    setScore((window.__SCORE__||0)+ok);
+    return {ok,total:tot};
+  },
+  solution(host, st){
+    const {a,c} = host.__state || st;
+    $('#res',host).innerHTML = `<div class="steps">
+      <div>a ${a>0?'positif':'négatif'} (coefficient de x<sup>2</sup> ${a>0?'&gt; 0':'&lt; 0'})</div>
+      <div>c = ${c} (terme constant ; ordonnée à l’origine)</div>
+    </div>`;
+    const s = $('#signa',host); const v = $('#valc',host);
+    if(s) s.value = (a>0?'pos':'neg');
+    if(v) v.value = String(c);
+  },
+  _expr({a,b,c}){
+    const t2 = (a===1?'x²':a===-1?UMINUS+'x²':a+'x²');
+    const t1 = b===0?'': (b>0?' + ':' '+UMINUS+' ') + (Math.abs(b)===1?'x':Math.abs(b)+'x');
+    const t0 = c===0?'': (c>0?' + ':' '+UMINUS+' ') + Math.abs(c);
+    return (t2 + t1 + t0).replace(/^ \+ /,'');
+  }
+};
+
+/* ============ Exercice 2 — Parabole (canvas) ============ */
+const EX2 = {
+  id:'ex2',
+  title:'2 — a (signe) et c (valeur) à partir de la parabole',
+  gen(){
+    const a = choice([-3,-2,-1,1,2,3]);
+    const b = rnd(-5,5);
+    const c = rnd(-8,8);
+    return {a,b,c};
+  },
+  text(_st){
+    return `<div class="equ">Voici la courbe d’une fonction <b>f</b> de la forme <b>ax²+bx+c</b> dans un repère. Indiquer si <b>a</b> est positif ou négatif et donner <b>c</b> (ordonnée à l’origine).</div>`;
+  },
+  render(host, st){
+    const {a,b,c} = st;
+    host.innerHTML = `
+      <div class="lead"><div class="equ">
+        Voici la courbe d’une fonction <b>f</b> de la forme <b>ax²+bx+c</b> dans un repère.
+        Indiquer si <b>a</b> est positif ou négatif et donner <b>c</b> (ordonnée à l’origine).
+      </div></div>
+      <canvas id="cv" class="graph" width="720" height="420"></canvas>
+      <div class="row">
+        a :
+        <select id="signa">
+          <option value=""></option>
+          <option value="pos">positif</option>
+          <option value="neg">négatif</option>
+        </select>
+        c : <input id="valc" type="text" inputmode="decimal" style="width:90px" />
+        <span class="small">(lire y quand x=0)</span>
+      </div>
+      <div id="res" class="small"></div>
+    `;
+    host.__state = {a,b,c};
+    this._draw($('#cv',host), a,b,c);
+  },
+  correct(host, st){
+    const {a,c} = host.__state || st;
+    const sign = $('#signa',host)?.value || '';
+    const valc = ($('#valc',host)?.value || '').trim().replace(',','.');
+    let ok=0, tot=0, steps=[];
+    tot++;
+    if(sign){ ((a>0 && sign==='pos')||(a<0 && sign==='neg')) ? (ok++, steps.push('<span class="ok">a : correct</span>')) : steps.push('<span class="ko">a : incorrect</span>'); }
+    else steps.push('<span class="ko">a : non renseigné</span>');
+    tot++;
+    if(valc!==''){ const n=Number(valc); (Number.isFinite(n) && n===c) ? (ok++, steps.push('<span class="ok">c : '+c+'</span>')) : steps.push('<span class="ko">c : attendu '+c+'</span>'); }
+    else steps.push('<span class="ko">c : non renseigné</span>');
+
+    $('#res',host).innerHTML = '<div class="steps">'+steps.join('<br>')+'</div>';
+    setScore((window.__SCORE__||0)+ok);
+    return {ok,total:tot};
+  },
+  solution(host, st){
+    const {a,c} = host.__state || st;
+    $('#res',host).innerHTML = `<div class="steps">
+      <div>a ${a>0?'positif':'négatif'} (parabole ${a>0?'ouverte vers le haut':'ouverte vers le bas'})</div>
+      <div>c = ${c} (intersection avec l’axe des ordonnées)</div>
+    </div>`;
+    const s = $('#signa',host); const v = $('#valc',host);
+    if(s) s.value = (a>0?'pos':'neg');
+    if(v) v.value = String(c);
+  },
+  _draw(canvas,a,b,c){
+    const ctx = canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    const xMin=-10, xMax=10, yMin=-10, yMax=10;
+    const X = x => (x - xMin)/(xMax-xMin)*W;
+    const Y = y => H - (y - yMin)/(yMax-yMin)*H;
+
+    ctx.clearRect(0,0,W,H);
+    // grille
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e8e8e8';
+    for(let x=Math.ceil(xMin); x<=xMax; x++){
+      const Xp=X(x); ctx.beginPath(); ctx.moveTo(Xp,0); ctx.lineTo(Xp,H); ctx.stroke();
+    }
+    for(let y=Math.ceil(yMin); y<=yMax; y++){
+      const Yp=Y(y); ctx.beginPath(); ctx.moveTo(0,Yp); ctx.lineTo(W,Yp); ctx.stroke();
+    }
+    // axes
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#333';
+    ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(0),0); ctx.lineTo(X(0),H); ctx.stroke();
+    // ticks + labels
+    ctx.fillStyle = '#333'; ctx.font = '12px system-ui,Segoe UI,Roboto,Arial';
+    for(let x=-10;x<=10;x++){ if(x===0) continue; const Xp=X(x), Y0=Y(0); ctx.beginPath(); ctx.moveTo(Xp,Y0-4); ctx.lineTo(Xp,Y0+4); ctx.stroke(); ctx.fillText(String(x), Xp-3, Y0+14); }
+    for(let y=-10;y<=10;y++){ if(y===0) continue; const Yp=Y(y), X0=X(0); ctx.beginPath(); ctx.moveTo(X0-4,Yp); ctx.lineTo(X0+4,Yp); ctx.stroke(); ctx.fillText(String(y), X0+6, Yp+4); }
+    // parabole
+    ctx.lineWidth=2; ctx.strokeStyle='#0b5fff'; ctx.beginPath();
+    let first=true;
+    for(let x=xMin; x<=xMax; x+=0.05){
+      const y = a*x*x + b*x + c;
+      const Xp=X(x), Yp=Y(y);
+      if(first){ ctx.moveTo(Xp,Yp); first=false; } else ctx.lineTo(Xp,Yp);
+    }
+    ctx.stroke();
+    // point (0,c)
+   // ctx.fillStyle = '#11823b'; ctx.beginPath(); ctx.arc(X(0), Y(c), 4, 0, Math.PI*2); ctx.fill();
+  }
+};
+
+/* ============ REGISTRY (structure existante) ============ */
+window.REGISTRY = [EX1, EX2];
+
+/* ============ Orchestrateur (structure existante) ============ */
+let CURRENT = null, CURRENT_STATE=null;
+function populateMenu(){
+  const sel = $('#exo-select'); sel.innerHTML = '';
+  window.REGISTRY.forEach(def=>{
+    const o=document.createElement('option'); o.value=def.id; o.textContent=def.title; sel.appendChild(o);
+  });
+}
+function newStatement(){
+  const sel = $('#exo-select');
+  CURRENT = window.REGISTRY.find(d=>d.id===sel.value) || window.REGISTRY[0];
+  if(!CURRENT) return;
+  CURRENT_STATE = (typeof CURRENT.gen==='function') ? CURRENT.gen() : {};
+  CURRENT.render($('#host'), CURRENT_STATE);
+  if(window.DevRules && typeof DevRules.attachCleaner==='function'){ DevRules.attachCleaner(); }
+}
+function doCheck(){
+  if(!CURRENT) return;
+  if(typeof CURRENT.correct==='function') CURRENT.correct($('#host'), CURRENT_STATE);
+}
+function doSolution(){
+  if(!CURRENT) return;
+  if(typeof CURRENT.solution==='function') CURRENT.solution($('#host'), CURRENT_STATE);
+}
+function doReset(){
+  $('#host').innerHTML=''; setScore(0); newStatement();
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  populateMenu();
+  $('#exo-select').addEventListener('change', newStatement);
+  $('#btn-new').addEventListener('click', newStatement);
+  $('#btn-check').addEventListener('click', doCheck);
+  $('#btn-solution').addEventListener('click', doSolution);
+  $('#btn-reset').addEventListener('click', doReset);
+  newStatement();
+});
+
+/* ============ PDF (module existant) ============ */
+/*  On injecte la parabole de l'exercice 2 DANS l'énoncé PDF via beforeRender */
+function ex2ParabolaDataURL(st, w=620, h=360){
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  try{
+    EX2._draw(c, st.a, st.b, st.c);
+  }catch(e){}
+  return c.toDataURL('image/png');
+}
+
+ExoPDF.init({
+  title: document.title,
+  leadByDefId: {
+    ex1: "Déterminer le signe de a et la valeur de c.",
+    ex2: "Lire sur la parabole le signe de a et la valeur de c."
+  },
+  beforeRender(def, st, withSolutions){
+    // Pour l'énoncé de l'exercice 2 uniquement, insérer l’image de la parabole
+    if(def && def.id==='ex2' && withSolutions===false){
+      const img = ex2ParabolaDataURL(st, 620, 360);
+      const enonce = (typeof def.text==='function') ? def.text(st) : '';
+      return `
+        ${enonce}
+        <div style="margin:6px 0 2px 0; text-align:center">
+          <img src="${img}" alt="Parabole de f(x)=ax²+bx+c" style="max-width:100%;height:auto;border:1px solid #ccc;border-radius:8px">
+        </div>
+      `;
+    }
+    // on laisse le comportement standard pour tout le reste
+    return null;
+  }
+});
+</script>
+<script src="fix-bold-math-spacing.js"></script>
+</body>
+</html>

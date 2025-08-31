@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Première – Chapitre 1 – Polynôme du second degré — Activité</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+
+  .equ{font-variant-numeric:tabular-nums}
+  .table{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+  .table th{background:#f3f3f6;text-align:left}
+  .table td:last-child,.table th:last-child{text-align:center;white-space:nowrap}
+
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  /* masque noir pour cacher les champs dans l’énoncé PDF */
+  .pdf-mask{display:block;height:14px;background:#000;border-radius:2px}
+
+  @media print{ .controls{display:none !important;} }
+
+
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Première – Chapitre 1 – <strong>Polynôme du second degré</strong> — Activité</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Entrée ⏎ déclenche <b>Vérifier</b>.</li>
+        <li>Si ce n’est pas du second degré, laissez <b>a</b>, <b>b</b>, <b>c</b> vides.</li>
+        <li>Décimales : virgule ou point. Produits implicites acceptés (ex. <code>2x</code>, <code>(x+1)(x-3)</code>).</li>
+        <li>Puissances acceptées : <code>x^2</code>, <code>x ^ 2</code>, <code>x²</code>, <code>x**2</code>, <code>(x)^2</code>, <code>(x+3)^2</code>, <code>(2x)^3</code>…</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- dépendances -->
+  <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
+  <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+<script>
+(function(){
+'use strict';
+
+/* ==== petits helpers ==== */
+const $=(s,r)=> (r||document).querySelector(s);
+const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ==== attendre DevRules + algebraicEqual ==== */
+function whenReady(cb){
+  function ok(){return window.DevRules && window.algebraicEqual}
+  if(ok()) return cb();
+  let t=0, i=setInterval(()=>{ if(ok()){clearInterval(i);cb();} else if((t+=50)>6000){clearInterval(i);} },50);
+}
+
+/* ==== somme de termes locale (préserve l’ordre donné) ==== */
+function sumTermsLocal(terms){
+  const U = DevRules.consts.UMINUS;
+  let out=[], lead=true;
+  for(const t of (terms||[])){
+    if(!t || !t.c) continue;
+    const c=t.c, p=t.p, A=Math.abs(c);
+    const sign = c<0 ? (lead? (U+' ') : (' '+U+' ')) : (lead? '' : ' + ');
+    if(p===0) out.push(sign + A);
+    else if(p===1) out.push(sign + (A===1? 'x' : (A+'x')));
+    else out.push(sign + (A===1? ('x'+DevRules.supPow(p)) : (A+'x'+DevRules.supPow(p))));
+    lead=false;
+  }
+  return DevRules.normalizeSigns(out.join('')||'0');
+}
+
+/* ==== CLONE énoncé + TABLEAU pour PDF — bordures & LARGEURS ==== */
+function setColWidth(td, mm){ td.style.width = mm+'mm'; td.style.maxWidth = mm+'mm'; }
+
+function cloneTableForPDF(root){
+  const t = root.querySelector('.table'); if(!t) return '';
+  const clone = t.cloneNode(true);
+
+  // Bordures + layout fiable pour forcer les largeurs
+  Object.assign(clone.style, {
+    borderCollapse:'collapse',
+    border:'1px solid #000',
+    tableLayout:'fixed',
+    width:'100%'
+  });
+  clone.querySelectorAll('th,td').forEach(td=>{ td.style.border='1px solid #000'; });
+
+  // retirer colonne "Valider" (dernière)
+  let ths = Array.from(clone.querySelectorAll('thead th'));
+  if (ths.length) ths.at(-1).remove();
+
+  // Reprendre les <th> après suppression et normaliser les libellés
+  ths = Array.from(clone.querySelectorAll('thead th'));
+  const norm = s => s.replace(/\s+/g,' ').trim().toLowerCase();
+  const labels = ths.map(th => norm(th.textContent));
+
+  // Détection robuste des exos
+  const isEx1 = (['a','b','c'].every(k => labels.includes(k)) ||
+                 labels.some(l => /degré|trin[oô]me/.test(l)));
+  const isEx2 = labels.some(l => /développement|developpement/.test(l));
+
+  // Largeurs (mm) après retrait de "Valider"
+  const W1 = [12, 110, 26, 18, 18, 18]; // #, Expression, Trinôme?, a, b, c
+  const W2 = [12,  70, 100, 18, 18, 18]; // #, Expression, Développement, a, b, c
+  const widths = isEx1 ? W1 : (isEx2 ? W2 : []);
+
+  if (widths.length){
+    clone.querySelectorAll('tr').forEach(tr=>{
+      Array.from(tr.children).forEach((cell, idx)=>{
+        if (widths[idx] != null) setColWidth(cell, widths[idx]);
+      });
+    });
+  }
+
+  // masquer les champs mais garder bordures, et retirer la dernière cellule des lignes corps
+  clone.querySelectorAll('tbody tr').forEach(tr=>{
+    const cells = Array.from(tr.children);
+    if (cells.length) cells.at(-1).remove(); // ex-colonne "Valider"
+    Array.from(tr.children).forEach(td=>{
+      if (td.querySelector('input,select,button')){
+        td.innerHTML = '<span class="pdf-mask"></span>';
+      }
+    });
+  });
+
+  return clone.outerHTML;
+}
+
+
+/* ==== comparateur ==== */
+function polyToExpr(poly){
+  let parts=[], lead=true;
+  for(let p=poly.length-1;p>=0;p--){
+    const c=poly[p]||0; if(!c) continue;
+    const A=Math.abs(c), s=(c<0?(lead?'-':' - '):(lead?'':' + '));
+    if(p===0) parts.push(s+A);
+    else if(p===1) parts.push(s+(A===1?'x':A+'x'));
+    else parts.push(s+(A===1?'x^'+p:A+'x^'+p));
+    lead=false;
+  }
+  return parts.join('')||'0';
+}
+function equalPolyVsExpr(poly, expr){
+  try{ return algebraicEqual(polyToExpr(poly), String(expr||'').trim()); }catch(_){ return false; }
+}
+
+/* ===================== Exercice 1 ===================== */
+const ex1={
+  id:'p1',
+  title:'Identifier les trinômes et donner a, b, c',
+  gen(){
+    function mkQuad(){
+      const a=choice([-3,-2,-1,1,2,3]);
+      const b=rnd(-6,6);
+      const c=rnd(-6,6);
+      const P=[]; P[0]=c; P[1]=b; P[2]=a;
+      return {isQuad:true,a,b,c,poly:P};
+    }
+    function mkNonQuad(){
+      const d=choice([0,1,3,4,5]);
+      const P=Array(d+1).fill(0).map(()=>rnd(-6,6));
+      if(d===2){ P[Math.random()<0.5?0:2]=0; } // ensure not a proper trinôme
+      return {isQuad:false,poly:P};
+    }
+    const items=[mkQuad(),mkQuad(),mkQuad(),mkNonQuad(),mkNonQuad(),mkNonQuad()].sort(()=>Math.random()-.5);
+    // Enoncé NON ordonné : on permute l'ordre des monômes
+    function unordered(P){
+      const terms=[]; for(let p=0;p<P.length;p++){ const c=P[p]||0; if(c) terms.push({c,p}); }
+      if(!terms.length) return '0';
+      let sh=terms.slice().sort(()=>Math.random()-.5);
+      // éviter de ressortir trié par hasard
+      let tries=4;
+      while(tries--){
+        const isDesc = sh.every((t,i)=> i===0 || sh[i-1].p>t.p);
+        if(!isDesc) break;
+        sh=terms.slice().sort(()=>Math.random()-.5);
+      }
+      const U=DevRules.consts.UMINUS;
+      const mono=(c,p)=>{
+        const A=Math.abs(c);
+        if(p===0) return ''+A;
+        if(p===1) return (A===1?'x':A+'x');
+        return (A===1?('x'+DevRules.supPow(p)):(A+'x'+DevRules.supPow(p)));
+      };
+      let s=(sh[0].c<0?U+' ':'')+mono(sh[0].c,sh[0].p);
+      for(let i=1;i<sh.length;i++){
+        const t=sh[i];
+        s += (t.c<0?(' '+U+' '):' + ')+mono(t.c,t.p);
+      }
+      return DevRules.normalizeSigns(s);
+    }
+    items.forEach(it=>{ it.expr = unordered(it.poly||[]); });
+    return {items};
+  },
+  render(host,st){
+    host.innerHTML=[
+      '<div class="equ">Parmi les expressions, dire si c’est un polynôme de degré 2. ',
+      'Si Oui, donner a, b et c. Sinon, laisser a, b et c vides.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression</th><th>Trinôme ?</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      (st.items||[]).map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td class="expr">f(x) = ${it.expr}</td>
+          <td>
+            <select class="yn">
+              <option>Oui</option><option selected>Non</option>
+            </select>
+          </td>
+          <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx1(host,tr,true);
+    });
+  },
+  correct(host,st){
+    let ok=0, tot=0; $$('.table tbody tr',host).forEach(tr=>{ const r=checkRowEx1(host,tr,true); if(r){ ok+=r.ok; tot+=r.total; }});
+    $('#res',host).innerHTML = `<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    return {ok,total:tot};
+  },
+  solution(host,st){
+    const items=(st&&st.items)||[];
+    const html = items.map((it,i)=>{
+  const src = it.expr;
+  const ord = DevRules.polyHTMLDesc(it.poly||[]);
+  const d   = degOf(it.poly||[]);
+  const lines = [
+    `<div class="step">f(x) = ${src}</div>`,
+    `<div class="step">f(x) = ${ord}</div>`,
+    it.isQuad
+      ? `<div class="step">Degré 2 → a=${it.a}, b=${it.b}, c=${it.c}.</div>`
+      : `<div class="step">Degré ${d} (pas un trinôme).</div>`
+  ];
+  const dedup = lines.filter((s,idx,a)=> idx===0 || s!==a[idx-1]); // supprime doublons consécutifs
+  return `<div class="step" style="margin-top:.25rem"><strong>(${String.fromCharCode(97+i)})</strong></div>` + dedup.join('');
+}).join('');
+
+    $('#res',host).innerHTML = `<div class="steps">${html}</div>`;
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+function checkRowEx1(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i;
+  const it=st.items && st.items[i]; if(!it) return null;
+  const yn=$('.yn',row).value;
+  const a=$('.a',row).value.trim(), b=$('.b',row).value.trim(), c=$('.c',row).value.trim();
+  const answered=(yn==='Non' && !a && !b && !c) || (yn==='Oui' && a!=='' && b!=='' && c!=='');
+  if(!answered){ row.style.outline=''; return null; }
+  let good=false;
+  if(yn==='Non') good = !it.isQuad && !a && !b && !c;
+  if(yn==='Oui') good = it.isQuad && (+a===it.a && +b===it.b && +c===it.c);
+  row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+/* ===================== Exercice 2 ===================== */
+const U = ()=>DevRules.consts.UMINUS;
+function degOf(P){for(let p=P.length-1;p>=0;p--){if(P[p])return p}return 0}
+
+const ex2={
+  id:'p2',
+  title:'Développer 6 expressions (si trinôme, donner a, b, c)',
+  gen(){
+    const cases=[];
+
+    // 1) (ax+b)(cx+d) — deg 2 — version détaillée (DD)
+(function(){
+  // a et c non nuls pour assurer le degré 2
+  let a = rnd(-5,5); while(a===0) a = rnd(-5,5);
+  let c = rnd(-5,5); while(c===0) c = rnd(-5,5);
+  const b = rnd(-5,5), d = rnd(-5,5);
+
+  // (ax+b) et (cx+d) sous forme "coeffs croissants" [const, x]
+  const A = [b, a], B = [d, c];
+
+  // Produit final réduit
+  const P = DevRules.polyMul(A, B);
+
+  const UMIN = DevRules.consts.UMINUS;
+  const Bhtml = DevRules.polyHTMLDesc(B);
+
+  // Étape "ax(cx+d) + b(cx+d)" avec une bonne gestion des signes/1
+  const axPart = (a===1 ? 'x'
+               : a===-1 ? UMIN + ' x'
+               : a<0 ? (UMIN + ' ' + Math.abs(a) + 'x')
+               : a + 'x');
+
+  let step3 = 'f(x) = ' + axPart + ' ( ' + Bhtml + ' )';
+  if (b !== 0) {
+    step3 += (b>0 ? ' + ' : ' ' + UMIN + ' ') +
+             (Math.abs(b)===1 ? '' : Math.abs(b)) + ' ( ' + Bhtml + ' )';
+  }
+  step3 = DevRules.normalizeSigns(step3);
+
+  // Les 4 termes (non regroupés) issus de la double distributivité
+  const fourTerms = [
+    { c: a*c, p: 2 }, // ac x^2
+    { c: a*d, p: 1 }, // ad x
+    { c: b*c, p: 1 }, // bc x
+    { c: b*d, p: 0 }  // bd
+  ];
+
+  const steps = [
+    'f(x) = ( ' + DevRules.polyHTMLDesc(A) + ' ) ( ' + DevRules.polyHTMLDesc(B) + ' )',
+       step3,
+    'f(x) = ' + sumTermsLocal(fourTerms),   // ac x² + ad x + bc x + bd
+    'f(x) = ' + DevRules.polyHTMLDesc(P)    // ac x² + (ad+bc) x + bd
+  ];
+
+  cases.push({
+    isQuad: true,
+    poly: P,
+    html: '( ' + DevRules.polyHTMLDesc(A) + ' ) ( ' + DevRules.polyHTMLDesc(B) + ' )',
+    steps
+  });
+})();
+
+
+    // 2) (ax+b)² − (ax−b)² — deg 1 — version détaillée sans ligne "phrase"
+(function(){
+  // a et b non nuls pour éviter le cas trivial
+  let a = rnd(-5,5); while(a===0) a = rnd(-5,5);
+  let b = rnd(-5,5); while(b===0) b = rnd(-5,5);
+
+  // (ax+b) et (ax−b) sous forme [const, x]
+  const A = [b, a];      // ax + b
+  const B = [-b, a];     // ax − b
+
+  const UMIN = DevRules.consts.UMINUS;
+
+  // Carrés
+  const A2 = DevRules.polyMul(A, A); // (ax+b)²
+  const B2 = DevRules.polyMul(B, B); // (ax−b)²
+
+  // Résultat final (réduction): 4ab x  → [0, 4ab]
+  const P = [0, 4*a*b];
+
+  // Étape 2 : afficher les deux carrés
+  const step2 = 'f(x) = ( ' + DevRules.polyHTMLDesc(A2) + ' ) ' + UMIN + ' ( ' + DevRules.polyHTMLDesc(B2) + ' )';
+
+  // Étape 3 : les 6 termes à plat (avant regroupement)
+  const sixTerms = [
+    { c: a*a,   p: 2 },   // + a² x²
+    { c: 2*a*b, p: 1 },   // + 2ab x
+    { c: b*b,   p: 0 },   // + b²
+    { c: -a*a,  p: 2 },   // − a² x²
+    { c: 2*a*b, p: 1 },   // + 2ab x   (car −(−2abx))
+    { c: -b*b,  p: 0 }    // − b²
+  ];
+
+  const steps = [
+    // 1) f(x) = (ax+b)² − (ax−b)²
+    'f(x) = ( ' + DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+            ' ' + UMIN + ' ' +
+            '( ' + DevRules.polyHTMLDesc(B) + ' )' + DevRules.supPow(2),
+
+    // 2) f(x) = (a²x²+2abx+b²) − (a²x²−2abx+b²)
+    step2,
+
+    // 3) f(x) = a²x² + 2abx + b² − a²x² + 2abx − b²
+    'f(x) = ' + sumTermsLocal(sixTerms),
+
+    // 4/5) f(x) = 4ab x
+    'f(x) = ' + DevRules.polyHTMLDesc(P)
+  ];
+
+  cases.push({
+    isQuad: false,
+    poly: P,
+    html: '( ' + DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+          ' ' + UMIN + ' ' +
+          '( ' + DevRules.polyHTMLDesc(B) + ' )' + DevRules.supPow(2),
+    steps
+  });
+})();
+
+
+    // 3) k(x+p)² + (l x + m) — deg 2 — version détaillée (sans ligne "phrase")
+(function(){
+  // Choix des paramètres (k ≠ 0 pour assurer le degré 2 ; p ≠ 0 pour éviter un carré trivial)
+  let k = rnd(-5,5); while(k===0) k = rnd(-5,5);
+  let p = rnd(-5,5); while(p===0) p = rnd(-5,5);
+  const l = rnd(-5,5), m = rnd(-5,5);
+
+  // Polys au format [const, x, x², ...]
+  const A = [p, 1];        // (x + p)
+  const B = [m, l];        // (l x + m)
+
+  const UMIN = DevRules.consts.UMINUS;
+
+  // Carré de (x+p)
+  const A2 = DevRules.polyMul(A, A);      // x² + 2px + p²
+
+  // Résultat final réduit : k(x² + 2px + p²) + lx + m
+  // => [k p² + m, 2kp + l, k]
+  const P = [k*p*p + m, 2*k*p + l, k];
+
+  // Étape 1 : f(x) = k(x+p)² + (lx+m)
+  const step1 =
+    'f(x) = ' +
+    (k < 0 ? (UMIN + ' ' + Math.abs(k)) : k) + ' ( ' + DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+    ' + ( ' + DevRules.polyHTMLDesc(B) + ' )';
+
+  // Étape 2 : f(x) = k(x²+2px+p²) + (lx+m)
+  const step2 =
+    'f(x) = ' +
+    (k < 0 ? (UMIN + ' ' + Math.abs(k)) : k) + ' ( ' + DevRules.polyHTMLDesc(A2) + ' )' +
+    ' + ( ' + DevRules.polyHTMLDesc(B) + ' )';
+
+  // Étape 3 : les 5 termes à plat avant regroupement
+  const fiveTerms = [
+    { c: k,         p: 2 },     // k x²
+    { c: 2*k*p,     p: 1 },     // 2kp x
+    { c: k*p*p,     p: 0 },     // k p²
+    { c: l,         p: 1 },     // + l x
+    { c: m,         p: 0 }      // + m
+  ];
+
+  const steps = [
+    DevRules.normalizeSigns(step1),
+    DevRules.normalizeSigns(step2),
+    'f(x) = ' + sumTermsLocal(fiveTerms),   // kx² + 2kpx + kp² + lx + m
+    'f(x) = ' + DevRules.polyHTMLDesc(P)    // kx² + (2kp+l)x + (kp²+m)
+  ];
+
+  cases.push({
+    isQuad: true,
+    poly: P,
+    html:
+      (k < 0 ? (UMIN + ' ' + Math.abs(k)) : k) + ' ( ' +
+      DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+      ' + ( ' + DevRules.polyHTMLDesc(B) + ' )',
+    steps
+  });
+})();
+
+
+    // 4) (x+u)(x+v)(x+w) — deg 3 — version détaillée (sans ligne "phrase")
+(function(){
+  // paramètres (pas besoin d'exclure 0)
+  const u = rnd(-5,5), v = rnd(-5,5), w = rnd(-5,5);
+
+  // polynômes au format [const, x, x², ...]
+  const A = [u, 1];  // x + u
+  const B = [v, 1];  // x + v
+  const C = [w, 1];  // x + w
+
+  // produits intermédiaire et final
+  const AB = DevRules.polyMul(A, B);   // (x+u)(x+v) = x² + (u+v)x + uv
+  const P  = DevRules.polyMul(AB, C);  // (x+u)(x+v)(x+w)
+
+  const UMIN   = DevRules.consts.UMINUS;
+  const ABhtml = DevRules.polyHTMLDesc(AB);
+  const Chtml  = DevRules.polyHTMLDesc(C);
+
+  // helper pour écrire " + 6x", " − x", " + 5", etc.
+  const sCoeff = (k, monome) => {
+    if (k === 0) return '';
+    const sign = k > 0 ? ' + ' : ' ' + UMIN + ' ';
+    const A = Math.abs(k);
+    if (monome) {
+      // éviter "1x" → "x"
+      return sign + (A === 1 ? monome : (A + monome));
+    }
+    return sign + A;
+  };
+
+  // Étape 3 : x²(x+w) + (u+v)x(x+w) + uv(x+w)
+  const uv  = u*v;
+  const uPv = u+v;
+  let step3 = 'f(x) = x' + DevRules.supPow(2) + ' ( ' + Chtml + ' )';
+  if (uPv !== 0) step3 += sCoeff(uPv, 'x') + ' ( ' + Chtml + ' )';
+  if (uv  !== 0) step3 += sCoeff(uv,  '') + ' ( ' + Chtml + ' )';
+  step3 = DevRules.normalizeSigns(step3);
+
+  // Étape 4 : les 6 termes à plat avant regroupement
+  const sixTerms = [
+    { c: 1,        p: 3 },              // x²·x = x³
+    { c: w,        p: 2 },              // x²·w = w x²
+    { c: u+v,      p: 2 },              // (u+v)x · x = (u+v) x²
+    { c: (u+v)*w,  p: 1 },              // (u+v)x · w = (u+v)w x
+    { c: u*v,      p: 1 },              // uv · x = uv x
+    { c: u*v*w,    p: 0 }               // uv · w
+  ];
+
+  const steps = [
+    // 1) f(x) = (x+u)(x+v)(x+w)
+    'f(x) = ( ' + DevRules.polyHTMLDesc(A) + ' ) ( ' + DevRules.polyHTMLDesc(B) + ' ) ( ' + DevRules.polyHTMLDesc(C) + ' )',
+
+    // 2) f(x) = (x²+(u+v)x+uv)(x+w)
+    'f(x) = ( ' + ABhtml + ' ) ( ' + Chtml + ' )',
+
+    // 3) f(x) = x²(x+w) + (u+v)x(x+w) + uv(x+w)
+    step3,
+
+    // 4) f(x) = x³ + w x² + (u+v) x² + (u+v)w x + uv x + uvw
+    'f(x) = ' + sumTermsLocal(sixTerms),
+
+    // 5) f(x) = x³ + (u+v+w) x² + (uv+uw+vw) x + uvw
+    'f(x) = ' + DevRules.polyHTMLDesc(P)
+  ];
+
+  cases.push({
+    isQuad: false,
+    poly: P,
+    html: '( ' + DevRules.polyHTMLDesc(A) + ' ) ( ' + DevRules.polyHTMLDesc(B) + ' ) ( ' + DevRules.polyHTMLDesc(C) + ' )',
+    steps
+  });
+})();
+
+// (ax+u-b)² + (ax-u-b)² — deg 2 — PRÉCALCUL (invisible) d1=u-b, d2=-(u+b) (≠ 0)
+(function(){
+  // Choix des paramètres : a ≠ 0 ; d1≠0 et d2≠0 ⇔ u≠b et u≠-b
+  let a = rnd(-5,5); while(a===0) a = rnd(-5,5);
+  let u = rnd(-5,5);
+  let b = rnd(-5,5); while(b === u || b === -u) b = rnd(-5,5);
+
+  // PRÉCALCUL (à ne pas afficher)
+  const d1 = u - b;
+  const d2 = -(u + b);
+
+  // (ax+d1) et (ax+d2) sous forme [const, x]
+  const L1 = [d1, a];
+  const L2 = [d2, a];
+
+  const UMIN = DevRules.consts.UMINUS;
+
+  // Carrés
+  const L1sq = DevRules.polyMul(L1, L1);   // (ax+d1)²
+  const L2sq = DevRules.polyMul(L2, L2);   // (ax+d2)²
+
+  // Résultat réduit : 2a² x² - 4ab x + 2(u² + b²)
+  const P = [ 2*(u*u + b*b), -4*a*b, 2*a*a ];
+
+  // Étape 2 : afficher les deux carrés
+  const step2 = 'f(x) = ( ' + DevRules.polyHTMLDesc(L1sq) + ' ) + ( ' + DevRules.polyHTMLDesc(L2sq) + ' )';
+
+  // Étape 3 : les 6 termes à plat (avant regroupement)
+  const sixTerms = [
+    { c: a*a,     p: 2 },    // + a² x²
+    { c: 2*a*d1,  p: 1 },    // + 2a d1 x
+    { c: d1*d1,   p: 0 },    // + d1²
+    { c: a*a,     p: 2 },    // + a² x²
+    { c: 2*a*d2,  p: 1 },    // + 2a d2 x
+    { c: d2*d2,   p: 0 }     // + d2²
+  ];
+
+  const steps = [
+    // 1) f(x) = (ax+u-b)² + (ax-u-b)²   (affiché numériquement via d1,d2)
+    'f(x) = ( ' + DevRules.polyHTMLDesc(L1) + ' )' + DevRules.supPow(2) +
+            ' + ( ' + DevRules.polyHTMLDesc(L2) + ' )' + DevRules.supPow(2),
+
+    // 2) f(x) = (a²x²+2a(u-b)x+(u-b)²) + (a²x²-2a(u+b)x+(u+b)²)
+    step2,
+
+    // 3) f(x) = a²x² + 2a(u-b)x + (u-b)² + a²x² − 2a(u+b)x + (u+b)²
+    'f(x) = ' + DevRules.normalizeSigns( sumTermsLocal(sixTerms) ),
+
+    // 4/5) f(x) = 2a² x² − 4ab x + 2(u² + b²)
+    'f(x) = ' + DevRules.polyHTMLDesc(P)
+  ];
+
+  cases.push({
+    isQuad: true,
+    poly: P,
+    html: '( ' + DevRules.polyHTMLDesc(L1) + ' )' + DevRules.supPow(2) +
+          ' + ( ' + DevRules.polyHTMLDesc(L2) + ' )' + DevRules.supPow(2),
+    steps
+  });
+})();
+
+// 5) (x+u)² (x+v)² — deg 4  — version détaillée (IR)(IR) + développement
+(function(){
+  const u = rnd(-3,3), v = rnd(-3,3);
+  const A = [u,1], B = [v,1];
+  const A2 = DevRules.polyMul(A,A), B2 = DevRules.polyMul(B,B);
+  const P  = DevRules.polyMul(A2,B2); // résultat final (degré 4)
+  const UMIN = DevRules.consts.UMINUS;
+
+  // Ligne de distribution en 3 blocs : x²(... ) ± (2u)x(... ) ± (u²)(... )
+  const B2html = DevRules.polyHTMLDesc(B2);
+  const sCoeff = (k, monome) => {
+    // renvoie " + 6x" / " − x" / " + 5" selon k et le monôme demandé
+    const s = k>=0 ? ' + ' : ' ' + UMIN + ' ';
+    const A = Math.abs(k);
+    return s + (A===1 && monome ? monome : (A + (monome||'')));
+  };
+  let step4 = 'f(x) = x' + DevRules.supPow(2) + ' ( ' + B2html + ' )';
+  if (2*u) step4 += sCoeff(2*u, 'x') + ' ( ' + B2html + ' )';
+  if (u*u) step4 += sCoeff(u*u, '')  + ' ( ' + B2html + ' )';
+  step4 = DevRules.normalizeSigns(step4);
+
+  // Les 9 termes issus de la distribution (ordre pédagogique)
+  const nineTerms = [
+    {c:1,         p:4},              // x²·x²
+    {c:2*v,       p:3},              // x²·(2vx)
+    {c:v*v,       p:2},              // x²·v²
+    {c:2*u,       p:3},              // (2ux)·x²
+    {c:4*u*v,     p:2},              // (2ux)·(2vx)
+    {c:2*u*v*v,   p:1},              // (2ux)·v²
+    {c:u*u,       p:2},              // (u²)·x²
+    {c:2*u*u*v,   p:1},              // (u²)·(2vx)
+    {c:u*u*v*v,   p:0}               // (u²)·v²
+  ];
+
+  const steps = [
+    'f(x) = ( ' + DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+             ' ( ' + DevRules.polyHTMLDesc(B) + ' )' + DevRules.supPow(2),
+        'f(x) = ( ' + DevRules.polyHTMLDesc(A2) + ' ) ( ' + DevRules.polyHTMLDesc(B2) + ' )',
+    step4,
+    'f(x) = ' + sumTermsLocal(nineTerms),   // liste des 9 termes (non regroupés)
+    'f(x) = ' + DevRules.polyHTMLDesc(P)    // forme réduite finale
+  ];
+
+  cases.push({
+    isQuad:false,
+    poly:P,
+    html:'( ' + DevRules.polyHTMLDesc(A) + ' )' + DevRules.supPow(2) +
+         ' ( ' + DevRules.polyHTMLDesc(B) + ' )' + DevRules.supPow(2),
+    steps
+  });
+})();
+
+
+        cases.sort(()=>Math.random()-.6);
+
+    // Attacher a,b,c pour tous les cas de degré 2
+    const picked = cases.slice(0,6).map(it=>{
+      const P = it.poly || [];
+      const d = degOf(P);
+      if(d === 2){
+        it.isQuad = true;           // sécurité si oublié en amont
+        it.a = P[2] || 0;
+        it.b = P[1] || 0;
+        it.c = P[0] || 0;
+      }
+      return it;
+    });
+    return {cases: picked};
+
+  },
+  render(host,st){
+    host.innerHTML=[
+      '<div class="equ">Pour chaque expression : développer et réduire. Si le résultat est un trinôme, indiquer a, b et c. Sinon, laisser a, b et c vides.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression</th><th>Développement</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      (st.cases||[]).map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td class="expr">f(x) = ${it.html}</td>
+          <td><input class="dev" type="text" placeholder="forme développée"/></td>
+          <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx2(host,tr,true);
+    });
+  },
+  correct(host,st){
+    const rows=$$('.table tbody tr',host); let ok=0, tot=0;
+    rows.forEach(tr=>{ const r=checkRowEx2(host,tr,true); if(r){ok+=r.ok; tot+=r.total;} });
+    $('#res',host).innerHTML=`<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    return {ok,total:tot};
+  },
+    solution(host,st){
+    const arr=(st&&st.cases)||[];
+    const S = arr.map((it,i)=>{
+      // normalise + dédoublonne les étapes consécutives identiques
+      const norm = (it.steps||[]).map(s=>DevRules.normalizeSigns(s));
+      const dedup = norm.filter((s,idx,a)=> idx===0 || s!==a[idx-1]);
+      const chain = dedup.map(s=>`<div class="step">${s}</div>`).join('');
+
+      const d = degOf(it.poly||[]);
+      let end;
+      if(d===2){
+        // fallback si jamais a,b,c n’étaient pas posés
+        const a = it.a ?? (it.a = (it.poly[2]||0));
+        const b = it.b ?? (it.b = (it.poly[1]||0));
+        const c = it.c ?? (it.c = (it.poly[0]||0));
+        end = `<div class="step">Donc a=${a}, b=${b}, c=${c}.</div>`;
+      }else{
+        end = `<div class="step">Degré ${d} (pas un trinôme).</div>`;
+      }
+
+      return `<div class="step" style="margin-top:.25rem"><strong>${String.fromCharCode(97+i)})</strong></div>${chain}${end}`;
+    }).join('');
+    $('#res',host).innerHTML=`<div class="steps">${S}</div>`;
+  },
+
+  reset(host){ $('#res',host).textContent=''; }
+};
+function checkRowEx2(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i;
+  const ex=st.cases&&st.cases[i]; if(!ex){ row.style.outline=''; return null; }
+  const dev=$('.dev',row).value.trim(), a=$('.a',row).value.trim(), b=$('.b',row).value.trim(), c=$('.c',row).value.trim();
+  if(!dev){ row.style.outline=''; return null; }
+  let good = equalPolyVsExpr(ex.poly, dev);
+  if(ex.isQuad){ good = good && (+a===ex.a && +b===ex.b && +c===ex.c); }
+  else { good = good && (!a && !b && !c); }
+  row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+/* ===== registre + UI : value = id ('p1'/'p2') ===== */
+const REGISTRY=[ex1,ex2]; window.REGISTRY=REGISTRY;
+function getDefById(id){ return REGISTRY.find(d=>d.id===id) || REGISTRY[0]; }
+
+function buildOne(){
+  const id=$("#exo-select").value;
+  const def=getDefById(id), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd && MathKbd.attachAllInputs){ MathKbd.attachAllInputs(host); } }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st); scoreOK+=r.ok; scoreTot+=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+whenReady(function(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map(ex=>`<option value="${ex.id}">${ex.id==='p1'?'1':'2'} — ${ex.title}</option>`).join('');
+  sel.onchange=buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value='p1';        // ← EXERCICE 1 par défaut
+  buildOne();
+
+  /* ===== PDF : énoncé = équation + TABLEAU ; correction = bloc gris sans tableau ===== */
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: document.title,
+      max: 40,
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, withSolutions){
+        const tmp=document.createElement('div'); tmp.style.position='fixed'; tmp.style.left='-10000px'; document.body.appendChild(tmp);
+        const PRINT_STYLES = `
+          <style>
+            .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+            .table, .table th, .table td{border:1px solid #000;border-collapse:collapse}
+          </style>`;
+        try{
+          def.render(tmp, st);
+          const equ = tmp.querySelector('.equ');
+          const tbl = cloneTableForPDF(tmp); // tableau seulement dans l’énoncé
+          const statement = PRINT_STYLES + (equ?equ.outerHTML:'') + (tbl?('<div class="step" style="margin-top:6px">'+tbl+'</div>'):'');
+          if(!withSolutions){ tmp.remove(); return statement; }
+
+          try{ def.solution(tmp, st); }catch(_){}
+          const solHTML = (tmp.querySelector('#res')||tmp).innerHTML; // bloc gris
+          tmp.remove();
+          return { statement, solution: PRINT_STYLES + solHTML }; // pas de tableau dans la correction
+        }catch(e){ tmp.remove(); return withSolutions?{statement:'',solution:'Corrigé indisponible'}:'Énoncé indisponible'; }
+      }
+    });
+  }
+}); // whenReady
+})(); // IIFE
+</script>
+</body>
+</html>

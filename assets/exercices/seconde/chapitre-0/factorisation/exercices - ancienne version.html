@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Chapitre 0 – Calculs – Factorisation</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.row{display:grid;grid-template-columns:1fr auto minmax(560px,1fr);gap:8px;align-items:center}
+.row > div:last-child{overflow-x:auto}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.equ{font-weight:700}
+
+/* Étapes alignées (jamais coupées) */
+.steps{margin:.5rem 0 0 .15rem;padding:.6rem .7rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:10px;overflow-x:auto}
+.eqline{display:grid;grid-template-columns:auto 2ch 1fr;gap:.4rem;align-items:baseline;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;white-space:nowrap}
+.eqline .eq{text-align:center}
+.eqline.none{grid-template-columns:1fr}
+.eqline.colon{grid-template-columns:auto 2ch 1fr}
+.eqline.colon .eq::after{content:":"}
+.note{margin:.2rem 0 .4rem 0; color:#444}
+
+/* Facteur commun (rouge) – seulement là où il y a un FC */
+.fc{color:#d32f2f;font-weight:700}
+
+/* Tableau des carrés (exercice 3) */
+.sqwrap{margin-top:.5rem}
+.sqwrap .note{margin-bottom:.2rem}
+.sqtab{border-collapse:collapse;width:auto}
+.sqtab th,.sqtab td{border:1px solid #e0e0e0;padding:4px 8px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* Clavier */
+.kbd-host{display:flex;justify-content:center}
+.small{font-size:.92rem;color:#555}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 0 – Calculs – <strong>Factorisation</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <!-- Clavier math -->
+    <div class="card kbd-host"><div data-math-kbd></div></div>
+    <div class="small" style="text-align:center">
+      Astuce : tu peux écrire les puissances avec <code>^</code> (ex. <code>x^2</code>) ou utiliser <code>x²</code>.
+    </div>
+  </div>
+
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== affichage & signes ===== */
+function uminus(n){ return n<0 ? '−'+String(Math.abs(n)) : String(n); }
+function normalizeSigns(s){
+  return s
+    .replace(/\u2212/g,'−')
+    .replace(/\+\s*[−-]/g,' − ')
+    .replace(/[−-]\s*\+/g,' − ')
+    .replace(/[−-]\s*[−-]/g,' + ')
+    .replace(/\+\s*\+/g,' + ')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+function canonPow2(s){ return s.replace(/([x0-9)])²/g, '$1<sup>2</sup>').replace(/\(<sup>2<\/sup>/g,'('); }
+function fmtAx(a){ if(a===1) return 'x'; if(a===-1) return '−x'; return `${uminus(a)}x`; }
+function binom(a,b){ return `( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} )`; }
+function fc(s){ return `<span class="fc" style="color:#d32f2f;font-weight:700">${s}</span>`; }
+
+/* === Tableau des carrés 1..20 (affiché sous l’énoncé de l’exo 3) === */
+function squaresTableHTML(){
+  const ns = Array.from({length:20}, (_,i)=>i+1);
+  const rowN  = ns.map(n=>`<td>${n}</td>`).join('');
+  const rowN2 = ns.map(n=>`<td>${n*n}</td>`).join('');
+  return `
+  <div class="sqwrap">
+    <div class="note">Carrés utiles (1 à 20)</div>
+    <table class="sqtab">
+      <tr><th>n</th>${rowN}</tr>
+      <tr><th>n²</th>${rowN2}</tr>
+    </table>
+  </div>`;
+}
+
+/* ===== Étapes alignées ===== */
+function stepsAlignedHTML(rows, notes = []) {
+  const notesHTML = notes.map(t => `<div class="note">${t}</div>`).join("");
+  const norm = (r) => {
+    if (Array.isArray(r)) {
+      const lhs = canonPow2(normalizeSigns((r[0] || ""))).trim();
+      const rhs = canonPow2(normalizeSigns((r[1] || ""))).trim();
+      return { lhs, rhs, connector: 'eq' };
+    } else {
+      const lhs = canonPow2(normalizeSigns((r.lhs || ""))).trim();
+      const rhs = canonPow2(normalizeSigns((r.rhs || ""))).trim();
+      const connector = r.connector || 'eq';
+      return { lhs, rhs, connector };
+    }
+  };
+  const out = []; let prevKey = "";
+  for (const row of rows) {
+    const { lhs, rhs, connector } = norm(row);
+    const key = `${connector}|${lhs}|${rhs}`;
+    if (key === prevKey) continue;
+    prevKey = key;
+    if (connector === 'none') out.push(`<div class="eqline none"><div class="lhs">${lhs}</div></div>`);
+    else if (connector === 'colon') out.push(`<div class="eqline colon"><div class="lhs">${lhs}</div><div class="eq"></div><div class="rhs">${rhs}</div></div>`);
+    else out.push(`<div class="eqline"><div class="lhs">${lhs}</div><div class="eq">=</div><div class="rhs">${rhs}</div></div>`);
+  }
+  return `<div class="steps">${notesHTML}${out.join("")}</div>`;
+}
+
+/* ===== Évaluation sûre (une seule déclaration !) ===== */
+const SAFE_RE = /^[0-9xX+\-*/().\s^·×²]+$/;
+
+// Ajoute les * manquants : 3x -> 3*x, 2(x+1) -> 2*(x+1), (x+1)(x-2) -> (x+1)*(x-2), etc.
+function insertImplicitMultiplication(s){
+  return s
+    .replace(/(\d)(x)/gi, '$1*$2')   // 3x -> 3*x
+    .replace(/(\d)\(/g, '$1*(')      // 2( -> 2*(
+    .replace(/x(\d)/gi, 'x*$1')      // x2 -> x*2
+    .replace(/x\(/gi, 'x*(')         // x( -> x*(
+    .replace(/\)(\d)/g, ')*$1')      // )2 -> )*2
+    .replace(/\)(x)/gi, ')*$1')      // )x -> )*x
+    .replace(/\)\(/g, ')*(');        // )( -> )*(
+}
+
+function evalExprAt(expr, x){
+  let s = (expr||"").trim();
+  if(!SAFE_RE.test(s)) throw new Error("caractères non autorisés");
+
+  // normalisation des signes et opérateurs usuels
+  s = s
+    .replace(/\u2212/g,'-')   // − -> -
+    .replace(/×|·/g,'*');     // × · -> *
+
+  // gérer toutes les écritures au carré :
+  //  - x², 7², (2x+1)², X², )²  → **2
+  s = s.replace(/([0-9xX)\]])\s*²/g, '$1**2');
+
+  // gérer l'écriture avec ^ (ex. ^2 ou ^3)
+  s = s.replace(/\^/g,'**');
+
+  // multiplications implicites (3x, 2(x+1), (x+1)(x-2), etc.)
+  s = insertImplicitMultiplication(s);
+
+  // petite sécurité
+  if(/(?:new|Function|=>|while|for|class|import|require|this)/.test(s)) throw new Error("expression invalide");
+
+  s = s.replace(/X/g,'x');
+
+  // eslint-disable-next-line no-new-func
+  const f = new Function('x', `return (${s});`);
+  const val = f(x);
+  if(!Number.isFinite(val)) throw new Error("NaN");
+  return val;
+}
+
+function algebraicEqual(user, refExpr){
+  try{
+    const pts = [-3,-2,-1,0,1,2,3,4];
+    for(const t of pts){
+      const u = evalExprAt(user, t);
+      const v = evalExprAt(refExpr, t);
+      if(Math.abs(u - v) > 1e-9) return false;
+    }
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ===== rendu commun ===== */
+function renderOne(host, htmlEq, placeholder="ex.  (2x+3)(5x−1)", label='Réponse (forme factorisée)'){
+  host.innerHTML="";
+  const row0=document.createElement("div"); row0.className="row";
+  const lab0=document.createElement("div"); lab0.className="equ"; lab0.innerHTML=htmlEq; row0.appendChild(lab0);
+  const spacer=document.createElement("div"); spacer.textContent=""; row0.appendChild(spacer);
+  const res0=document.createElement("div"); res0.id="res"; row0.appendChild(res0);
+  host.appendChild(row0);
+
+  const row1=document.createElement("div"); row1.className="row";
+  const lab1=document.createElement("div"); lab1.innerHTML=label;
+  const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder=placeholder;
+  const res1=document.createElement("div"); res1.textContent="";
+  row1.appendChild(lab1); row1.appendChild(inp); row1.appendChild(res1);
+  host.appendChild(row1);
+}
+
+/* ================== EXERCICES ================== */
+
+/* 1 — Facteur commun (avec rouge) */
+const ex1 = {
+  id:"facteur-commun",
+  title:"Mise en évidence d’un facteur commun",
+  gen(){
+    const useThree = Math.random()<0.5;
+    const g = choice([2,3,4,5,6,7,8,9,10]);
+    const ax = choice([1,2,3,4,5]);
+    const bx = choice([1,2,3,4,5]);
+    const c  = choice([1,2,3,4,5,6,7,8,9]);
+    const withX = Math.random()<0.6;
+
+    let txt="", factTxt="", inside="";
+    if(useThree && withX){
+      const a2 = g*ax, a1 = g*bx + g*c;
+      txt = `${uminus(a2)}x<sup>2</sup> ${a1>=0?'+':'−'} ${Math.abs(a1)}x`;
+      factTxt = `${g}x`; inside = `${ax}x ${(bx+c)>=0?'+':'−'} ${Math.abs(bx+c)}`;
+    }else if(useThree){
+      const a2 = g*ax, a1 = g*bx, a0 = g*c;
+      txt = `${uminus(a2)}x<sup>2</sup> ${a1>=0?'+':'−'} ${Math.abs(a1)}x ${a0>=0?'+':'−'} ${Math.abs(a0)}`;
+      factTxt = `${g}`; inside = `${ax}x<sup>2</sup> ${bx>=0?'+':'−'} ${Math.abs(bx)}x ${c>=0?'+':'−'} ${Math.abs(c)}`;
+    }else if(withX){
+      const a2 = g*ax, a1 = g*bx;
+      txt = `${uminus(a2)}x<sup>2</sup> ${a1>=0?'+':'−'} ${Math.abs(a1)}x`;
+      factTxt = `${g}x`; inside = `${ax}x ${bx>=0?'+':'−'} ${Math.abs(bx)}`;
+    }else{
+      const a1 = g*ax, a0 = g*c;
+      txt = `${uminus(a1)}x ${a0>=0?'+':'−'} ${Math.abs(a0)}`;
+      factTxt = `${g}`; inside = `${ax}x ${c>=0?'+':'−'} ${Math.abs(c)}`;
+    }
+    const refExpr = txt.replace(/x<sup>2<\/sup>/g,'x^2').replace(/−/g,'-').replace(/\s+/g,'');
+    return {txt, factTxt, inside, refExpr};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  5x(x+12)"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.refExpr) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue sous une forme factorisée équivalente (ex. a(x+…)).";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines = [
+      {lhs:`On cherche un facteur commun`, connector:'none'},
+      [`${st.txt}`, `${fc(st.factTxt)} ( ${st.inside} )`],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines);
+    $("#reponse",host).value = `${st.factTxt}(${st.inside.replace(/\s/g,'')})`.replace(/\+\s*-/g,' - ');
+  },
+  printSolutionHTML(st){
+    const chain = `${st.txt} = ${fc(st.factTxt)} ( ${st.inside} )`;
+    return `<div class="steps"><div>${chain}</div></div>`;
+  },
+  reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
+};
+
+/* 2 — Carré parfait (sans rouge) */
+const exCarre = {
+  id:"carre-parfait",
+  title:"Factoriser : carré parfait",
+  gen(){
+    const p = choice([1,2,3,4,5]);
+    const q = choice([1,2,3,4,5,6,7,8,9]);
+    const sign = choice(['+','−']);
+    const a2 = p*p, a1 = (sign==='+') ? 2*p*q : -2*p*q, a0 = q*q;
+    const txt = `${a2===1?'':uminus(a2)}x<sup>2</sup> ${a1>=0?'+':'−'} ${Math.abs(a1)}x ${a0>=0?'+':'−'} ${Math.abs(a0)}`;
+    const refExpr = txt.replace(/x<sup>2<\/sup>/g,'x^2').replace(/−/g,'-').replace(/\s+/g,'');
+    return {p,q,sign,txt,refExpr};
+  },
+  text(st){ return `Factoriser (reconnaître un carré parfait) : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  (3x+5)^2"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.refExpr) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue : forme factorisée équivalente.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const A = `${st.p}x`, B = `${st.q}`;
+    const lines = [
+      {lhs:`On reconnaît la forme ${st.sign==='+'?'(A + B)²':'(A − B)²'}`, connector:'none'},
+      [`${st.txt}`, `${`( ${A} ${st.sign==='+'?'+':'−'} ${B} )`}<sup>2</sup>`],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines,[`Rappel : ${st.sign==='+'?'(A + B)² = A² + 2AB + B²':'(A − B)² = A² − 2AB + B²'}`]);
+    $("#reponse",host).value = lines[1][1].replace(/²/g,'^2');
+  },
+  printSolutionHTML(st){
+    const fact = st.sign==='+'?`(${st.p}x + ${st.q})²`:`(${st.p}x − ${st.q})²`;
+    return `<div class="steps"><div>${st.txt} = ${fact}</div></div>`;
+  },
+  reset: ex1.reset
+};
+
+/* 3 — Différence de deux carrés (t ∈ [1..20]) + tableau sous l’énoncé */
+const exDiffCarres = {
+  id:"diff-carres",
+  title:"Factoriser : différence de deux carrés",
+  gen(){
+    const t = choice(Array.from({length:20}, (_,i)=>i+1)); // t ∈ [1..20]
+    const c = choice([1,2,3,4,5,6,7,8,9,10]);
+    const aCoeff = t*t;
+    const txt = `${aCoeff===1?'':uminus(aCoeff)}x<sup>2</sup> − ${c*c}`;
+    const refExpr = `${aCoeff}*x**2 - ${c*c}`;
+    return {t,c,txt,refExpr};
+  },
+  text(st){ return `Factoriser (différence de deux carrés) : <span class="equ">${st.txt}</span>`; },
+  render(host, st){
+    host.innerHTML="";
+    const row0=document.createElement("div"); row0.className="row";
+    const lab0=document.createElement("div"); lab0.className="equ"; lab0.innerHTML=this.text(st);
+    const spacer=document.createElement("div"); spacer.textContent="";
+    const res0=document.createElement("div"); res0.id="res";
+    row0.appendChild(lab0); row0.appendChild(spacer); row0.appendChild(res0);
+    host.appendChild(row0);
+    // tableau des carrés (sous l’énoncé)
+    const sq=document.createElement("div"); sq.innerHTML=squaresTableHTML(); host.appendChild(sq);
+    // réponse
+    const row1=document.createElement("div"); row1.className="row";
+    const lab1=document.createElement("div"); lab1.textContent='Réponse (forme factorisée)';
+    const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="ex.  (tx−c)(tx+c)";
+    const res1=document.createElement("div"); res1.textContent="";
+    row1.appendChild(lab1); row1.appendChild(inp); row1.appendChild(res1);
+    host.appendChild(row1);
+  },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.refExpr) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Attendu : (tx−c)(tx+c) avec t entier.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const A = `${st.t}x`, B = `${st.c}`;
+    const lines = [
+      {lhs:`On utilise A² − B² = (A − B)(A + B)`, connector:'none'},
+      [`${st.txt}`, `( ${A} − ${B} )( ${A} + ${B} )`],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines); // pas de tableau ici
+    $("#reponse",host).value = `(${st.t}x-${st.c})(${st.t}x+${st.c})`;
+  },
+  printSolutionHTML(st){
+    const chain = `${st.txt} = ( ${st.t}x − ${st.c} )( ${st.t}x + ${st.c} )`;
+    return `<div class="steps"><div>${chain}</div></div>`; // pas de tableau dans le PDF
+  },
+  reset: ex1.reset
+};
+
+/* 3bis — Différence de carrés (après factorisation) */
+const exDiffCarresFacto = {
+  id:"diff-carres-facto",
+  title:"Différence de deux carrés (après factorisation)",
+  gen(){
+    const k = choice([2,3,5]);
+    const p = choice([1,2,3,4,5,6]);
+    const q = choice([1,2,3,4,5,6,7,8,9]);
+    const txt = `${k*p*p===1?'':uminus(k*p*p)}x<sup>2</sup> − ${k*q*q}`;
+    const refExpr = `${k*p*p}*x**2 - ${k*q*q}`;
+    return {k,p,q,txt,refExpr};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  k(px−q)(px+q)"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.refExpr) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Piste : extraire d’abord le facteur commun k, puis A²−B² à l’intérieur.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines = [
+      {lhs:`On extrait le facteur commun k`, connector:'none'},
+      [`${st.txt}`, `${st.k} [ ${st.p*st.p}x<sup>2</sup> − ${st.q*st.q} ]`],
+      {lhs:`On applique A² − B²`, connector:'none'},
+      [``       , `${st.k} ( ${st.p}x − ${st.q} )( ${st.p}x + ${st.q} )`],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines);
+    $("#reponse",host).value = `${st.k}(${st.p}x-${st.q})(${st.p}x+${st.q})`;
+  },
+  printSolutionHTML(st){
+    const chain = `${st.txt} = ${st.k} [ ${st.p*st.p}x² − ${st.q*st.q} ] = ${st.k} ( ${st.p}x − ${st.q} )( ${st.p}x + ${st.q} )`;
+    return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+  },
+  reset: ex1.reset
+};
+
+/* 4 — Trinôme simple (hors programme) */
+const exTrinome = {
+  id:"trinome-simple",
+  title:"Factoriser : x² + bx + c (racines entières) (hors programme)",
+  gen(){
+    const r = choice([-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9,10]);
+    const s = choice([-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9,10]);
+    if(Math.random()<0.4 && (r===0 || s===0)) return this.gen();
+    const a1 = r+s, a0 = r*s;
+    const txt = `x<sup>2</sup> ${a1>=0?'+':'−'} ${Math.abs(a1)}x ${a0>=0?'+':'−'} ${Math.abs(a0)}`;
+    const refExpr = `x**2 ${a1>=0?'+':'-'} ${Math.abs(a1)}*x ${a0>=0?'+':'-'} ${Math.abs(a0)}`;
+    return {r,s,txt,refExpr};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  (x+3)(x-5)"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.refExpr) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue : forme factorisée équivalente (hors programme).";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const lines = [
+      {lhs:`On cherche r,s tels que r+s=${st.r+st.s} et rs=${st.r*st.s}`, connector:'none'},
+      [`${st.txt}`, `( x ${st.r>=0?'+':'−'} ${Math.abs(st.r)} )( x ${st.s>=0?'+':'−'} ${Math.abs(st.s)} )`],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines);
+  },
+  printSolutionHTML(st){
+    const chain = `${st.txt} = ( x ${st.r>=0?'+':'−'} ${Math.abs(st.r)} )( x ${st.s>=0?'+':'−'} ${Math.abs(st.s)} )`;
+    return `<div class="steps"><div>${chain}</div></div>`;
+  },
+  reset: ex1.reset
+};
+
+/* 5 — Regrouper : somme (FC ax+b) */
+const exSumCommon = {
+  id:"regroupement-somme-produits",
+  title:"Regrouper : somme de deux produits avec un facteur commun (ax+b)",
+  gen(){
+    const a = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const b = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+    const c = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const d = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+    const e = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const f = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+
+    const left1  = Math.random()<0.5;
+    const left2  = Math.random()<0.5;
+
+    const P = left1 ? `${binom(a,b)} ${binom(c,d)}` : `${binom(c,d)} ${binom(a,b)}`;
+    const Q = left2 ? `${binom(a,b)} ${binom(e,f)}` : `${binom(e,f)} ${binom(a,b)}`;
+
+    const txt = `${P} + ${Q}`.replace(/\)\s+\(/g,') (');
+    const ref = `(${a}*x+(${b}))*(${c}*x+(${d})) + (${a}*x+(${b}))*(${e}*x+(${f}))`;
+
+    const insideRemove = `${c}x ${d>=0?'+':'−'} ${Math.abs(d)} ${e>=0?'+':'−'} ${Math.abs(e)}x ${f>=0?'+':'−'} ${Math.abs(f)}`;
+    const insideCombine = `${fmtAx(c+e)} ${ (d+f)>=0?'+':'−'} ${Math.abs(d+f)}`;
+
+    return {a,b,c,d,e,f,left1,left2,txt,ref,insideRemove,insideCombine};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  (ax+b)((c+e)x+(d+f))"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.ref) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue : extraire (ax+b) puis simplifier l’expression entre crochets.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const axb = `( ${fmtAx(st.a)} ${st.b>=0?'+':'−'} ${Math.abs(st.b)} )`;
+    const step1Inside = `${binom(st.c,st.d)} + ${binom(st.e,st.f)}`;
+    const lines = [
+      {lhs:`Mise en évidence du facteur commun`, connector:'none'},
+      [ `${st.txt}`, `${fc(axb)} [ ${step1Inside} ]` ],
+      {lhs:`On enlève les parenthèses`, connector:'none'},
+      [ ``, `${fc(axb)} [ ${st.insideRemove} ]` ],
+      {lhs:`On regroupe`, connector:'none'},
+      [ ``, `${fc(axb)} ( ${st.insideCombine} )` ],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines);
+    $("#reponse",host).value = `${axb.replace(/\s/g,'')}( ${(st.c+st.e)}x ${(st.d+st.f)>=0?'+':'-'} ${Math.abs(st.d+st.f)} )`.replace(/\s+/g,'');
+  },
+  printSolutionHTML(st){
+    const axb = `( ${fmtAx(st.a)} ${st.b>=0?'+':'−'} ${Math.abs(st.b)} )`;
+    const chain = `${st.txt} = ${fc(axb)} [ ${binom(st.c,st.d)} + ${binom(st.e,st.f)} ] = ${fc(axb)} [ ${st.insideRemove} ] = ${fc(axb)} ( ${st.insideCombine} )`;
+    return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+  },
+  reset: ex1.reset
+};
+
+/* 6 — Regrouper : différence (FC ax+b) */
+const exDiffCommon = {
+  id:"regroupement-difference-produits",
+  title:"Regrouper : différence de deux produits avec un facteur commun (ax+b)",
+  gen(){
+    const a = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const b = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+    const c = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const d = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+    const e = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const f = choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
+
+    const left1  = Math.random()<0.5;
+    const left2  = Math.random()<0.5;
+
+    const P = left1 ? `${binom(a,b)} ${binom(c,d)}` : `${binom(c,d)} ${binom(a,b)}`;
+    const Q = left2 ? `${binom(a,b)} ${binom(e,f)}` : `${binom(e,f)} ${binom(a,b)}`;
+
+    const txt = `${P} − ${Q}`.replace(/\)\s+\(/g,') (');
+    const ref = `(${a}*x+(${b}))*(${c}*x+(${d})) - (${a}*x+(${b}))*(${e}*x+(${f}))`;
+
+    const t1 = `${c}x`;
+    const t2 = ` ${d>=0?'+':'−'} ${Math.abs(d)}`;
+    const t3 = ` ${e>=0?'−':'+'} ${Math.abs(e)}x`;
+    const t4 = ` ${f>=0?'−':'+'} ${Math.abs(f)}`;
+    const insideRemoveDistributed = `${t1}${t2}${t3}${t4}`;
+    const insideCombine = `${fmtAx(c-e)} ${ (d-f)>=0?'+':'−'} ${Math.abs(d-f)}`;
+
+    return {a,b,c,d,e,f,left1,left2,txt,ref,insideRemoveDistributed,insideCombine};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  (ax+b)((c−e)x+(d−f))"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.ref) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue : extraire (ax+b), distribuer le signe −, puis regrouper.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const axb = `( ${fmtAx(st.a)} ${st.b>=0?'+':'−'} ${Math.abs(st.b)} )`;
+    const lines = [
+      {lhs:`Mise en évidence du facteur commun`, connector:'none'},
+      [ `${st.txt}`, `${fc(axb)} [ ${binom(st.c,st.d)} − ${binom(st.e,st.f)} ]` ],
+      {lhs:`On enlève les parenthèses en distribuant "−"`, connector:'none'},
+      [ ``, `${fc(axb)} [ ${st.insideRemoveDistributed} ]` ],
+      {lhs:`On regroupe`, connector:'none'},
+      [ ``, `${fc(axb)} ( ${st.insideCombine} )` ],
+    ];
+    $("#res",host).innerHTML = stepsAlignedHTML(lines);
+    $("#reponse",host).value = `${axb.replace(/\s/g,'')}( ${(st.c-st.e)}x ${(st.d-st.f)>=0?'+':'-'} ${Math.abs(st.d-st.f)} )`.replace(/\s+/g,'');
+  },
+  printSolutionHTML(st){
+    const axb = `( ${fmtAx(st.a)} ${st.b>=0?'+':'−'} ${Math.abs(st.b)} )`;
+    const chain = `${st.txt} = ${fc(axb)} [ ${binom(st.c,st.d)} − ${binom(st.e,st.f)} ] = ${fc(axb)} [ ${st.insideRemoveDistributed} ] = ${fc(axb)} ( ${st.insideCombine} )`;
+    return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+  },
+  reset: ex1.reset
+};
+
+/* 7 — Mélange (sommes / différences factoriables) */
+const exMix = {
+  id:"melange-sommes-differences",
+  title:"Mélange : sommes / différences factoriables",
+  gen(){
+    const pat = choice([1,2,3]);
+    let txt, ref, data={};
+
+    if(pat===1){
+      const k=choice([1,2,3,4,5]), a=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      const b=choice([1,2,3]), c=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      txt = `${k}x( x ${a>=0?'+':'−'} ${Math.abs(a)} ) − ${2*k}x<sup>2</sup>( x ${a>=0?'+':'−'} ${Math.abs(a)} )( ${b}x ${c>=0?'+':'−'} ${Math.abs(c)} )`;
+      ref = `${k}*x*(x+(${a})) - ${2*k}*x**2*(x+(${a}))*(${b}*x+(${c}))`;
+      data = {k,a,b,c};
+    } else if(pat===2){
+      const a=choice([1,2,3]), b=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      const u=choice([-4,-3,-2,-1,1,2,3,4]), v=choice([-4,-3,-2,-1,1,2,3,4]);
+      txt = `x<sup>2</sup>( ${a}x ${b>=0?'+':'−'} ${Math.abs(b)} ) + x( x ${u>=0?'+':'−'} ${Math.abs(u)} )( x ${v>=0?'+':'−'} ${Math.abs(v)} )`;
+      ref = `x**2*(${a}*x+(${b})) + x*(x+(${u}))*(x+(${v}))`;
+      data = {a,b,u,v};
+    } else {
+      const a=choice([-4,-3,-2,-1,1,2,3,4]), b=choice([-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8]);
+      const m=choice([-5,-4,-3,-2,-1,1,2,3,4,5]), n=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      txt = `${binom(a,b)} ( x ${m>=0?'+':'−'} ${Math.abs(m)} ) − ${binom(a,b)} ( x ${n>=0?'+':'−'} ${Math.abs(n)} )`;
+      ref = `(${a}*x+(${b}))*(x+(${m})) - (${a}*x+(${b}))*(x+(${n}))`;
+      data = {a,b,m,n};
+    }
+    return {pat, txt, ref, data};
+  },
+  text(st){ return `Factoriser : <span class="equ">${st.txt}</span>`; },
+  render(host, st){ renderOne(host, this.text(st), "ex.  x(x+a)[…]"); },
+  correct(host, st){
+    const input = ($("#reponse",host).value||"").trim();
+    const ok = algebraicEqual(input, st.ref) && /\(/.test(input);
+    $("#res",host).innerHTML = ok ? "✔" : "✘ Réponse attendue : extraire un facteur commun pertinent et simplifier.";
+    $("#res",host).className = ok ? "res-ok" : "res-ko";
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const L = [];
+    if(st.pat===1){
+      const {k,a,b,c} = st.data;
+      const F = `${k}x( x ${a>=0?'+':'−'} ${Math.abs(a)} )`;
+      const inside1 = `1 − 2x( ${b}x ${c>=0?'+':'−'} ${Math.abs(c)} )`;
+      const inside2 = `1 − ${(2*b)}x<sup>2</sup> ${(2*c)>=0?'+':'−'} ${Math.abs(2*c)}x`;
+      const inside2Ordered = `${-(2*b)}x<sup>2</sup> ${(-2*c)>=0?'+':'−'} ${Math.abs(-2*c)}x + 1`;
+
+      L.push({lhs:`Extraction du facteur commun`, connector:'none'});
+      L.push([ `${st.txt}`, `${fc(F)} [ ${inside1} ]` ]);
+      L.push({lhs:`On enlève les parenthèses`, connector:'none'});
+      L.push([ ``, `${fc(F)} [ ${inside2} ]` ]);
+      L.push({lhs:`Polynôme ordonné (degré décroissant)`, connector:'none'});
+      L.push([ ``, `${fc(F)} ( ${inside2Ordered} )` ]);
+
+      $("#res",host).innerHTML = stepsAlignedHTML(L);
+      $("#reponse",host).value = `${F.replace(/\s/g,'')}( ${inside2Ordered.replace(/\s/g,'')} )`.replace(/−/g,'-');
+    }
+    else if(st.pat===2){
+      const {a,b,u,v} = st.data;
+      const F = `x`;
+      const expandUV = `x<sup>2</sup> ${(u+v)>=0?'+':'−'} ${Math.abs(u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
+      const combined = `${(a+1)}x<sup>2</sup> ${(b+u+v)>=0?'+':'−'} ${Math.abs(b+u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
+
+      L.push({lhs:`Extraction du facteur commun`, connector:'none'});
+      L.push([ `${st.txt}`, `${fc(F)} [ ${a}x<sup>2</sup> ${b>=0?'+':'−'} ${Math.abs(b)}x + ( x ${u>=0?'+':'−'} ${Math.abs(u)} )( x ${v>=0?'+':'−'} ${Math.abs(v)} ) ]` ]);
+      L.push({lhs:`Développement de (x+u)(x+v)`, connector:'none'});
+      L.push([ ``, `${fc(F)} [ ${a}x<sup>2</sup> ${b>=0?'+':'−'} ${Math.abs(b)}x + ${expandUV} ]` ]);
+      L.push({lhs:`Regroupement des termes`, connector:'none'});
+      L.push([ ``, `${fc(F)} ( ${combined} )` ]);
+
+      $("#res",host).innerHTML = stepsAlignedHTML(L);
+      $("#reponse",host).value = `x(${combined.replace(/\s/g,'')})`.replace(/−/g,'-');
+    }
+    else {
+      const {a,b,m,n} = st.data;
+      const AB = `( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} )`;
+      const constMN = `${m-n}`;
+      const expanded = `${(m-n)*a}x ${((m-n)*b)>=0?'+':'−'} ${Math.abs((m-n)*b)}`;
+
+      L.push({lhs:`Mise en évidence du facteur commun`, connector:'none'});
+      L.push([ `${st.txt}`, `${fc(AB)} [ ( x ${m>=0?'+':'−'} ${Math.abs(m)} ) − ( x ${n>=0?'+':'−'} ${Math.abs(n)} ) ]` ]);
+      L.push({lhs:`On enlève les parenthèses`, connector:'none'});
+      L.push([ ``, `${fc(AB)} [ x ${m>=0?'+':'−'} ${Math.abs(m)} − x ${n>=0?'+':'−'} ${Math.abs(n)} ]` ]);
+      L.push({lhs:`On regroupe`, connector:'none'});
+      L.push([ ``, `${fc(AB)} ( ${constMN} )` ]);
+      L.push({lhs:`Développement (si souhaité)`, connector:'none'});
+      L.push([ ``, `${fc(AB)} ( ${constMN} ) = ${constMN}·${fmtAx(a)} ${((m-n)*b)>=0?'+':'−'} ${Math.abs((m-n)*b)} = ${expanded}` ]);
+
+      $("#res",host).innerHTML = stepsAlignedHTML(L);
+      $("#reponse",host).value = `${AB.replace(/\s/g,'')}(${m-n})`.replace(/−/g,'-');
+    }
+  },
+  printSolutionHTML(st){
+    if(st.pat===1){
+      const {k,a,b,c} = st.data;
+      const F = `${k}x( x ${a>=0?'+':'−'} ${Math.abs(a)} )`;
+      const inside2Ordered = `${-(2*b)}x² ${(-2*c)>=0?'+':'−'} ${Math.abs(-2*c)}x + 1`;
+      const chain = `${st.txt} = ${fc(F)} [ 1 − 2x( ${b}x ${c>=0?'+':'−'} ${Math.abs(c)} ) ] = ${fc(F)} ( ${inside2Ordered} )`;
+      return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+    }else if(st.pat===2){
+      const {a,b,u,v} = st.data;
+      const combined = `${(a+1)}x² ${(b+u+v)>=0?'+':'−'} ${Math.abs(b+u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
+      const chain = `${st.txt} = ${fc('x')} [ ${a}x² ${b>=0?'+':'−'} ${Math.abs(b)}x + (x+${u})(x+${v}) ] = ${fc('x')} ( ${combined} )`;
+      return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+    }else{
+      const {a,b,m,n} = st.data;
+      const AB = `( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} )`;
+      const chain = `${st.txt} = ${fc(AB)} [ (x+${m}) − (x+${n}) ] = ${fc(AB)} ( ${m-n} )`;
+      return `<div class="steps"><div>${normalizeSigns(chain)}</div></div>`;
+    }
+  },
+  reset: ex1.reset
+};
+
+/* ====== Orchestrateur ====== */
+const REGISTRY = [
+  ex1,                 // facteur commun (rouge)
+  exCarre,             // carré parfait
+  exDiffCarres,        // A^2 - B^2 (t ∈ [1..20]) + tableau sous l’énoncé
+  exDiffCarresFacto,   // A^2 - B^2 après factorisation
+  exTrinome,           // trinôme (hors programme)
+  exSumCommon,         // regroupement somme (rouge)
+  exDiffCommon,        // regroupement différence (rouge)
+  exMix                // mélange
+];
+window.REGISTRY = REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponse",host) || $("#reponse-vf",host) || $("#reponse-id",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ def.reset(host); }
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+});
+})();
+</script>
+
+<!-- Générateur de fiches PDF -->
+<script src="../../../../js/exo-pdf-kit.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  ExoPDF.init({
+    title: 'Seconde – Chapitre 0 – Calculs – Factorisation',
+    max: 50,
+    lead: 'Factoriser les expressions suivantes :',
+    leadByDefId: {
+      "facteur-commun": 'Mise en évidence d’un facteur commun =',
+      "carre-parfait": 'Carré parfait =',
+      "diff-carres": 'Différence de deux carrés =',
+      "diff-carres-facto": 'Différence de deux carrés (après factorisation) =',
+      "trinome-simple": 'x² + bx + c (hors programme) =',
+      "regroupement-somme-produits": 'Regrouper (somme de produits) =',
+      "regroupement-difference-produits": 'Regrouper (différence de produits) =',
+      "melange-sommes-differences": 'Sommes / différences factoriables ='
+    }
+  });
+});
+</script>
+
+<!-- Clavier math -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.js" defer></script>
+</body>
+</html>

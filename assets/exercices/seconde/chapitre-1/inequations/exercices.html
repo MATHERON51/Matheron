@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Chapitre 1 – Inéquations (1er degré) – Exercices</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+
+/* grille : énoncé + saisie en ligne 1, corrigé plein largeur en dessous */
+.row{
+  display:grid;
+  grid-template-columns:1fr minmax(240px,320px);
+  grid-template-areas:
+    'lab inp'
+    'res res';
+  gap:10px;
+  align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row input[type=text]{grid-area:inp}
+.row #res{grid-area:res;margin-top:2px}
+
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.equ{font-weight:600}
+.hint{opacity:.85;margin:.2rem 0 .6rem}
+
+/* Fractions “pile” (sans LaTeX) */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em; white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+/* Bloc étapes : lignes simples, éviter les retours qui cassent l'alignement du signe = */
+.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.2rem 0; white-space:nowrap}
+
+/* === Bloc .equ-offscreen : ENONCÉ complet (consigne + équation) pour le PDF === */
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;} /* pas de doublon de consigne */
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+}
+.equ-offscreen .consigne{margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 1 – <strong>Inéquations (1er degré)</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li>Règle : Lorsque l'on multiplie ou divise par un nombre négatif, <strong>on change le sens de l’inégalité</strong>.</li>
+        <li>Règle : Diviser par une fraction <span class="frac"><span class="num">a</span><span class="bar"></span><span class="den">b</span></span> revient à multiplier par son inverse <span class="frac"><span class="num">b</span><span class="bar"></span><span class="den">a</span></span>.</li>
+        <li>Inégalité : <code class="code">x ≥ -2/3</code>, <code class="code">x &lt; 5</code>, <code class="code">x <= 1.5</code>…</li>
+        <li>Ensemble : <code class="code">S = ]-∞ ; -2/3]</code>, <code class="code">S = ]-oo ; 3/2[</code>, <code class="code">[a ; b]</code> acceptés ; séparateur <code>;</code> ou <code>,</code>.</li>
+        <li>Fractions au clavier : tape <code>a/b</code> (elles s’affichent “en pile” dans l’énoncé/la solution).</li>
+      </ul>
+    </div>
+<div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ========= Fractions “pile” ========= */
+function fracHTML(p,q){
+  const sign = (p<0) ? '−' : '';
+  p = Math.abs(p); q = Math.abs(q);
+  if(q===1) return sign + String(p);
+  return (sign ? `<span class="frac-sign">${sign}</span>` : '') +
+         `<span class="frac"><span class="num">${p}</span><span class="bar"></span><span class="den">${q}</span></span>`;
+}
+function fracExprHTML(numerHTML, den){
+  return `<span class="frac"><span class="num">${numerHTML}</span><span class="bar"></span><span class="den">${den}</span></span>`;
+}
+
+/* ========= Rationnels ========= */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function norm(p,q){ if(q===0) throw new Error("denominator 0"); let g=gcd(p,q); p/=g; q/=g; if(q<0){ p=-p; q=-q; } return {p,q}; }
+function addR(A,B){ return norm(A.p*B.q + B.p*A.q, A.q*B.q); }
+function subR(A,B){ return norm(A.p*B.q - B.p*A.q, A.q*B.q); }
+function mulR(A,B){ return norm(A.p*B.p, A.q*B.q); }
+function divR(A,B){ if(B.p===0) throw new Error("div by 0"); return norm(A.p*B.q, A.q*B.p); }
+function isZero(R){ return R.p===0; }
+function toNumber(R){ return R.p / R.q; }
+function makeR(p,q){ return norm(p,q||1); }
+function absR(R){ return makeR(Math.abs(R.p), R.q); }
+function quotientRaw(N,D){ // N/D brut, signe sur le numérateur
+  let num = N.p * D.q, den = N.q * D.p;
+  if(den<0){ num = -num; den = -den; }
+  return {p:num, q:den};
+}
+function needsSimplify(fr){ return gcd(Math.abs(fr.p), Math.abs(fr.q)) > 1; }
+
+/* ========= Affichage équations/coeffs ========= */
+function isOne(R){ return R.q===1 && R.p===1; }
+function isNegOne(R){ return R.q===1 && R.p===-1; }
+function fmtCoeffXHTML(A){
+  if(isOne(A)) return "x";
+  if(isNegOne(A)) return "−x";
+  return `${fracHTML(A.p,A.q)}x`;
+}
+function fmtConstHTML(B){ return (B.q===1? String(B.p) : fracHTML(B.p,B.q)); }
+function fmtSignedConstHTML(B){
+  if(isZero(B)) return "";
+  const abs = absR(B);
+  const core = fmtConstHTML(abs);
+  return (B.p>0? " + " : " − ") + core;
+}
+function sideHTML(A,B){ return fmtCoeffXHTML(A) + fmtSignedConstHTML(B); }
+
+/* ========= Nettoyage signes pour les étapes ========= */
+function normalizeSigns(html){
+  return html
+    .replace(/\+\s*[−-]/g, ' − ')
+    .replace(/[−-]\s*\+/g, ' − ')
+    .replace(/[−-]\s*[−-]/g, ' + ')
+    .replace(/\+\s*\+/g, ' + ')
+    .replace(/\s{2,}/g, ' ');
+}
+
+/* ========= Normalisation et dédoublonnage des lignes de solution ========= */
+function unifyMinusOutsideTags(html){
+  return html.split(/(<[^>]+>)/).map(part => {
+    if(part.startsWith('<')) return part;
+    return part.replace(/-/g,'−');
+  }).join('');
+}
+function normalizeForDisplay(html){
+  // Convertit - ASCII en −, applique la logique des signes, espace autour de ; sans casser les entités HTML (&lt;,&gt;)
+  let s = unifyMinusOutsideTags(html);
+  // Protège les entités le temps de normaliser
+  s = s.replace(/&lt;/g,'__LT__').replace(/&gt;/g,'__GT__');
+  s = normalizeSigns(s);
+  s = s.replace(/\s*;\s*/g, ' ; ');
+  // Restaure les entités
+  s = s.replace(/__LT__/g,'&lt;').replace(/__GT__/g,'&gt;');
+  return s.replace(/\s{2,}/g,' ').trim();
+}
+function keyForDedup(html){
+  // Clé sans balises pour comparer 2 lignes qui ne diffèrent que par le type de "−"
+  const plain = normalizeForDisplay(html).replace(/<[^>]*>/g,'');
+  return plain.replace(/\s+/g,' ').trim();
+}
+function dedupSteps(arr){
+  const out=[], seen=new Set();
+  for(const s of arr){
+    const key = keyForDedup(s);
+    if(!seen.has(key)){ seen.add(key); out.push(normalizeForDisplay(s)); }
+  }
+  return out;
+}
+/* ========= Parsing réponses ========= */
+function parseNumberOrFrac(str){
+  if(!str) return null;
+  let s = str.trim().replace(/\u2212/g,'-');
+  if(/^[-+]?(\d+([.,]\d+)?|\d*[.,]\d+)$/.test(s)){ s=s.replace(',','.'); return parseFloat(s); }
+  const m = s.match(/^([-+]?\d+)\s*\/\s*([-+]?\d+)$/);
+  if(m){ const p = parseInt(m[1],10), q = parseInt(m[2],10); if(q===0) return null; return p/q; }
+  return null;
+}
+function sameNumber(a,b){
+  const na = Number(a);
+  const nb = Number(b);
+  if(!isFinite(na) || !isFinite(nb)) return false;
+  return Math.abs(na - nb) < 1e-9;
+}
+
+
+function parseIneq(str){
+  if(!str) return null;
+  let s = str.trim().replace(/\s+/g,'').replace(/^x=/i,'').replace(/^x/i,'x');
+  s = s.replace(/<=/g,'≤').replace(/>=/g,'≥');
+  const m = s.match(/^x(≤|≥|<|>)(.+)$/i);
+  if(!m) return null;
+  const op = m[1];
+  const v  = parseNumberOrFrac(m[2]); if(v===null) return null;
+  return {op, val: v};
+}
+function parseInterval(str){
+  if(!str) return null;
+  let s = String(str).trim();
+  // compact spaces + remove 'S=' prefix
+  s = s.replace(/\s+/g,'').replace(/^S=/i,'');
+  // accept () as ] [ and comma as ;
+  s = s.replace(/\(/g,']').replace(/\)/g,'[').replace(/,/g,';');
+  // normalize hyphen/minus
+  s = s.replace(/\u2212/g,'−'); // true minus stays minus
+  // handle infinities WITHOUT creating '−+∞'
+  //  - turn '-∞' or '−∞' into '−∞'
+  s = s.replace(/[-−]\s*∞/g,'−∞');
+  //  - turn '+∞' into '+∞' (keep as-is), leave bare '∞' unchanged
+  //  - map 'oo', 'inf', 'infty' variants
+  s = s.replace(/-\s*oo/gi,'−∞')
+       .replace(/\+\s*oo/gi,'+∞')
+       .replace(/-\s*inf(?:inity|ty)?/gi,'−∞')
+       .replace(/\+\s*inf(?:inity|ty)?/gi,'+∞')
+       .replace(/oo/gi,'∞');
+  const m = s.match(/^([\[\]])([^;]+);([^ \[\]]+)([\[\]])$/);
+  if(!m) return null;
+  const leftB = m[1], a = m[2], b = m[3], rightB = m[4];
+  const leftOpen  = (leftB === ']');
+  const rightOpen = (rightB === '[');
+  const leftInf   = (a === '−∞');                 // only '−∞' valid on the left
+  const rightInf  = (b === '+∞' || b === '∞');    // accept '+∞' or bare '∞' on the right
+  let leftVal = null, rightVal = null;
+  if(!leftInf){
+    const v = parseNumberOrFrac(a); if(v===null) return null; leftVal = v;
+  }
+  if(!rightInf){
+    const v = parseNumberOrFrac(b); if(v===null) return null; rightVal = v;
+  }
+  return {leftOpen, rightOpen, leftInf, rightInf, leftVal, rightVal};
+}
+
+/* ========= Construction solution canonique ========= */
+const invert = {'<':'>','>':'<','≤':'≥','≥':'≤'};
+function cmpIneq(a,b){ return a && b && a.op===b.op && sameNumber(a.val,b.val); }
+
+function canonFromBound(op, R){
+  // R : rationnel normalisé {p,q} ; signe sur p
+  const boundHTML = (R.q===1 ? String(R.p) : fracHTML(R.p, R.q));
+  const boundText = (R.q===1 ? String(R.p) : `${R.p}/${R.q}`);
+  const val = toNumber(R);
+  const ineqHTML = `x ${op} ${boundHTML}`;
+  const ineqText = `x ${op} ${boundText}`;
+  let intervalHTML, intervalText, intervalObj;
+
+  if(op === '>'){
+    intervalHTML = `S = ]${boundHTML} ; +∞[`;
+    intervalText = `S = ]${boundText} ; +∞[`;
+    intervalObj = {leftOpen:true, leftInf:false, leftVal:val, rightOpen:true, rightInf:true};
+  }
+  if(op === '≥'){
+    intervalHTML = `S = [${boundHTML} ; +∞[`;
+    intervalText = `S = [${boundText} ; +∞[`;
+    intervalObj = {leftOpen:false, leftInf:false, leftVal:val, rightOpen:true, rightInf:true};
+  }
+  if(op === '<'){
+    intervalHTML = `S = ]−∞ ; ${boundHTML}[`;
+    intervalText = `S = ]−∞ ; ${boundText}[`;
+    intervalObj = {leftOpen:true, leftInf:true, rightOpen:true, rightInf:false, rightVal:val};
+  }
+  if(op === '≤'){
+    intervalHTML = `S = ]−∞ ; ${boundHTML}]`;
+    intervalText = `S = ]−∞ ; ${boundText}]`;
+    intervalObj = {leftOpen:true, leftInf:true, rightOpen:false, rightInf:false, rightVal:val};
+  }
+  return {ineqHTML, ineqText, ineqObj:{op, val}, intervalHTML, intervalText, intervalObj};
+}
+function intervalToString(obj){
+  const L = obj.leftInf ? '−∞' : (Number.isInteger(obj.leftVal)? String(obj.leftVal): String(obj.leftVal));
+  const R = obj.rightInf? '+∞' : (Number.isInteger(obj.rightVal)? String(obj.rightVal): String(obj.rightVal));
+  const lb = obj.leftOpen? ']' : '[';
+  const rb = obj.rightOpen? '[' : ']';
+  return `S = ${lb}${L} ; ${R}${rb}`;
+}
+function cmpInterval(ans, exp){
+  if(!ans || !exp) return false;
+  if(!!ans.leftInf !== !!exp.leftInf) return false;
+  if(!!ans.rightInf !== !!exp.rightInf) return false;
+  if(!ans.leftInf && !sameNumber(ans.leftVal, exp.leftVal)) return false;
+  if(!ans.rightInf && !sameNumber(ans.rightVal, exp.rightVal)) return false;
+  return (ans.leftOpen===exp.leftOpen) && (ans.rightOpen===exp.rightOpen);
+}
+
+/* ========= Gabarit rendu / correction ========= */
+function renderTwoAnswers(host, htmlIneq){
+  host.innerHTML="";
+  // Consigne à l'écran (comme equations.html)
+  const hint=document.createElement('p'); hint.className="hint"; hint.textContent="Consigne : Résoudre l’inéquation."; host.appendChild(hint);
+  // Bloc énoncé pour PDF (consigne + inéquation)
+  const off=document.createElement('div'); off.className="equ-offscreen";
+  off.innerHTML='<div class="consigne">Résoudre l’inéquation.</div>' + '<div class="equation">'+htmlIneq+'</div>';
+  host.appendChild(off);
+
+  // Ligne 1 : inéquation attendue
+  const row1=document.createElement("div"); row1.className="row";
+  const lab1=document.createElement("div"); lab1.className="col-label equ"; lab1.innerHTML=htmlIneq; row1.appendChild(lab1);
+  const inp1=document.createElement("input"); inp1.type="text"; inp1.id="reponseIneq"; inp1.placeholder="x ≤ …  |  x ≥ …  |  x < …  |  x > …"; row1.appendChild(inp1);
+  const res1=document.createElement("div"); res1.id="resIneq"; row1.appendChild(res1);
+  host.appendChild(row1);
+
+  // Ligne 2 : ensemble solution
+  const row2=document.createElement("div"); row2.className="row";
+  const lab2=document.createElement("div"); lab2.className="col-label"; lab2.innerHTML="Ensemble solution&nbsp;:"; row2.appendChild(lab2);
+  const inp2=document.createElement("input"); inp2.type="text"; inp2.id="reponseSet"; inp2.placeholder="S = ]−∞; 3[  |  S = [a; b]"; row2.appendChild(inp2);
+  const res2=document.createElement("div"); res2.id="resSet"; row2.appendChild(res2);
+  host.appendChild(row2);
+}
+
+/* ========= Types d’exercices (solutions = seuil unique x ? k) ========= */
+function randOp(){ return choice(['<','>','≤','≥']); }
+
+/* 1) ax + b ? c (entiers, a ≠ 0) */
+const ex1 = {
+  id:"ineq_simple",
+  title:"Résoudre : ax + b ? c",
+  gen(){
+    let a=0; while(a===0) a=rnd(-9,9);
+    const b=rnd(-12,12), c=rnd(-12,12), op=randOp();
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1);
+    const rhs = subR(C,B); // c - b
+    let finalOp = (A.p<0? invert[op]:op);
+    const frac = quotientRaw(rhs, A);
+    const solR = divR(rhs, A);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,op, rhs, Aneg:(A.p<0), finalOp, frac, solR, canon};
+  },
+  text(st){ return `${sideHTML(st.A,st.B)} ${st.op} ${fmtConstHTML(st.C)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.ineqHTML})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.intervalHTML})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    steps.push(`${sideHTML(st.A,st.B)} ${st.op} ${fmtConstHTML(st.C)}`);
+    if(!isZero(st.B)) steps.push(`${fmtCoeffXHTML(st.A)} ${st.op} ${fmtConstHTML(st.C)} ${st.B.p>0? ' − ' : ' + '}${fmtConstHTML(absR(st.B))}`);
+    steps.push(`${fmtCoeffXHTML(st.A)} ${st.op} ${fmtConstHTML(st.rhs)}`);
+    if(st.Aneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.A)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.A && st.A.q && ((st.A.q!==1) || (st.rhs && st.rhs.q && st.rhs.q!==1)) && !(st.A.p===1 && st.A.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.rhs)} × ${(st.A.p<0? '('+fracHTML(-st.A.q, Math.abs(st.A.p))+')' : fracHTML(st.A.q, st.A.p))}`); }
+const rawLine = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+    steps.push(rawLine);
+    if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    steps.push(st.canon.intervalHTML);
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html;
+    $("#reponseIneq",host).value = st.canon.ineqText; // pour que l’élève voie le format
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ $("#reponseIneq",host).value = st.canon.ineqText; $("#reponseSet",host).value  = st.canon.intervalText; $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+/* 2) ax + b ? cx + d (entiers, a ≠ c) */
+const ex2 = {
+  id:"ineq_two_sides",
+  title:"Résoudre : ax + b ? cx + d",
+  gen(){
+    let a=0,c=0; while(a===0) a=rnd(-8,8); while(c===0||c===a) c=rnd(-8,8);
+    const b=rnd(-12,12), d=rnd(-12,12), op=randOp();
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1), D=makeR(d,1);
+    const L = subR(A,C);     // a-c
+    const Rr= subR(D,B);     // d-b
+    let finalOp = (L.p<0? invert[op]:op);
+    const frac = quotientRaw(Rr, L);
+    const solR = divR(Rr, L);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,D,op,L,Rr, Lneg:(L.p<0), finalOp, frac, solR, canon};
+  },
+  text(st){ return `${sideHTML(st.A,st.B)} ${st.op} ${sideHTML(st.C,st.D)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.ineqHTML})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.intervalHTML})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    steps.push(`${sideHTML(st.A,st.B)} ${st.op} ${sideHTML(st.C,st.D)}`);
+    steps.push(`${fmtCoeffXHTML(st.A)}${isZero(st.C)? '' : (st.C.p>0? ' − ' : ' + ')+fmtCoeffXHTML(absR(st.C))} ${st.op} ${fmtConstHTML(st.D)}${isZero(st.B)? '' : (st.B.p>0? ' − ' : ' + ')+fmtConstHTML(absR(st.B))}`);
+    steps.push(`${fmtCoeffXHTML(st.L)} ${st.op} ${fmtConstHTML(st.Rr)}`);
+    if(st.Lneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.L)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.Rr)} × ${(st.L.p<0? '('+fracHTML(-st.L.q, Math.abs(st.L.p))+')' : fracHTML(st.L.q, st.L.p))}`); }
+const rawLine = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+    steps.push(rawLine);
+    if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    steps.push(st.canon.intervalHTML);
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html;
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ $("#reponseIneq",host).value = st.canon.ineqText; $("#reponseSet",host).value  = st.canon.intervalText; $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+/* 3) a(x+b) ? c   et   a(x+b) ? c(x+d)+e  (entiers) */
+const ex3 = {
+  id:"ineq_parentheses",
+  title:"Résoudre avec parenthèses",
+  gen(){
+    const mode = choice(['one','two']);
+    const op=randOp();
+    if(mode==='one'){
+      let a=0; while(a===0) a=rnd(-6,6);
+      const b=rnd(-6,6), c=rnd(-18,18);
+      const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1);
+      const ab = mulR(A,B);
+      const rhs = subR(C, ab);          // c - ab
+      let finalOp = (A.p<0? invert[op]:op);
+      const frac = quotientRaw(rhs, A);
+      const solR = divR(rhs, A);
+      const canon = canonFromBound(finalOp, solR);
+      return {fmt:'one', A,B,C, op, ab, rhs, Aneg:(A.p<0), finalOp, frac, solR, canon};
+    } else {
+      let a=0,c=0; while(a===0) a=rnd(-6,6); while(c===0||c===a) c=rnd(-6,6);
+      const b=rnd(-6,6), d=rnd(-6,6), e=rnd(-10,10);
+      const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1), D=makeR(d,1), E=makeR(e,1);
+      const left  = mulR(A,B);           // ab
+      const cd    = mulR(C,D);
+      const right = addR(cd, E);         // cd + e
+      const L = subR(A,C);               // a-c
+      const Rr= subR(right, left);       // (cd+e) - ab
+      let finalOp = (L.p<0? invert[op]:op);
+      const frac = quotientRaw(Rr, L);
+      const solR = divR(Rr, L);
+      const canon = canonFromBound(finalOp, solR);
+      return {fmt:'two', A,B,C,D,E, left, cd, right, L, Rr, op, Lneg:(L.p<0), finalOp, frac, solR, canon};
+    }
+  },
+  text(st){
+    if(st.fmt==='one') return `${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${fmtConstHTML(st.C)}`;
+    const left = `${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)})`;
+    const right = `${st.C.p}(x ${st.D.p>=0?'+':'-'} ${Math.abs(st.D.p)})${st.E.p===0?'':(st.E.p>0?' + '+st.E.p:' - '+Math.abs(st.E.p))}`;
+    return `${left} ${st.op} ${right}`;
+  },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.ineqHTML})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.intervalHTML})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    if(st.fmt==='one'){
+      steps.push(`${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${fmtConstHTML(st.C)}`);
+      steps.push(`${fmtCoeffXHTML(st.A)} + ${fmtConstHTML(mulR(st.A,st.B))} ${st.op} ${fmtConstHTML(st.C)}`);
+      steps.push(`${fmtCoeffXHTML(st.A)} ${st.op} ${fmtConstHTML(st.C)} − ${fmtConstHTML(mulR(st.A,st.B))}`);
+      steps.push(`${fmtCoeffXHTML(st.A)} ${st.op} ${fmtConstHTML(st.rhs)}`);
+      if(st.Aneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.A)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.A && st.A.q && ((st.A.q!==1) || (st.rhs && st.rhs.q && st.rhs.q!==1)) && !(st.A.p===1 && st.A.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.rhs)} × ${(st.A.p<0? '('+fracHTML(-st.A.q, Math.abs(st.A.p))+')' : fracHTML(st.A.q, st.A.p))}`); }
+      const raw = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+      steps.push(raw);
+      if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    } else {
+      steps.push(`${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${st.C.p}(x ${st.D.p>=0?'+':'-'} ${Math.abs(st.D.p)})${st.E.p===0?'':(st.E.p>0?' + '+st.E.p:' - '+Math.abs(st.E.p))}`);
+      steps.push(`${fmtCoeffXHTML(st.A)} + ${fmtConstHTML(st.left)} ${st.op} ${fmtCoeffXHTML(st.C)} + ${fmtConstHTML(st.cd)} ${st.E.p===0?'':(st.E.p>0?' + '+fmtConstHTML(st.E):' − '+fmtConstHTML(absR(st.E)))}`);
+      steps.push(`${fmtCoeffXHTML(subR(st.A,st.C))} ${st.op} ${fmtConstHTML(st.cd)} ${st.E.p===0?'':(st.E.p>0?' + '+fmtConstHTML(st.E):' − '+fmtConstHTML(absR(st.E)))} − ${fmtConstHTML(st.left)}`);
+      steps.push(`${fmtCoeffXHTML(st.L)} ${st.op} ${fmtConstHTML(st.Rr)}`);
+      if(st.Lneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.L)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.Rr)} × ${(st.L.p<0? '('+fracHTML(-st.L.q, Math.abs(st.L.p))+')' : fracHTML(st.L.q, st.L.p))}`); }
+      const raw = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+      steps.push(raw);
+      if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    }
+    const canon = st.canon.intervalHTML;
+    steps.push(canon);
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html;
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ $("#reponseIneq",host).value = st.canon.ineqText; $("#reponseSet",host).value  = st.canon.intervalText; $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+/* 4) (px+q)/m ? (rx+s)/n (entiers, m,n∈{2..6}) */
+const ex4 = {
+  id:"ineq_fractions",
+  title:"Inéquations avec fractions (formes rationnelles)",
+  gen(){
+    const m=choice([2,3,4,5,6]), n=choice([2,3,4,5,6]), op=randOp();
+    let p=0,r=0; while(p===0) p=rnd(-6,6); while(r===0) r=rnd(-6,6);
+    const q=rnd(-8,8), s=rnd(-8,8);
+    const M=makeR(m,1), N=makeR(n,1), P=makeR(p,1), Q=makeR(q,1), R=makeR(r,1), S0=makeR(s,1);
+    const L = subR( mulR(N,P), mulR(M,R) ); // Np - Mr
+    const Rr= subR( mulR(M,S0), mulR(N,Q) ); // Ms - Nq
+    let finalOp = (L.p<0? invert[op]:op);
+    const solR = divR(Rr, L);
+    const frac = quotientRaw(Rr, L);
+    const canon = canonFromBound(finalOp, solR);
+    return {M,N,P,Q,R,S0, op, L,Rr, Lneg:(L.p<0), finalOp, solR, frac, canon};
+  },
+  text(st){
+    const leftNum  = st.Q.p===0 ? fmtCoeffXHTML(st.P) : (fmtCoeffXHTML(st.P) + (st.Q.p>0? " + "+fmtConstHTML(st.Q) : " − "+fmtConstHTML(absR(st.Q))));
+    const rightNum = st.S0.p===0? fmtCoeffXHTML(st.R) : (fmtCoeffXHTML(st.R) + (st.S0.p>0? " + "+fmtConstHTML(st.S0) : " − "+fmtConstHTML(absR(st.S0))));
+    return `${fracExprHTML(leftNum, st.M.p)} ${st.op} ${fracExprHTML(rightNum, st.N.p)}`;
+  },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.ineqHTML})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.intervalHTML})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    steps.push(this.text(st));
+    steps.push(`${st.N.p}( ${fmtCoeffXHTML(st.P)} ${st.Q.p===0?'':(st.Q.p>0?' + ':' − ')+fmtConstHTML(absR(st.Q))} ) ${st.op} ${st.M.p}( ${fmtCoeffXHTML(st.R)} ${st.S0.p===0?'':(st.S0.p>0?' + ':' − ')+fmtConstHTML(absR(st.S0))} )`);
+    steps.push(`${fmtConstHTML(mulR(st.N,st.P))}x ${fmtSignedConstHTML(mulR(st.N,st.Q))} ${st.op} ${fmtConstHTML(mulR(st.M,st.R))}x ${fmtSignedConstHTML(mulR(st.M,st.S0))}`);
+    steps.push(`${fmtCoeffXHTML(st.L)} ${st.op} ${fmtConstHTML(st.Rr)}`);
+    if(st.Lneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.L)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.Rr)} × ${(st.L.p<0? '('+fracHTML(-st.L.q, Math.abs(st.L.p))+')' : fracHTML(st.L.q, st.L.p))}`); }
+    const raw = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+    steps.push(raw);
+    if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    steps.push(st.canon.intervalHTML);
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html;
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ $("#reponseIneq",host).value = st.canon.ineqText; $("#reponseSet",host).value  = st.canon.intervalText; $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+/* 5) ax + b ? cx + d (coeffs entiers OU fractions ; a ≠ c) */
+const ex5 = {
+  id:"ineq_two_sides_rational",
+  title:"ax + b ? cx + d (coefficients entiers ou fractions)",
+  gen(){
+    function randRational(opts={allowZero:true}){
+      const isFrac = Math.random()<0.45;
+      if(!isFrac){
+        let v = opts.allowZero ? rnd(-9,9) : (function(){let x=0;while(x===0) x=rnd(-9,9); return x;})();
+        return makeR(v,1);
+      }
+      const d = choice([2,3,4,5,6]);
+      const n = opts.allowZero ? rnd(-9,9) : (function(){let x=0;while(x===0) x=rnd(-9,9); return x;})();
+      return makeR(n,d);
+    }
+    let A=randRational({allowZero:false}), C=randRational({allowZero:false});
+    while(A.p===C.p && A.q===C.q){ C=randRational({allowZero:false}); }
+    const B=randRational(), D=randRational(), op=randOp();
+    const L=subR(A,C), Rr=subR(D,B);
+    let finalOp = (L.p<0? invert[op]:op);
+    const solR = divR(Rr, L);
+    const frac = quotientRaw(Rr, L);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,D,op,L,Rr, Lneg:(L.p<0), finalOp, solR, frac, canon};
+  },
+  text(st){ return `${sideHTML(st.A,st.B)} ${st.op} ${sideHTML(st.C,st.D)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.ineqHTML})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu&nbsp;: ${st.canon.intervalHTML})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    steps.push(`${sideHTML(st.A,st.B)} ${st.op} ${sideHTML(st.C,st.D)}`);
+    steps.push(`${fmtCoeffXHTML(st.A)}${isZero(st.C)? '' : (st.C.p>0? ' − ' : ' + ')+fmtCoeffXHTML(absR(st.C))} ${st.op} ${fmtConstHTML(st.D)}${isZero(st.B)? '' : (st.B.p>0? ' − ' : ' + ')+fmtConstHTML(absR(st.B))}`);
+    steps.push(`${fmtCoeffXHTML(st.L)} ${st.op} ${fmtConstHTML(st.Rr)}`);
+    if(st.Lneg) steps.push(`<span class="hint">Comme ${fmtConstHTML(st.L)} &lt; 0, on change le sens de l’inégalité.</span>`);
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){ steps.push(`x ${st.finalOp} ${fmtConstHTML(st.Rr)} × ${(st.L.p<0? '('+fracHTML(-st.L.q, Math.abs(st.L.p))+')' : fracHTML(st.L.q, st.L.p))}`); }
+    const raw = `x ${st.finalOp} ${fracHTML(st.frac.p, st.frac.q)}`;
+    steps.push(raw);
+    if(needsSimplify(st.frac)) steps.push(`x ${st.finalOp} ${st.solR.q===1? st.solR.p : fracHTML(st.solR.p, st.solR.q)}`);
+    steps.push(st.canon.intervalHTML);
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html;
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ $("#reponseIneq",host).value = st.canon.ineqText; $("#reponseSet",host).value  = st.canon.intervalText; $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY; // pour exo-pdf-kit
+
+/* ========= Score & actions ========= */
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponseIneq",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ def.reset(host); }
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+});
+})();
+</script>
+
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: 'Seconde – Chapitre 1 – Inéquations du premier degré',
+      max: 50,
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, withSolutions){
+        try{
+          const tmp = document.createElement('div');
+          tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+          def.render(tmp, st);
+          if(!withSolutions){
+            const equ = tmp.querySelector('.equ-offscreen');
+            if(equ) return equ.outerHTML;
+            return tmp.innerHTML;
+          }else{
+            if(typeof def.solution==='function'){ def.solution(tmp, st); }
+            const steps = tmp.querySelector('.steps');
+            if(steps) return steps.outerHTML;
+            return tmp.innerHTML;
+          }
+        }catch(e){ return null; }
+      }
+    });
+  }
+  // Active la normalisation Unicode (−, ×…) après chargement des libs
+  if (window.DevRules && DevRules.attachCleaner) DevRules.attachCleaner();
+});
+</script>
+
+
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+</body>
+</html>

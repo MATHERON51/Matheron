@@ -1,0 +1,519 @@
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Première – Chapitre 1 – Polynôme du second degré — Activité & définition</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css"/>
+
+<style>
+*{box-sizing:border-box}
+:root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial,Helvetica}
+.header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #eee;padding:14px 18px}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+/* contrôles : sélecteur ligne 1 ; boutons ligne 2 */
+.controls{display:grid;grid-template-columns:1fr;gap:8px;align-items:center}
+.controls .row1{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .row2{display:flex;flex-wrap:wrap;gap:8px}
+select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{padding:8px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}
+.btn:hover{border-color:#bbb}
+.small{font-size:.95rem;color:#444}
+.score{margin-left:auto}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+
+.equ{font-weight:600}
+.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+.res-ok{color:var(--ok);font-weight:700}
+.res-ko{color:var(--ko);font-weight:700}
+
+.table{width:100%;border-collapse:collapse;margin:.35rem 0}
+.table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+.table th{background:#f3f3f6;text-align:left}
+.table th:last-child,.table td:last-child{text-align:center;white-space:nowrap}
+
+/* PDF */
+@media screen{ .equ-offscreen{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden} }
+@media print{
+  .controls,.small{display:none !important;}
+  .equ-offscreen{position:static;width:auto;height:auto;overflow:visible}
+}
+</style>
+
+<script defer src='../../../../js/dev-rules-clean.dedup.js'></script>
+<script defer src='../../../../js/math-kbd.multiplicatif.js'></script>
+<script defer src='../../../../js/exo-pdf-kit.multiplicatif.js'></script>
+<script defer src='../../../../js/algebra-eval-patch.multiplicatif.js'></script>
+</head>
+
+<body>
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Première – Chapitre 1 – <strong>Polynôme du second degré</strong> — Activité & définition</h1>
+</div>
+
+<div class="wrap">
+  <div class="controls card">
+    <div class="row1">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+    <div class="row2">
+      <button class="btn" id="btn-new" title="Générer un nouvel énoncé">🔄 Nouvel énoncé</button>
+      <button class="btn" id="btn-check" title="Vérifier tout (Entrée ⏎)">✅ Vérifier</button>
+      <button class="btn" id="btn-solution" title="Afficher la solution détaillée">💡 Solution</button>
+      <button class="btn" id="btn-reset" title="Réinitialiser le score">🧹 Réinitialiser</button>
+    </div>
+  </div>
+
+  <div id="host" class="card"></div>
+
+  <div class="card small">
+    <strong>Saisie & réponses acceptées :</strong>
+    <ul style="margin:8px 0 0 18px">
+      <li><strong>Entrée ⏎</strong> déclenche <em>Vérifier</em>.</li>
+      <li><strong>Si ce n’est pas du second degré</strong>, laissez <em>a</em>, <em>b</em>, <em>c</em> <u>vides</u>.</li>
+      <li><strong>Décimales</strong> : virgule ou point. <strong>Produits implicites</strong> acceptés (ex. <span class="code">2x</span>, <span class="code">(x+1)(x-3)</span>).</li>
+      <li><strong>Puissances</strong> acceptées : <span class="code">x^2</span>, <span class="code">x  ^  2</span>, <span class="code">x²</span>, <span class="code">x**2</span>, <span class="code">(x)^2</span>, <span class="code">(x+3)^2</span>, <span class="code">(2x)^3</span>…</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){'use strict';
+/* ===== utilitaires ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const UMINUS='−';
+const FX = s => `f(x) = ${s}`;
+
+/* puissances jolies + normalisation */
+function beautifyPowers(s){
+  let t=String(s).replace(/-/g,UMINUS);
+  t=t.replace(/\^2/g,'²').replace(/\^3/g,'³');
+  t=t.replace(/(\))\^(\d+)/g,'$1<sup>$2</sup>').replace(/x\^(\d+)/g,'x<sup>$1</sup>');
+  return t.replace(/\s{2,}/g,' ').trim();
+}
+function canonPowStr(htmlOrText){
+  const mapSup={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'};
+  let t=String(htmlOrText).replace(/<sup>(\d+)<\/sup>/gi,'^$1')
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g,m=>Array.from(m).map(c=>mapSup[c]||'').join(''))
+    .replace(/([x\)])(\d+)/g,'$1^$2').replace(/−/g,'-').replace(/\s+/g,'');
+  return t;
+}
+
+/* assemblage propre sans +0 / 0x */
+function term(coef,deg){
+  if(!coef) return '';
+  const a=Math.abs(coef);
+  let core='';
+  if(deg===0) core=String(a);
+  else if(deg===1) core=(a===1?'x':a+'x');
+  else core=(a===1?'x^'+deg:a+'x^'+deg);
+  return (coef>0? ' + ':' − ') + core;
+}
+function joinTerms(arr){
+  const parts=arr.filter(Boolean);
+  if(!parts.length) return '0';
+  let s=parts.join('').trim();
+  s=s.replace(/^\+\s/,'').replace(/\+\s*−/g,' − ');
+  return s;
+}
+const parenOf = arr => '('+joinTerms(arr)+')';
+
+/* polynômes */
+function polyStd(obj){
+  const ds=Object.keys(obj).map(Number).filter(d=>obj[d]!==0).sort((a,b)=>b-a);
+  if(!ds.length) return '0';
+  const parts=[];
+  ds.forEach((d,i)=>{
+    const c=obj[d], a=Math.abs(c);
+    const s=(c>0?(i===0?'':' + '):' − ');
+    if(d===0) parts.push(s+a);
+    else if(d===1) parts.push(s+(a===1?'x':a+'x'));
+    else parts.push(s+(a===1?'x^'+d:a+'x^'+d));
+  });
+  return parts.join('').trim().replace(/\+\s*−/g,' − ');
+}
+const addPoly=(A,B)=>{const O={...A};for(const d in B){O[d]=(O[d]||0)+B[d];}return O;};
+const mulPoly=(A,B)=>{const O={};for(const da in A)for(const db in B){const d=+da+ +db;O[d]=(O[d]||0)+A[da]*B[db];}return O;};
+const powPoly=(B,n)=>{let R={0:1};for(let i=0;i<n;i++)R=mulPoly(R,B);return R;};
+const degreeOf=obj=>{const d=Object.keys(obj).map(Number).filter(k=>obj[k]!==0);return d.length?Math.max(...d):0;};
+
+/* parser tolérant (pour évaluer les saisies) */
+function san(s){
+  if(!s) return '';
+  const sup={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'};
+  s=String(s).replace(/<sup>(\d+)<\/sup>/gi,'^$1')
+    .replace(/([x\)])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g,(m,b,sd)=>b+'^'+Array.from(sd).map(c=>sup[c]||'').join(''))
+    .replace(/×|·/g,'*').replace(/−/g,'-').replace(/,/g,'.').replace(/\s+/g,'')
+    .replace(/\^/g,'**') // ^ → **
+    .replace(/(\d)(x)/g,'$1*$2').replace(/(x)(\d)/g,'$1*$2')
+    .replace(/(\))(\()/g,'$1*$2').replace(/(x)\(/g,'$1*(').replace(/\)(x)/g,')*$1');
+  return s;
+}
+function evalAt(expr,x){ const js=san(expr); const f=Function('x','return '+js+';'); return f(x); }
+function algEq(a,b){ try{ for(const x of [-3,-1,0,1,2,3,4]){ if(Math.abs(evalAt(a,x)-evalAt(b,x))>1e-7) return false; } return true; }catch(e){ return false; }}
+
+/* anti-doublon lignes consécutives */
+const uniqConsecutive=lines=>{const out=[];let prev=null;for(const L of lines){if(L!==prev){out.push(L);prev=L;}}return out;};
+
+/* helpers coeffs */
+const sNum=n=>(n<0?UMINUS:'')+Math.abs(n);
+const ax=n=>{const a=Math.abs(n);return (n<0?UMINUS:'')+(a===1?'x':a+'x');};
+const plus=n=> n>=0 ? ' + '+n : ' '+UMINUS+' '+Math.abs(n);
+
+/* ===================================================== */
+/* ===================== Exercice 1 ==================== */
+/* ===================================================== */
+const ex1 = {
+  id:'p1',
+  title:'Identifier les trinômes parmi 6 polynômes réduits (3 sont de degré 2)',
+  build(host){
+    const items=makeItemsP1();
+    host.innerHTML=[
+      '<div class="equ">Parmi les expressions (réduites, ordre aléatoire), dire si c’est un <b>polynôme de degré 2</b>. ',
+      'Si <b>Oui</b>, donner <b>a</b>, <b>b</b>, <b>c</b>. Sinon, <u>laisser a, b, c vides</u>.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression de f(x)</th><th>Degré 2 ?</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      items.map((it,i)=>(`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td class="expr">${it.html}</td>
+          <td><select class="yn"><option value=""></option><option>Oui</option><option>Non</option></select></td>
+          <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><button class="btn btn-row" data-kind="p1">Valider</button></td>
+        </tr>`)).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.__state={items};
+    // PAS de validation auto : seulement sur clic ou bouton "Vérifier"
+    host.addEventListener('click', e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); const r=checkRowEx1(host,tr,true); if(!r) return;
+      scoreOK+=r.ok; scoreTot+=r.total; updateScore();
+    });
+    host.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); window.__doCheck && window.__doCheck(); }});
+  },
+  check(host){
+    const rows=$$('.table tbody tr',host);
+    let ok=0, tot=0; const lines=[];
+    rows.forEach((tr,i)=>{
+      const r=checkRowEx1(host,tr,true);
+      if(r){ tot+=r.total; ok+=r.ok; lines.push(`<div class="step">${String.fromCharCode(97+i)}) ${r.ok?'<span class="res-ok">OK</span>':'<span class="res-ko">✗</span>'}</div>`); }
+      else { lines.push(`<div class="step">${String.fromCharCode(97+i)}) —</div>`); }
+    });
+    $('#res',host).innerHTML=`<div class="steps">${lines.join('')}</div>`;
+    return {ok,total:tot};
+  },
+  solution(host){
+    const {items}=host.__state;
+    const lines=items.map((it,i)=>{
+      const head = `<div class="step"><strong>${String.fromCharCode(97+i)})</strong></div><div class="step"></div>`;
+      const enonce = `<div class="step">${FX(it.html)}</div>`;
+      const std = beautifyPowers(polyStd(it.poly));
+      const same = canonPowStr(it.html) === canonPowStr(std);
+      const ord = same ? '' : `<div class="step">${FX(std)}</div>`;
+      const concl = it.isQuad
+        ? `<div class="step">Donc a=${it.a}, b=${it.b}, c=${it.c}.</div>`
+        : `<div class="step">Degré ${it.deg} ≠ 2 → pas un trinôme.</div>`;
+      return head + enonce + ord + concl;
+    });
+    $('#res',host).innerHTML=`<div class="steps">${lines.join('')}</div>`;
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+function checkRowEx1(host,row,countForScore){
+  const i=+row.dataset.i;
+  const it=host.__state.items[i];
+  const sel=$('.yn',row).value;
+  const av=$('.a',row).value.trim().replace(',','.');
+  const bv=$('.b',row).value.trim().replace(',','.');
+  const cv=$('.c',row).value.trim().replace(',','.');
+  const answered = (sel==='Non' && av===''&&bv===''&&cv==='') || (sel==='Oui' && av!==''&&bv!==''&&cv!=='');
+  if(!answered){
+    if (countForScore) row.style.outline = '';
+    return null;
+  }
+  let good=false;
+  if(sel==='Non') good = !it.isQuad && av===''&&bv===''&&cv==='';
+  if(sel==='Oui')  good = it.isQuad && (+av===it.a && +bv===it.b && +cv===it.c);
+  if (countForScore) {
+    row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  } else {
+    row.style.outline = '';
+  }
+  return countForScore? {ok:good?1:0,total:1}: {ok:good?1:0,total:1};
+}
+function makeItemsP1(){
+  const it=[];
+  // 3 quadratiques
+  for(let k=0;k<3;k++){
+    const a=choice([-3,-2,-1,1,2,3]), b=rnd(-6,6), c=rnd(-6,6);
+    const P={2:a}; if(b) P[1]=b; if(c) P[0]=c; // omet b,c s'ils valent 0
+    it.push({isQuad:true,a,b,c,poly:P,deg:2,html:polyHTMLFromObj(P,{shuffle:true})});
+  }
+  // 3 non-quadratiques (0,1,3,4,5)
+  const pool=[0,1,3,4,5,3,4];
+  for(let i=0;i<3;i++){
+    const d=pool.splice(Math.floor(Math.random()*(pool.length)),1)[0];
+    const P={}; P[d]=choice([-3,-2,-1,1,2,3]);
+    const n=rnd(2,Math.min(4,Math.max(2,d+1)));
+    while(Object.keys(P).length<n){
+      const e=rnd(0,Math.max(d,1));
+      if(P[e]!==undefined) continue;
+      P[e]=choice([-6,-5,-4,-3,-2,-1,1,2,3,4,5,6]);
+    }
+    it.push({isQuad:false,poly:P,deg:degreeOf(P),html:polyHTMLFromObj(P,{shuffle:true})});
+  }
+  for(let i=it.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [it[i],it[j]]=[it[j],it[i]]; }
+  return it;
+}
+function polyHTMLFromObj(obj,{shuffle=true}={}){
+  const ds=Object.keys(obj).map(Number).filter(d=>obj[d]!==0);
+  if(shuffle) ds.sort(()=>Math.random()-.5); else ds.sort((a,b)=>b-a);
+  let s='', first=true;
+  for(const d of ds){
+    const c=obj[d], a=Math.abs(c);
+    const piece=(d===0?''+a:(a===1?'x':a+'x')+(d>1?'<sup>'+d+'</sup>':''));
+    if(first){ s+=(c<0?UMINUS:'')+piece; first=false; }
+    else s+=(c>=0?' + ':' '+UMINUS+' ')+piece;
+  }
+  return s||'0';
+}
+
+/* ===================================================== */
+/* ===================== Exercice 2 ==================== */
+/* ===================================================== */
+const ex2 = {
+  id:'p2',
+  title:'Développer 6 expressions (3 donnent un trinôme) puis, si c’est un trinôme, donner a, b, c',
+  build(host){
+    const cases=makeItemsP2();
+    host.innerHTML=[
+      '<div class="equ">Pour chaque expression : <b>écrire la forme développée et réduite</b>. Si le résultat est un trinôme, <b>indiquer a, b, c</b>. ',
+      'Sinon, <u>laisser a, b, c vides</u>.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression</th><th>Développement</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      cases.map((it,i)=>(`
+        <tr data-i="${i}">
+           <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+           <td class="expr">${it.html}</td>
+           <td><input class="dev" type="text" placeholder="forme développée"/></td>
+           <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+           <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+           <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+           <td><button class="btn btn-row" data-kind="p2">Valider</button></td>
+        </tr>`)).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.__state={cases};
+    // PAS de validation auto : seulement sur clic ou bouton "Vérifier"
+    host.addEventListener('click', e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); const r=checkRowEx2(host,tr,true); if(!r) return;
+      scoreOK+=r.ok; scoreTot+=r.total; updateScore();
+    });
+    host.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); window.__doCheck && window.__doCheck(); }});
+  },
+  check(host){
+    const rows=$$('.table tbody tr',host);
+    let ok=0, tot=0; const lines=[];
+    rows.forEach((tr,i)=>{
+      const r=checkRowEx2(host,tr,true);
+      if(r){ ok+=r.ok; tot+=r.total; lines.push(`<div class="step">${String.fromCharCode(97+i)}) ${r.ok?'<span class="res-ok">OK</span>':'<span class="res-ko">✗</span>'}</div>`);}
+      else { lines.push(`<div class="step">${String.fromCharCode(97+i)}) —</div>`); }
+    });
+    $('#res',host).innerHTML=`<div class="steps">${lines.join('')}</div>`;
+    return {ok,total:tot};
+  },
+  solution(host){
+    const S = host.__state.cases.map((it,i)=>{
+      const lines = uniqConsecutive(it.steps.map(FX));
+      const dev=lines.map(beautifyPowers).map(t=>`<div class="step">${t}</div>`).join('');
+      const end = it.isQuad ? `<div class="step">Donc a=${it.a}, b=${it.b}, c=${it.c}.</div>` : `<div class="step">Degré ${it.deg} (pas un trinôme).</div>`;
+      return `<div class="step" style="margin-top:.2rem"><strong>${String.fromCharCode(97+i)})</strong></div>${dev}${end}`;
+    }).join('');
+    $('#res',host).innerHTML=`<div class="steps">${S}</div>`;
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+function checkRowEx2(host,row,countForScore){
+  const i=+row.dataset.i; const ex=host.__state.cases[i];
+  const dev=$('.dev',row).value.trim();
+  const av=$('.a',row).value.trim().replace(',','.'), bv=$('.b',row).value.trim().replace(',','.'), cv=$('.c',row).value.trim().replace(',','.');
+  if(!dev){
+    if (countForScore) row.style.outline = '';
+    return null;
+  }
+  let good = algEq(dev, ex.devStd);
+  if(ex.isQuad) good = good && (+av===ex.a && +bv===ex.b && +cv===ex.c);
+  else good = good && (av===''&&bv===''&&cv==='');
+  if (countForScore) {
+    row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  } else {
+    row.style.outline='';
+  }
+  return countForScore? {ok:good?1:0,total:1}: {ok:good?1:0,total:1};
+}
+
+/* ===== génération des items Exercice 2 ===== */
+function makeItemsP2(){
+  const out=[];
+
+  /* 3 QUI DONNENT UN TRINÔME */
+
+  // 1) (ax+b)(cx+d) — b,d ≠ 0
+  (function(){
+    const a=choice([-3,-2,-1,1,2,3]), c=choice([-3,-2,-1,1,2,3]);
+    let b=choice([-6,-5,-4,-3,-2,-1,1,2,3,4,5,6]);
+    let d=choice([-6,-5,-4,-3,-2,-1,1,2,3,4,5,6]);
+    const A=a*c, B=a*d + b*c, C=b*d;
+    const html = `(${ax(a)}${plus(b)})(${ax(c)}${plus(d)})`;
+    const l2 = joinTerms([term(A,2), term(a*d,1), term(b*c,1), term(C,0)]);
+    const l3 = joinTerms([term(A,2), term(B,1), term(C,0)]);
+    const steps = [
+      `(${ax(a)} ${b>=0?'+':'−'} ${Math.abs(b)})(${ax(c)} ${d>=0?'+':'−'} ${Math.abs(d)})`,
+      // pas de point de multiplication
+      `(${a}x)(${c}x) + (${a}x)(${sNum(d)}) + (${sNum(b)})(${c}x) + (${sNum(b)})(${sNum(d)})`,
+      l2, l3,
+      `${polyStd({2:A,1:B,0:C})}`
+    ];
+    out.push({isQuad:true,a:A,b:B,c:C,deg:2, html:beautifyPowers(html), steps, devStd:polyStd({2:A,1:B,0:C})});
+  })();
+
+  // 2) (ax+u-b)² + (ax-u-b)²  — PRÉCALCUL d1=u-b, d2=-(u+b) (≠ 0)
+  (function(){
+    const a=choice([-2,-1,1,2,3]); let u=rnd(1,5), b=rnd(1,5); while(u===b) u=rnd(1,5);
+    const d1=u-b, d2=-(u+b);
+    const A=2*a*a, B=-4*a*b, C=2*(u*u + b*b);
+    const html = `(${ax(a)}${plus(d1)})^2 + (${ax(a)}${plus(d2)})^2`;
+    const p1=[term(a*a,2), term(2*a*d1,1), term(d1*d1,0)];
+    const p2=[term(a*a,2), term(2*a*d2,1), term(d2*d2,0)];
+    const s1 = joinTerms(p1), s2 = joinTerms(p2);
+    const sTot = joinTerms([term(2*a*a,2), term(2*a*(d1+d2),1), term(d1*d1+d2*d2,0)]);
+    const steps=[
+      `(${ax(a)} ${d1>=0?'+':'−'} ${Math.abs(d1)})^2 + (${ax(a)} ${d2>=0?'+':'−'} ${Math.abs(d2)})^2`,
+      parenOf(p1)+' + '+parenOf(p2),
+      s1+' + '+s2,
+      sTot,
+      `${polyStd({2:A,1:B,0:C})}`
+    ];
+    out.push({isQuad:true,a:A,b:B,c:C,deg:2, html:beautifyPowers(html), steps, devStd:polyStd({2:A,1:B,0:C})});
+  })();
+
+  // 3) k(x+p)² + (l x + m) — p ≠ 0 pour éviter (x+0)²
+  (function(){
+    const k=choice([-3,-2,-1,1,2,3]); const p=choice([-4,-3,-2,-1,1,2,3,4]); // 0 exclu
+    const l=rnd(-3,3), m=rnd(-5,5);
+    const A=k, B=2*k*p + l, C=k*p*p + m;
+    let html=`${k}(x ${plus(p)})^2`; if(l) html+=(l>0?' + ':' − ')+Math.abs(l)+'x'; if(m) html+=(m>0?' + ':' − ')+Math.abs(m);
+    const inside=[term(1,2), term(2*p,1), term(p*p,0)];
+    const kInside=[term(k,2), term(2*k*p,1), term(k*p*p,0)];
+    const all=joinTerms([term(k,2), term(2*k*p + l,1), term(k*p*p + m,0)]);
+    const steps=[
+      `${k}(x ${p>=0?'+':'−'} ${Math.abs(p)})^2${l? (l>0?' + ':' − ')+Math.abs(l)+'x':''}${m? (m>0?' + ':' − ')+Math.abs(m):''}`,
+      `${k}${parenOf(inside)}${l? (l>0?' + ':' − ')+Math.abs(l)+'x':''}${m? (m>0?' + ':' − ')+Math.abs(m):''}`,
+      joinTerms(kInside) + (l? (l>0?' + ':' − ')+Math.abs(l)+'x':'') + (m? (m>0?' + ':' − ')+Math.abs(m):''),
+      all,
+      `${polyStd({2:A,1:B,0:C})}`
+    ];
+    out.push({isQuad:true,a:A,b:B,c:C,deg:2, html:beautifyPowers(html), steps, devStd:polyStd({2:A,1:B,0:C})});
+  })();
+
+  /* 3 QUI NE DONNENT PAS UN TRINÔME */
+
+  // A) (ax+b)² − (ax−b)² → 4abx
+  (function(){
+    const a=choice([-3,-2,-1,1,2,3]), b=rnd(1,6);
+    const html = `(${ax(a)} + ${Math.abs(b)})^2 − (${ax(a)} − ${Math.abs(b)})^2`;
+    const P1=[term(a*a,2), term(2*a*b,1), term(b*b,0)];
+    const P2=[term(a*a,2), term(-2*a*b,1), term(b*b,0)];
+    const steps=[
+      `(${ax(a)} + ${Math.abs(b)})^2 − (${ax(a)} − ${Math.abs(b)})^2`,
+      parenOf(P1)+' − '+parenOf(P2),
+      joinTerms(P1)+' − '+joinTerms(P2),
+      joinTerms([term(a*a,2), term(2*a*b,1), term(b*b,0), term(-a*a,2), term(2*a*b,1), term(-b*b,0)]),
+      joinTerms([term(4*a*b,1)])
+    ];
+    const poly={1:4*a*b};
+    out.push({isQuad:false,deg:1, html:beautifyPowers(html), steps, devStd:polyStd(poly)});
+  })();
+
+  // B) (x+u)(x+v)(x+w) → degré 3
+  (function(){
+    const u=rnd(-4,4), v=rnd(-4,4), w=rnd(-4,4);
+    const P1 = mulPoly({1:1,0:u},{1:1,0:v});
+    const P  = mulPoly(P1,{1:1,0:w});
+    const html = `(x ${plus(u)})(x ${plus(v)})(x ${plus(w)})`;
+    const L1 = parenOf([term(1,2), term(u+v,1), term(u*v,0)])+`(x ${w>=0?'+':'−'} ${Math.abs(w)})`;
+    const L2 = parenOf([term(1,3), term(w,2), term(u+v,2), term((u+v)*w,1), term(u*v,1), term(u*v*w,0)]);
+    const steps=[`(x ${u>=0?'+':'−'} ${Math.abs(u)})(x ${v>=0?'+':'−'} ${Math.abs(v)})(x ${w>=0?'+':'−'} ${Math.abs(w)})`,L1,L2,`${polyStd(P)}`];
+    out.push({isQuad:false,deg:3, html:beautifyPowers(html), steps, devStd:polyStd(P)});
+  })();
+
+  // C) (x+u)² (x+v)² → degré 4
+  (function(){
+    const u=rnd(-3,3), v=rnd(-3,3);
+    const A=powPoly({1:1,0:u},2), B=powPoly({1:1,0:v},2), P=mulPoly(A,B);
+    const html = `(x ${plus(u)})^2(x ${plus(v)})^2`;
+    const steps=[`(x ${u>=0?'+':'−'} ${Math.abs(u)})^2 (x ${v>=0?'+':'−'} ${Math.abs(v)})^2`,
+      parenOf([term(1,2), term(2*u,1), term(u*u,0)])+' '+parenOf([term(1,2), term(2*v,1), term(v*v,0)]),
+      `${polyStd(P)}`];
+    out.push({isQuad:false,deg:4, html:beautifyPowers(html), steps, devStd:polyStd(P)});
+  })();
+
+  // mélange + 6
+  for(let i=out.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [out[i],out[j]]=[out[j],out[i]]; }
+  return out.slice(0,6);
+}
+
+/* ================= registry + moteur ================= */
+const REGISTRY_ALL=[ex1,ex2];
+const REGISTRY_MENU=[ex1,ex2];
+/* Expose pour le kit PDF */
+ex1.render = ex1.build; ex1.correct = ex1.solution;
+ex2.render = ex2.build; ex2.correct = ex2.solution;
+window.REGISTRY = REGISTRY_ALL;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+function resetScore(){ scoreOK=0; scoreTot=0; updateScore(); }
+
+function newExo(){
+  const i=+$("#exo-select").value||0, ex=REGISTRY_MENU[i]; const host=$("#host"); host.innerHTML=''; ex.build(host);
+  try{ if(window.MathKbd && MathKbd.attachAllInputs){ MathKbd.attachAllInputs(host); } }catch(e){}
+}
+function doCheck(){ const i=+$("#exo-select").value||0; const r=REGISTRY_MENU[i].check($("#host")); if(r){ scoreOK+=r.ok; scoreTot+=r.total; updateScore(); } }
+function showSolution(){ const i=+$("#exo-select").value||0; REGISTRY_MENU[i].solution($("#host")); }
+function resetAll(){ resetScore(); const i=+$("#exo-select").value||0; REGISTRY_MENU[i].reset($("#host")); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const sel=$("#exo-select"); sel.innerHTML='';
+  REGISTRY_MENU.forEach((ex,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=(i+1)+' — '+ex.title; sel.appendChild(o); });
+  sel.value="0"; newExo();
+  $("#btn-new").addEventListener('click',newExo);
+  $("#btn-check").addEventListener('click',doCheck);
+  $("#btn-solution").addEventListener('click',showSolution);
+  $("#btn-reset").addEventListener('click',resetAll);
+  $("#exo-select").addEventListener('change',newExo);
+  try{
+    if(window.ExoPDF && ExoPDF.init){
+      ExoPDF.init({ host: document.body, registry: REGISTRY_ALL });
+    }
+  }catch(e){}
+  document.addEventListener('keydown',ev=>{ if(ev.key==='Enter' && /input|select/i.test(document.activeElement?.tagName||'')){ ev.preventDefault(); doCheck(); }});
+});
+})(); // IIFE
+</script>
+</body>
+</html>
+

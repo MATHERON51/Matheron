@@ -105,73 +105,10 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
 }
 @media print{ .controls{display:none !important;} }
 
-
-
-/* ===== Mobile-first tokens ===== */
-:root{
-  --tap:48px; --gap:10px; --pad:14px;
-  --ink:#111; --bg:#fff; --line:#e6e6e6;
+.svgbox{
+  touch-action: manipulation;
+  user-select: none;
 }
-@media (max-width:760px){
-
-/* === Patch 2025-08-31 — Saisie sous la question === */
-.row{
-  grid-template-columns: 1fr !important;
-  grid-template-areas:
-    'lab'
-    'inp'
-    'res' !important;
-}
-
-
-  /* Conteneur + cartes plus respirants */
-  .wrap{padding:12px !important}
-  .card{padding:14px !important}
-
-  /* Grilles → une colonne (tes .grid/.g2/.two etc.) */
-  .grid, .g2, .grid.two, .grid2{display:grid;grid-template-columns:1fr !important;gap:var(--gap)}
-
-  /* Champs sous la question + largeur 100% */
-  .q input[type="text"], .q .answer, input[type="text"], textarea, select{
-    width:100%; min-height:var(--tap); font-size:16px; /* évite le zoom iOS */
-    margin-top:8px;
-  }
-
-  /* Boutons plus grands et cliquables */
-  .controls button, .controls .btn, button, .kbd .key{
-    min-height:var(--tap);
-    padding:12px 14px; font-weight:600;
-  }
-
-  /* Tables scrollables si trop larges */
-  table{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch}
-  table thead, table tbody{width:100%}
-
-  /* Figures (SVG/canvas) fluides */
-  svg, canvas, .figure, .circle-host{max-width:100% !important; width:100% !important; height:auto}
-
-  /* Barre d’actions mobile en bas (duplique l’important) */
-  .mb-actions{
-    position:sticky; bottom:0; z-index:20;
-    background:var(--bg); border-top:1px solid var(--line);
-    padding:8px calc(10px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
-    display:flex; gap:8px;
-  }
-  .mb-actions .btn{flex:1}
-
-  /* Clavier math en tiroir */
-  .kbd-host[data-collapsible]{position:fixed; left:0; right:0; bottom:0;
-    background:#fff; border-top:1px solid var(--line);
-    transform:translateY(100%); transition:transform .25s ease; z-index:30;
-    padding-bottom:calc(env(safe-area-inset-bottom) + 6px);
-  }
-  .kbd-host[data-open="1"]{transform:translateY(0)}
-  .kbd-toggle{position:fixed; right:12px; bottom:calc(64px + env(safe-area-inset-bottom));
-    background:#111; color:#fff; border-radius:999px; padding:10px 14px; z-index:31}
-}
-
-/* Focus visibles partout */
-:focus-visible{outline:2px solid #60a5fa; outline-offset:2px}
 
 </style>
 
@@ -737,6 +674,7 @@ class Repere{
   _makeSVG(){
     const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
     s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
+	s.setAttribute('preserveAspectRatio','xMidYMid meet');
     const layers=['grid','axes','geom','user'];
     layers.forEach(L=>{
       const g=document.createElementNS(s.namespaceURI,'g'); g.dataset.layer=L; s.appendChild(g);
@@ -2327,42 +2265,71 @@ L.push({
       });
     });
 
-    // Clics : 1) ancre à (a,f(a))–exact → étiquette A/B/C  2) second point → ligne
-    ui.rep.el.addEventListener('click', (ev)=>{
-      if(host._state.active===null) return;
-      const rect = ui.rep.el.getBoundingClientRect();
-      const X = ev.clientX - rect.left, Y = ev.clientY - rect.top;
-      const p = ui.rep.screenToCoord(X,Y);
-      const xi = Math.round(p.x), yi = Math.round(p.y);
+    // --- helper : coordonnées SVG (viewBox) depuis un event pointeur ---
+function toSvgCoords(svg, ev){
+  const cx = ('clientX' in ev) ? ev.clientX : ev.touches?.[0]?.clientX;
+  const cy = ('clientY' in ev) ? ev.clientY : ev.touches?.[0]?.clientY;
+  const ctm = svg.getScreenCTM && svg.getScreenCTM();
+  if (ctm && ctm.inverse){
+    const pt = svg.createSVGPoint();
+    pt.x = cx; pt.y = cy;
+    const p = pt.matrixTransform(ctm.inverse());
+    return {x:p.x, y:p.y}; // unités du viewBox (0..420)
+  }
+  // Fallback rect/ratio
+  const r  = svg.getBoundingClientRect();
+  const vb = svg.viewBox?.baseVal || {x:0,y:0,width:420,height:420};
+  return {
+    x: (cx - r.left) * (vb.width  / r.width),
+    y: (cy - r.top)  * (vb.height / r.height)
+  };
+}
 
-      const i = host._state.active;
-      const task = host._state.tasks[i];
+// --- gestion du tap/clic (pointer + click fallback) ---
+const handleTap = (ev) => {
+  if (host._state.active === null) return;
+  if (ev.pointerType === 'touch') ev.preventDefault();
 
-      // 1er clic : doit être exactement sur (a, f(a)) — ici (task.x, task.y) sont entiers
-      if(!host._state.anchors[i]){
-        if(xi===task.x && yi===task.y){
-          host._state.anchors[i] = {x:task.x, y:task.y};
-          redrawUser();
-        }
-        return;
-      }
+  // 1) écran → viewBox → repère
+  const Pvb = toSvgCoords(ui.rep.el, ev);
+  const P   = ui.rep.screenToCoord(Pvb.x, Pvb.y);
+  const xi  = Math.round(P.x);
+  const yi  = Math.round(P.y);
 
-      // 2e clic : second point entier
-      host._state.secondPts[i] = {x:xi, y:yi};
+  const i    = host._state.active;
+  const task = host._state.tasks[i];
+
+  // ---- 1er clic : uniquement l’abscisse (on "snappe" à A=(a,f(a)) ) ----
+  if (!host._state.anchors[i]){
+    const tol = 0.6; // tolérance sur x en unités du repère
+    if (Math.abs(P.x - task.x) <= tol){
+      host._state.anchors[i] = { x: task.x, y: task.y }; // y forcé à f(a)
       redrawUser();
+    }
+    return;
+  }
 
-      // Vérification de construction (colinéarité à (V,H) ou horizontale)
-      const A = host._state.anchors[i], E = host._state.secondPts[i];
-      let ok = false;
-      if(E && !(E.x===A.x && E.y===A.y)){
-        if(Math.abs(task.m)<1e-12){ ok = (E.y===A.y) && (E.x!==A.x); }
-        else if(E.x!==A.x){
-          const r1 = reduce(E.y-A.y, E.x-A.x), r2 = reduce(...task.VH);
-          ok = (r1[0]*r2[1] === r2[0]*r1[1]);
-        }
-      }
-      setTick($('#tbuild'+i,host), ok);
-    });
+  // ---- 2e clic : second point (arrondi à la grille entière) ----
+  host._state.secondPts[i] = { x: xi, y: yi };
+  redrawUser();
+
+  // ---- Vérification (même logique qu’avant) ----
+  const A = host._state.anchors[i], E = host._state.secondPts[i];
+  let ok = false;
+  if (E && !(E.x===A.x && E.y===A.y)){
+    if (Math.abs(task.m) < 1e-12){
+      ok = (E.y === A.y) && (E.x !== A.x);
+    } else if (E.x !== A.x){
+      const r1 = reduce(E.y - A.y, E.x - A.x), r2 = reduce(...task.VH);
+      ok = (r1[0]*r2[1] === r2[0]*r1[1]);
+    }
+  }
+  setTick($('#tbuild'+i,host), ok);
+};
+
+ui.rep.el.addEventListener('pointerdown', handleTap, {passive:false});
+ui.rep.el.addEventListener('click',       handleTap, {passive:true}); // fallback desktop
+
 
     redrawUser();
   },

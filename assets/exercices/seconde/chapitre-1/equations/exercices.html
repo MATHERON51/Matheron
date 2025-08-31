@@ -57,6 +57,72 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
   .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
 }
 .equ-offscreen .consigne{margin-bottom:6px;font-weight:600}
+
+/* === Patch 2025-08-31 — Saisie sous la question === */
+.row{
+  grid-template-columns: 1fr !important;
+  grid-template-areas:
+    'lab'
+    'inp'
+    'res' !important;
+}
+
+
+/* ===== Mobile-first tokens ===== */
+:root{
+  --tap:48px; --gap:10px; --pad:14px;
+  --ink:#111; --bg:#fff; --line:#e6e6e6;
+}
+@media (max-width:760px){
+  /* Conteneur + cartes plus respirants */
+  .wrap{padding:12px !important}
+  .card{padding:14px !important}
+
+  /* Grilles → une colonne (tes .grid/.g2/.two etc.) */
+  .grid, .g2, .grid.two, .grid2{display:grid;grid-template-columns:1fr !important;gap:var(--gap)}
+
+  /* Champs sous la question + largeur 100% */
+  .q input[type="text"], .q .answer, input[type="text"], textarea, select{
+    width:100%; min-height:var(--tap); font-size:16px; /* évite le zoom iOS */
+    margin-top:8px;
+  }
+
+  /* Boutons plus grands et cliquables */
+  .controls button, .controls .btn, button, .kbd .key{
+    min-height:var(--tap);
+    padding:12px 14px; font-weight:600;
+  }
+
+  /* Tables scrollables si trop larges */
+  table{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table thead, table tbody{width:100%}
+
+  /* Figures (SVG/canvas) fluides */
+  svg, canvas, .figure, .circle-host{max-width:100% !important; width:100% !important; height:auto}
+
+  /* Barre d’actions mobile en bas (duplique l’important) */
+  .mb-actions{
+    position:sticky; bottom:0; z-index:20;
+    background:var(--bg); border-top:1px solid var(--line);
+    padding:8px calc(10px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+    display:flex; gap:8px;
+  }
+  .mb-actions .btn{flex:1}
+
+  /* Clavier math en tiroir */
+  .kbd-host[data-collapsible]{position:fixed; left:0; right:0; bottom:0;
+    background:#fff; border-top:1px solid var(--line);
+    transform:translateY(100%); transition:transform .25s ease; z-index:30;
+    padding-bottom:calc(env(safe-area-inset-bottom) + 6px);
+  }
+  .kbd-host[data-open="1"]{transform:translateY(0)}
+  .kbd-toggle{position:fixed; right:12px; bottom:calc(64px + env(safe-area-inset-bottom));
+    background:#111; color:#fff; border-radius:999px; padding:10px 14px; z-index:31}
+}
+
+/* Focus visibles partout */
+:focus-visible{outline:2px solid #60a5fa; outline-offset:2px}
+
 </style>
 </head>
 <body>
@@ -703,6 +769,71 @@ document.addEventListener("DOMContentLoaded", function(){
   if (window.DevRules && DevRules.attachCleaner) DevRules.attachCleaner();
 });
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
 </script>
 </body>
 </html>

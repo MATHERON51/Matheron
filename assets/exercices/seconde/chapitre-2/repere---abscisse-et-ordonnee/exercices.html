@@ -6,6 +6,7 @@
 <title>Seconde – Repère : Abscisse et ordonnée</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
 *{box-sizing:border-box}
@@ -193,14 +194,24 @@ class Repere{
     this.gPts=document.createElementNS(s.namespaceURI,'g');
     this.gUser=document.createElementNS(s.namespaceURI,'g');
     [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
-    s.addEventListener('click',ev=>{
-      if(!this.clickable||!this.onClick) return;
-      const r=s.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
-      const c=this.screenToCoord(x,y);
-      const lim=this.innerLimits(), xi=Math.round(c.x), yi=Math.round(c.y);
-      if(xi<lim.xmin||xi>lim.xmax||yi<lim.ymin||yi>lim.ymax) return;
-      this.onClick({x:xi,y:yi});
-    });
+    s.addEventListener('click', (ev) => {
+  if (!this.clickable || !this.onClick) return;
+
+  const r = s.getBoundingClientRect();                // taille VISIBLE (écran)
+  const vb = s.viewBox?.baseVal || {width:420, height:420};
+
+  // Recalibrage: écran → unités du viewBox
+  const x = (ev.clientX - r.left) * (vb.width  / r.width);
+  const y = (ev.clientY - r.top)  * (vb.height / r.height);
+
+  const c   = this.screenToCoord(x, y);
+  const lim = this.innerLimits();
+  const xi = Math.round(c.x), yi = Math.round(c.y);
+
+  if (xi < lim.xmin || xi > lim.xmax || yi < lim.ymin || yi > lim.ymax) return;
+  this.onClick({ x: xi, y: yi });
+}, { passive: true });
+
     return s;
   }
   innerLimits(){ return { xmin:this.R.xmin+1, xmax:this.R.xmax-1, ymin:this.R.ymin+1, ymax:this.R.ymax-1 }; }
@@ -932,7 +943,14 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 
-  
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
 }, {passive:true});
 </script>
 </body>

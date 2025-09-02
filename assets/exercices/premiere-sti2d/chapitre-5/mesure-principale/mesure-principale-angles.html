@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Mesure principale d’un angle</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1280px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button{font:inherit}
+select{padding:6px 8px;border:1px solid #ddd;border-radius:10px;background:#fff}
+.btn{padding:8px 10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.score{margin-left:auto;font-weight:600}
+
+/* ===== Deux colonnes (énoncé / visuel) ===== */
+.grid-two{display:grid;grid-template-columns:auto 1fr;column-gap:140px;align-items:start}
+.visu{display:grid;grid-template-columns:auto auto;column-gap:0;align-items:center}
+.svgbox{background:#fff;border:1px solid #e5e5e5;border-right:none;border-radius:12px 0 0 12px;padding:10px;display:flex;justify-content:center;align-items:center;overflow:visible}
+.linebox{background:#fff;border:1px solid #e5e5e5;border-left:none;border-radius:0 12px 12px 0;padding:0}
+.statement{padding-left:0}
+
+/* === Blocs texte & marques ✓ ✗ === */
+.row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:10px 0}
+.row .q{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:10px;padding:10px}
+.input-line{display:flex;gap:8px;align-items:center}
+.solution-box{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-top:10px}
+li{position:relative}
+.mark{margin-left:8px;font-weight:700}
+.mark.ok{color:#16a34a}.mark.ko{color:#dc2626}
+.ok{color:#0b7f36;font-weight:600}.ko{color:#b91c1c;font-weight:600}
+
+/* === Fractions jolies (pile) === */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+
+/* === Tableaux (bordures visibles) === */
+.radtab{border-collapse:collapse;width:100%}
+.radtab th,.radtab td{border:2px solid #000;padding:6px 8px;text-align:center;vertical-align:middle}
+.radtab th.lab{font-weight:600;background:#f7f7f7}
+
+/* === Cercle trigo === */
+.ptlbl{font:14px system-ui, Segoe UI, Roboto, Arial}
+.ptlbl .prime { font-size: 1.45em; font-weight: 900; }  /* dans le SVG */
+.vec .prime, .statement .prime, .solution-box .prime { font-size: 1.25em; font-weight: 900; } /* dans le texte HTML */
+.btn-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* === palette lettres (Ex.1) === */
+.letter{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:32px;padding:0 10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.letter.active{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.2)}
+.badge{display:inline-block;border:1px solid #ddd;border-radius:999px;padding:.1rem .55rem;background:#fff;margin:0 .3rem}
+.small{color:#555}
+kbd{padding:.05rem .35rem;border:1px solid #ccc;border-bottom-width:3px;border-radius:6px;background:#fff}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="controls">
+      <select id="exo-select"></select>
+      <button class="btn" id="btn-new">Nouvel énoncé</button>
+      <button class="btn" id="btn-check">Vérifier</button>
+      <button class="btn" id="btn-solution">Solution</button>
+      <button class="btn" id="btn-reset">Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card" id="mount-here"></div>
+    <div class="card small"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.js' defer></script>
+
+<script>
+/* ====== Outils communs ====== */
+const $=(s,r=document)=>r.querySelector(s);
+const PI=Math.PI, TAU=2*Math.PI;
+const UMIN='−';
+
+/* jolis affichages π */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function fmtPiHTML(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? UMIN : '';
+  const an = Math.abs(k);
+  // rationalisation /12 pour les valeurs remarquables
+  const P=Math.round(an*12), Q=12, gg=gcd(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));   // jamais “/1”
+  if (p===1) return sgn+'<span class="frac"><span class="num">π</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+  return sgn+'<span class="frac"><span class="num">'+p+'π</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+}
+function fmtPiText(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? '-' : '';
+  const an = Math.abs(k);
+  const P=Math.round(an*12), Q=12, gg=gcd(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));   // jamais “/1”
+  if (p===1) return sgn+'π/'+q;
+  return sgn+p+'π/'+q;
+}
+
+/* Parse une saisie en radians (π accepté) → nombre */
+function parseRad(t){
+  if(!t) return NaN;
+  t = (''+t).trim().replace(/,/g,'.').replace(/\s+/g,'');
+  t = t.replace(/pi/ig,'π');
+  // formes aπ/b ; π/b ; aπ ; a ; - etc.
+  const m1 = t.match(/^([+-]?\d+)?π(?:\/([+-]?\d+))?$/);
+  if(m1){
+    const a = m1[1]? parseInt(m1[1],10) : 1;
+    const b = m1[2]? parseInt(m1[2],10) : 1;
+    return a*PI/b;
+  }
+  const m2 = t.match(/^([+-]?\d+(?:\.\d+)?)$/);
+  if(m2) return parseFloat(m2[1]);
+  const m3 = t.match(/^([+-]?\d+(?:\.\d+)?)π$/);
+  if(m3) return parseFloat(m3[1])*PI;
+  // (a/b)π
+  const m4 = t.match(/^([+-]?\d+)\/(\d+)π$/);
+  if(m4){ return (parseInt(m4[1],10)/parseInt(m4[2],10))*PI; }
+  return NaN;
+}
+/* bornes principales */
+function principalMP(a){ // ]−π ; π]
+  let t = ((a+PI) % TAU + TAU) % TAU - PI;
+  if (t <= -PI + 1e-12) t += TAU; // exclut −π
+  return t;
+}
+function principal02(a){ // [0 ; 2π[
+  let t = ((a % TAU) + TAU) % TAU;
+  if (t >= TAU-1e-12) t = 0;
+  return t;
+}
+
+/* texte flèche de vecteur */
+function vec(t){ return '<span class="vec" style="display:inline-block;position:relative;padding-top:.2em">'+
+  '<span style="position:absolute;left:0;right:0;top:-.85em;text-align:center">➤</span>'+t+'</span>'; }
+
+/* Aide d’affichage de labels avec prime visible dans le HTML */
+function prettyLbl(L){ return String(L).replace(/['’′]/g, '<span class="prime">′</span>'); }
+
+/* ====== Cercle trigo (SVG) ====== */
+function circleWithPointsSVG({R=110, showLabels=true}={}){
+  const pad=22, W=2*R+2*pad, H=2*R+2*pad;
+  const cx=pad+R, cy=pad+R;
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  const g=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);
+                     for(const k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e;};
+
+  // Quadrillage (±R/2)
+  const dash='4,4';
+  ['-0.5','0.5'].forEach(k=>{
+    const dx = R*parseFloat(k);
+    const dy = R*parseFloat(k);
+    g('line',{x1:cx+dx,y1:cy-R,x2:cx+dx,y2:cy+R,stroke:'#bbb','stroke-width':'1','stroke-dasharray':dash});
+    g('line',{x1:cx-R,y1:cy+dy,x2:cx+R,y2:cy+dy,stroke:'#bbb','stroke-width':'1','stroke-dasharray':dash});
+  });
+
+  // Cercle + axes
+  g('circle',{cx,cy,r:R,fill:'#fff',stroke:'#111','stroke-width':'2'});
+  g('line',{x1:cx-R,y1:cy,x2:cx+R,y2:cy,stroke:'#111','stroke-width':'1.4'});
+  g('line',{x1:cx,y1:cy+R,x2:cx,y2:cy-R,stroke:'#111','stroke-width':'1.4'});
+
+  // Ticks tous les 30°
+  for(let d=0; d<360; d+=30){
+    const a=d*Math.PI/180, x1=cx+(R-6)*Math.cos(a), y1=cy-(R-6)*Math.sin(a);
+    const x2=cx+R*Math.cos(a), y2=cy-R*Math.sin(a);
+    g('line',{x1,y1,x2,y2,stroke:'#333','stroke-width':'1'});
+  }
+
+  // Points remarquables (avec F et F', labels à l'extérieur)
+  const PTS=[
+    ['I',0], ['A',PI/6], ['B',PI/4], ['C',PI/3], ['J',PI/2], ['D',2*PI/3], ['E',3*PI/4], ['F',5*PI/6],
+    ['K',PI], ["F'",7*PI/6], ["E'",5*PI/4], ["D'",4*PI/3], ['L',3*PI/2], ["C'",5*PI/3], ["B'",7*PI/4], ["A'",11*PI/6]
+  ];
+  const coords = {};
+  const labelR = R+12;
+  for(const [name,a] of PTS){
+    const xp=cx+R*Math.cos(a), yp=cy-R*Math.sin(a);
+    const xl=cx+labelR*Math.cos(a), yl=cy-labelR*Math.sin(a);
+    coords[name]={x:xp,y:yp,a};
+    // point
+    g('circle',{cx:xp,cy:yp,r:3,fill:'#111'});
+    // label (optionnel)
+    if(showLabels){
+      const t=g('text',{x:xl,y:yl,class:'ptlbl', 'dominant-baseline':'middle'});
+      t.innerHTML = prettyLbl(name);
+    }
+  }
+
+  // Quadrillage pointillé demandé entre certaines paires
+  const LINKS=[ ['C',"C'"], ['D',"D'"], ['F','A'], ["F'","A'"], ["E'","B"], ['E',"B'"] ];
+  for(const [L,R] of LINKS){
+    const p=coords[L], q=coords[R];
+    if(p && q){
+      g('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:'#999','stroke-width':'1.4','stroke-dasharray':'4,4'});
+    }
+  }
+
+  // Label O
+  const tO=g('text',{x:cx-10,y:cy+16,class:'ptlbl'}); tO.textContent='O';
+
+  return {svg,cx,cy,R, coords};
+}
+const POINTS_MAP = {
+  'I':0,'A':PI/6,'B':PI/4,'C':PI/3,'J':PI/2,'D':2*PI/3,'E':3*PI/4,'F':5*PI/6,'K':PI,
+  "F'":7*PI/6, "E'":5*PI/4, "D'":4*PI/3, 'L':3*PI/2, "C'":5*PI/3, "B'":7*PI/4, "A'":11*PI/6
+};
+const ALL_LABELS = Object.keys(POINTS_MAP);
+
+/* ============ EXERCICE 1 — Placer les points sur le cercle ============ */
+function EXO_place_points(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+
+  // Visuel à droite (sans noms)
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg, coords} = circleWithPointsSVG({R:110, showLabels:false}); svgbox.appendChild(svg);
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  // Palette de lettres à placer
+  const toPlace = ['A','B','C','J','D','E','F','K',"A'","B'","C'","L","D'","E'","F'","I"];
+  statement.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 1 —</strong> Placer sur le cercle trigonométrique les <em>points remarquables</em> (sans leurs noms).</div>
+      <div class="small" style="margin:.3rem 0">Clique une lettre puis le point correspondant sur le cercle. <span class="badge">Entrée = Vérifier</span></div>
+      <div class="btn-row" id="letters"></div>
+      <div style="margin-top:8px" class="small">Astuce : on commence par I, J, K, L puis on complète A, B, C, … et leurs points opposés.</div>
+      <div id="placed" class="small" style="margin-top:6px"></div>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+  const letters = $('#letters', statement);
+  let active=null;
+  toPlace.forEach(L=>{
+    const b=document.createElement('button');
+    b.className='letter'; b.innerHTML=prettyLbl(L);
+    b.addEventListener('click',()=>{
+      letters.querySelectorAll('.letter').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); active=L;
+    });
+    letters.appendChild(b);
+  });
+  const placed = new Map(); // name -> ok / wrong
+  svg.addEventListener('click', (ev)=>{
+    if(!active) return;
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y=ev.clientY;
+    const ctm = svg.getScreenCTM().inverse(); const p = pt.matrixTransform(ctm);
+    // trouve le plus proche dot
+    let best=null, bestd=1e9, bestName=null;
+    for(const [name,xy] of Object.entries(coords)){
+      const d=Math.hypot(p.x-xy.x, p.y-xy.y);
+      if(d<bestd){ bestd=d; best=xy; bestName=name; }
+    }
+    if(best && bestd<=12){ // seuil clic
+      placed.set(active, bestName===active);
+      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx', best.x); dot.setAttribute('cy', best.y); dot.setAttribute('r', 7);
+      dot.setAttribute('fill', '#2563eb'); dot.setAttribute('fill-opacity','.25'); dot.setAttribute('stroke','#2563eb');
+      svg.appendChild(dot);
+      active=null; letters.querySelectorAll('.letter').forEach(x=>x.classList.remove('active'));
+      $('#placed', statement).textContent = `Placés : ${placed.size} / ${toPlace.length}`;
+    }
+  });
+
+  function check(){
+    let ok=0, tot=toPlace.length;
+    for(const L of toPlace){ if(placed.get(L)) ok++; }
+    return {ok, tot, details:`${ok} / ${tot}`};
+  }
+  function solution(){
+    const s=$('#solution', statement); s.style.display='block';
+    s.innerHTML = 'Répartition attendue : ' + toPlace.map(L=>prettyLbl(L)).join(' · ') + '. Les points sont placés aux angles remarquables (multiples de π/6).';
+  }
+  function reset(){ placed.clear(); $('#placed',statement).textContent=''; $('#solution',statement).style.display='none'; }
+  return {check, solution, reset, pdf:{
+    gen(){ return { toPlace:[...toPlace] }; },
+    render(st,isSol){ return isSol ? '<div>Points remarquables : '+st.toPlace.map(prettyLbl).join(' · ')+'</div>' : '<div>Placer les points remarquables sur le cercle (sans noms).</div>'; }
+  }};
+}
+
+/* ============ EXERCICE 2 — Appartenance à ]−π ; π] ============ */
+function EXO_appartenance(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const box=document.createElement('div'); host.appendChild(box);
+
+  // banque de valeurs (remarquables)
+  const vals = [ -7*PI/6, -5*PI/6, -3*PI/4, -2*PI/3, -PI/6, -PI/4, -PI/3, -2*PI/3, -7*PI/6,
+                  -PI/2, -PI/6, PI/4, PI/2, 3*PI/2, 5*PI/4, 7*PI/3, 5*PI/6, 2*PI/5, 49*PI/3, 38*PI/5,
+                  PI/6, PI/3, 3*PI/4, 5*PI/6, 7*PI/6, 5*PI/4, 7*PI/3, 5*PI/6, 5*PI/6 ];
+  // tirage 8 distincts lisibles
+  const pool=[-PI/4, PI/4, 3*PI/2, -7*PI/6, 5*PI/6, -2*PI/3, 7*PI/3, -5*PI/4, PI, -PI, 0, 5*PI/6, -PI/2, 2*PI/5, 5*PI/3, 11*PI/6, 13*PI/6];
+  const set = []; const seen=new Set();
+  while(set.length<8){
+    const v = pool[(Math.random()*pool.length)|0];
+    const key = Math.round(v*1e6);
+    if(!seen.has(key)){ seen.add(key); set.push(v); }
+  }
+
+  box.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 2 — Mesures (principales) d’angles orientés</strong></div>
+      <div>Sans calculatrice, indiquer, parmi les nombres réels suivants, ceux qui appartiennent à l’intervalle <b>] −π ; π ]</b>.</div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:8px" id="grid"></div>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+  const grid=$('#grid', box);
+  const picks=[];
+  set.forEach(v=>{
+    const d=document.createElement('label'); d.style.display='flex'; d.style.justifyContent='center'; d.style.alignItems='center'; d.style.gap='6px';
+    d.innerHTML = '<input type="checkbox"><span class="eq">'+fmtPiHTML(v)+'</span>';
+    grid.appendChild(d); picks.push({v, ck:d.querySelector('input')});
+  });
+
+  function check(){
+    let ok=0,tot=picks.length;
+    picks.forEach(o=>{
+      const isin = (principalMP(o.v)===o.v || Math.abs(principalMP(o.v)-o.v)<1e-12); // si déjà dans l'intervalle
+      if( (o.ck.checked && isin) || (!o.ck.checked && !isin) ) ok++;
+    });
+    return {ok, tot, details:`${ok} / ${tot}`};
+  }
+  function solution(){
+    const s=$('#solution', box); s.style.display='block';
+    s.innerHTML = 'Appartiennent à ] −π ; π ] : ' + picks.filter(o=>Math.abs(principalMP(o.v)-o.v)<1e-12).map(o=>fmtPiHTML(o.v)).join(' ; ');
+  }
+  function reset(){ $('#solution',box).style.display='none'; grid.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false); }
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:set.map(v=>fmtPiText(v))}; },
+    render(st,isSol){
+      const cells = st.vals.map(t=>`<td>${t.replaceAll('/1','')}</td>`).join('');
+      const row = `<tr>${cells}</tr>`;
+      if(!isSol) return `<div>Parmi les réels suivants, cocher ceux de l’intervalle ] −π ; π ] :</div><table class="radtab" style="margin-top:6px"><tbody>${row}</tbody></table>`;
+      const its = st.vals.filter(t=>{ const v=parseRad(t); return Math.abs(principalMP(v)-v)<1e-12; });
+      return `<div>Appartiennent à ] −π ; π ] :</div><div>${its.join(' ; ')}</div>`;
+    }
+  }};
+}
+
+/* ============ EXERCICE 3 — Tableau + cercle (]−π ; π]) ============ */
+function EXO_table_mp(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+
+  // visuel à droite (avec noms)
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg} = circleWithPointsSVG({R:110, showLabels:true}); svgbox.appendChild(svg);
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  // tirage 5 réels (remarquables)
+  const bank=[PI/2, 3*PI/2, 3*PI/4, -5*PI/2, 20*PI, 5*PI/4, -7*PI/6, 5*PI/6, -PI/6, 11*PI/3];
+  const vals=[]; const seen=new Set();
+  while(vals.length<5){ const v = bank[(Math.random()*bank.length)|0]; const k=Math.round(v*1e6); if(!seen.has(k)){ seen.add(k); vals.push(v); } }
+
+  statement.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 3 — Points images et mesures d’angles orientés</strong></div>
+      <div>Repérer sur ce cercle les <em>points images</em> des réels suivants et donner pour chacun d’eux le réel de <b>] −π ; π ]</b> qui a la même image.</div>
+      <table class="radtab" id="tbl" style="margin-top:6px">
+        <tbody>
+          <tr id="rowR"><th class="lab">Réel</th></tr>
+          <tr id="rowP"><th class="lab">Point image</th></tr>
+          <tr id="rowM"><th class="lab">∈ ] −π ; π ]</th></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+  const rowR=$('#rowR', statement), rowP=$('#rowP', statement), rowM=$('#rowM', statement);
+  const inputs=[];
+  vals.forEach(v=>{
+    const tdR=document.createElement('td'); tdR.innerHTML=`<div class="eq">${fmtPiHTML(v)}</div>`; rowR.appendChild(tdR);
+    const tdP=document.createElement('td'); tdP.innerHTML=`<input type="text" placeholder="Nom du point (ex. K, C′)" style="text-align:center">`; rowP.appendChild(tdP);
+    const tdM=document.createElement('td'); tdM.innerHTML=`<input type="text" placeholder="mesure principale en rad" style="text-align:center">`; rowM.appendChild(tdM);
+    inputs.push({v, p:tdP.querySelector('input'), m:tdM.querySelector('input')});
+  });
+  function labelOf(a){
+    let t=((a%TAU)+TAU)%TAU;
+    for(const L of ALL_LABELS){
+      const Lr = POINTS_MAP[L];
+      if (Math.abs(t-Lr)<1e-9 || Math.abs(Math.abs(t-Lr)-TAU)<1e-9) return L;
+      if (Math.abs(t-PI)<1e-9 && L==='K') return 'K';
+    }
+    return null;
+  }
+  function check(){
+    let ok=0, tot=inputs.length*2;
+    for(const o of inputs){
+      const pt = labelOf(o.v);
+      if( (o.p.value||'').trim().toUpperCase().replace('′',"'") === (pt||'').toUpperCase() ) ok++;
+      const mpv = principalMP(o.v);
+      const got = parseRad(o.m.value);
+      if(!isNaN(got) && Math.abs(principalMP(got)-mpv)<1e-9) ok++;
+    }
+    return {ok, tot, details:`${ok} / ${tot}`};
+  }
+  function solution(){
+    const s=$('#solution', statement); s.style.display='block';
+    const row1 = '<tr>'+vals.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2 = '<tr>'+vals.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3 = '<tr>'+vals.map(v=>`<td>${fmtPiHTML(principalMP(v))}</td>`).join('')+'</tr>';
+    s.innerHTML = `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  function reset(){ $('#solution',statement).style.display='none'; statement.querySelectorAll('input').forEach(i=>i.value=''); }
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:vals.map(fmtPiText)}; },
+    render(st,isSol){
+      const vs = st.vals.map(t=>parseRad(t));
+      const row1 = '<tr>'+st.vals.map(t=>`<td>${t.replaceAll('/1','')}</td>`).join('')+'</tr>';
+      if(!isSol) return `<div>Compléter le tableau :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}<tr><th class="lab">Point image</th>${'<td></td>'.repeat(vs.length)}</tr><tr><th class="lab">∈ ] −π ; π ]</th>${'<td></td>'.repeat(vs.length)}</tr></tbody></table>`;
+      const row2 = '<tr>'+vs.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+      const row3 = '<tr>'+vs.map(v=>`<td>${fmtPiText(principalMP(v))}</td>`).join('')+'</tr>';
+      return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+    }
+  }};
+}
+
+/* ============ EXERCICE 4 — Tableau + cercle ([0 ; 2π[) ============ */
+function EXO_table_02(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+
+  // visuel à droite
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg} = circleWithPointsSVG({R:110, showLabels:true}); svgbox.appendChild(svg);
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  // tirage 5 réels (remarquables & non) 
+  const bank=[-4*PI/3, 5*PI/2, -PI/6, -PI/4, PI/3, PI/4, -PI/6, PI/4, 7*PI/3, 5*PI/4];
+  const vals=[]; const seen=new Set();
+  while(vals.length<5){ const v = bank[(Math.random()*bank.length)|0]; const k=Math.round(v*1e6); if(!seen.has(k)){ seen.add(k); vals.push(v); } }
+
+  statement.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 4 — Points images et mesures d’angles orientés</strong></div>
+      <div>Repérer sur ce cercle les <em>points images</em> des réels suivants et donner pour chacun d’eux le réel de <b>[ 0 ; 2π [</b> qui a la même image.</div>
+      <table class="radtab" id="tbl" style="margin-top:6px">
+        <tbody>
+          <tr id="rowR"><th class="lab">Réel</th></tr>
+          <tr id="rowP"><th class="lab">Point image</th></tr>
+          <tr id="rowM"><th class="lab">∈ [ 0 ; 2π [</th></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+  const rowR=$('#rowR', statement), rowP=$('#rowP', statement), rowM=$('#rowM', statement);
+  const inputs=[];
+  vals.forEach(v=>{
+    const tdR=document.createElement('td'); tdR.innerHTML=`<div class="eq">${fmtPiHTML(v)}</div>`; rowR.appendChild(tdR);
+    const tdP=document.createElement('td'); tdP.innerHTML=`<input type="text" placeholder="Nom du point (ex. K, C′)" style="text-align:center">`; rowP.appendChild(tdP);
+    const tdM=document.createElement('td'); tdM.innerHTML=`<input type="text" placeholder="mesure principale en rad" style="text-align:center">`; rowM.appendChild(tdM);
+    inputs.push({v, p:tdP.querySelector('input'), m:tdM.querySelector('input')});
+  });
+  function labelOf(a){
+    let t=((a%TAU)+TAU)%TAU;
+    for(const L of ALL_LABELS){
+      const Lr = POINTS_MAP[L];
+      if (Math.abs(t-Lr)<1e-9 || Math.abs(Math.abs(t-Lr)-TAU)<1e-9) return L;
+      if (Math.abs(t-PI)<1e-9 && L==='K') return 'K';
+    }
+    return null;
+  }
+  function check(){
+    let ok=0, tot=inputs.length*2;
+    for(const o of inputs){
+      const pt = labelOf(o.v);
+      if( (o.p.value||'').trim().toUpperCase().replace('′',"'") === (pt||'').toUpperCase() ) ok++;
+      const mpv = principal02(o.v);
+      const got = parseRad(o.m.value);
+      if(!isNaN(got) && Math.abs(principal02(got)-mpv)<1e-9) ok++;
+    }
+    return {ok, tot, details:`${ok} / ${tot}`};
+  }
+  function solution(){
+    const s=$('#solution', statement); s.style.display='block';
+    const row1 = '<tr>'+vals.map(v=>`<td>${fmtPiHTML(v)}</td>`).join('')+'</tr>';
+    const row2 = '<tr>'+vals.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+    const row3 = '<tr>'+vals.map(v=>`<td>${fmtPiHTML(principal02(v))}</td>`).join('')+'</tr>';
+    s.innerHTML = `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+  }
+  function reset(){ $('#solution',statement).style.display='none'; statement.querySelectorAll('input').forEach(i=>i.value=''); }
+  return {check, solution, reset, pdf:{
+    gen(){ return {vals:vals.map(fmtPiText)}; },
+    render(st,isSol){
+      const vs = st.vals.map(t=>parseRad(t));
+      const row1 = '<tr>'+st.vals.map(t=>`<td>${t.replaceAll('/1','')}</td>`).join('')+'</tr>';
+      if(!isSol) return `<div>Compléter le tableau :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}<tr><th class="lab">Point image</th>${'<td></td>'.repeat(vs.length)}</tr><tr><th class="lab">∈ [ 0 ; 2π [</th>${'<td></td>'.repeat(vs.length)}</tr></tbody></table>`;
+      const row2 = '<tr>'+vs.map(v=>`<td><b>${prettyLbl(labelOf(v)||'')}</b></td>`).join('')+'</tr>';
+      const row3 = '<tr>'+vs.map(v=>`<td>${fmtPiText(principal02(v))}</td>`).join('')+'</tr>';
+      return `<div>Tableau complété :</div><table class="radtab" style="margin-top:6px"><tbody>${row1}${row2}${row3}</tbody></table>`;
+    }
+  }};
+}
+
+/* ============ EXERCICE 5 — 1 réel → mesure principale ============ */
+function EXO_une_mesure(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const box=document.createElement('div'); host.appendChild(box);
+  // générer un seul réel
+  const bank=[-PI/2, 2*PI/5, 49*PI/3, 38*PI/5, -13*PI/6, 17*PI/4];
+  const a = bank[(Math.random()*bank.length)|0];
+
+  box.innerHTML = `
+    <div class="q">
+      <div><strong>Exercice 5 —</strong> Donner la <em>mesure principale</em> de l’angle orienté dont une mesure en radians est :</div>
+      <div style="margin-top:8px;font-size:1.1rem"><span class="badge">a)</span> <b class="eq">${fmtPiHTML(a)}</b></div>
+      <div class="input-line" style="margin-top:8px"><label>Réponse :</label><input type="text" placeholder="ex. −π/6" style="width:220px"></div>
+      <div class="small" style="margin-top:6px">On attend une valeur dans <b>] −π ; π ]</b> (π autorisé, −π exclu). <span class="badge">Entrée = Vérifier</span></div>
+    </div>
+    <div class="solution-box" id="solution" style="display:none"></div>
+  `;
+  const inp = box.querySelector('input');
+
+  function check(){
+    let ok=0,tot=1;
+    const got = parseRad(inp.value);
+    if(!isNaN(got) && Math.abs(principalMP(got)-principalMP(a))<1e-9) ok++;
+    return {ok, tot, details:`${ok} / ${tot}`};
+  }
+  function solution(){
+    const s=$('#solution', box); s.style.display='block';
+    s.innerHTML = 'Mesure principale : <b>'+fmtPiHTML(principalMP(a))+'</b>';
+  }
+  function reset(){ $('#solution', box).style.display='none'; inp.value=''; }
+  return {check, solution, reset, pdf:{
+    gen(){ return {a:fmtPiText(a)}; },
+    render(st,isSol){
+      if(!isSol) return `<div>Donner la mesure principale de l’angle orienté dont une mesure en radians est : <b>${st.a}</b></div>`;
+      return `<div>Mesure principale : <b>${fmtPiText( parseRad(st.a) ? principalMP(parseRad(st.a)) : 0 )}</b></div>`;
+    }
+  }};
+}
+
+/* =================== REGISTRY & UI =================== */
+const REGISTRY = [
+  { id:'place',   title:'Ex.1 — Placer les points sur le cercle',          gen: EXO_place_points },
+  { id:'inint',   title:'Ex.2 — Appartenance à ]−π ; π]',                  gen: EXO_appartenance },
+  { id:'tabmp',   title:'Ex.3 — Tableau + cercle (]−π ; π])',              gen: EXO_table_mp },
+  { id:'tab02',   title:'Ex.4 — Tableau + cercle ([0 ; 2π[)',              gen: EXO_table_02 },
+  { id:'oneshot', title:'Ex.5 — Mesure principale (1 réel)',               gen: EXO_une_mesure }
+];
+window.REGISTRY = REGISTRY;
+
+let API=null, scoreOK=0, scoreTOT=0;
+function populateSelect(){ const sel=$('#exo-select'); sel.innerHTML=''; for(const e of REGISTRY){ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); } }
+function renderActive(){ const sel=$('#exo-select'); const exo=REGISTRY.find(e=>e.id===sel.value)||REGISTRY[0]; API=exo.gen(); }
+function buildOne(){ if($('#mount-here')) $('#mount-here').innerHTML=''; renderActive(); }
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTOT}`; }
+function check(){ if(!API) return; const r=API.check(); scoreOK+=r.ok; scoreTOT+=r.tot; updateScore(); }
+function solution(){ if(API) API.solution(); }
+function resetAll(){ scoreOK=0; scoreTOT=0; updateScore(); if(API) API.reset(); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  populateSelect(); renderActive();
+  $('#exo-select').addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  updateScore();
+  document.addEventListener('keydown',(ev)=>{
+    const a=document.activeElement;
+    if(a && a.tagName==='INPUT' && ev.key==='Enter'){ ev.preventDefault(); check(); }
+  });
+});
+
+/* =================== PDF (facultatif si lib absente) =================== */
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.ExoPDF) return;
+  ExoPDF.init({
+    title: 'Seconde – Mesure principale d’un angle',
+    max: 50,
+    leadByDefId: {
+      'place':   'Placer sur le cercle trigonométrique les points remarquables.',
+      'inint':   'Parmi les réels suivants, cocher ceux de l’intervalle ] −π ; π ].',
+      'tabmp':   'Compléter le tableau « Réel / Point image / ∈ ] −π ; π ] ».',
+      'tab02':   'Compléter le tableau « Réel / Point image / ∈ [ 0 ; 2π [ ».',
+      'oneshot': 'Donner la mesure principale de l’angle orienté dont une mesure est donnée.'
+    },
+    beforeGen(def, st, meta){
+      const sel=$('#exo-select'); const ex=REGISTRY.find(e=>e.id===sel.value);
+      if(!ex) return {};
+      return ex.gen().pdf.gen();
+    },
+    beforeRender(def, st, isSolution){
+      const sel=$('#exo-select'); const ex=REGISTRY.find(e=>e.id===sel.value);
+      if(!ex) return '';
+      return ex.gen().pdf.render(st, isSolution);
+    }
+  });
+});
+</script>
+</body>
+</html>

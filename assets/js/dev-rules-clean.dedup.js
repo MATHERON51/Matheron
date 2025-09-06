@@ -227,14 +227,20 @@
   function cleanString(s0){
     if(!s0) return s0;
     var s=String(s0);
-    s=s.replace(/\s*\(\s*/g,' ( ').replace(/\s*\)\s*/g,' ) ');
+// espaces seulement À L’EXTÉRIEUR, pas dedans
+s = s.replace(/\s*\(\s*/g,' (')     // espace avant la parenthèse ouvrante
+     .replace(/\s*\)\s*/g,') ');    // espace après la parenthèse fermante
     // × ( - … ) → × (− …)
-    s=s.replace(/×\s*-\s*((?:\d+)?x(?:[²³]|\^\d+)?|\d+)/g,'× (− $1)');
+// × ( - … ) → × (−…)
+s = s.replace(/×\s*-\s*((?:\d+)?x(?:[²³]|\^\d+)?|\d+)/g,'× (−$1)');
     s=s.replace(/×\s*\(\s*((?:\d+)?x(?:[²³]|\^\d+)?|x(?:[²³]|\^\d+)?|\d+)\s*\)/g,'× $1');
     for(var k=0;k<3;k++){ var t=s.replace(/\(\s*\(([^()]+)\)\s*\)/g,'($1)'); if(t===s) break; s=t; }
     if(typeof DevRules.normalizeSigns==='function'){ s=DevRules.normalizeSigns(s); }
     s=s.replace(/\s{2,}/g,' ').replace(/\s*\(\s*/g,' ( ').replace(/\s*\)\s*/g,' ) ').replace(/\s*×\s*/g,' × ').trim();
-    // Garder serré les appels de fonctions : f(x), g(t), P2(u)...
+    // serrer (… ) autour d’un nombre (avec − unicode ou - ascii, décimales)
+s = s.replace(/\(\s*([−-]?\d+(?:[.,]\d+)?)\s*\)/g, '($1)');
+
+	// Garder serré les appels de fonctions : f(x), g(t), P2(u)...
 s = s.replace(/([A-Za-z]\w*)\s*\(\s*([^)]+?)\s*\)/g, '$1($2)');
 // Et serrer le signe moins unaire dans l'appel : f(-x)
 s = s.replace(/([A-Za-z]\w*\()\s*[−-]\s*([A-Za-z0-9])/g, '$1−$2');

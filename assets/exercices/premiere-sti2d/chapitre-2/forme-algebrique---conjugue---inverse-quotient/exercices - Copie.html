@@ -31,29 +31,11 @@
   .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
   .step{margin:.2rem 0}
 
-/* PDF-safe fractions */
-.frac{
-  display:inline-grid;
-  grid-template-rows:auto 2px auto;
-  justify-items:center;
-  align-items:center;
-  vertical-align:middle;
-  line-height:1;
-}
-.frac .num,.frac .den{
-  display:block;
-  text-align:center;
-  padding:0 .2em;
-  white-space:nowrap;
-}
-.frac .bar{
-  display:block;
-  width:100%;
-  height:2px;               /* barre réelle, pas un border “cheveu” */
-  background:currentColor;  /* même couleur que le texte */
-  margin:.08em 0;
-}
-
+/* fractions */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
   /* Espacement autour des formules inline dans les énoncés */
   .statement code, code.equ, .equ{
     padding:.05rem .35rem;
@@ -132,15 +114,6 @@ function fmtComplex(a,b,order){
     if(b===0) return fmtNum(a);
     return fmtNum(a) + fmtIcoef(b);
   }
-}
-// --- Helpers "fractions exactes" ---
-function gcdInt(x, y){ x=Math.trunc(Math.abs(x)); y=Math.trunc(Math.abs(y)); while(y){ const t=x%y; x=y; y=t; } return x||1; }
-function fracText(num, den){
-  if(den<0){ num=-num; den=-den; }
-  const g = gcdInt(num, den); num/=g; den/=g;
-  if(den === 1) return String(num);
-  const s = (num<0 ? '-' : '');
-  return s + fracOf(String(Math.abs(num)), String(den)); // <-- pile
 }
 
 /* Parsing tolérant de a + bi */
@@ -270,7 +243,6 @@ function expand_ab_times_z_plus_li(a,b,l, withI2=true){
 }
 
 
-
 /* ===== Exercices ===== */
 
 /* Ex.1 — Conjugué */
@@ -330,44 +302,15 @@ const ex2 = {
   solution(host,st){
   const a = st.z.a, b = st.z.b, D = a*a + b*b;
 
-// cas particuliers — résultat SANS décimales + étapes détaillées
-if (b === 0) {
-  // z = a (réel)
-  const L0 = `<code>z = ${fmtComplex(a,0)}</code>`;
-  // (on peut passer par le conjugué, mais ici c'est direct)
-  const L1 = `<code>${fracOf('1','z')} = ${fracOf('1', String(a))}</code>`;
-  const L2 = `<code>${fracOf('1','z')}= ${fracText(1, a)}</code>`;   // forme algébrique, jamais de décimales
-
-  showSteps(host, [L0, L1, L2]);
-  return;
-}
-function coefI(b, sup2=false){
-  const a = Math.abs(b);
-  const s = b < 0 ? '-' : '';
-  const k = (a === 1 ? '' : a);               // pas de « 1 » devant i
-  return `${s}${k}i${sup2 ? '<sup>2</sup>' : ''}`;
-}
-function parensIfNeg(txt, b){ return b < 0 ? `(${txt})` : txt; }
-
-if (a === 0 && b !== 0) {
-  const den0  = coefI(b);                 // ex: "2i", "-i"
-  const den0x = parensIfNeg(den0, b);     // parenthèses si b<0 pour l'étape "× i"
-
-  const L1 = `<code>${fracOf('1','z')} = ${fracOf('1', den0)}</code>`;
-  const L2 = `<code>${fracOf('1','z')} = ${fracOf('1 × i', `${den0x} × i`)}</code>`;
-  const L3 = `<code>${fracOf('1','z')} = ${fracOf('i', coefI(b, true))}</code>`; // .../(b i^2)
-  const L4 = `<code>${fracOf('1','z')} = ${fracOf('i', String(-b))}</code>`;     // i/(-b)
-  const mag  = Math.abs(b);
-  const sign = (b > 0 ? '-' : '+');
-  const last = (mag === 1 ? 'i' : `${fracOf('1', String(mag))} i`);
-  const L5 = `<code>${fracOf('1','z')} = ${sign} ${last}</code>`;                // forme algébrique
-
-  showSteps(host, [L1, L2, L3, L4, L5]);
-  return;
-}
-
-
-
+  // cas particuliers
+  if(b===0){
+    const L1 = `<code><span class="equ">${fracOf('1','z')}</span> = 1/${fmtComplex(a,b)}</code> = ${fmtComplex(1/a,0)}`;
+    showSteps(host,[L1]); return;
+  }
+  if(a===0){
+    const L1 = `<code><span class="equ">${fracOf('1','z')}</span> = 1/${fmtComplex(a,b)}</code> = ${fmtComplex(0,-1/b)}`;
+    showSteps(host,[L1]); return;
+  }
 
   const L1  = `On multiplie par le conjugué du dénominateur au numérateur et au dénominateur :`;
   const L1b = `<code><span class="equ">${fracOf('1','z')}</span> = ${fracOf('1', fmtComplex(a,b))} × ${fracOf(fmtComplex(a,-b), fmtComplex(a,-b))}</code>.`;
@@ -844,184 +787,163 @@ function pickKLDistinct(){
 
   // -------------------- solution pas-à-pas (styles des screens) --------------------
  solution(host, st){
-  // -------- Helpers d'affichage --------
+  // --- Helpers d'affichage ---
   const pow2HTML = n => { const t=String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,''); return (n<0?`(${t})`:t)+'<sup>2</sup>'; };
   const zPlusReal = t => t ? ('z ' + (t>0?'+ '+t:'− '+Math.abs(t))) : 'z';
   const zPlusImag = t => t ? ('z ' + (t>0?'+ ':'− ') + (Math.abs(t)===1?'i':Math.abs(t)+'i')) : 'z';
 
-  // ajoute k·(unité) à une somme (jamais "1z", ni 0)
-  function addTerm(s,k,unit){
-    if(!k) return s;
-    const first = (s==='');
-    const sign  = k<0 ? (first?'− ':' − ') : (first?'':' + ');
+  // Ajoute un terme k·(unité) à une chaîne (sans "1z", ni 0)
+  function _appendTerm(out, k, unit){
+    if (!k) return out;
+    const first = (out === '');
+    const sign  = k < 0 ? (first ? '− ' : ' − ') : (first ? '' : ' + ');
     const m = Math.abs(k);
-    let body='';
-    if(unit==='z')   body = (m===1? 'z' : m+'z');
-    else if(unit==='iz') body = (m===1? 'iz': m+'iz');
-    else if(unit==='i')  body = (m===1? 'i' : m+'i');
-    else if(unit==='i2') body = (m===1? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
+    let body = '';
+    if (unit === 'z')   body = (m===1 ? 'z'  : m+'z');
+    else if (unit === 'iz') body = (m===1 ? 'iz' : m+'iz');
+    else if (unit === 'i')  body = (m===1 ? 'i'  : m+'i');
+    else if (unit === 'i2') body = (m===1 ? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
     else body = String(m);
-    return s + sign + body;
+    return out + sign + body;
   }
-  // (a+bi)(z+li) après remplacement i² = −1 : az + ali + biz − bl
-function dev_z_plus_li_noI2(a,b,l){
-  let s='';
-  s = addTerm(s, a,   'z');   // az
-  s = addTerm(s, a*l, 'i');   // + ali
-  s = addTerm(s, b,   'iz');  // + biz
-  s = addTerm(s, -b*l,'');    // − bl   (car bli² -> bl×(−1))
-  return s || '0';
-}
-  // (1−a)z − biz (sans factoriser)
-  function leftZCombo(a,b){ let s=''; s=addTerm(s,1-a,'z'); s=addTerm(s,-b,'iz'); return s||'0'; }
-  // z((1−a) − bi)
-  function leftZFact(a,b){ let inside=''; inside=addTerm(inside,1-a,''); inside=addTerm(inside,-b,'i'); return `z(${inside})`; }
-  // somme générique (réel / imag / i²) sans fusionner
-  const joinTerms = parts => { let out=''; for(const {coef,kind} of parts){ if(!coef) continue; out = addTerm(out, coef, (kind==='re'?'':kind)); } return out || '0'; };
-  // finale a+bi à partir de (R/D, I/D)
-  function finalAplusBi(R,I,D){ const p=[]; if(R){ const [rx,ry]=reduce(R,D); p.push(fracHTML(rx,ry)); } if(I){ const [ix,iy]=reduce(I,D); p.push((I>0&&p.length?' + ':(I<0&&p.length?' − ':(I<0?'− ':'')))+fracHTML(Math.abs(ix),iy)+' i'); } return p.join('')||'0'; }
-  // développements dans l'ordre des screens
-  const dev_z_plus_l  = (a,b,l)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,''); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,'i'); return s||'0'; };
-  const dev_z_plus_li = (a,b,l,withI2=true)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,'i'); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,withI2?'i2':''); return s||'0'; };
 
-  const denCoefs = (a,b)=>({c1:1-a, c2:-b}); // (1-a) + (-b)i
-  const denStr   = (c1,c2)=> joinTerms([{coef:c1,kind:'re'},{coef:c2,kind:'i'}]);
-  const conjStr  = (c1,c2)=> joinTerms([{coef:c1,kind:'re'},{coef:-c2,kind:'i'}]);
+  // *** ORDRE VOULU ***
+  // (a+bi)(z+l)  -> "az + al + biz + bli"
+  function expand_ab_times_z_plus_l(a,b,l){
+    let rhs = '';
+    rhs = _appendTerm(rhs, a,   'z');   // az
+    rhs = _appendTerm(rhs, a*l, '');    // + al
+    rhs = _appendTerm(rhs, b,   'iz');  // + biz
+    rhs = _appendTerm(rhs, b*l, 'i');   // + bl·i
+    return rhs || '0';
+  }
+  // (a+bi)(z+li) -> "az + ali + biz + bli²" (i² visible)
+  function expand_ab_times_z_plus_li(a,b,l, keepI2=true){
+    let rhs = '';
+    rhs = _appendTerm(rhs, a,   'z');             // az
+    rhs = _appendTerm(rhs, a*l, 'i');             // + al·i
+    rhs = _appendTerm(rhs, b,   'iz');            // + biz
+    rhs = _appendTerm(rhs, b*l, keepI2?'i2':'');  // + bl·i² (ou remplacé ensuite)
+    return rhs || '0';
+  }
 
-  // -------- modèle 1 : (z+k)/(z+l) = a+bi --------
+  // Construit une somme (réel / imag / i²) en ignorant les zéros
+  function joinTerms(parts){
+    let out=''; 
+    for(const {coef,kind} of parts){
+      if(!coef) continue;
+      const first = out===''; 
+      const s = coef<0 ? (first?'− ':' − ') : (first?'':' + ');
+      const m = Math.abs(coef);
+      let b = '';
+      if(kind==='re') b = String(m);
+      else if(kind==='i')  b = (m===1?'i':m+'i');
+      else if(kind==='i2') b = (m===1?'i<sup>2</sup>':m+'i<sup>2</sup>');
+      out += s + b;
+    }
+    return out || '0';
+  }
+  // Écrit la forme finale a + bi à partir de (R/D, I/D)
+  function finalAplusBi(R, I, D){
+    const blocks=[];
+    if(R){ const [rx,ry]=reduce(R,D); blocks.push(fracHTML(rx,ry)); }
+    if(I){ const [ix,iy]=reduce(I,D); blocks.push((I>0&&blocks.length?' + ':(I<0&&blocks.length?' − ':(I<0?'− ':'')))+fracHTML(Math.abs(ix),iy)+' i'); }
+    return blocks.join('') || '0';
+  }
+
+  // ===================== Modèle 1 =====================
   const showM1 = ()=>{
-    const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+    const {k,l,w:{a,b}} = st;
     const H  = `<div><em>Pour tout</em> <code>z ≠ ${fmtNum(-l)}</code>, on a :</div>`;
     const L1 = `<code class="equ">${fracOf(zPlusReal(k), zPlusReal(l))} = ${fmtComplex(a,b)}</code>`;
     const L2 = `<code class="equ">z ${k?(k>0?'+ '+k:'− '+Math.abs(k)):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ '+l:'− '+Math.abs(l)):''})</code>`;
-    const L3 = `<code class="equ">z ${k?(k>0?'+ '+k:'− '+Math.abs(k)):''} = ${dev_z_plus_l(a,b,l)}</code>`;
-
-    // rassembler (puis factoriser si nécessaire)
+    const L3 = `<code class="equ">z ${k?(k>0?'+ '+k:'− '+Math.abs(k)):''} = ${expand_ab_times_z_plus_l(a,b,l)}</code>`;
     const Nre = a*l - k, Nim = b*l;
-    const L4  = `<code class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`;
-    const steps = [H,L1,L2,L3,L4];
-    if(c1!==0 && c2!==0){ // factorisation explicite seulement si mix re/imag
-      steps.push(`<code class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`);
-    }
-
-    // écriture en fraction & conjugué
-    const NumStr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
-    const L5 = `<code class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</code>`;
-    const L6 = `<code class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</code>`;
-
-    // FOIL (i² visible), puis étape "i² → −1" sans regrouper, puis dénominateur évalué
+    const L4 = `<code class="equ">z(1 − ${fmtNum(a)} ${b?(b>0?'− ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}) = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`;
+    const den1 = `1 ${a?(a>0?' − '+a:' + '+Math.abs(a)):''} ${b?(b>0?' − ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const Nstr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
+    const L5 = `<code class="equ">z = ${fracOf(Nstr, den1)}</code>`;
+    const conj = `${fmtNum(1-a)} ${b?(b>0?'+ ':'− ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const L6 = `<code class="equ">z = ${fracOf(`(${Nstr})(${conj})`, `(${conj})(${fmtNum(1-a)} ${b?(b>0?'− ':'+ ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''})`)}</code>`;
+    const denPow = `${pow2HTML(1-a)} + ${pow2HTML(b)}`;
     const foil = joinTerms([
-      {coef:Nre*c1, kind:'re'},
-      {coef:Nre*(-c2), kind:'i'},
-      {coef:Nim*c1, kind:'i'},
-      {coef:Nim*(-c2), kind:'i2'}
+      {coef:Nre*(1-a), kind:'re'},
+      {coef:Nre*b,     kind:'i'},
+      {coef:Nim*(1-a), kind:'i'},
+      {coef:Nim*b,     kind:'i2'}
     ]);
-    const L7  = `<code class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</code>`;
-    const foilNoI2 = joinTerms([
-      {coef:Nre*c1,   kind:'re'},
-      {coef:Nre*(-c2),kind:'i'},
-      {coef:Nim*c1,   kind:'i'},
-      {coef:-(Nim*(-c2)), kind:'re'}   // i² → −1
-    ]);
-	    const D = c1*c1 + c2*c2;
-
-    const L7b = `<code class="equ">z = ${fracOf(foilNoI2, String(D))}</code>`;
-
-    // regrouper R/I, puis fraction finale et séparation
-    const R = Nre*c1 + Nim*c2, I = Nre*(-c2) + Nim*c1;
-    const L9  = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
-    const L10 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
-    showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    const L7 = `<code class="equ">z = ${fracOf(foil, denPow)}</code>`;
+    const R = Nre*(1-a) - Nim*b, I = Nre*b + Nim*(1-a);
+    const D = (1-a)*(1-a) + b*b;
+    const L8 = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
+    const L9 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
+    showSteps(host,[H,L1,L2,L3,L4,L5,L6,L7,L8,L9]);
   };
 
-  // -------- modèle 2 : (z+ki)/(z+l) = a+bi --------
+  // ===================== Modèle 2 =====================
   const showM2 = ()=>{
-    const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+    const {k,l,w:{a,b}} = st;
     const H  = `<div><em>Pour tout</em> <code>z ≠ ${fmtNum(-l)}</code>, on a :</div>`;
     const L1 = `<code class="equ">${fracOf(zPlusImag(k), zPlusReal(l))} = ${fmtComplex(a,b)}</code>`;
     const L2 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ '+l:'− '+Math.abs(l)):''})</code>`;
-    const L3 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_l(a,b,l)}</code>`;
-
+    const L3 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${expand_ab_times_z_plus_l(a,b,l)}</code>`;
     const Nre = a*l, Nim = b*l - k;
-    const L4  = `<code class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`;
-    const steps = [H,L1,L2,L3,L4];
-    if(c1!==0 && c2!==0){
-      steps.push(`<code class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`);
-    }
-
-    const NumStr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
-    const L5 = `<code class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</code>`;
-    const L6 = `<code class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</code>`;
-
+    const L4 = `<code class="equ">z(1 − ${fmtNum(a)} ${b?(b>0?'− ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}) = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</code>`;
+    const den1 = `1 ${a?(a>0?' − '+a:' + '+Math.abs(a)):''} ${b?(b>0?' − ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const Nstr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
+    const L5 = `<code class="equ">z = ${fracOf(Nstr, den1)}</code>`;
+    const conj = `${fmtNum(1-a)} ${b?(b>0?'+ ':'− ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const L6 = `<code class="equ">z = ${fracOf(`(${Nstr})(${conj})`, `(${conj})(${fmtNum(1-a)} ${b?(b>0?'− ':'+ ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''})`)}</code>`;
+    const denPow = `${pow2HTML(1-a)} + ${pow2HTML(b)}`;
     const foil = joinTerms([
-      {coef:Nre*c1, kind:'re'},
-      {coef:Nre*(-c2), kind:'i'},
-      {coef:Nim*c1, kind:'i'},
-      {coef:Nim*(-c2), kind:'i2'}
+      {coef:Nre*(1-a), kind:'re'},
+      {coef:Nre*b,     kind:'i'},
+      {coef:Nim*(1-a), kind:'i'},
+      {coef:Nim*b,     kind:'i2'}
     ]);
-    const L7  = `<code class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</code>`;
-    const foilNoI2 = joinTerms([
-      {coef:Nre*c1,   kind:'re'},
-      {coef:Nre*(-c2),kind:'i'},
-      {coef:Nim*c1,   kind:'i'},
-      {coef:-(Nim*(-c2)), kind:'re'}
-    ]);
-        const D = c1*c1 + c2*c2;
-const L7b = `<code class="equ">z = ${fracOf(foilNoI2, String(D))}</code>`;
-
-    const R = Nre*c1 + Nim*c2, I = Nre*(-c2) + Nim*c1;
-    const L9  = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
-    const L10 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
-    showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    const L7 = `<code class="equ">z = ${fracOf(foil, denPow)}</code>`;
+    const R = Nre*(1-a) - Nim*b, I = Nre*b + Nim*(1-a);
+    const D = (1-a)*(1-a) + b*b;
+    const L8 = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
+    const L9 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
+    showSteps(host,[H,L1,L2,L3,L4,L5,L6,L7,L8,L9]);
   };
 
-  // -------- modèle 3 : (z+ki)/(z+li) = a+bi --------
+  // ===================== Modèle 3 =====================
   const showM3 = ()=>{
-    const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+    const {k,l,w:{a,b}} = st;
     const H  = `<div><em>Pour tout</em> <code>z ≠ ${fmtNum(-l)}i</code>, on a :</div>`;
     const L1 = `<code class="equ">${fracOf(zPlusImag(k), zPlusImag(l))} = ${fmtComplex(a,b)}</code>`;
     const L2 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ ':'− ')+(Math.abs(l)===1?'i':Math.abs(l)+'i'):''})</code>`;
-    const L3 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_li(a,b,l,true)}</code>`; // i² visible
-const L3b = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_li_noI2(a,b,l)}</code>`;
-
-    const RHSre = -b*l, RHSim = a*l - k; // après i²=-1
-    const L4  = `<code class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}])}</code>`;
-    const steps = [H,L1,L2,L3,L3b,L4];
-    if(c1!==0 && c2!==0){
-      steps.push(`<code class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}])}</code>`);
-    }
-
-    const NumStr = joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}]);
-    const L5 = `<code class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</code>`;
-    const L6 = `<code class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</code>`;
-
+    const devI2 = expand_ab_times_z_plus_li(a,b,l,true);  // az + ali + biz + bli²
+    const L3 = `<code class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${devI2}</code>`;
+    // Remplacement i² = −1
+    const rhsRe = -b*l, rhsIm = a*l - k;
+    const L4 = `<code class="equ">z(1 − ${fmtNum(a)} ${b?(b>0?'− ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}) = ${joinTerms([{coef:rhsRe,kind:'re'},{coef:rhsIm,kind:'i'}])}</code>`;
+    const den1 = `1 ${a?(a>0?' − '+a:' + '+Math.abs(a)):''} ${b?(b>0?' − ':' + ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const Nstr = joinTerms([{coef:rhsRe,kind:'re'},{coef:rhsIm,kind:'i'}]);
+    const L5 = `<code class="equ">z = ${fracOf(Nstr, den1)}</code>`;
+    const conj = `${fmtNum(1-a)} ${b?(b>0?'+ ':'− ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''}`;
+    const L6 = `<code class="equ">z = ${fracOf(`(${Nstr})(${conj})`, `(${conj})(${fmtNum(1-a)} ${b?(b>0?'− ':'+ ')+(Math.abs(b)===1?'i':Math.abs(b)+'i'):''})`)}</code>`;
+    const denPow = `${pow2HTML(1-a)} + ${pow2HTML(b)}`;
     const foil = joinTerms([
-      {coef:RHSre*c1, kind:'re'},
-      {coef:RHSre*(-c2), kind:'i'},
-      {coef:RHSim*c1, kind:'i'},
-      {coef:RHSim*(-c2), kind:'i2'}
+      {coef:rhsRe*(1-a), kind:'re'},
+      {coef:rhsRe*b,     kind:'i'},
+      {coef:rhsIm*(1-a), kind:'i'},
+      {coef:rhsIm*b,     kind:'i2'}
     ]);
-    const L7  = `<code class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</code>`;
-    const foilNoI2 = joinTerms([
-      {coef:RHSre*c1,   kind:'re'},
-      {coef:RHSre*(-c2),kind:'i'},
-      {coef:RHSim*c1,   kind:'i'},
-      {coef:-(RHSim*(-c2)), kind:'re'}
-    ]);
-        const D = c1*c1 + c2*c2;
-const L7b = `<code class="equ">z = ${fracOf(foilNoI2, String(D))}</code>`;
-
-    const R = RHSre*c1 + RHSim*c2, I = RHSre*(-c2) + RHSim*c1;
-    const L9  = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
-    const L10 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
-    showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    const L7 = `<code class="equ">z = ${fracOf(foil, denPow)}</code>`;
+    const R = rhsRe*(1-a) - rhsIm*b, I = rhsRe*b + rhsIm*(1-a);
+    const D = (1-a)*(1-a) + b*b;
+    const L8 = `<code class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</code>`;
+    const L9 = `<code class="equ">z = ${finalAplusBi(R,I,D)}</code>`;
+    showSteps(host,[H,L1,L2,L3,L4,L5,L6,L7,L8,L9]);
   };
 
   if (st.mode==='M1') return showM1();
   if (st.mode==='M2') return showM2();
   showM3();
-}
-,
+},
 
   reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
 };

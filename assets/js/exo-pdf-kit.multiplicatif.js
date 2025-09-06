@@ -332,12 +332,24 @@ function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
 <meta charset="utf-8">
 <title>${title} — Fiche</title>
 <style>
-/* Tables & bordures noires conservées */
+/* Tables des exercices (PDF) */
 table{border-collapse:collapse}
-.tbl{border-collapse:collapse;border:1px solid #000}
-.tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
+/* Tableau Intervalles/Ensembles : plus compact et centré */
+.table-exo{
+  width:150mm;
+  max-width:100%;
+  margin:4mm auto;
+  table-layout:fixed;
+}
+.table-exo th, .table-exo td{
+  border:1px solid #000;
+  padding:3px 6px;
+  font-size:12px;
+  white-space:normal;
+}
+.table-exo th:first-child, .table-exo td:first-child{ width:50mm; text-align:left; }
+.table-exo th:not(:first-child), .table-exo td:not(:first-child){ width:16mm; text-align:center; }
 
-/* Mise en page */
 @page{size:A4;margin:14mm}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;color:#111}
 .wrap{padding:0 2mm}
@@ -354,13 +366,24 @@ header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:
 h1{font-size:18px;margin:6px 0 0 0}
 .meta{color:#666;font-size:12px;margin-top:2mm}
 
-.section-title{font-weight:800;margin:8mm 0 3mm;font-size:14px}
 .ex{margin:10px 0;page-break-inside:avoid}
 .ex .n{font-weight:700;margin-right:6px}
 .lead{font-weight:600;margin-right:6px}
 .solution{margin:6px 0 0 0;padding:6px 10px;background:#f9f9f9;border-left:3px solid #ddd}
 .solution .title{font-weight:700;font-size:13px;margin-bottom:4px}
 
+.steps{margin:.35rem 0 0 0;padding:.3rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:6px}
+.step{margin:.18rem 0;white-space:normal}
+.proof-table{display:grid;column-gap:12px;row-gap:0;margin-top:.3rem;white-space:normal}
+.proof-table .cell{align-self:start}
+.proof-table .ou{text-align:center;color:#555;white-space:nowrap;padding:.25rem .4rem}
+
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .20em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+.frac-sign{margin-right:.15em}
+
+footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;color:#777;font-size:11px}
 /* Saut de page garanti entre Énoncés et Corrigés */
 .pagebreak{break-before:page; page-break-before:always;}
 

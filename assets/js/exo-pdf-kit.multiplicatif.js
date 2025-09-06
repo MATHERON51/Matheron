@@ -21,15 +21,23 @@ const DEFAULTS = {
 
   function $(sel, r=document){ return r.querySelector(sel); }
 
-  function pickDef(mix){
-    const REG = (window.REGISTRY && Array.isArray(window.REGISTRY)) ? window.REGISTRY : [];
-    if(!REG.length){
-      console.warn('[exo-pdf-kit] REGISTRY introuvable'); return null;
-    }
-    if(mix) return REG[Math.floor(Math.random()*REG.length)];
-    const sel = $('#exo-select');
-    return REG.find(e => e.id === (sel? sel.value : null)) || REG[0];
+  function pickDef(mix, allowIds){
+  const REG = (window.REGISTRY && Array.isArray(window.REGISTRY)) ? window.REGISTRY : [];
+  if(!REG.length){
+    console.warn('[exo-pdf-kit] REGISTRY introuvable'); return null;
   }
+  if(mix){
+    let pool = REG;
+    if (Array.isArray(allowIds) && allowIds.length){
+      const set = new Set(allowIds);
+      pool = REG.filter(d => set.has(d.id));
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  const sel = $('#exo-select');
+  return REG.find(e => e.id === (sel? sel.value : null)) || REG[0];
+}
+
 
   // --- util : nettoyage des aides pour le PDF ---
   // --- util : nettoyage des aides pour le PDF (énoncé & corrigé) ---
@@ -173,55 +181,85 @@ function stripSmallHints(html){
   }
 
   function buildControlsUI(opts){
-    const wrap = document.createElement('div');
-    wrap.className = 'card pdf-controls';
-    wrap.innerHTML = `
-      <div class="small" style="font-weight:600">Générer une fiche (PDF)</div>
-      <div class="row-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-        <label for="pdf-count">Nombre d’exercices (≤ ${opts.max}) :</label>
-        <input id="pdf-count" type="number" min="1" max="${opts.max}" value="10">
-        <label style="display:inline-flex;align-items:center;gap:6px">
-          <input id="pdf-mix" type="checkbox" checked> mélanger
-        </label>
-        <label style="display:inline-flex;align-items:center;gap:6px">
-          <input id="pdf-sol" type="checkbox"> avec corrigés
-        </label>
-        <button id="btn-pdf" class="btn">🖨️ Générer la fiche</button>
-      </div>
-      <div class="row-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-        <input id="pdf-etab" type="text" placeholder="Établissement (optionnel)" style="min-width:220px">
-        <input id="pdf-classe" type="text" placeholder="Classe (ex. 2nde A)" style="min-width:220px">
-        <label style="display:inline-flex;align-items:center;gap:6px">
-          <input id="pdf-blanks" type="checkbox" checked> afficher lignes Nom / Prénom / Date
-        </label>
-      </div>
-      <div class="small" style="color:#555">Dans la boîte d’impression, décoche “En-têtes et pieds de page” pour ne pas afficher l’URL.</div>
-    `;
-    return wrap;
-  }
+  const wrap = document.createElement('div');
+  wrap.className = 'card pdf-controls';
+  const REG = (window.REGISTRY && Array.isArray(window.REGISTRY)) ? window.REGISTRY : [];
+  wrap.innerHTML = `
+    <div class="small" style="font-weight:600">Générer une fiche</div>
+    <div class="row-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <label for="pdf-count">Nombre d’exercices (≤ ${opts.max}) :</label>
+      <input id="pdf-count" type="number" min="1" max="${opts.max}" value="10">
+      <label style="display:inline-flex;align-items:center;gap:6px">
+        <input id="pdf-mix" type="checkbox" checked> mélanger
+      </label>
+      <button id="btn-pdf" class="btn">🗂️ Générer la fiche</button>
+    </div>
 
-function buildPrintableHTML(nb, mix, withSolutions, header, opts){
+    <!-- Choix des types quand "mélanger" est coché -->
+    <div id="mix-chooser" class="card small" style="margin-top:8px; padding:10px; border:1px dashed #ddd">
+      <div style="margin-bottom:6px"><strong>Inclure ces types :</strong></div>
+      <div class="mix-grid" style="display:flex;flex-wrap:wrap;gap:8px">
+        ${REG.map(d=>`
+          <label class="chip" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:999px;padding:4px 10px">
+            <input class="mix-id" type="checkbox" value="${d.id}" checked> ${d.title}
+          </label>`).join('')}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="mix-all">Tout cocher</button>
+        <button type="button" class="btn" id="mix-none">Tout décocher</button>
+      </div>
+    </div>
+
+    <div class="row-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <input id="pdf-etab" type="text" placeholder="Nom de l’établissement" style="min-width:240px">
+      <input id="pdf-classe" type="text" placeholder="Classe (ex. 2nde A)" style="min-width:220px">
+      <label style="display:inline-flex;align-items:center;gap:6px">
+        <input id="pdf-blanks" type="checkbox" checked> afficher lignes Nom / Prénom / Date
+      </label>
+    </div>
+    <div class="small" style="color:#555">Astuce : dans la boîte d’impression, décoche « En-têtes et pieds de page » pour ne pas afficher l’URL.</div>
+  `;
+
+  // interactions "tout cocher/décocher"
+  wrap.querySelector('#mix-all')?.addEventListener('click', ()=>{
+    wrap.querySelectorAll('.mix-id').forEach(ch=>ch.checked=true);
+  });
+  wrap.querySelector('#mix-none')?.addEventListener('click', ()=>{
+    wrap.querySelectorAll('.mix-id').forEach(ch=>ch.checked=false);
+  });
+
+  // masque/affiche le sélecteur selon la case "mélanger"
+  const mixBox = wrap.querySelector('#pdf-mix');
+  const chooser = wrap.querySelector('#mix-chooser');
+  function syncChooser(){ chooser.hidden = !mixBox.checked; }
+  mixBox.addEventListener('change', syncChooser);
+  syncChooser();
+
+  return wrap;
+}
+
+
+function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
   const today = new Date().toLocaleDateString('fr-FR');
   const title = opts.title || DEFAULTS.title;
 
-  // Anti-doublon local (identique au code existant)
+  // anti-doublon local
   const SEEN = new Set();
   const keyOf = (def, st) => JSON.stringify({
     id: def.id || def.title || '?',
-    kind: st?.kind ?? null,
-    type: st?.type ?? null,
+    kind: st?.kind ?? null, type: st?.type ?? null,
     n: ('n' in (st||{}) ? st.n : null),
     params: st?.params || {}
   });
 
-  // On prépare TOUT de suite énoncé + corrigé pour chaque item,
-  // même si on ne les affiche pas tous dans la 1ʳᵉ partie.
-  const DATA = [];
+  const enonces = [];
+  const corriges = [];
+
   for (let i=1; i<=nb; i++) {
-    const def = pickDef(mix);
+    const def = pickDef(mix, opts && Array.isArray(opts.allowIds) ? opts.allowIds : null);
     if(!def) break;
 
-    // état (anti-doublon)
+    // état généré non dupliqué
     let st = {};
     let tries = 0, sig = '';
     do {
@@ -232,11 +270,11 @@ function buildPrintableHTML(nb, mix, withSolutions, header, opts){
     SEEN.add(sig);
 
     if (typeof opts.beforeGen === 'function') {
-      try { st = opts.beforeGen(def, st, {index:i, total:nb, withSolutions:!!withSolutions}) || st; }
+      try { st = opts.beforeGen(def, st, {index:i,total:nb,withSolutions:false}) || st; }
       catch(e){ console.warn('[exo-pdf-kit] beforeGen() a échoué:', e); }
     }
 
-    // ENONCE
+    // ÉNONCÉ
     let enonceHTML = null;
     if (typeof opts.beforeRender === 'function') {
       try {
@@ -247,7 +285,7 @@ function buildPrintableHTML(nb, mix, withSolutions, header, opts){
     }
     if (!enonceHTML) enonceHTML = exerciseHTML(def, st);
 
-    // CORRIGE — on le calcule toujours (il servira pour l’annexe)
+    // SOLUTION
     let corrigeHTML = null;
     if (typeof opts.beforeRender === 'function') {
       try {
@@ -258,40 +296,35 @@ function buildPrintableHTML(nb, mix, withSolutions, header, opts){
     }
     if (!corrigeHTML) corrigeHTML = solutionHTML(def, st);
 
-    DATA.push({i, def, st, enonceHTML, corrigeHTML});
+    const lead = (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
+
+    enonces.push(
+      `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`
+    );
+
+    corriges.push(
+  `<div class="ex">
+     <span class="n">${i}.</span>
+     ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``}
+     ${enonceHTML}
+     <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
+   </div>`
+);
+
   }
 
-  // Construction des blocs
-  const leadOf = def => (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
-
-  const itemsEnonces = DATA.map(({i,def,enonceHTML})=>{
-    const lead = leadOf(def); 
-    return `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`;
-  });
-
-  const itemsCorriges = DATA.map(({i,def,enonceHTML,corrigeHTML})=>{
-    const lead = leadOf(def);
-    return `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}
-      <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
-    </div>`;
-  });
-
   const safe = s => (s||"").toString().replace(/[<>]/g, '');
-
-  // CSS & squelette (reprend le style existant + titres de parties + séparation de page)
-  const metaCorr = withSolutions ? ' · corrigés inclus' : ' · corrigés en annexe';
   return `<!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
 <title>${title} — Fiche</title>
 <style>
+/* Tables & bordures noires conservées */
 table{border-collapse:collapse}
 .tbl{border-collapse:collapse;border:1px solid #000}
 .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
-.table-exo{width:150mm;max-width:100%;margin:4mm auto;table-layout:fixed}
-.table-exo th,.table-exo td{border:1px solid #000;padding:3px 6px;font-size:12px;white-space:normal}
-.table-exo th:first-child,.table-exo td:first-child{width:50mm;text-align:left}
-.table-exo th:not(:first-child),.table-exo td:not(:first-child){width:16mm;text-align:center}
+
+/* Mise en page */
 @page{size:A4;margin:14mm}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;color:#111}
 .wrap{padding:0 2mm}
@@ -303,24 +336,21 @@ header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:
 .h-blanks{font-size:12px;color:#444;white-space:nowrap}
 .h-blanks .lbl{margin:0 6px 0 0}
 .h-blanks .line{display:inline-block;border-bottom:1px dotted #999;height:12px;vertical-align:baseline;margin:0 14px 0 6px}
-.h-blanks .line.lg{min-width:68mm}.h-blanks .line.sm{min-width:36mm}
+.h-blanks .line.lg{min-width:68mm}
+.h-blanks .line.sm{min-width:36mm}
 h1{font-size:18px;margin:6px 0 0 0}
 .meta{color:#666;font-size:12px;margin-top:2mm}
+
+.section-title{font-weight:800;margin:8mm 0 3mm;font-size:14px}
 .ex{margin:10px 0;page-break-inside:avoid}
 .ex .n{font-weight:700;margin-right:6px}
 .lead{font-weight:600;margin-right:6px}
 .solution{margin:6px 0 0 0;padding:6px 10px;background:#f9f9f9;border-left:3px solid #ddd}
 .solution .title{font-weight:700;font-size:13px;margin-bottom:4px}
-.part{font-size:16px;margin:10px 0 8px 0}
-.pagebreak{page-break-before:always}
-.steps{margin:.35rem 0 0 0;padding:.3rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:6px}
-.step{margin:.18rem 0;white-space:normal}
-.proof-table{display:grid;column-gap:12px;row-gap:0;margin-top:.3rem;white-space:normal}
-.proof-table .cell{align-self:start}
-.proof-table .ou{text-align:center;color:#555;white-space:nowrap;padding:.25rem .4rem}
-.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
-.frac .num,.frac .den{padding:0 .20em;white-space:nowrap}
-.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+
+/* Saut de page garanti entre Énoncés et Corrigés */
+.pagebreak{break-before:page; page-break-before:always;}
+
 footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;color:#777;font-size:11px}
 </style>
 </head>
@@ -341,23 +371,20 @@ footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;c
         </div>` : ``}
       </div>
       <h1>${title} — Fiche d’exercices</h1>
-      <div class="meta">Date : ${today} · NB d’exercices : ${nb} · ${mix?'Types mélangés':'Type sélectionné'}${metaCorr}</div>
+      <div class="meta">Date : ${today} · NB d’exercices : ${enonces.length} · ${mix?'Types mélangés':'Type sélectionné'} · corrigés en fin de fiche</div>
     </header>
 
-    ${
-      withSolutions
-      // Mode “classique” : énoncé + corrigé sous chaque énoncé
-      ? itemsCorriges.join('')
-      // Nouveau comportement : Partie A (énoncés), puis Partie B (corrigés en annexe)
-      : `<h2 class="part">Énoncés</h2>
-         ${itemsEnonces.join('')}
-         <div class="pagebreak"></div>
-         <h2 class="part">Corrigés</h2>
-         ${itemsCorriges.join('')}`
-    }
+    <div class="section-title">Énoncés</div>
+    ${enonces.join('')}
+
+    <div class="pagebreak"></div>
+
+    <div class="section-title">Corrigés</div>
+    ${corriges.join('')}
   </div>
 </body></html>`;
 }
+
 
 
   function openPrint(nb, mix, withSolutions, header, opts){
@@ -378,23 +405,29 @@ footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;c
 
 
   function mountUI(opts){
-    const after = $(opts.mountAfterSelector) || $('.wrap');
-    if(!after) return console.warn('[exo-pdf-kit] Zone de montage introuvable');
-    const ui = buildControlsUI(opts);
-    after.parentNode.insertBefore(ui, after.nextSibling);
+  const after = $(opts.mountAfterSelector) || $('.wrap');
+  if(!after) return console.warn('[exo-pdf-kit] Zone de montage introuvable');
+  const ui = buildControlsUI(opts);
+  after.parentNode.insertBefore(ui, after.nextSibling);
 
-    ui.querySelector('#btn-pdf').addEventListener('click', function(){
-      const n = Math.max(1, Math.min(opts.max, parseInt((ui.querySelector('#pdf-count')||{}).value || '10', 10)));
-      const mix = !!(ui.querySelector('#pdf-mix')||{}).checked;
-      const withSol = !!(ui.querySelector('#pdf-sol')||{}).checked;
-      const header = {
-        etab: (ui.querySelector('#pdf-etab')||{}).value || '',
-        classe: (ui.querySelector('#pdf-classe')||{}).value || '',
-        blanks: !!(ui.querySelector('#pdf-blanks')||{}).checked
-      };
-      openPrint(n, mix, withSol, header, opts);
-    });
-  }
+  ui.querySelector('#btn-pdf').addEventListener('click', function(){
+    const n = Math.max(1, Math.min(opts.max, parseInt((ui.querySelector('#pdf-count')||{}).value || '10', 10)));
+    const mix = !!(ui.querySelector('#pdf-mix')||{}).checked;
+    const header = {
+      etab: (ui.querySelector('#pdf-etab')||{}).value || '',
+      classe: (ui.querySelector('#pdf-classe')||{}).value || '',
+      blanks: !!(ui.querySelector('#pdf-blanks')||{}).checked
+    };
+    // ids sélectionnés si "mélanger"
+    const ids = Array.from(ui.querySelectorAll('.mix-id:checked')).map(x=>x.value);
+    if (mix && ids.length===0){ alert('Sélectionnez au moins un type d’exercice.'); return; }
+    const runOpts = Object.assign({}, opts, { allowIds: mix ? ids : null });
+
+    // withSolutions devient inutile : toujours "annexes"
+    openPrint(n, mix, /*withSolutions*/ false, header, runOpts);
+  });
+}
+
 
   // ==== Utilitaires internes pour l’extraction de la solution (inchangés)
   function __pdf_signatureFromHTML(html){

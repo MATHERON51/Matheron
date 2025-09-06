@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>1STI2D – Nombres complexes — Forme algébrique • Conjugué • Inverse • Quotient (LaTeX)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.55}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .row{display:grid;grid-template-columns:1fr;gap:10px}
+  .statement{font-size:18px}
+  .statement .consigne{opacity:.8;margin-bottom:6px}
+  .equ{font-variant-numeric:tabular-nums}
+  #host .inputs{display:flex;flex-direction:column;gap:8px}
+  #host .ans-row{display:flex;align-items:center;gap:6px}
+  #host .ans-row .tick{min-width:1.2em;text-align:center}
+  #res.small{font-size:15px}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  /* (héritage) styles de fractions HTML – inutilisés après conversion LaTeX mais conservés pour compat */
+  .frac{display:inline-grid;grid-template-rows:auto 2px auto;justify-items:center;align-items:center;vertical-align:middle;line-height:1}
+  .frac .num,.frac .den{display:block;text-align:center;padding:0 .2em;white-space:nowrap}
+  .frac .bar{display:block;width:100%;height:2px;background:currentColor;margin:.08em 0}
+
+  /* Espacement autour des formules inline dans les énoncés */
+  .statement code, code.equ, .equ{padding:.05rem .35rem;border-radius:6px;margin:0 .35rem;display:inline-block;white-space:nowrap}
+  .statement code:first-child, .equ:first-child{ margin-left:0 }
+  .statement code:last-child,  .equ:last-child{  margin-right:0 }
+
+  @media (max-width:720px){ .controls{gap:6px} }
+</style>
+
+<!-- MathJax (LaTeX) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]']],
+      processEscapes: true
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
+</head>
+<body>
+  <div class="header">
+    <div class="controls">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 1.1rem">
+        <li>Répondre en <em>forme algébrique</em> : <span class="equ">\(a+bi\)</span>. Les écritures <em>bi + a</em>, <em>a</em> (si <span class="equ">\(b=0\)</span>) et <em>bi</em> (si <span class="equ">\(a=0\)</span>) sont acceptées.</li>
+        <li><strong>Jamais</strong> <code>1i</code> / <code>−1i</code> (écrire <code>i</code> ou <code>−i</code>). Pas de <code>0i</code>, <code>+0</code>, <code>0+</code>.</li>
+        <li>Fractions autorisées : <code>p/q</code> (réduction automatique à la correction, jamais « /1 »). Décimales : virgule ou point. Les écritures <code>3*i</code> / <code>3×i</code> sont normalisées en <code>3i</code>.</li>
+        <li>La touche <kbd>Entrée</kbd> déclenche <em>Vérifier</em>. Le score n’évolue pas tant qu’une saisie est vide.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<!-- Scripts partagés -->
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/math-kbd.js" defer></script>
+
+<script>
+/* ===== Utils (général) ===== */
+function $(sel, root){ return (root||document).querySelector(sel); }
+function whenReady(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn, {once:true}); }
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function nz(a,b){ let v=0; while(v===0) v=rnd(a,b); return v; }
+const UMINUS = '−';
+
+function norm(s){ return String(s||'').replace(/\u2212/g,'-').replace(/,/g,'.').replace(/·|×/g,'*').trim(); }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function reduce(p,q){ if(q<0){ p=-p; q=-q; } const g=gcd(p,q); return [p/g, q/g]; }
+function fmtNum(n){ const v=Math.abs(n); const s=Number.isInteger(n)? String(v) : String(v).replace('.',','); return n<0? UMINUS+s : s; }
+function fmtIcoef(b){ if(b===0) return ''; const ab=Math.abs(b); const coef = (ab===1? '' : String(ab).replace('.',',')); const sign = (b<0? ' '+UMINUS+' ' : (b>0? ' + ' : '')); return sign + coef + 'i'; }
+function fmtComplex(a,b,order){
+  order = order||'a+bi';
+  if(order==='bi+a'){
+    if(b===0) return a===0? '0' : fmtNum(a);
+    if(a===0) return (b===1? 'i' : (b===-1? UMINUS+'i' : (b<0? UMINUS+String(Math.abs(b)).replace('.',',')+'i' : String(b).replace('.',',')+'i')));
+    const left = (b>0 ? (b===1? 'i' : String(b).replace('.',',')+'i') : (b===-1? UMINUS+'i' : UMINUS+String(Math.abs(b)).replace('.',',')+'i'));
+    const right = (a>=0 ? ' + '+fmtNum(a) : ' '+UMINUS+String(Math.abs(a)));
+    return left + right;
+  } else {
+    if(a===0 && b===0) return '0';
+    if(a===0) return (b===1? 'i' : (b===-1? UMINUS+'i' : (b<0? UMINUS+String(Math.abs(b)).replace('.',',')+'i' : String(b).replace('.',',')+'i')));
+    if(b===0) return fmtNum(a);
+    return fmtNum(a) + fmtIcoef(b);
+  }
+}
+// --- Helpers "fractions exactes" ---
+function gcdInt(x, y){ x=Math.trunc(Math.abs(x)); y=Math.trunc(Math.abs(y)); while(y){ const t=x%y; x=y; y=t; } return x||1; }
+function fracText(num, den){
+  if(den<0){ num=-num; den=-den; }
+  const g = gcdInt(num, den); num/=g; den/=g;
+  if(den === 1) return String(num);
+  const s = (num<0 ? '-' : '');
+  return s + fracOf(String(Math.abs(num)), String(den)); // <-- sera converti en LaTeX
+}
+
+/* Parsing tolérant de a + bi */
+function parseComplex(str){
+  if(!str) return null;
+  let s = norm(str).replace(/\s+/g,'');
+  s = s.replace(/^(?:z\s*=?\s*)/i,''); // retire "z =" éventuel
+  s = s.replace(/\*/g,'');
+  // Cas isolés i / -i
+  if(s==='i') return {a:0,b:1};
+  if(s==='-i') return {a:0,b:-1};
+  const parts = s.match(/[+\-]?[^+\-]+/g);
+  if(!parts) return null;
+  let a=0,b=0;
+  for(let t of parts){
+    if(!t) continue;
+    const isI = /i$/i.test(t);
+    if(isI){
+      t = t.replace(/i$/i,''); if(t===''||t==='+') t='1'; if(t==='-') t='-1';
+      const v = Number(t); if(Number.isFinite(v)) b += v; else return null;
+    } else {
+      const v = Number(t); if(Number.isFinite(v)) a += v; else return null;
+    }
+  }
+  return {a: +a, b: +b};
+}
+function eqComplexStr(str,A,B){ const p=parseComplex(str); return !!p && Math.abs(p.a-A)<1e-9 && Math.abs(p.b-B)<1e-9; }
+
+/* Helpers d’affichage pour les étapes */
+const PM = v => v>=0 ? ' + ' : ' − ';
+const IABS = v => (Math.abs(v)===1? 'i' : String(Math.abs(v)).replace('.',',')+'i');
+const IABS2 = v => (Math.abs(v)===1? 'i<sup>2</sup>' : String(Math.abs(v)).replace('.',',')+'i<sup>2</sup>');
+function dispZ_steps(z){ let out=''; if(z.a!==0) out+=String(z.a); if(z.b!==0){ const pref = out? PM(z.b) : (z.b<0? '− ' : ''); out += pref + IABS(z.b); } return out||'0'; }
+
+/* Fractions (affichage, jamais /1) */
+function fracHTML(p,q){ p=Math.trunc(p); q=Math.trunc(q); if(q===1) return String(p); const neg=(p<0)!=(q<0); p=Math.abs(p); q=Math.abs(q); const [pp,qq]=reduce(p,q); return (neg? '<span class="frac-sign">'+UMINUS+'</span>' : '') + '<span class="frac"><span class="num">'+pp+'</span><span class="bar"></span><span class="den">'+qq+'</span></span>'; }
+// Fraction générique (numHTML/denHTML) pour écrire EN PILE partout (sera converti en LaTeX)
+function fracOf(numHTML, denHTML){
+  return '<span class="frac"><span class="num">'+numHTML+
+         '</span><span class="bar"></span><span class="den">'+denHTML+
+         '</span></span>';
+}
+// x² compact
+function pow2HTML(n){
+  const tight = String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,'');
+  return (n<0 ? '('+tight+')' : tight) + '<sup>2</sup>';
+}
+// somme de termes (HTML, convertie ensuite)
+function joinTerms(parts){
+  let out = '';
+  for(const {coef, kind} of parts){
+    if(!coef) continue;
+    const first = out==='';
+    const sign = coef<0 ? (first ? '− ' : ' − ') : (first ? '' : ' + ');
+    const mag  = Math.abs(coef);
+    let body = '';
+    if(kind==='re') body = String(mag);
+    else if(kind==='i') body = (mag===1 ? 'i' : String(mag)+'i');
+    else body = (mag===1 ? 'i<sup>2</sup>' : String(mag)+'i<sup>2</sup>');
+    out += sign + body;
+  }
+  return out || '0';
+}
+
+/* === LaTeX conversion & typesetting === */
+function nodeToTeX(node){
+  if(node.nodeType===3){
+    return node.nodeValue
+      .replace(/\u00A0/g,' ')
+      .replace(/×/g,' \\times ')
+      .replace(/·/g,' \\cdot ')
+      .replace(/−/g,'-');
+  }
+  if(node.nodeType===1){
+    const el = node;
+    if(el.classList && el.classList.contains('frac')){
+      const num = el.querySelector('.num');
+      const den = el.querySelector('.den');
+      const N = num ? nodeToTeX(num) : '';
+      const D = den ? nodeToTeX(den) : '';
+      let sign = '';
+      // signe éventuel juste avant (span.frac-sign)
+      if(el.previousElementSibling && el.previousElementSibling.classList.contains('frac-sign')) sign = '-';
+      return sign + '\\frac{'+N+'}{'+D+'}';
+    }
+    if(el.classList && el.classList.contains('frac-sign')){
+      return '-';
+    }
+    if(el.tagName==='SUP'){
+      const inner = Array.from(el.childNodes).map(nodeToTeX).join('');
+      return '^{'+inner+'}';
+    }
+    if(el.tagName==='SUB'){
+      const inner = Array.from(el.childNodes).map(nodeToTeX).join('');
+      return '_{'+inner+'}';
+    }
+    // Par défaut : concat enfants
+    let out='';
+    for(const ch of el.childNodes) out += nodeToTeX(ch);
+    return out;
+  }
+  return '';
+}
+function convertAllEquations(root){
+  const scope = root || document;
+  const els = Array.from(scope.querySelectorAll('.equ'));
+  // Traiter du plus profond au plus haut pour éviter les conversions imbriquées
+  els.sort((a,b)=> (b.querySelectorAll('.equ').length - a.querySelectorAll('.equ').length));
+  for(const el of els){
+    if(el.dataset.ltxDone==='1') continue;
+    const tex = nodeToTeX(el).trim();
+    el.textContent = '\\('+tex+'\\)';
+    el.dataset.ltxDone = '1';
+  }
+}
+function typesetAll(root){
+  convertAllEquations(root);
+  if(window.MathJax && MathJax.typesetPromise){
+    MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  }
+}
+
+/* Raccourcis rendu d’un bloc simple une saisie */
+function renderSimple(host, enonceHTML, field){
+  host.innerHTML='';
+  const wrap=document.createElement('div'); wrap.className='row';
+  const st=document.createElement('div'); st.className='statement'; st.innerHTML=enonceHTML||''; wrap.appendChild(st);
+  const inputs=document.createElement('div'); inputs.className='inputs';
+  const row=document.createElement('div'); row.className='ans-row';
+  row.innerHTML =
+    (field.labelHTML ? field.labelHTML
+     : (field.label ? `<span class="equ" aria-hidden="true">${field.label}</span>` : ''))
+    + `<input type="text" id="${field.id}" placeholder="${field.placeholder||'…'}" style="flex:1;min-width:0">`
+    + `<span class="tick" id="${field.id}-tick"></span>`;
+  inputs.appendChild(row); wrap.appendChild(inputs);
+  const res=document.createElement('div'); res.id='res'; wrap.appendChild(res); host.appendChild(wrap);
+  typesetAll(wrap);
+  $('#'+field.id,host)?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+}
+function setTick(host,id,val){ const el=$('#'+id+'-tick',host); if(el) el.textContent = val||''; }
+function showSteps(host, steps){ const uniq=[]; for(const L of steps){ if(!uniq.length || uniq[uniq.length-1]!==L) uniq.push(L); } $('#res',host).innerHTML = '<div class="steps">'+uniq.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>'; $('#res',host).className='small'; typesetAll($('#res',host)); }
+
+/* Random z util */
+function randZ(){ return {a:rnd(-9,9), b:rnd(-9,9)}; }
+function randZnz(){ let z=randZ(); while(z.a===0 && z.b===0) z=randZ(); return z; }
+
+// Ajoute un terme k·(unité) à une chaîne algébrique (sans "1z", sans 0)
+function _appendTerm(out, k, unit){
+  if (!k) return out;
+  const first = (out === '');
+  const sign  = k < 0 ? (first ? '− ' : ' − ') : (first ? '' : ' + ');
+  const m = Math.abs(k);
+  let body = '';
+  if (unit === 'z')   body = (m===1 ? 'z'  : m+'z');
+  else if (unit === 'iz') body = (m===1 ? 'iz' : m+'iz');
+  else if (unit === 'i')  body = (m===1 ? 'i'  : m+'i');
+  else if (unit === 'i2') body = (m===1 ? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
+  else body = String(m);
+  return out + sign + body;
+}
+
+// Développe (a+bi)(z+l)  -> "az + biz + al + bli"
+function expand_ab_times_z_plus_l(a,b,l){
+  let rhs = '';
+  rhs = _appendTerm(rhs, a, 'z');      // az
+  rhs = _appendTerm(rhs, b, 'iz');     // + biz
+  rhs = _appendTerm(rhs, a*l, '');     // + al
+  rhs = _appendTerm(rhs, b*l, 'i');    // + bl·i
+  return rhs || '0';
+}
+
+// Développe (a+bi)(z+li) -> "az + biz + ali + bli²"
+function expand_ab_times_z_plus_li(a,b,l, withI2=true){
+  let rhs = '';
+  rhs = _appendTerm(rhs, a, 'z');                 // az
+  rhs = _appendTerm(rhs, b, 'iz');                // + biz
+  rhs = _appendTerm(rhs, a*l, 'i');               // + al·i
+  rhs = _appendTerm(rhs, b*l, withI2 ? 'i2' : ''); // + bl·i² (ou remplacé ensuite)
+  return rhs || '0';
+}
+
+
+
+/* ===== Exercices ===== */
+
+/* Ex.1 — Conjugué */
+const ex1 = {
+  id:'cplx1', title:'Conjugué d’un nombre complexe',
+  gen(){
+    const z = randZnz();
+    const order = Math.random()<0.5 ? 'a+bi' : 'bi+a';
+    const enonce = `
+      <div class="consigne"><strong>Exercice 1 : Conjugué</strong></div>
+      <div>Déterminer le conjugué du nombre complexe suivant :</div>
+      <div><span class="equ">z = ${fmtComplex(z.a,z.b,order)}</span></div>
+    `;
+    return {z, enonce};
+  },
+  render(host,st){
+    renderSimple(host, st.enonce, {id:'ans', label:'\(\overline{z}=\)', placeholder:'a − bi', labelHTML:'<span class="equ">\\(\\overline{z}=\\)</span>'});
+  },
+  correct(host,st){
+    const el=host.querySelector('#ans'); if(!el||!el.value.trim()) return {ok:false,total:0};
+    const ok = eqComplexStr(el.value, st.z.a, -st.z.b);
+    setTick(host,'ans', ok?'✔':'✘');
+    return {ok,total:1};
+  },
+  solution(host,st){
+    const a=st.z.a, b=st.z.b;
+    const L1 = `Rappel : <span class="equ">z = a+bi</span> ⇒ <span class="equ">\\(\\overline{z}=a-bi\\)</span>.`;
+    const L2 = `Ici : <span class="equ">z = ${fmtComplex(a,b,'a+bi')}</span> donc <span class="equ">\\(\\overline{z}=${fmtComplex(a,-b,'a+bi')}\\)</span>.`;
+    showSteps(host,[L1,L2]);
+  },
+  reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
+};
+
+/* Ex.2 — Inverse dans C */
+const ex2 = {
+  id:'cplx2', title:'Inverse d’un nombre complexe',
+  gen(){
+    let z=randZnz(); // éviter 0
+    const enonce = `
+      <div class="consigne"><strong>Exercice 2 : Inverse dans C</strong></div>
+      <div>Soit le nombre complexe <span class="equ">z = ${fmtComplex(z.a,z.b,'a+bi')}</span>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <span class="equ">\\(a+bi\\)</span>.</div>
+      <div style="margin-top:.25rem"><span class="equ">${fracOf('1','z')}</span></div>
+    `;
+    const den = z.a*z.a + z.b*z.b; // > 0
+    const A = z.a/den, B = -z.b/den; // a/den + (-b/den)i
+    return {z, den, r:{a:A, b:B}, enonce};
+  },
+  render(host,st){ renderSimple(host, st.enonce, {
+    id:'ans',
+    labelHTML:'<span class="equ">'+fracOf('1','z')+'</span> =',
+    placeholder:'a + bi'
+  });},
+
+  correct(host,st){ const el=host.querySelector('#ans'); if(!el||!el.value.trim()) return {ok:false,total:0}; const ok=eqComplexStr(el.value, st.r.a, st.r.b); setTick(host,'ans', ok?'✔':'✘'); return {ok,total:1}; },
+  solution(host,st){
+    const a = st.z.a, b = st.z.b, D = a*a + b*b;
+
+    if (b === 0) {
+      const L0 = `<span class="equ">z = ${fmtComplex(a,0)}</span>`;
+      const L1 = `<span class="equ">${fracOf('1','z')} = ${fracOf('1', String(a))}</span>`;
+      const L2 = `<span class="equ">${fracOf('1','z')}= ${fracText(1, a)}</span>`;
+      showSteps(host, [L0, L1, L2]);
+      return;
+    }
+    function coefI(b, sup2=false){
+      const A = Math.abs(b);
+      const s = b < 0 ? '-' : '';
+      const k = (A === 1 ? '' : A);
+      return `${s}${k}i${sup2 ? '<sup>2</sup>' : ''}`;
+    }
+    function parensIfNeg(txt, b){ return b < 0 ? `(${txt})` : txt; }
+
+    if (a === 0 && b !== 0) {
+      const den0  = coefI(b);
+      const den0x = parensIfNeg(den0, b);
+      const L1 = `<span class="equ">${fracOf('1','z')} = ${fracOf('1', den0)}</span>`;
+      const L2 = `<span class="equ">${fracOf('1','z')} = ${fracOf('1 × i', `${den0x} × i`)}</span>`;
+      const L3 = `<span class="equ">${fracOf('1','z')} = ${fracOf('i', coefI(b, true))}</span>`;
+      const L4 = `<span class="equ">${fracOf('1','z')} = ${fracOf('i', String(-b))}</span>`;
+      const mag  = Math.abs(b);
+      const sign = (b > 0 ? '-' : '+');
+      const last = (mag === 1 ? 'i' : `${fracOf('1', String(mag))} i`);
+      const L5 = `<span class="equ">${fracOf('1','z')} = ${sign} ${last}</span>`;
+      showSteps(host, [L1, L2, L3, L4, L5]);
+      return;
+    }
+
+    const L1  = `On multiplie par le conjugué du dénominateur au numérateur et au dénominateur :`;
+    const L1b = `<span class="equ">${fracOf('1','z')} = ${fracOf('1', fmtComplex(a,b))} × ${fracOf(fmtComplex(a,-b), fmtComplex(a,-b))}</span>.`;
+
+    const denExpandedHTML = `${pow2HTML(a)} + ${pow2HTML(b)}`;
+    const L1c = `<span class="equ">${fracOf('1','z')} = ${fracOf(fmtComplex(a,-b,'a+bi'), denExpandedHTML)}</span>`;
+
+    const L2  = `<span class="equ">${fracOf('1','z')} = ${fracOf(fmtComplex(a,-b), String(D))}</span> (car <span class="equ">a^2 + b^2 = ${D}</span>).`;
+
+    const [ra,rb] = reduce(a,D), [ia,ib] = reduce(-b,D);
+    const L3  = `<span class="equ">${fracOf('1','z')} = ${fracHTML(ra,rb)} ${(-b>=0?' + ':' − ')} ${fracHTML(Math.abs(ia),ib)} i</span>.`;
+
+    showSteps(host,[L1, L1b,L1c,L2, L3]);
+  }
+  ,
+  reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
+};
+
+/* Ex.3 — Quotient z1 / z2 */
+const ex3 = {
+  id:'cplx3', title:'Quotient de deux nombres complexes',
+  gen(){
+    const z1 = randZnz(); 
+    let z2 = randZnz();
+    while (z2.b === 0) z2 = randZnz();
+
+    const enonce = `
+      <div class="consigne"><strong>Exercice 3 : Quotient dans C</strong></div>
+      <div>Soient <span class="equ">z<sub>1</sub> = ${fmtComplex(z1.a,z1.b)}</span> et <span class="equ">z<sub>2</sub> = ${fmtComplex(z2.a,z2.b)}</span>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <span class="equ">\\(a+bi\\)</span>.</div>
+      <div style="margin-top:.25rem"><span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')}</span></div>
+    `;
+    const den = z2.a*z2.a + z2.b*z2.b;
+    const A = (z1.a*z2.a + z1.b*z2.b)/den;
+    const B = (z1.b*z2.a - z1.a*z2.b)/den;
+    return {z1,z2,den,r:{a:A,b:B}, enonce};
+  },
+  render(host,st){ renderSimple(host, st.enonce, {
+    id:'ans',
+    labelHTML:'<span class="equ">'+fracOf('z<sub>1</sub>','z<sub>2</sub>')+'</span> =',
+    placeholder:'a + bi'
+  });
+ },
+  correct(host,st){ const el=host.querySelector('#ans'); if(!el||!el.value.trim()) return {ok:false,total:0}; const ok=eqComplexStr(el.value, st.r.a, st.r.b); setTick(host,'ans', ok?'✔':'✘'); return {ok,total:1}; },
+  solution(host,st){
+    const a1 = st.z1.a, b1 = st.z1.b, a2 = st.z2.a, b2 = st.z2.b;
+    const D = a2*a2 + b2*b2;
+
+    const pow2 = n => {
+      const tight = String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,'');
+      return (n<0 ? '('+tight+')' : tight) + '<sup>2</sup>';
+    };
+    const denPow = `${pow2(a2)} + ${pow2(b2)}`;
+
+    function joinTerms(parts){
+      let out = '';
+      for(const {coef, kind} of parts){
+        if(!coef) continue;
+        const first = out==='';
+        const sign = coef<0 ? (first ? '− ' : ' − ') : (first ? '' : ' + ');
+        const mag = Math.abs(coef);
+        let body = '';
+        if(kind==='re') body = String(mag);
+        else if(kind==='i') body = (mag===1 ? 'i' : String(mag)+'i');
+        else body = (mag===1 ? 'i<sup>2</sup>' : String(mag)+'i<sup>2</sup>');
+        out += sign + body;
+      }
+      return out || '0';
+    }
+
+    const S0 = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')} = ${fracOf(
+                 fmtComplex(a1,b1,'a+bi'), fmtComplex(a2,b2,'a+bi'))}</span>`;
+
+    const S1 = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')} = ${fracOf(
+                 '('+fmtComplex(a1,b1,'a+bi')+')('+
+                 fmtComplex(a2,-b2,'a+bi')+')', denPow)}</span>`;
+
+    const t1 = a1*a2;           // réel
+    const t2 = a1*(-b2);        // coef de i
+    const t3 = b1*a2;           // coef de i
+    const t4 = b1*(-b2);        // coef de i²
+    const numFOIL = joinTerms([
+      {coef:t1, kind:'re'},
+      {coef:t2, kind:'i'},
+      {coef:t3, kind:'i'},
+      {coef:t4, kind:'i2'}
+    ]);
+    const S2 = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')}= ${fracOf(numFOIL, String(D))}</span>`;
+
+    const numAfterI2 = joinTerms([
+      {coef:t1,  kind:'re'},
+      {coef:t2,  kind:'i'},
+      {coef:t3,  kind:'i'},
+      {coef:-t4, kind:'re'}
+    ]);
+    const S3a = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')} = ${fracOf(numAfterI2, String(D))}</span>`;
+
+    const R = t1 - t4;                 // a1*a2 + b1*b2
+    const I = t2 + t3;                 // -a1*b2 + b1*a2
+    const numRI = (I!==0 ? joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}])
+                         : String(fmtNum(R)));
+    const S4 = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')} = ${fracOf(numRI, String(D))}</span>`;
+
+    const parts = [];
+    if (R!==0){
+      const [r1x,r1y] = reduce(R, D);
+      parts.push(fracHTML(r1x, r1y));
+    }
+    if (I!==0){
+      const [r2x,r2y] = reduce(I, D);
+      const frag = fracHTML(Math.abs(r2x), r2y) + ' i';
+      parts.push((I>0 && parts.length? ' + ' : (I<0 && parts.length? ' − ' : (I<0? '− ' : ''))) + frag);
+    }
+    const S5 = `<span class="equ">${fracOf('z<sub>1</sub>','z<sub>2</sub>')} = ${parts.join('') || '0'}</span>`;
+
+    showSteps(host,[S0,S1,S2,S3a,S4,S5]);
+  },
+  reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
+};
+
+/* Petites opérations complexes (pour les équations) */
+const C = (a,b)=>({a:a,b:b});
+const addC=(z,w)=>C(z.a+w.a, z.b+w.b);
+const subC=(z,w)=>C(z.a-w.a, z.b-w.b);
+const mulC=(z,w)=>C(z.a*w.a - z.b*w.b, z.a*w.b + z.b*w.a);
+const conjC=z=>C(z.a,-z.b);
+const divC=(z,w)=>{ const D=w.a*w.a+w.b*w.b; return C((z.a*w.a+z.b*w.b)/D, (z.b*w.a - z.a*w.b)/D); };
+
+/* ===== Ex.4 — Résoudre une équation (sélecteur de modèle) ===== */
+const ex4 = {
+  id:'cplx4',
+  title:'Résoudre une équation (modèles)',
+  _lastMode: 'M1',
+  gen(mode){
+    const M = mode || this._lastMode || 'M1';
+    this._lastMode = M;
+
+    if (M==='M1'){ // (a+bi)z + (u+vi) = 0
+      const a=nz(-4,4), b=nz(-4,4);
+      let u=rnd(-6,6), v=rnd(-6,6);
+      if(u===0 && v===0){ v = 1; }  // éviter trivial
+      const A = {a,b}, U = {a:u,b:v};
+      const enonce = `
+        <div style="margin-bottom:.35rem">
+          <label><small><b>Modèle :</b></small>
+            <select id="ex4-model">
+              <option value="M1" selected>Modèle 1 — (a+bi)z + (u+vi) = 0</option>
+              <option value="M2">Modèle 2 — pz − qi = −iz + (r + si)</option>
+            </select>
+          </label>
+        </div>
+        <div>Résoudre dans ℂ l’équation suivante et donner la solution sous forme algébrique.</div>
+        <div style="margin-top:.25rem"><span class="equ">(${fmtComplex(a,b)})z ${u||v? ' + '+fmtComplex(u,v): ''} = 0</span></div>
+      `;
+      const D = a*a + b*b;
+      const r = { a:(-u*a - (-v)*(-b))/D, b:((-v)*a - (-u)*(-b))/D };
+      return {mode:'M1', enonce, A, U, r};
+    }
+
+    const p=nz(-9,9), q=Math.max(1, Math.abs(rnd(-6,6))); // q ≠ 0
+    const r=rnd(-9,9), s=rnd(-9,9);
+    const enonce = `
+      <div style="margin-bottom:.35rem">
+        <label><small><b>Modèle :</b></small>
+          <select id="ex4-model">
+            <option value="M1">Modèle 1 — (a+bi)z + (u+vi) = 0</option>
+            <option value="M2" selected>Modèle 2 — pz − qi = −iz + (r + si)</option>
+          </select>
+        </label>
+      </div>
+      <div>Résoudre dans ℂ l’équation suivante et donner la solution sous forme algébrique.</div>
+      <div style="margin-top:.25rem"><span class="equ">${p}z − ${q}i = −iz + ${fmtComplex(r,s)}</span></div>
+    `;
+    const D = p*p + 1;
+    const R = r, S = q + s;
+    const rsol = { a:(R*p + S*1)/D, b:(S*p - R*1)/D };
+    return {mode:'M2', enonce, p, q, r, s, R, S, rsol};
+  },
+
+  render(host, st){
+    renderSimple(host, st.enonce, {id:'ans', label:'z =', placeholder:'a + bi'});
+    const sel = host.querySelector('#ex4-model');
+    if (sel){
+      sel.value = st.mode;
+      sel.addEventListener('change', () => {
+        const next = ex4.gen(sel.value);
+        host.dataset.active = ex4.id;
+        host.dataset.state  = JSON.stringify(next);
+        ex4.render(host, next);
+      });
+    }
+  },
+
+  correct(host, st){
+    const el=host.querySelector('#ans');
+    if(!el||!el.value.trim()) return {ok:false,total:0};
+    let A=false;
+    if (st.mode==='M1'){
+      const a=st.A.a, b=st.A.b, u=st.U.a, v=st.U.b, D = a*a + b*b;
+      const ZA = ( -u*a - (-v)*(-b) )/D;
+      const ZB = ( (-v)*a - (-u)*(-b) )/D;
+      A = eqComplexStr(el.value, ZA, ZB);
+    } else {
+      A = eqComplexStr(el.value, st.rsol.a, st.rsol.b);
+    }
+    setTick(host,'ans', A?'✔':'✘');
+    return {ok:A,total:1};
+  },
+
+  solution(host, st){
+    if (st.mode==='M1'){
+      const a=st.A.a, b=st.A.b, u=st.U.a, v=st.U.b;
+      const D = a*a + b*b;
+
+      const L0 = `<span class="equ">(${fmtComplex(a,b)})z ${u||v? ' + '+fmtComplex(u,v): ''} = 0</span>`;
+      const L1 = `<span class="equ">(${fmtComplex(a,b)})z = ${fmtComplex(-u,-v)}</span>`;
+      const L2 = `<span class="equ">z = ${fracOf(fmtComplex(-u,-v,'a+bi'), fmtComplex(a,b,'a+bi'))}</span>`;
+      const L3 = `<span class="equ">z = ${fracOf(
+                      '('+fmtComplex(-u,-v,'a+bi')+')('+
+                      fmtComplex(a,-b,'a+bi')+')',
+                      '('+fmtComplex(a,b,'a+bi')+')('+
+                      fmtComplex(a,-b,'a+bi')+')')}</span>`;
+
+      const t1 = (-u)*a;
+      const t2 = (-u)*(-b);   // i
+      const t3 = (-v)*a;      // i
+      const t4 = (-v)*(-b);   // i²
+      const numFOIL = joinTerms([
+        {coef:t1, kind:'re'},
+        {coef:t2, kind:'i'},
+        {coef:t3, kind:'i'},
+        {coef:t4, kind:'i2'}
+      ]);
+      const denPow = `${pow2HTML(a)} + ${pow2HTML(b)}`;
+      const L4 = `<span class="equ">z = ${fracOf(numFOIL, denPow)}</span>`;
+
+      const numAfterI2 = joinTerms([
+        {coef:t1,  kind:'re'},
+        {coef:t2,  kind:'i'},
+        {coef:t3,  kind:'i'},
+        {coef:-t4, kind:'re'}
+      ]);
+      const L5 = `<span class="equ">z = ${fracOf(numAfterI2, String(D))}</span>`;
+
+      const R = t1 - t4;        // a*(-u) + b*v
+      const I = t2 + t3;        // -a*v + b*(-u)
+      const numRI = joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]);
+      const L6 = `<span class="equ">z = ${fracOf(numRI, String(D))}</span>`;
+
+      const parts = [];
+      if (R!==0){ const [x,y]=reduce(R,D); parts.push(fracHTML(x,y)); }
+      if (I!==0){
+        const [x,y]=reduce(I,D);
+        const frag = fracHTML(Math.abs(x),y)+' i';
+        parts.push((I>0 && parts.length? ' + ' : (I<0 && parts.length? ' − ' : (I<0? '− ' : ''))) + frag);
+      }
+      const L7 = `<span class="equ">z = ${parts.join('') || '0'}</span>`;
+      showSteps(host, [L0,L1,L2,L3,L4,L5,L6,L7]);
+      return;
+    }
+
+    // ===== Modèle 2 =====
+    const p=st.p, q=st.q, r=st.r, s=st.s;
+    const R = st.R, S = st.S;           // R=r, S=q+s
+    const D = p*p + 1;
+
+    const M0 = `<span class="equ">${p}z − ${q}i = −iz + ${fmtComplex(r,s)}</span>`;
+    const M1 = `<span class="equ">${p}z + iz = ${fmtComplex(r, q+s)}</span>`;
+    const M2 = `<span class="equ">z(${p}+i) = ${fmtComplex(r, q+s)}</span>`;
+    const M3 = `<span class="equ">z = ${fracOf(fmtComplex(r, q+s,'a+bi'), fmtComplex(p,1,'a+bi'))}</span>`;
+    const M4 = `<span class="equ">z = ${fracOf(
+                 '('+fmtComplex(r,q+s,'a+bi')+')('+
+                 fmtComplex(p,-1,'a+bi')+')',
+                 '('+fmtComplex(p,1,'a+bi')+')('+
+                 fmtComplex(p,-1,'a+bi')+')')}</span>`;
+
+    const t1 = r*p;            // réel
+    const t2 = r*(-1);         // i
+    const t3 = (q+s)*p;        // i
+    const t4 = (q+s)*(-1);     // i²
+    const numFOIL = joinTerms([
+      {coef:t1, kind:'re'},
+      {coef:t2, kind:'i'},
+      {coef:t3, kind:'i'},
+      {coef:t4, kind:'i2'}
+    ]);
+    const denPow = `${pow2HTML(p)} + ${pow2HTML(1)}`; // 1²
+    const M5 = `<span class="equ">z = ${fracOf(numFOIL, denPow)}</span>`;
+
+    const numAfterI2 = joinTerms([
+      {coef:t1,  kind:'re'},
+      {coef:t2,  kind:'i'},
+      {coef:t3,  kind:'i'},
+      {coef:-t4, kind:'re'}
+    ]);
+    const M6 = `<span class="equ">z = ${fracOf(numAfterI2, String(D))}</span>`;
+
+    const RR = t1 - t4;        // r*p + (q+s)
+    const II = t2 + t3;        // -r + (q+s)*p
+    const numRI = joinTerms([{coef:RR,kind:'re'},{coef:II,kind:'i'}]);
+    const M7 = `<span class="equ">z = ${fracOf(numRI, String(D))}</span>`;
+
+    const parts = [];
+    if (RR!==0){ const [x,y]=reduce(RR,D); parts.push(fracHTML(x,y)); }
+    if (II!==0){
+      const [x,y]=reduce(II,D);
+      const frag = fracHTML(Math.abs(x),y)+' i';
+      parts.push((II>0 && parts.length? ' + ' : (II<0 && parts.length? ' − ' : (II<0? '− ' : ''))) + frag);
+    }
+    const M8 = `<span class="equ">z = ${parts.join('') || '0'}</span>`;
+
+    showSteps(host,[M0,M1,M2,M3,M4,M5,M6,M7,M8]);
+  },
+
+  reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
+};
+
+// ===================== Ex.5 — Équations fractionnelles (3 modèles) =====================
+const ex5 = {
+  id:'cplx5',
+  title:'Résoudre une équation (fractionnelle — modèles)',
+  _lastMode:'M1',
+
+  gen(mode){
+    function pickABNonZero(){
+      let a = rnd(-3,3), b = rnd(-3,3);
+      while (a===0 || b===0) { a = rnd(-3,3); b = rnd(-3,3); }
+      return {a,b};
+    }
+    function pickKLDistinct(){
+      let k = rnd(-5,5), l = rnd(-5,5);
+      while (l === k) l = rnd(-5,5);
+      return {k,l};
+    }
+
+    const M = mode || this._lastMode || 'M1';
+    this._lastMode = M;
+
+    if (M==='M1'){ // (z+k)/(z+l) = a+bi
+      const {k,l} = pickKLDistinct(); const w = pickABNonZero();
+      const top = 'z ' + (k? (k>0?'+ '+k:'− '+Math.abs(k)) : '');
+      const bot = 'z ' + (l? (l>0?'+ '+l:'− '+Math.abs(l)) : '');
+      const enonce = `
+        <div class="consigne"><strong>Exercice 5 : Résoudre une équation dans C</strong></div>
+        <div style="margin-bottom:.35rem">
+          <label><small><b>Modèle :</b></small>
+            <select id="ex5-model">
+              <option value="M1" selected>Modèle 1 — (z+k)/(z+l) = a + bi</option>
+              <option value="M2">Modèle 2 — (z+ki)/(z+l) = a + bi</option>
+              <option value="M3">Modèle 3 — (z+ki)/(z+li) = a + bi</option>
+            </select>
+          </label>
+        </div>
+        <div>Résoudre dans C l’équation suivante et donner la solution sous forme algébrique.</div>
+        <div style="margin-top:.25rem"><span class="equ">${fracOf(top, bot)} = ${fmtComplex(w.a,w.b)}</span></div>
+      `;
+      const r = divC( C(w.a*l - k, w.b*l), C(1-w.a, -w.b) );
+      return {mode:'M1', enonce, k, l, w, r};
+    }
+
+    if (M==='M2'){ // (z+ki)/(z+l) = a+bi
+      const k = rnd(-5,5), l = rnd(-5,5); const w = pickABNonZero();
+      const top = 'z ' + (k? (k>0?'+ ':'− ') + (Math.abs(k)===1?'i':Math.abs(k)+'i') : '');
+      const bot = 'z ' + (l? (l>0?'+ '+l:'− '+Math.abs(l)) : '');
+      const enonce = `
+        <div class="consigne"><strong>Exercice 5 : Résoudre une équation dans C</strong></div>
+        <div style="margin-bottom:.35rem">
+          <label><small><b>Modèle :</b></small>
+            <select id="ex5-model">
+              <option value="M1">Modèle 1 — (z+k)/(z+l) = a + bi</option>
+              <option value="M2" selected>Modèle 2 — (z+ki)/(z+l) = a + bi</option>
+              <option value="M3">Modèle 3 — (z+ki)/(z+li) = a + bi</option>
+            </select>
+          </label>
+        </div>
+        <div>Résoudre dans C l’équation suivante et donner la solution sous forme algébrique.</div>
+        <div style="margin-top:.25rem"><span class="equ">${fracOf(top, bot)} = ${fmtComplex(w.a,w.b)}</span></div>
+      `;
+      const r = divC( C(w.a*l, w.b*l - k), C(1-w.a, -w.b) );
+      return {mode:'M2', enonce, k, l, w, r};
+    }
+
+    const {k,l} = pickKLDistinct(); const w = pickABNonZero();
+    const top = 'z ' + (k? (k>0?'+ ':'− ') + (Math.abs(k)===1?'i':Math.abs(k)+'i') : '');
+    const bot = 'z ' + (l? (l>0?'+ ':'− ') + (Math.abs(l)===1?'i':Math.abs(l)+'i') : '');
+    const enonce = `
+      <div class="consigne"><strong>Exercice 5 : Résoudre une équation dans C</strong></div>
+      <div style="margin-bottom:.35rem">
+        <label><small><b>Modèle :</b></small>
+          <select id="ex5-model">
+            <option value="M1">Modèle 1 — (z+k)/(z+l) = a + bi</option>
+            <option value="M2">Modèle 2 — (z+ki)/(z+l) = a + bi</option>
+            <option value="M3" selected>Modèle 3 — (z+ki)/(z+li) = a + bi</option>
+          </select>
+        </label>
+      </div>
+      <div>Résoudre dans C l’équation suivante et donner la solution sous forme algébrique.</div>
+      <div style="margin-top:.25rem"><span class="equ">${fracOf(top, bot)} = ${fmtComplex(w.a,w.b)}</span></div>
+    `;
+    const r = divC( C(-w.b*l, w.a*l - k), C(1-w.a, -w.b) );
+    return {mode:'M3', enonce, k, l, w, r};
+  },
+
+  render(host, st){
+    renderSimple(host, st.enonce, {id:'ans', label:'z =', placeholder:'a + bi'});
+    const sel = host.querySelector('#ex5-model');
+    if (sel){
+      sel.value = st.mode;
+      sel.addEventListener('change', ()=>{
+        const next = ex5.gen(sel.value);
+        host.dataset.active = ex5.id;
+        host.dataset.state  = JSON.stringify(next);
+        ex5.render(host, next);
+      });
+    }
+  },
+
+  correct(host, st){
+    const el = host.querySelector('#ans');
+    if(!el || !el.value.trim()) return {ok:false,total:0};
+    const ok = eqComplexStr(el.value, st.r.a, st.r.b);
+    setTick(host, 'ans', ok ? '✔' : '✘');
+    return {ok,total:1};
+  },
+
+  solution(host, st){
+    const pow2HTML = n => { const t=String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,''); return (n<0?`(${t})`:t)+'<sup>2</sup>'; };
+    const zPlusReal = t => t ? ('z ' + (t>0?'+ '+t:'− '+Math.abs(t))) : 'z';
+    const zPlusImag = t => t ? ('z ' + (t>0?'+ ':'− ') + (Math.abs(t)===1?'i':Math.abs(t)+'i')) : 'z';
+
+    function addTerm(s,k,unit){
+      if(!k) return s;
+      const first = (s==='');
+      const sign  = k<0 ? (first?'− ':' − ') : (first?'':' + ');
+      const m = Math.abs(k);
+      let body='';
+      if(unit==='z')   body = (m===1? 'z' : m+'z');
+      else if(unit==='iz') body = (m===1? 'iz': m+'iz');
+      else if(unit==='i')  body = (m===1? 'i' : m+'i');
+      else if(unit==='i2') body = (m===1? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
+      else body = String(m);
+      return s + sign + body;
+    }
+    function dev_z_plus_li_noI2(a,b,l){
+      let s='';
+      s = addTerm(s, a,   'z');
+      s = addTerm(s, a*l, 'i');
+      s = addTerm(s, b,   'iz');
+      s = addTerm(s, -b*l,'');
+      return s || '0';
+    }
+    function leftZCombo(a,b){ let s=''; s=addTerm(s,1-a,'z'); s=addTerm(s,-b,'iz'); return s||'0'; }
+    function leftZFact(a,b){ let inside=''; inside=addTerm(inside,1-a,''); inside=addTerm(inside,-b,'i'); return `z(${inside})`; }
+    const joinTerms = parts => { let out=''; for(const {coef,kind} of parts){ if(!coef) continue; out = addTerm(out, coef, (kind==='re'?'':kind)); } return out || '0'; };
+    function finalAplusBi(R,I,D){ const p=[]; if(R){ const [rx,ry]=reduce(R,D); p.push(fracHTML(rx,ry)); } if(I){ const [ix,iy]=reduce(I,D); p.push((I>0&&p.length?' + ':(I<0&&p.length?' − ':(I<0?'− ':'')))+fracHTML(Math.abs(ix),iy)+' i'); } return p.join('')||'0'; }
+    const dev_z_plus_l  = (a,b,l)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,''); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,'i'); return s||'0'; };
+    const dev_z_plus_li = (a,b,l,withI2=true)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,'i'); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,withI2?'i2':''); return s||'0'; };
+
+    const denCoefs = (a,b)=>({c1:1-a, c2:-b});
+    const denStr   = (c1,c2)=> joinTerms([{coef:c1,kind:'re'},{coef:c2,kind:'i'}]);
+    const conjStr  = (c1,c2)=> joinTerms([{coef:c1,kind:'re'},{coef:-c2,kind:'i'}]);
+
+    const showM1 = ()=>{
+      const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+      const H  = `<div><em>Pour tout</em> <span class="equ">z \\ne ${fmtNum(-l)}</span>, on a :</div>`;
+      const L1 = `<span class="equ">${fracOf(zPlusReal(k), zPlusReal(l))} = ${fmtComplex(a,b)}</span>`;
+      const L2 = `<span class="equ">z ${k?(k>0?'+ '+k:'− '+Math.abs(k)):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ '+l:'− '+Math.abs(l)):''})</span>`;
+      const L3 = `<span class="equ">z ${k?(k>0?'+ '+k:'− '+Math.abs(k)):''} = ${dev_z_plus_l(a,b,l)}</span>`;
+
+      const Nre = a*l - k, Nim = b*l;
+      const L4  = `<span class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</span>`;
+      const steps = [H,L1,L2,L3,L4];
+      if(c1!==0 && c2!==0){
+        steps.push(`<span class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</span>`);
+      }
+
+      const NumStr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
+      const L5 = `<span class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</span>`;
+      const L6 = `<span class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</span>`;
+
+      const foil = joinTerms([
+        {coef:Nre*c1, kind:'re'},
+        {coef:Nre*(-c2), kind:'i'},
+        {coef:Nim*c1, kind:'i'},
+        {coef:Nim*(-c2), kind:'i2'}
+      ]);
+      const L7  = `<span class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</span>`;
+      const foilNoI2 = joinTerms([
+        {coef:Nre*c1,   kind:'re'},
+        {coef:Nre*(-c2),kind:'i'},
+        {coef:Nim*c1,   kind:'i'},
+        {coef:-(Nim*(-c2)), kind:'re'}
+      ]);
+      const D = c1*c1 + c2*c2;
+      const L7b = `<span class="equ">z = ${fracOf(foilNoI2, String(D))}</span>`;
+
+      const R = Nre*c1 + Nim*c2, I = Nre*(-c2) + Nim*c1;
+      const L9  = `<span class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</span>`;
+      const L10 = `<span class="equ">z = ${finalAplusBi(R,I,D)}</span>`;
+      showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    };
+
+    const showM2 = ()=>{
+      const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+      const H  = `<div><em>Pour tout</em> <span class="equ">z \\ne ${fmtNum(-l)}</span>, on a :</div>`;
+      const L1 = `<span class="equ">${fracOf(zPlusImag(k), zPlusReal(l))} = ${fmtComplex(a,b)}</span>`;
+      const L2 = `<span class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ '+l:'− '+Math.abs(l)):''})</span>`;
+      const L3 = `<span class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_l(a,b,l)}</span>`;
+
+      const Nre = a*l, Nim = b*l - k;
+      const L4  = `<span class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</span>`;
+      const steps = [H,L1,L2,L3,L4];
+      if(c1!==0 && c2!==0){
+        steps.push(`<span class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}])}</span>`);
+      }
+
+      const NumStr = joinTerms([{coef:Nre,kind:'re'},{coef:Nim,kind:'i'}]);
+      const L5 = `<span class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</span>`;
+      const L6 = `<span class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</span>`;
+
+      const foil = joinTerms([
+        {coef:Nre*c1, kind:'re'},
+        {coef:Nre*(-c2), kind:'i'},
+        {coef:Nim*c1, kind:'i'},
+        {coef:Nim*(-c2), kind:'i2'}
+      ]);
+      const L7  = `<span class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</span>`;
+      const foilNoI2 = joinTerms([
+        {coef:Nre*c1,   kind:'re'},
+        {coef:Nre*(-c2),kind:'i'},
+        {coef:Nim*c1,   kind:'i'},
+        {coef:-(Nim*(-c2)), kind:'re'}
+      ]);
+      const D = c1*c1 + c2*c2;
+      const L7b = `<span class="equ">z = ${fracOf(foilNoI2, String(D))}</span>`;
+
+      const R = Nre*c1 + Nim*c2, I = Nre*(-c2) + Nim*c1;
+      const L9  = `<span class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</span>`;
+      const L10 = `<span class="equ">z = ${finalAplusBi(R,I,D)}</span>`;
+      showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    };
+
+    const showM3 = ()=>{
+      const {k,l,w:{a,b}} = st; const {c1,c2}=denCoefs(a,b);
+      const H  = `<div><em>Pour tout</em> <span class="equ">z \\ne ${fmtNum(-l)}i</span>, on a :</div>`;
+      const L1 = `<span class="equ">${fracOf(zPlusImag(k), zPlusImag(l))} = ${fmtComplex(a,b)}</span>`;
+      const L2 = `<span class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = (${fmtComplex(a,b)})(z ${l?(l>0?'+ ':'− ')+(Math.abs(l)===1?'i':Math.abs(l)+'i'):''})</span>`;
+      const L3 = `<span class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_li(a,b,l,true)}</span>`;
+      const L3b = `<span class="equ">z ${k?(k>0?'+ ':'− ')+(Math.abs(k)===1?'i':Math.abs(k)+'i'):''} = ${dev_z_plus_li_noI2(a,b,l)}</span>`;
+
+      const RHSre = -b*l, RHSim = a*l - k;
+      const L4  = `<span class="equ">${leftZCombo(a,b)} = ${joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}])}</span>`;
+      const steps = [H,L1,L2,L3,L3b,L4];
+      if(c1!==0 && c2!==0){
+        steps.push(`<span class="equ">${leftZFact(a,b)} = ${joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}])}</span>`);
+      }
+
+      const NumStr = joinTerms([{coef:RHSre,kind:'re'},{coef:RHSim,kind:'i'}]);
+      const L5 = `<span class="equ">z = ${fracOf(NumStr, denStr(c1,c2))}</span>`;
+      const L6 = `<span class="equ">z = ${fracOf(`(${NumStr})(${conjStr(c1,c2)})`, `(${denStr(c1,c2)})(${conjStr(c1,c2)})`)}</span>`;
+
+      const foil = joinTerms([
+        {coef:RHSre*c1, kind:'re'},
+        {coef:RHSre*(-c2), kind:'i'},
+        {coef:RHSim*c1, kind:'i'},
+        {coef:RHSim*(-c2), kind:'i2'}
+      ]);
+      const L7  = `<span class="equ">z = ${fracOf(foil, `${pow2HTML(c1)} + ${pow2HTML(c2)}`)}</span>`;
+      const foilNoI2 = joinTerms([
+        {coef:RHSre*c1,   kind:'re'},
+        {coef:RHSre*(-c2),kind:'i'},
+        {coef:RHSim*c1,   kind:'i'},
+        {coef:-(RHSim*(-c2)), kind:'re'}
+      ]);
+      const D = c1*c1 + c2*c2;
+      const L7b = `<span class="equ">z = ${fracOf(foilNoI2, String(D))}</span>`;
+
+      const R = RHSre*c1 + RHSim*c2, I = RHSre*(-c2) + RHSim*c1;
+      const L9  = `<span class="equ">z = ${fracOf(joinTerms([{coef:R,kind:'re'},{coef:I,kind:'i'}]), String(D))}</span>`;
+      const L10 = `<span class="equ">z = ${finalAplusBi(R,I,D)}</span>`;
+      showSteps(host, [...steps, L5, L6, L7, L7b,  L9, L10]);
+    };
+
+    if (st.mode==='M1') return showM1();
+    if (st.mode==='M2') return showM2();
+    showM3();
+  },
+
+  reset(host){ const el=host.querySelector('#ans'); if(el) el.value=''; setTick(host,'ans',''); $('#res',host).textContent=''; }
+};
+
+
+/* ===== Registry & mécanique ===== */
+const REGISTRY=[ex1,ex2,ex3,ex4,ex5];
+window.REGISTRY=REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const state=def.gen();
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(state);
+  def.render(host,state);
+  $('#res',host).textContent='';
+  host.querySelectorAll('.tick').forEach(x=>x.textContent='');
+  typesetAll(host);
+}
+function check(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host,st); scoreTot+=r.total; scoreOK+=r.ok?1:0; updateScore(); typesetAll(host); }
+function solution(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); typesetAll(host); }
+function resetAll(){ const host=$("#host"); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); def.reset(host,st); typesetAll(host); }
+
+/* ==== Init ==== */
+whenReady(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map(e=>'<option value="'+e.id+'">'+e.title+'</option>').join('');
+  sel.addEventListener('change', buildOne);
+  $("#btn-new").addEventListener('click', buildOne);
+  $("#btn-check").addEventListener('click', check);
+  $("#btn-solution").addEventListener('click', solution);
+  $("#btn-reset").addEventListener('click', resetAll);
+  buildOne();
+
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: '1STI2D – Nombres complexes — Forme algébrique, conjugué, inverse, quotient (LaTeX)',
+      max: 50,
+      lead: '',
+      leadByDefId: { cplx1:'', cplx2:'', cplx3:'', cplx4:'', cplx5:'' },
+      mountAfterSelector: '.card.small'
+    });
+  }
+});
+
+window.addEventListener('load', ()=> typesetAll(document), {once:true});
+
+/* ===== Accessibilité téléphone : agrandir les cibles drag si présent (héritage) ===== */
+window.addEventListener('pointerdown', ()=>{
+  const coarse = matchMedia('(pointer:coarse)').matches;
+  if (!coarse) return;
+  document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+    const r = parseFloat(c.getAttribute('r')||'5');
+    if (r < 10) c.setAttribute('r', String(12));
+    c.style.touchAction='none';
+  });
+}, {passive:true});
+</script>
+</body>
+</html>

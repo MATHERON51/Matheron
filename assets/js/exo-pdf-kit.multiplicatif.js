@@ -6,15 +6,18 @@
    - staticizeForPrint : n’imprime plus les placeholders des inputs
 */
 (function(){
-  const DEFAULTS = {
-    title: document.title.replace(/\s+–.+$/,'').trim() || 'Fiche d’exercices',
-    lead: '',
-    max: 50,
-    mountAfterSelector: '.controls.card',
-    leadByDefId: null,
-    beforeGen: null,
-    beforeRender: null
-  };
+  // … en haut du fichier, dans DEFAULTS :
+const DEFAULTS = {
+  title: document.title.replace(/\s+–.+$/,'').trim() || 'Fiche d’exercices',
+  lead: '',
+  max: 50,
+  mountAfterSelector: '.controls.card',
+  leadByDefId: null,
+  beforeGen: null,
+  beforeRender: null,
+  autoPrint: false      // ⟵ NOUVEAU : pas d’impression auto
+};
+
 
   function $(sel, r=document){ return r.querySelector(sel); }
 
@@ -197,100 +200,98 @@ function stripSmallHints(html){
     return wrap;
   }
 
-  function buildPrintableHTML(nb, mix, withSolutions, header, opts){
-    const today = new Date().toLocaleDateString('fr-FR');
-    const title = opts.title || DEFAULTS.title;
+function buildPrintableHTML(nb, mix, withSolutions, header, opts){
+  const today = new Date().toLocaleDateString('fr-FR');
+  const title = opts.title || DEFAULTS.title;
 
-    // Anti-doublon local à CETTE génération
-    const SEEN = new Set();
-    const keyOf = (def, st) => JSON.stringify({
-      id: def.id || def.title || '?',
-      kind: st?.kind ?? null,
-      type: st?.type ?? null,
-      n: ('n' in (st||{}) ? st.n : null),
-      params: st?.params || {}
-    });
+  // Anti-doublon local (identique au code existant)
+  const SEEN = new Set();
+  const keyOf = (def, st) => JSON.stringify({
+    id: def.id || def.title || '?',
+    kind: st?.kind ?? null,
+    type: st?.type ?? null,
+    n: ('n' in (st||{}) ? st.n : null),
+    params: st?.params || {}
+  });
 
-    let items = [];
-    for (let i=1; i<=nb; i++) {
-      const def = pickDef(mix);
-      if(!def) break;
+  // On prépare TOUT de suite énoncé + corrigé pour chaque item,
+  // même si on ne les affiche pas tous dans la 1ʳᵉ partie.
+  const DATA = [];
+  for (let i=1; i<=nb; i++) {
+    const def = pickDef(mix);
+    if(!def) break;
 
-      // 1) état (anti-doublon)
-      let st = {};
-      let tries = 0, sig = '';
-      do {
-        st = (typeof def.gen === 'function') ? def.gen(null) : {};
-        sig = keyOf(def, st);
-        tries++;
-      } while (SEEN.has(sig) && tries < 30);
-      SEEN.add(sig);
+    // état (anti-doublon)
+    let st = {};
+    let tries = 0, sig = '';
+    do {
+      st = (typeof def.gen === 'function') ? def.gen(null) : {};
+      sig = keyOf(def, st);
+      tries++;
+    } while (SEEN.has(sig) && tries < 30);
+    SEEN.add(sig);
 
-      if (typeof opts.beforeGen === 'function') {
-        try { st = opts.beforeGen(def, st, {index:i, total:nb, withSolutions:!!withSolutions}) || st; }
-        catch(e){ console.warn('[exo-pdf-kit] beforeGen() a échoué:', e); }
-      }
-
-      // 2) ENONCE (hook possible)
-      let enonceHTML = null, corrigeHTML = null;
-      if (typeof opts.beforeRender === 'function') {
-        try {
-          const out = opts.beforeRender(def, st, false);
-          if (typeof out === 'string') enonceHTML = out;
-          else if (out && typeof out.statement === 'string') enonceHTML = out.statement;
-        } catch(e){ console.warn('[exo-pdf-kit] beforeRender(statement) a échoué:', e); }
-      }
-      if (!enonceHTML) enonceHTML = exerciseHTML(def, st);
-
-      // 3) SOLUTION (hook possible)
-      if (withSolutions){
-        if (typeof opts.beforeRender === 'function') {
-          try {
-            const out = opts.beforeRender(def, st, true);
-            if (typeof out === 'string') corrigeHTML = out;
-            else if (out && typeof out.solution === 'string') corrigeHTML = out.solution;
-          } catch(e){ console.warn('[exo-pdf-kit] beforeRender(solution) a échoué:', e); }
-        }
-        if (!corrigeHTML) corrigeHTML = solutionHTML(def, st);
-      }
-
-      const lead = (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
-      let block = `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}`;
-      if(withSolutions){
-        block += `<div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>`;
-      }
-      block += `</div>`;
-      items.push(block);
+    if (typeof opts.beforeGen === 'function') {
+      try { st = opts.beforeGen(def, st, {index:i, total:nb, withSolutions:!!withSolutions}) || st; }
+      catch(e){ console.warn('[exo-pdf-kit] beforeGen() a échoué:', e); }
     }
 
-    const safe = s => (s||"").toString().replace(/[<>]/g, '');
-    return `<!doctype html>
+    // ENONCE
+    let enonceHTML = null;
+    if (typeof opts.beforeRender === 'function') {
+      try {
+        const out = opts.beforeRender(def, st, false);
+        if (typeof out === 'string') enonceHTML = out;
+        else if (out && typeof out.statement === 'string') enonceHTML = out.statement;
+      } catch(e){ console.warn('[exo-pdf-kit] beforeRender(statement) a échoué:', e); }
+    }
+    if (!enonceHTML) enonceHTML = exerciseHTML(def, st);
+
+    // CORRIGE — on le calcule toujours (il servira pour l’annexe)
+    let corrigeHTML = null;
+    if (typeof opts.beforeRender === 'function') {
+      try {
+        const out = opts.beforeRender(def, st, true);
+        if (typeof out === 'string') corrigeHTML = out;
+        else if (out && typeof out.solution === 'string') corrigeHTML = out.solution;
+      } catch(e){ console.warn('[exo-pdf-kit] beforeRender(solution) a échoué:', e); }
+    }
+    if (!corrigeHTML) corrigeHTML = solutionHTML(def, st);
+
+    DATA.push({i, def, st, enonceHTML, corrigeHTML});
+  }
+
+  // Construction des blocs
+  const leadOf = def => (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
+
+  const itemsEnonces = DATA.map(({i,def,enonceHTML})=>{
+    const lead = leadOf(def); 
+    return `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`;
+  });
+
+  const itemsCorriges = DATA.map(({i,def,enonceHTML,corrigeHTML})=>{
+    const lead = leadOf(def);
+    return `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}
+      <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
+    </div>`;
+  });
+
+  const safe = s => (s||"").toString().replace(/[<>]/g, '');
+
+  // CSS & squelette (reprend le style existant + titres de parties + séparation de page)
+  const metaCorr = withSolutions ? ' · corrigés inclus' : ' · corrigés en annexe';
+  return `<!doctype html>
 <html lang="fr"><head>
 <meta charset="utf-8">
 <title>${title} — Fiche</title>
 <style>
-/* Tables des exercices (PDF) */
 table{border-collapse:collapse}
-/* ✅ Bordures noires pour tous les tableaux .tbl (tes exos) */
 .tbl{border-collapse:collapse;border:1px solid #000}
 .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
-
-/* Tableau Intervalles/Ensembles : exemple générique conservé */
-.table-exo{
-  width:150mm;
-  max-width:100%;
-  margin:4mm auto;
-  table-layout:fixed;
-}
-.table-exo th, .table-exo td{
-  border:1px solid #000;
-  padding:3px 6px;
-  font-size:12px;
-  white-space:normal;
-}
-.table-exo th:first-child, .table-exo td:first-child{ width:50mm; text-align:left; }
-.table-exo th:not(:first-child), .table-exo td:not(:first-child){ width:16mm; text-align:center; }
-
+.table-exo{width:150mm;max-width:100%;margin:4mm auto;table-layout:fixed}
+.table-exo th,.table-exo td{border:1px solid #000;padding:3px 6px;font-size:12px;white-space:normal}
+.table-exo th:first-child,.table-exo td:first-child{width:50mm;text-align:left}
+.table-exo th:not(:first-child),.table-exo td:not(:first-child){width:16mm;text-align:center}
 @page{size:A4;margin:14mm}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;color:#111}
 .wrap{padding:0 2mm}
@@ -302,46 +303,24 @@ header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:
 .h-blanks{font-size:12px;color:#444;white-space:nowrap}
 .h-blanks .lbl{margin:0 6px 0 0}
 .h-blanks .line{display:inline-block;border-bottom:1px dotted #999;height:12px;vertical-align:baseline;margin:0 14px 0 6px}
-.h-blanks .line.lg{min-width:68mm}
-.h-blanks .line.sm{min-width:36mm}
+.h-blanks .line.lg{min-width:68mm}.h-blanks .line.sm{min-width:36mm}
 h1{font-size:18px;margin:6px 0 0 0}
 .meta{color:#666;font-size:12px;margin-top:2mm}
-
 .ex{margin:10px 0;page-break-inside:avoid}
 .ex .n{font-weight:700;margin-right:6px}
 .lead{font-weight:600;margin-right:6px}
 .solution{margin:6px 0 0 0;padding:6px 10px;background:#f9f9f9;border-left:3px solid #ddd}
 .solution .title{font-weight:700;font-size:13px;margin-bottom:4px}
-
+.part{font-size:16px;margin:10px 0 8px 0}
+.pagebreak{page-break-before:always}
 .steps{margin:.35rem 0 0 0;padding:.3rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:6px}
 .step{margin:.18rem 0;white-space:normal}
 .proof-table{display:grid;column-gap:12px;row-gap:0;margin-top:.3rem;white-space:normal}
 .proof-table .cell{align-self:start}
 .proof-table .ou{text-align:center;color:#555;white-space:nowrap;padding:.25rem .4rem}
-
 .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
 .frac .num,.frac .den{padding:0 .20em;white-space:nowrap}
 .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
-.frac-sign{margin-right:.15em}
-
-/* Helpers radian pour un rendu identique à l’écran */
-.frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1;vertical-align:middle}
-.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
-.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
-
-/* Flèches de vecteurs et primes plus visibles */
-.vec{position:relative;display:inline-block;line-height:1;padding:0 .18em .05em}
-.vec::before{content:"";position:absolute;left:.10em;right:.52em;top:-.22em;border-top:1.8px solid currentColor}
-.vec::after{content:"";position:absolute;right:0;top:-.36em;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent}
-.ptlbl{font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:4px}
-.ptlbl .prime{font-size:1.45em;font-weight:900}
-
-/* Tableau “radtab” (bordures noires comme à l’écran) */
-.radtab{border-collapse:collapse;width:100%}
-.radtab th,.radtab td{border:2px solid #111;padding:8px 10px;text-align:center;vertical-align:middle}
-.radtab th.lab{width:160px;text-align:left}
-
-
 footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;color:#777;font-size:11px}
 </style>
 </head>
@@ -362,22 +341,41 @@ footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;c
         </div>` : ``}
       </div>
       <h1>${title} — Fiche d’exercices</h1>
-      <div class="meta">Date : ${today} · NB d’exercices : ${nb} · ${mix?'Types mélangés':'Type sélectionné'}${withSolutions?' · corrigés inclus':''}</div>
+      <div class="meta">Date : ${today} · NB d’exercices : ${nb} · ${mix?'Types mélangés':'Type sélectionné'}${metaCorr}</div>
     </header>
-    ${items.join('')}
+
+    ${
+      withSolutions
+      // Mode “classique” : énoncé + corrigé sous chaque énoncé
+      ? itemsCorriges.join('')
+      // Nouveau comportement : Partie A (énoncés), puis Partie B (corrigés en annexe)
+      : `<h2 class="part">Énoncés</h2>
+         ${itemsEnonces.join('')}
+         <div class="pagebreak"></div>
+         <h2 class="part">Corrigés</h2>
+         ${itemsCorriges.join('')}`
+    }
   </div>
 </body></html>`;
-  }
+}
+
 
   function openPrint(nb, mix, withSolutions, header, opts){
-    const html = buildPrintableHTML(nb, mix, withSolutions, header, opts);
-    const blob = new Blob([html], {type:'text/html'});
-    const url  = URL.createObjectURL(blob);
-    const w = window.open(url, '_blank');
-    if(!w){ alert("Le bloqueur de fenêtres empêche l’ouverture. Autorise temporairement les pop-ups pour générer le PDF."); return; }
-    setTimeout(()=>{ try{ w.focus(); w.print(); } catch(e){} }, 350);
-    setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  const html = buildPrintableHTML(nb, mix, withSolutions, header, opts);
+  const blob = new Blob([html], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank');
+  if(!w){
+    alert("Le bloqueur de fenêtres empêche l’ouverture. Autorise temporairement les pop-ups pour générer la fiche.");
+    return;
   }
+  // Impression automatique désactivée par défaut
+  if (opts.autoPrint) {
+    setTimeout(()=>{ try{ w.focus(); w.print(); } catch(e){} }, 350);
+  }
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+}
+
 
   function mountUI(opts){
     const after = $(opts.mountAfterSelector) || $('.wrap');

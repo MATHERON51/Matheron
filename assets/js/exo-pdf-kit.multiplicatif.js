@@ -92,9 +92,22 @@ function stripSmallHints(html){
         }
 
         // 2) pages anciennes : on fige l’UI (et on ne garde pas les placeholders)
-        staticizeForPrint(tmp);
-        const equ = tmp.querySelector('.equ') || tmp.querySelector('.hint') || null;
-        const html = equ ? equ.outerHTML : tmp.innerHTML;
+        // 2) pages anciennes : on fige l’UI
+// 2) pages anciennes : on fige l’UI
+staticizeForPrint(tmp);
+
+// ⬇️ Priorité au bloc complet d’énoncé
+const block = tmp.querySelector('.statement') || tmp.querySelector('.equ') || tmp.querySelector('.hint') || null;
+let html = block
+  ? (block.classList.contains('statement') ? block.innerHTML : block.outerHTML)
+  : tmp.innerHTML;
+
+// ⬇️ Supprimer "Exercice n :" dans la consigne imprimée
+html = html.replace(/<strong>\s*Exercice\s*\d+\s*:<\/strong>\s*/gi, '');
+
+return html;
+
+
 
         tmp.remove();
         return stripSmallHints(html && html.trim() ? html : 'Énoncé indisponible');

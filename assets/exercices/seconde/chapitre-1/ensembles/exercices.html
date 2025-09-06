@@ -59,6 +59,15 @@
   .pdf-controls .btn,
   .pdf-controls button{background:#f7f7f7 !important;color:#111 !important;border-color:#dadada !important}
 
+/* Croix imprimable dans les cases */
+.square{ position:relative; line-height:14px }
+.square[data-x="1"]::after{
+  content:"✗";
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12px;
+  transform:translateY(-0.5px);
+}
 
 
 </style>
@@ -176,6 +185,25 @@
       makeIrrational('π'), makeIrrational('√2')
     ];
   }
+
+function membershipSolutionHTML(rows){
+  const head = ['Nombre','ℕ','ℤ','ⅅ','ℚ','ℝ'];
+  const trh = '<tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  const trs = rows.map(r=>(
+    `<tr>
+      <td class="mono">${r.html}</td>
+      ${['N','Z','D','Q','R'].map(k=>
+        `<td><span class="square">${r[k] ? '✗' : ''}</span></td>`
+      ).join('')}
+    </tr>`
+  )).join('');
+  return `
+    <div><strong>Correction — Tableau d’appartenance</strong></div>
+    <table class="table-exo"><thead>${trh}</thead><tbody>${trs}</tbody></table>
+  `;
+}
+
+
 
   /* ====== EXERCICES ====== */
 
@@ -488,19 +516,30 @@
         });
       });
     },
-    solution(host){
-      $$(".hint",host).forEach(n=>n.remove());
-      $$(".equ",host).forEach(n=>n.remove());
+    solution(host, nums){
+    // Nettoyage écran
+    $$(".hint",host).forEach(n=>n.remove());
+    $$(".equ",host).forEach(n=>n.remove());
 
-      $$("tbody tr", host).forEach(tr=>{
-        $$("input[type=checkbox]", tr).forEach(chk=>{
-          const want = chk.getAttribute("data-ans")==="1";
-          chk.checked = want;
-          chk.classList.add("ok"); chk.classList.remove("ko");
-        });
+    // Pour l’écran : cocher correctement le tableau interactif
+    $$("tbody tr", host).forEach(tr=>{
+      $$("input[type=checkbox]", tr).forEach(chk=>{
+        const want = chk.getAttribute("data-ans")==="1";
+        chk.checked = want;
+        chk.classList.add("ok"); chk.classList.remove("ko");
       });
-    }
-  };
+    });
+
+    // PDF : fabriquer un .steps avec le tableau corrigé (✗ dans les cases)
+    $(".steps",host)?.remove();
+    const rows = (nums||[]).map(n=>({html:n.html, N:n.N, Z:n.Z, D:n.D, Q:n.Q, R:n.R}));
+    const box = document.createElement("div");
+    box.className = "steps";
+    box.innerHTML = membershipSolutionHTML(rows);
+    host.appendChild(box);
+  }
+};
+
 
   var REGISTRY=[exo1,exo2,exo3];
   window.REGISTRY=REGISTRY;

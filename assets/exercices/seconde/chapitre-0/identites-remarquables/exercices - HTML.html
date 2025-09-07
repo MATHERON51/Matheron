@@ -6,7 +6,6 @@
 <title>Seconde – Chapitre 0 – Calculs – Identités remarquables</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
-<link rel="stylesheet" href="../../../../css/espace-latex.css"><!-- même fichier que ta page LaTeX -->
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -42,7 +41,7 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .res-ok{color:#11823b;font-weight:700}
 .res-ko{color:#b00020;font-weight:700}
 .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
-/* .equ {font-weight:600}  — plus utilisé */
+.equ{font-weight:600}
 .hint{opacity:.85;margin:.2rem 0 .6rem}
 
 /* Étapes */
@@ -64,23 +63,9 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .sqtbl td{border:1px solid #eaeaea;padding:8px;text-align:center;white-space:nowrap}
 .sqtbl tr:nth-child(even) td{background:#fbfbfb}
 #sol-wrap .btn,#mode-conseil{width:100%}
-</style>
 
-<!-- MathJax v3 pour l’affichage LaTeX \( ... \) -->
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    chtml: { matchFontHeight: false },
-    startup: { typeset: true }
-  };
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+</style>
 </head>
 <body>
   <div class="header">
@@ -128,52 +113,67 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 <!-- Librairies -->
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 
 <script>
 (function(){'use strict';
-/* ==== Utils ==== */
-const $  = (s,r=document)=>r.querySelector(s);
-const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
-const rnd    = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-const choice = a=>a[Math.floor(Math.random()*a.length)];
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const UMINUS='−', MULT='×';
+const FEQ = s => `F&nbsp;=&nbsp;${s}`;
 
-/* ===== Helpers (version LaTeX) ===== */
-const UMINUS = '−';           // pour texte hors math
-const LMINUS = '-';           // pour LaTeX
-const TIMES  = '\\times';     // \times en LaTeX
-const FEQ    = s => `\\( F\\;=\\;${s} \\)`;   // ligne “F = …” en LaTeX
-
+/* ===== Helpers ===== */
 function uminus(n){ return n<0 ? UMINUS+String(Math.abs(n)) : String(n); }
-
-/* ax en affichage texte (hors math) */
-function axStr(a){
-  const k=Math.abs(a);
-  return (a<0? UMINUS : '') + (k===1? 'x' : (k+'x'));
+function axStr(a){ const k=Math.abs(a); return (a<0? UMINUS : '') + (k===1? 'x' : (k+'x')); }
+function normalizeSigns(s){
+  return s.replace(/\u2212/g,UMINUS)
+          .replace(/\+\s*[−-]/g,' − ')
+          .replace(/[−-]\s*\+/g,' − ')
+          .replace(/[−-]\s*[−-]/g,' + ')
+          .replace(/\+\s*\+/g,' + ')
+          .replace(/\s{2,}/g,' ')
+          .trim();
+}
+function canonSup2(s){
+  return s.replace(/([x0-9)])²/g, '$1<sup>2</sup>').replace(/\(<sup>2<\/sup>/g,'(');
 }
 
-/* ax en LaTeX */
-function axLatex(a){
-  const k=Math.abs(a);
-  return (a<0? LMINUS : '') + (k===1? 'x' : (k+'x'));
+/* Tableau des carrés 0 → 20 (utilisé par ex5) */
+function squaresTableHTML(){
+  const nPerRow = 7;
+  const t = [];
+  t.push('<div class="hint">');
+  t.push('<div style="font-weight:600;margin:.4rem 0;">Table des carrés 0→20</div>');
+  t.push('<table class="sqtbl"><tbody>');
+  for(let i=0;i<=21;i+=nPerRow){
+    const start = i, end = Math.min(20, i + nPerRow - 1);
+    if(start > 20) break;
+    t.push('<tr>');
+    for(let n = start; n <= end; n++){
+      t.push(`<td>${n}<sup>2</sup> = ${n*n}</td>`);
+    }
+    t.push('</tr>');
+  }
+  t.push('</tbody></table></div>');
+  return t.join('');
 }
 
-/* Polynôme -> chaîne LaTeX (ax^2 + bx + c) */
-function polyToLatex({a2=0,a1=0,a0=0}){
+function polyToHTML({a2=0,a1=0,a0=0}){
   const parts=[];
-  if(a2){ parts.push(a2===1?'x^2':a2===-1?'-x^2':`${a2}x^2`); }
+  if(a2){ parts.push(a2===1?'x<sup>2</sup>':a2===-1?`${UMINUS}x<sup>2</sup>`:uminus(a2)+'x<sup>2</sup>'); }
   if(a1){
     const k=Math.abs(a1), t=(k===1?'x':k+'x');
-    parts.push((a1>0?'+ ':'- ') + t);
+    if(parts.length) parts.push(a1>0?' + '+t:' − '+t); else parts.push(a1<0? UMINUS+t : t);
   }
   if(a0){
-    parts.push((a0>0?'+ ':'- ') + Math.abs(a0));
+    const k=Math.abs(a0);
+    if(parts.length) parts.push(a0>0?' + '+k:' − '+k); else parts.push(a0<0? UMINUS+k : ''+k);
   }
-  return (parts.join(' ')||'0').replace(/^\+ /,'');
+  return parts.length? parts.join('') : '0';
 }
-
-/* Pour remplir la saisie (notation clavier) au clic “Solution” */
 function polyToAscii({a2=0,a1=0,a0=0}){
   let s='';
   if(a2){ s = (a2===1?'x^2':a2===-1?'-x^2':a2+'x^2'); }
@@ -186,29 +186,30 @@ function polyToAscii({a2=0,a1=0,a0=0}){
   }
   return s || '0';
 }
+// Remplace la version actuelle
+function stepsHTML(lines){
+  const toStr = v =>
+    v == null ? "" :
+    (v.outerHTML ? v.outerHTML : String(v));
 
-/* Petit tableau des carrés 0 → 20 (en LaTeX) */
-function squaresTableHTML(){
-  const nPerRow = 7;
-  const t = [];
-  t.push('<div class="hint">');
-  t.push('<div style="font-weight:600;margin:.4rem 0;">Table des carrés 0→20</div>');
-  t.push('<table class="sqtbl"><tbody>');
-  for(let i=0;i<=21;i+=nPerRow){
-    const start = i, end = Math.min(20, i + nPerRow - 1);
-    if(start > 20) break;
-    t.push('<tr>');
-    for(let n = start; n <= end; n++){
-      t.push(`<td>\\( ${n}^2 = ${n*n} \\)</td>`);
-    }
-    t.push('</tr>');
-  }
-  t.push('</tbody></table></div>');
-  return t.join('');
+  // Normalise uniquement les segments de texte (on préserve les balises)
+  const beautify = s => String(s)
+    .split(/(<[^>]+>)/g)
+    .map(seg => seg.startsWith('<') ? seg : canonSup2(normalizeSigns(seg)))
+    .join('');
+
+  const arr = Array.isArray(lines) ? lines : [lines];
+  return '<div class="steps">' +
+    arr.filter(x => x != null && x !== false)
+       .map(t => `<div class="step">${ beautify(toStr(t)) }</div>`)
+       .join('') +
+    '</div>';
 }
 
 /* ===== PATCH — normalisation stricte de la saisie (forme réduite) =====
-   (identique au comportement d’origine, tolère x^2 / x², etc.)
+   Accepte : espaces, '*', '×', moins Unicode, puissances ^n / ².
+   Refuse : parenthèses, '/', '=', mots de solution ("F", "Formule", "Conseil", "Or").
+   Objectif : un polynôme réduit de la forme ax^2 + bx + c (ordre libre).
 */
 function normalizeInputPoly(txt){
   if(!txt) return "";
@@ -221,17 +222,17 @@ function normalizeInputPoly(txt){
   s = s.replace(/[\u2212\u2013\u2014]/g,'-'); // − – — -> -
   s = s.replace(/[×·]/g,'*');                // × · -> *
 
-  // Puissances : ²/³ -> ^2/^3
+  // Puissances : ²/³ -> ^2/^3 ; autoriser espaces autour de ^
   s = s.replace(/([xX])\s*²/g, '$1^2')
        .replace(/([xX])\s*³/g, '$1^3')
        .replace(/([xX])\s*\^\s*(\d+)/g, '$1^$2');
 
-  // Multiplication autour de x
-  s = s.replace(/(\d)\s+([xX])/g, '$1$2');      // "3 x" -> "3x"
+  // Multiplication implicite/explicite autour de x
+  s = s.replace(/(\d)\s+([xX])/g, '$1$2');   // "3 x" -> "3x"
   s = s.replace(/(\d)\s*\*\s*([xX])/g, '$1$2'); // "3*x" -> "3x"
   s = s.replace(/([xX])\s*\*\s*(\d)/g, '$2x');  // "x*3" -> "3x"
 
-  // x * x, x x, xx -> x^2 (itéré pour sûreté)
+  // x * x, x x, xx -> x^2 (on itère quelques fois, suffisant pour degré 2)
   for(let i=0;i<3;i++){
     s = s.replace(/([xX])\s*(?:\*\s*)?([xX])/g, 'x^2');
   }
@@ -239,26 +240,31 @@ function normalizeInputPoly(txt){
   // Nettoyage espaces
   s = s.replace(/\s+/g,'');
 
-  // Rejets restants
+  // Rejets restants : parenthèses, division, astérisques résiduels, autres lettres
   if(/[()\/]/.test(s)) return "__REJECT__";
   if(/\*/.test(s)) return "__REJECT__";
   if(/[A-WYZ]/i.test(s)) return "__REJECT__"; // seules les x/X sont tolérées
 
-  // Canonical
+  // Canonical 'x' et puissances usuelles
   s = s.replace(/X/g,'x');
   s = s.replace(/x\^1\b/g,'x').replace(/x\^2\b/g,'x2');
 
+  // Si un '^' reste -> rejet (on ne parse que jusqu'à x^2)
   if(/\^/.test(s)) return "__REJECT__";
+
   return s;
 }
 
-/* Parseur simple de polynômes ax^2+bx+c */
+/* Simple parseur de polynômes ax^2+bx+c */
+/* Simple parseur de polynômes ax^2+bx+c (forme réduite uniquement) */
 function parsePoly(txt){
   let s = normalizeInputPoly(txt);
   if(!s || s==="__REJECT__") return null;
 
+  // Caractères autorisés après normalisation
   if(!/^[0-9x+\-]*$/.test(s)) return null;
 
+  // Découpage en termes signés
   const parts = s.match(/[+\-]?[^+\-]+/g) || [];
   let a2=0, a1=0, a0=0;
 
@@ -286,109 +292,86 @@ function parsePoly(txt){
   return {a2,a1,a0};
 }
 
-/* Bloc étapes — on affiche directement des chaînes LaTeX \( ... \) */
-function stepsHTML(lines){
-  const arr = Array.isArray(lines) ? lines : [lines];
 
-  // Ajoute automatiquement un &nbsp; avant \( quand il est précédé d’un ":" ou d’un mot-clé
-  const fixPunct = s => String(s)
-    // ":" juste avant une formule -> ": \("
-    .replace(/:\s*\\\(/g, ':&nbsp;\\(')
-    // cas usuels "Formule : \( …", "Conseil : \( …", "Or \( …"
-    .replace(/\b(Formule|Conseil)\s*:\s*\\\(/g, (_m, p)=> `${p} :&nbsp;\\(`)
-    .replace(/\bOr\s*\\\(/g, 'Or&nbsp;\\(');
+/* ===== Développement : (ax ± b)² (avec conseils) =====
+   useAdvice : si true, insère les lignes de "Conseil : …" pour (-a ± b)²  */
+function buildSquareLines(a,b,sign,k=null, useAdvice=true){
+  const kprefix = (k==null) ? '' : uminus(k);
+  const AposStr = axStr(Math.abs(a));   // ex: 2x
+  const ArawStr = axStr(a);             // ex: −2x si a<0
+  const Bstr    = String(Math.abs(b));  // ex: 5
+  const Acoef   = Math.abs(a);
+  const Bcoef   = Math.abs(b);
+  const lines=[];
 
-  return '<div class="steps">' +
-    arr.filter(x => x != null && x !== false)
-       .map(s => `<div class="step">${fixPunct(s)}</div>`)
-       .join('') +
-    '</div>';
-}
-
-
-/* ===== Développement : (ax ± b)² — lignes LaTeX =====
-   useAdvice : si true, affiche les réécritures (−A±B)² → …
-   k : facteur extérieur éventuel (null sinon)
-*/
-function buildSquareLines(a,b,sign, k=null, useAdvice=true){
-  const plus    = (sign === '+');
-  const signL   = plus ? '+' : '-';
-  const Apos    = Math.abs(a);
-  const Bpos    = Math.abs(b);
-  const ArawLx  = axLatex(a);
-  const AposLx  = axLatex(Apos);
-  const BLx     = String(Bpos);
-  const kL      = (k==null) ? '' : (k<0?`-${Math.abs(k)}`:String(k));
-
-  const lines = [];
-
-  // 1) Énoncé exact en LaTeX
-  const lhs0 = (k==null)
-    ? `(${ArawLx} ${signL} ${BLx})^2`
-    : `${kL}\\,\\big(${ArawLx} ${signL} ${BLx}\\big)^2`;
-  lines.push(FEQ(lhs0));
-
-  // 2) Mode "conseil" si a<0
+  // ===== CAS AVEC CONSEIL quand a<0 =====
   if(useAdvice && a<0){
-    if(!plus){
-      // (−A − B)² = (A + B)²
-      lines.push(`Conseil :&nbsp; \\( (-A - B)^2 = (A + B)^2 \\)`);
-      const rhs = (k==null)
-        ? `(${AposLx} + ${BLx})^2`
-        : `${kL}\\,\\big(${AposLx} + ${BLx}\\big)^2`;
-      lines.push(FEQ(rhs));
-      lines.push(`Formule :&nbsp; \\( (A + B)^2 \\) avec \\( A=${AposLx} \\), \\( B=${BLx} \\)`);
-      lines.push(`Or&nbsp; \\( (A + B)^2 = A^2 + 2AB + B^2 \\)`);
+    if(sign==='−'){
+      // (-A − B)^2 -> (A + B)^2
+      lines.push('Conseil : (−A − B)² = (A + B)²');
+      lines.push(FEQ(`${kprefix}(${AposStr} + ${Bstr})²`));
+      lines.push(`Formule : (A + B)² avec A = ${AposStr}, B = ${Bstr}`);
+      lines.push(`Or (A + B)² = A² + 2AB + B²`);
 
-      // CAS a<0 et sign === '−'  (conseil : (-A − B)² → (A + B)²)
-const inner = `(${AposLx})^2 + 2 ${TIMES} ${AposLx} ${TIMES} ${BLx} + ${BLx}^2`;
-lines.push(FEQ(k==null ? inner : `${kL}\\,\\big(${inner}\\big)`));
+      if(k==null){
+        lines.push(FEQ(`(${AposStr})² + 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+      }else{
+        lines.push(FEQ(`${kprefix}( (${AposStr})² + 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+      }
 
-      const a2=Apos*Apos, a1=2*Apos*Bpos, a0=Bpos*Bpos;
-      const last = polyToLatex({a2:(k||1)*a2, a1:(k||1)*a1, a0:(k||1)*a0});
-      lines.push(FEQ(last));
+      if(k!=null){
+        lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1: 2*Acoef*Bcoef,a0:Bcoef*Bcoef})} )`));
+      }
+      lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*( 2*Acoef*Bcoef), a0:(k||1)*Bcoef*Bcoef})}`));
       return lines;
-
     }else{
-      // (−A + B)² = (B − A)²
-      lines.push(`Conseil :&nbsp; \\( (-A + B)^2 = (B - A)^2 \\)`);
-      const rhs = (k==null)
-        ? `(${BLx} - ${AposLx})^2`
-        : `${kL}\\,\\big(${BLx} - ${AposLx}\\big)^2`;
-      lines.push(FEQ(rhs));
-      lines.push(`Formule :&nbsp; \\( (B - A)^2 \\) avec \\( B=${AposLx} \\), \\( A=${BLx} \\)`);
-      lines.push(`Or&nbsp; \\( (B - A)^2 = B^2 - 2BA + A^2 \\)`);
+      // (-A + B)^2 -> (B − A)^2 , et on explicite selon la demande
+      lines.push('Conseil : (−A + B)² = (B − A)²');
+      lines.push(FEQ(`${kprefix}(${Bstr} − ${AposStr})²`));
+      lines.push(`Formule : (B − A)² avec B = ${AposStr}, A = ${Bstr}`);
+      lines.push(`Or (B − A)² = B² − 2BA + A²`);
 
-      // CAS a<0 et sign === '+'  (conseil : (-A + B)² → (B − A)²)
-const inner = `(${AposLx})^2 - 2 ${TIMES} ${AposLx} ${TIMES} ${BLx} + ${BLx}^2`;
-lines.push(FEQ(k==null ? inner : `${kL}\\,\\big(${inner}\\big)`));
+      if(k==null){
+        lines.push(FEQ(`(${AposStr})² − 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+      }else{
+        lines.push(FEQ(`${kprefix}( (${AposStr})² − 2 ${MULT} (${AposStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+      }
 
-      const a2=Apos*Apos, a1=-2*Apos*Bpos, a0=Bpos*Bpos;
-      const last = polyToLatex({a2:(k||1)*a2, a1:(k||1)*a1, a0:(k||1)*a0});
-      lines.push(FEQ(last));
+      if(k!=null){
+        lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1:-2*Acoef*Bcoef,a0:Bcoef*Bcoef})} )`));
+      }
+      lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*(-2*Acoef*Bcoef), a0:(k||1)*Bcoef*Bcoef})}`));
       return lines;
     }
   }
 
-  // 3) Cas « sans conseil » (ou a>=0)
-  const form = plus ? '(A + B)^2' : '(A - B)^2';
-  lines.push(`Formule :&nbsp; \\( ${form} \\) avec \\( A=${ArawLx} \\), \\( B=${BLx} \\)`);
-  lines.push(`Or&nbsp; \\( ${form} = ${ plus ? 'A^2 + 2AB + B^2' : 'A^2 - 2AB + B^2' } \\)`);
+  // ===== CAS SANS CONSEIL (ou a >= 0) =====
+  // On garde l'expression telle quelle et on applique la bonne formule
+  lines.push(FEQ(`${kprefix}(${ArawStr} ${sign} ${Bstr})²`));
+  const form = sign==='+' ? '(A + B)²' : '(A − B)²';
+  lines.push(`Formule : ${form} avec A = ${ArawStr}, B = ${Bstr}`);
+  lines.push(`Or ${form} = ${ sign==='+' ? 'A² + 2AB + B²' : 'A² − 2AB + B²' }`);
 
-// CAS général (a≥0 ou sans conseil)
-const inner = plus
-  ? `(${ArawLx})^2 + 2 ${TIMES} ${ArawLx} ${TIMES} ${BLx} + ${BLx}^2`
-  : `(${ArawLx})^2 - 2 ${TIMES} ${ArawLx} ${TIMES} ${BLx} + ${BLx}^2`;
-lines.push(FEQ(k==null ? inner : `${kL}\\,\\big(${inner}\\big)`));
+  if(sign==='+'){
+    if(k==null){
+      lines.push(FEQ(`(${ArawStr})² + 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+    }else{
+      lines.push(FEQ(`${kprefix}( (${ArawStr})² + 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+    }
+  }else{
+    if(k==null){
+      lines.push(FEQ(`(${ArawStr})² − 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}²`));
+    }else{
+      lines.push(FEQ(`${kprefix}( (${ArawStr})² − 2 ${MULT} (${ArawStr}) ${MULT} ${Bstr} + ${Bstr}² )`));
+    }
+  }
 
-  const Acoef=Math.abs(a);
-  const innerA1 = (plus ? 1 : -1) * 2*(a)*Bpos; // a signé ici
-  const last = polyToLatex({
-    a2:(k||1)*Acoef*Acoef,
-    a1:(k||1)*innerA1,
-    a0:(k||1)*Bpos*Bpos
-  });
-  lines.push(FEQ(last));
+  // calcul
+  const innerA1 = (sign==='+' ? 1 : -1) * 2*(a)*Bcoef; // ici a signé
+  if(k!=null){
+    lines.push(FEQ(`${kprefix}( ${polyToHTML({a2:Acoef*Acoef,a1:innerA1,a0:Bcoef*Bcoef})} )`));
+  }
+  lines.push(FEQ(`${polyToHTML({a2:(k||1)*Acoef*Acoef, a1:(k||1)*innerA1, a0:(k||1)*Bcoef*Bcoef})}`));
   return lines;
 }
 
@@ -409,26 +392,26 @@ const ex1 = {
     };
     return {a,b,sign,exp};
   },
-  text(st){
-    const s = st.sign==='−' ? '-' : '+';
-    return FEQ(`(${axLatex(st.a)} ${s} ${Math.abs(st.b)})^2`);
-  },
+  text(st){ return `<span class="equ">${FEQ(`(${axStr(st.a)} ${st.sign} ${Math.abs(st.b)})²`)}</span>`; },
   render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
   correct(host, st){
     const ans = parsePoly($("#reponse",host).value);
     if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 + 4x + 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
     const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
-    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : \\( ${polyToLatex(st.exp)} \\))`;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
     $("#res",host).className = ok ? "res-ok" : "res-ko";
     return {ok,total:1};
   },
   solution(host, st){
     const adv = useAdvice();
+    const baseLHS = FEQ(`(${axStr(st.a)} ${st.sign} ${Math.abs(st.b)})²`);
     const lines = buildSquareLines(st.a, st.b, st.sign, null, adv);
+    // 1ère ligne = énoncé exact; si conseil actif et a<0 on affiche l'énoncé puis la réécriture
+    if(adv && st.a<0){ lines.unshift(baseLHS); } else { lines[0] = baseLHS; }
     $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
     $("#res",host).innerHTML = stepsHTML(lines);
-    $("#reponse",host).value  = polyToAscii(st.exp);
-  },
+    $("#reponse",host).value = polyToAscii(st.exp);
+},
   printSolutionHTML(st){ return stepsHTML(buildSquareLines(st.a, st.b, st.sign, null, true)); },
   reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
 };
@@ -443,50 +426,50 @@ const ex2 = {
     return {a,b,order,exp:{a2:Math.abs(a)*Math.abs(a),a1:0,a0:-(b*b)}};
   },
   text(st){
-    const A = axLatex(st.a), B = String(Math.abs(st.b));
+    const A = axStr(st.a), B = String(Math.abs(st.b));
     const e = st.order==='pm'
-      ? `(${A} + ${B})(${A} - ${B})`
-      : `(${A} - ${B})(${A} + ${B})`;
-    return FEQ(e);
+      ? `(${A} + ${B})(${A} − ${B})`
+      : `(${A} − ${B})(${A} + ${B})`;
+    return `<span class="equ">${FEQ(e)}</span>`;
   },
   render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
   correct(host, st){
     const ans = parsePoly($("#reponse",host).value);
     if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 - 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
     const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
-    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : \\( ${polyToLatex(st.exp)} \\))`;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
     $("#res",host).className = ok ? "res-ok" : "res-ko";
     return {ok,total:1};
   },
   solution(host, st){
     $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
-    const A=axLatex(st.a), B=String(Math.abs(st.b));
-    const form  = st.order==='pm' ? '(A + B)(A - B)' : '(A - B)(A + B)';
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
     const first = st.order==='pm'
-      ? FEQ(`(${A} + ${B})(${A} - ${B})`)
-      : FEQ(`(${A} - ${B})(${A} + ${B})`);
+      ? FEQ(`(${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`)
+      : FEQ(`(${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`);
     const lines = [
       first,
-      `Formule :&nbsp; \\( ${form} \\) avec \\( A=${A} \\), \\( B=${B} \\)`,
-      `Or&nbsp; \\( ${form} = A^2 - B^2 \\)`,
-      FEQ(`(${A})^2 - ${B}^2`),
-      FEQ(`${polyToLatex({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
+      `Formule : ${form} avec A = ${Aterm}, B = ${Bterm}`,
+      `Or ${form} = A² − B²`,
+      FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+      FEQ(`${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
     ];
     $("#res",host).innerHTML = stepsHTML(lines);
     $("#reponse",host).value  = polyToAscii({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)});
   },
   printSolutionHTML(st){
-    const A=axLatex(st.a), B=String(Math.abs(st.b));
-    const form  = st.order==='pm' ? '(A + B)(A - B)' : '(A - B)(A + B)';
+    const Aterm = axStr(st.a), Bterm = String(Math.abs(st.b));
+    const form  = st.order==='pm' ? '(A + B)(A − B)' : '(A − B)(A + B)';
     const first = st.order==='pm'
-      ? FEQ(`(${A} + ${B})(${A} - ${B})`)
-      : FEQ(`(${A} - ${B})(${A} + ${B})`);
+      ? FEQ(`(${Aterm} + ${Bterm})(${Aterm} − ${Bterm})`)
+      : FEQ(`(${Aterm} − ${Bterm})(${Aterm} + ${Bterm})`);
     const lines = [
       first,
-      `Formule :&nbsp; \\( ${form} \\) avec \\( A=${A} \\), \\( B=${B} \\)`,
-      `Or&nbsp; \\( ${form} = A^2 - B^2 \\)`,
-      FEQ(`(${A})^2 - ${B}^2`),
-      FEQ(`${polyToLatex({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
+      `Formule : ${form} avec A = ${Aterm}, B = ${Bterm}`,
+      `Or ${form} = A² − B²`,
+      FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+      FEQ(`${polyToHTML({a2:Math.abs(st.a)*Math.abs(st.a),a1:0,a0:-(st.b*st.b)})}`)
     ];
     return stepsHTML(lines);
   },
@@ -505,17 +488,13 @@ const ex3 = {
     const exp={ a2:k*(A*A), a1:k*((sign==='+')?2*a*B:-2*a*B), a0:k*(B*B) }; // a signé
     return {k,a,b,sign,exp};
   },
-  text(st){
-    const s = st.sign==='−' ? '-' : '+';
-    const k = st.k<0 ? `-${Math.abs(st.k)}` : String(st.k);
-    return FEQ(`${k}\\,\\big(${axLatex(st.a)} ${s} ${Math.abs(st.b)}\\big)^2`);
-  },
+  text(st){ return `<span class="equ">${FEQ(`${uminus(st.k)}(${axStr(st.a)} ${st.sign} ${st.b})²`)}</span>`; },
   render(host, st){ renderRow(host, "Développer et réduire :", this.text(st), "ex.  x^2 + 4x + 4", "Réponse (forme réduite)", "F ="); },
   correct(host, st){
     const ans = parsePoly($("#reponse",host).value);
     if(!ans){ $("#res",host).innerHTML="✘ Réponse invalide (ex.  x^2 - 4)"; $("#res",host).className="res-ko"; return {ok:false,total:1}; }
     const ok = ans.a2===st.exp.a2 && ans.a1===st.exp.a1 && ans.a0===st.exp.a0;
-    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : \\( ${polyToLatex(st.exp)} \\))`;
+    $("#res",host).innerHTML = ok ? "✔" : `✘ (attendu : ${polyToHTML(st.exp)})`;
     $("#res",host).className = ok ? "res-ok" : "res-ko";
     return {ok,total:1};
   },
@@ -576,11 +555,11 @@ const ex4 = {
 
   text(st){
     if (st.type === 'conj') {
-      return `\\( (${axLatex(st.a)}+${Math.abs(st.b)})(${axLatex(st.a)}-${Math.abs(st.b)}) \\;=\\; ${polyToLatex(st.prop)} \\)`;
+      return `<span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} ) ( ${axStr(st.a)} − ${Math.abs(st.b)} ) = ${polyToHTML(st.prop)}</span>`;
     } else if (st.type === 'carre+') {
-      return `\\( (${axLatex(st.a)}+${Math.abs(st.b)})^2 \\;=\\; ${polyToLatex(st.prop)} \\)`;
+      return `<span class="equ">( ${axStr(st.a)} + ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
     } else { // carre-
-      return `\\( (${axLatex(st.a)}-${Math.abs(st.b)})^2 \\;=\\; ${polyToLatex(st.prop)} \\)`;
+      return `<span class="equ">( ${axStr(st.a)} − ${Math.abs(st.b)} )<sup>2</sup> = ${polyToHTML(st.prop)}</span>`;
     }
   },
 
@@ -607,30 +586,33 @@ const ex4 = {
     // LHS EXACTEMENT comme dans l’énoncé
     let lhs = "";
     if (type === 'conj') {
-      lhs = `(${axLatex(a)} + ${Math.abs(b)})(${axLatex(a)} - ${Math.abs(b)})`;
+      lhs = `( ${axStr(a)} + ${Math.abs(b)} ) ( ${axStr(a)} − ${Math.abs(b)} )`;
     } else if (type === 'carre+') {
-      lhs = `(${axLatex(a)} + ${Math.abs(b)})^2`;
+      lhs = `( ${axStr(a)} + ${Math.abs(b)} )<sup>2</sup>`;
     } else {
-      lhs = `(${axLatex(a)} - ${Math.abs(b)})^2`;
+      lhs = `( ${axStr(a)} − ${Math.abs(b)} )<sup>2</sup>`;
     }
 
     let lines = [];
 
     if (type === 'conj') {
-      const A=axLatex(a), B=String(Math.abs(b));
+      const Aterm = axStr(a);                 // A signé à l’affichage
+      const Bterm = String(Math.abs(b));
       lines = [
         FEQ(lhs),
-        `Formule :&nbsp; \\( (A + B)(A - B) \\) avec \\( A=${A} \\), \\( B=${B} \\)`,
-        `Or&nbsp; \\( (A + B)(A - B) = A^2 - B^2 \\)`,
-        FEQ(`(${A})^2 - ${B}^2`),
-        FEQ(`${polyToLatex({a2:Math.abs(a)*Math.abs(a), a1:0, a0:-(Math.abs(b)*Math.abs(b))})}`)
+        `Formule : (A + B)(A − B) avec A = ${Aterm}, B = ${Bterm}`,
+        `Or (A + B)(A − B) = A² − B²`,
+        FEQ(`(${Aterm})<sup>2</sup> − ${Bterm}<sup>2</sup>`),
+        FEQ(`${polyToHTML({a2:Math.abs(a)*Math.abs(a), a1:0, a0:-(Math.abs(b)*Math.abs(b))})}`)
       ];
     } else {
-      const signSym = (type === 'carre+') ? '+' : '−';
+      // Même mécanique que l’exercice 3, avec buildSquareLines et gestion “conseil / sans conseil”
       const adv = useAdvice();
+      const signSym = (type === 'carre+') ? '+' : '−';
       lines = buildSquareLines(a, b, signSym, null, adv);
-      // 1ʳᵉ ligne = énoncé exact
-      lines[0] = FEQ(lhs);
+
+      // 1ʳᵉ ligne = énoncé exact ; si “conseil” & a<0 → on insère l’énoncé puis la réécriture
+      if (adv && a < 0) { lines.unshift(FEQ(lhs)); } else { lines[0] = FEQ(lhs); }
     }
 
     // Conclusion : uniquement pour l’ex. 4
@@ -654,6 +636,7 @@ const ex4 = {
   }
 };
 
+
 const ex5 = {
   id:"calcul-num",
   title:"Calculer rapidement (identité remarquable)",
@@ -674,12 +657,9 @@ const ex5 = {
     }
   },
   text(st){
-    if(st.kind==='square'){
-      const s = st.sign==='−' ? '-' : '+';
-      return FEQ(`(${st.a} ${s} ${st.b})^2`);
-    }else{
-      return FEQ(`(${st.a} - ${st.k})(${st.a} + ${st.k})`);
-    }
+    return (st.kind==='square')
+      ? `<span class="equ">( ${st.a} ${st.sign} ${st.b} )<sup>2</sup></span>`
+      : `<span class="equ">( ${st.a} − ${st.k} ) ( ${st.a} + ${st.k} )</span>`;
   },
   render(host, st){
     renderRow(host, "Calculer (sans calculatrice) :", this.text(st), "ex.  2401", "Réponse (nombre entier)");
@@ -702,16 +682,16 @@ const ex5 = {
     if(st.kind==='square'){
       const A = st.a, B = st.b;
       const sum = st.sign==='+' ? (A+B) : (A-B);
-      const pow = v => v<0 ? `(${LMINUS}${Math.abs(v)})^2` : `${v}^2`;
-      lines.push(FEQ(`(${A} ${st.sign==='−'?'-':'+'} ${B})^2`));
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`;
+      lines.push(FEQ(`( ${A} ${st.sign} ${B} )²`));
       lines.push(FEQ(`${pow(sum)}`));
       lines.push(FEQ(`${String(sum*sum)}`));
     }else{
       const A = st.a, B = st.k;
-      const p2 = n => (n<0?`(${n})`:`${n}`)+'^2';
-      lines.push(FEQ(`(${A} - ${B})(${A} + ${B})`));
-      lines.push(FEQ(`${p2(A)} - ${p2(B)}`));
-      lines.push(FEQ(`${A*A} - ${B*B}`));
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';
+      lines.push(FEQ(`( ${A} − ${B} ) ( ${A} + ${B} )`));
+      lines.push(FEQ(`${p2(A)} − ${p2(B)}`));
+      lines.push(FEQ(`${A*A} − ${B*B}`));
       lines.push(FEQ(`${String(st.expected)}`));
     }
     $$(".hint",host).forEach(n=>n.remove()); $$(".equ-offscreen",host).forEach(n=>n.remove());
@@ -721,12 +701,12 @@ const ex5 = {
   printSolutionHTML(st){
     if(st.kind==='square'){
       const A=st.a, B=st.b, sum=(st.sign==='+'?A+B:A-B);
-      const pow = v => v<0 ? `(${LMINUS}${Math.abs(v)})^2` : `${v}^2`;
-      return stepsHTML([FEQ(`(${A} ${st.sign==='−'?'-':'+'} ${B})^2`), FEQ(`${pow(sum)}`), FEQ(`${ sum*sum }`)]);
+      const pow = v => v<0 ? `(${UMINUS}${Math.abs(v)})<sup>2</sup>` : `${v}<sup>2</sup>`;
+      return stepsHTML([FEQ(`( ${A} ${st.sign} ${B} )²`), FEQ(`${pow(sum)}`), FEQ(`${ sum*sum }`)]);
     }else{
       const A=st.a, K=st.k;
-      const p2 = n => (n<0?`(${n})`:`${n}`)+'^2';
-      return stepsHTML([FEQ(`(${A} - ${K})(${A} + ${K})`), FEQ(`${p2(A)} - ${p2(K)}`), FEQ(`${A*A} - ${K*K}`), FEQ(`${A*A - K*K}`)]);
+      const p2 = n => (n<0?`(${n})`:`${n}`)+'<sup>2</sup>';
+      return stepsHTML([FEQ(`( ${A} − ${K} ) ( ${A} + ${K} )`), FEQ(`${p2(A)} − ${p2(K)}`), FEQ(`${A*A} − ${K*K}`), FEQ(`${A*A - K*K}`)]);
     }
   },
   reset: ex1.reset
@@ -747,7 +727,7 @@ function renderRow(host, consigneText, htmlEq, placeholder="ex.  x^2 + 4x + 4", 
   host.appendChild(off);
 
   const row=document.createElement("div"); row.className="row";
-  const lab=document.createElement("div"); lab.className="col-label"; lab.innerHTML=htmlEq; row.appendChild(lab);
+  const lab=document.createElement("div"); lab.className="col-label equ"; lab.innerHTML=htmlEq; row.appendChild(lab);
 
   const inpWrap=document.createElement("div"); inpWrap.className="input-line";
   if(prefixLabel){ const pre=document.createElement("span"); pre.className="input-prefix"; pre.innerHTML=prefixLabel.replace(' = ','&nbsp;=&nbsp;'); inpWrap.appendChild(pre); }
@@ -756,10 +736,6 @@ function renderRow(host, consigneText, htmlEq, placeholder="ex.  x^2 + 4x + 4", 
 
   const res=document.createElement("div"); res.id="res"; row.appendChild(res);
   host.appendChild(row);
-
-  // Demande à MathJax de typesetter les nouvelles maths
-  if (window.MathJax && MathJax.typesetPromise) { MathJax.typesetPromise([host]); }
-
   return {inp,res};
 }
 
@@ -784,7 +760,6 @@ function solution(){
   const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
   const st=JSON.parse(host.dataset.state||"{}");
   def.solution(host, st);
-  if (window.MathJax && MathJax.typesetPromise) { MathJax.typesetPromise([host]); }
 }
 function resetAll(){
   scoreOK=0; scoreTot=0; updateScore();
@@ -844,12 +819,12 @@ document.addEventListener("DOMContentLoaded", function(){
           def.render(tmp, st);
           if(!withSolutions){
             const equ = tmp.querySelector('.equ-offscreen');
-            if(equ) return equ.outerHTML;  // consigne + équation (LaTeX)
+            if(equ) return equ.outerHTML;  // consigne + équation
             return tmp.innerHTML;
           }else{
             if(typeof def.solution==='function'){ def.solution(tmp, st); }
             const res = tmp.querySelector('#res');
-            if(res) return res.innerHTML;   // étapes LaTeX
+            if(res) return res.innerHTML;   // steps (par défaut avec conseils)
             return tmp.innerHTML;
           }
         }catch(e){ return null; }
@@ -862,9 +837,7 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 })();
 </script>
-
 <script>
-/* Améliorations UI mobile & confort (identique à ta base) */
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
@@ -885,6 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
     bar.appendChild(clone);
   } else {
+    // fallback si jamais l’original est absent (rare)
     const fallback = document.createElement('button');
     fallback.className = 'btn';
     fallback.type = 'button';

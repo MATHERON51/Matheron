@@ -18,6 +18,24 @@ const DEFAULTS = {
   autoPrint: false      // ⟵ NOUVEAU : pas d’impression auto
 };
 
+// --- PRE-RENDER MathJax (dans la page courante) ---
+async function __prerenderMathHTML(fragmentHTML){
+  // Si MathJax n'est pas dispo, on renvoie tel quel.
+  if (!(window.MathJax && MathJax.typesetPromise)) return fragmentHTML;
+  const tmp = document.createElement('div');
+  tmp.style.position = 'fixed';
+  tmp.style.left = '-10000px';
+  tmp.style.top = '-10000px';
+  tmp.style.width = '0';
+  tmp.style.height = '0';
+  tmp.style.overflow = 'hidden';
+  tmp.innerHTML = fragmentHTML;
+  document.body.appendChild(tmp);
+  try { await MathJax.typesetPromise([tmp]); } catch(e){}
+  const out = tmp.innerHTML;
+  tmp.remove();
+  return out;
+}
 
   function $(sel, r=document){ return r.querySelector(sel); }
 
@@ -62,61 +80,59 @@ function stripSmallHints(html){
 
   return s;
 }
+function unwrapLegacyEqu(html){
+  if(!html) return '';
+  let s = String(html);
+  // supprime uniquement les wrappers destinés aux formules
+  s = s.replace(/<(?:code|span)\b[^>]*\bequ\b[^>]*>([\s\S]*?)<\/(?:code|span)>/gi, '$1');
+  return s;
+}
 
 
   // --- ENONCÉ : génération HTML standard (fallbacks) ---
   function exerciseHTML(def, st){
-    if (typeof def.textHTML === 'function') return stripSmallHints(def.textHTML(st));
-    if (typeof def.text === 'function')     return stripSmallHints(def.text(st));
+  if (typeof def.textHTML === 'function') return stripSmallHints(def.textHTML(st));
+  if (typeof def.text === 'function')     return stripSmallHints(def.text(st));
 
-    // Fallback UI : on rend offscreen, on préfère .equ-offscreen si présent.
-    if (typeof def.render === 'function') {
-      try {
-        const tmp = document.createElement('div');
-        tmp.style.position = 'fixed';
-        tmp.style.left = '-10000px';
-        tmp.style.top = '-10000px';
-        tmp.style.width = '0';
-        tmp.style.height = '0';
-        tmp.style.overflow = 'hidden';
-        document.body.appendChild(tmp);
+  if (typeof def.render === 'function') {
+    try {
+      const tmp = document.createElement('div');
+      tmp.style.position = 'fixed';
+      tmp.style.left = '-10000px';
+      tmp.style.top = '-10000px';
+      tmp.style.width = '0';
+      tmp.style.height = '0';
+      tmp.style.overflow = 'hidden';
+      document.body.appendChild(tmp);
 
-        def.render(tmp, st);
+      def.render(tmp, st);
 
-        // 1) priorité : contenu spécialement prévu pour le PDF
-        const off = tmp.querySelector('.equ-offscreen');
-        if (off) {
-          const html = off.innerHTML || '';
-          tmp.remove();
-          return stripSmallHints(html) || 'Énoncé indisponible';
-        }
-
-        // 2) pages anciennes : on fige l’UI (et on ne garde pas les placeholders)
-        // 2) pages anciennes : on fige l’UI
-// 2) pages anciennes : on fige l’UI
-staticizeForPrint(tmp);
-
-// ⬇️ Priorité au bloc complet d’énoncé
-const block = tmp.querySelector('.statement') || tmp.querySelector('.equ') || tmp.querySelector('.hint') || null;
-let html = block
-  ? (block.classList.contains('statement') ? block.innerHTML : block.outerHTML)
-  : tmp.innerHTML;
-
-// ⬇️ Supprimer "Exercice n :" dans la consigne imprimée
-html = html.replace(/<strong>\s*Exercice\s*\d+\s*:<\/strong>\s*/gi, '');
-
-return html;
-
-
-
-        tmp.remove();
-        return stripSmallHints(html && html.trim() ? html : 'Énoncé indisponible');
-      } catch (e) {
-        console.warn('[exo-pdf-kit] fallback render failed', e);
+      // 1) priorité : bloc spécial PDF
+      const off = tmp.querySelector('.equ-offscreen');
+      let html;
+      if (off) {
+        html = off.innerHTML || '';
+      } else {
+        // 2) figer l’UI et extraire l’énoncé
+        staticizeForPrint(tmp);
+        const block = tmp.querySelector('.statement') || tmp.querySelector('.equ') || tmp.querySelector('.hint') || null;
+        html = block
+          ? (block.classList.contains('statement') ? block.innerHTML : block.outerHTML)
+          : tmp.innerHTML;
+        // Supprimer "Exercice n :" éventuel
+        html = html.replace(/<strong>\s*Exercice\s*\d+\s*:<\/strong>\s*/gi, '');
       }
+
+      tmp.remove();
+      // ⬇️ dé-wrapper + nettoyage
+      return stripSmallHints( unwrapLegacyEqu(html && html.trim() ? html : 'Énoncé indisponible') );
+    } catch (e) {
+      console.warn('[exo-pdf-kit] fallback render failed', e);
     }
-    return 'Énoncé indisponible';
   }
+  return 'Énoncé indisponible';
+}
+
 
   // Figer l’UI pour impression (pages sans .equ-offscreen)
   function staticizeForPrint(root){
@@ -189,6 +205,7 @@ return html;
 
     if (typeof def.printSolutionHTML === 'function')
       return stripSmallHints(def.printSolutionHTML(st));
+if (html && html.trim()) return stripSmallHints( unwrapLegacyEqu(html) );
 
     return '<div class="steps"><div class="step">Corrigé non disponible pour ce type.</div></div>';
   }
@@ -252,7 +269,7 @@ return html;
 }
 
 
-function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
+async function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
   const today = new Date().toLocaleDateString('fr-FR');
   const title = opts.title || DEFAULTS.title;
 
@@ -311,18 +328,13 @@ function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
 
     const lead = (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
 
-    enonces.push(
-      `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`
-    );
-
-    corriges.push(
-  `<div class="ex">
-     <span class="n">${i}.</span>
-     ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``}
-     ${enonceHTML}
-     <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
-   </div>`
-);
+const blocEnonce = `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`;
+    const blocCorrige = `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}
+       <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
+    </div>`;
+    // ⬇️ PRÉ-RENDU MATHJAX ICI
+    enonces.push( await __prerenderMathHTML(blocEnonce) );
+    corriges.push( await __prerenderMathHTML(blocCorrige) );
 
   }
 
@@ -398,6 +410,12 @@ footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;c
 .equ, .equ *{visibility:visible !important; color:inherit !important}
 code.equ{visibility:visible !important; color:inherit !important}
 </style>
+
+<style>
+  /* Un socle stable pour la mesure */
+  html, body { font-size: 16px; }
+  mjx-container { page-break-inside: avoid; }
+</style>
 </head>
 <body>
   <footer class="print-footer">© MatHeron</footer>
@@ -432,8 +450,8 @@ code.equ{visibility:visible !important; color:inherit !important}
 
 
 
-  function openPrint(nb, mix, withSolutions, header, opts){
-  const html = buildPrintableHTML(nb, mix, withSolutions, header, opts);
+  async function openPrint(nb, mix, withSolutions, header, opts){
+  const html = await buildPrintableHTML(nb, mix, withSolutions, header, opts);
   const blob = new Blob([html], {type:'text/html'});
   const url  = URL.createObjectURL(blob);
   const w = window.open(url, '_blank');
@@ -455,7 +473,7 @@ code.equ{visibility:visible !important; color:inherit !important}
   const ui = buildControlsUI(opts);
   after.parentNode.insertBefore(ui, after.nextSibling);
 
-  ui.querySelector('#btn-pdf').addEventListener('click', function(){
+  ui.querySelector('#btn-pdf').addEventListener('click', async function(){
     const n = Math.max(1, Math.min(opts.max, parseInt((ui.querySelector('#pdf-count')||{}).value || '10', 10)));
     const mix = !!(ui.querySelector('#pdf-mix')||{}).checked;
     const header = {
@@ -469,7 +487,7 @@ code.equ{visibility:visible !important; color:inherit !important}
     const runOpts = Object.assign({}, opts, { allowIds: mix ? ids : null });
 
     // withSolutions devient inutile : toujours "annexes"
-    openPrint(n, mix, /*withSolutions*/ false, header, runOpts);
+    await openPrint(n, mix, /*withSolutions*/ false, header, runOpts);
   });
 }
 

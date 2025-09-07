@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>1STI2D – Nombres complexes — Forme algébrique (LaTeX)</title>
+<title>1STI2D – Nombres complexes — Forme algébrique (sans LaTeX)</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -24,39 +23,33 @@
   .row{display:grid;grid-template-columns:1fr;gap:10px}
   .statement{font-size:18px}
   .statement .consigne{opacity:.8;margin-bottom:6px}
+  .equ{font-variant-numeric:tabular-nums}
   #host .inputs{display:flex;flex-direction:column;gap:8px}
   #host .ans-row{display:flex;align-items:center;gap:6px}
   #host .ans-row .tick{min-width:1.2em;text-align:center}
   #res.small{font-size:15px}
   .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
   .step{margin:.2rem 0}
-  @media (max-width:720px){ .controls{gap:6px} }
-  .solution .mjx-container{font-size:115%}
-</style>
 
-<!-- MathJax (LaTeX) -->
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: {
-      // on n’ignore pas <code>/<pre> afin de laisser MathJax traiter tout ce qui contient \\( … \\)
-      skipHtmlTags: ['script','noscript','style','textarea']
-    },
-    chtml: { matchFontHeight: false },
-    startup: { typeset: true }
-  };
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  /* Espacement autour des formules inline dans les énoncés */
+  .statement code, code.equ, .equ{
+    padding:.05rem .35rem;
+    border-radius:6px;
+    margin:0 .35rem;
+    display:inline-block;
+    white-space:nowrap;
+  }
+  .statement code:first-child, .equ:first-child{ margin-left:0 }
+  .statement code:last-child,  .equ:last-child{  margin-right:0 }
+</style>
 </head>
 <body>
   <div class="header">
     <h1 style="margin:0;font-size:1.1rem">1STI2D – <strong>Nombres complexes</strong> — Forme algébrique</h1>
-    <div class="controls">
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
       <label for="exo-select"><strong>Type d’exercice :</strong></label>
       <select id="exo-select"></select>
       <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
@@ -65,9 +58,7 @@
       <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
       <span class="score">Score : <span id="score">0 / 0</span></span>
     </div>
-  </div>
 
-  <div class="wrap">
     <div class="card" id="host"></div>
 
     <div class="card small">
@@ -87,7 +78,7 @@
 
 <!-- Scripts partagés -->
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 
@@ -110,17 +101,16 @@ function $(s,r){ return (r||document).querySelector(s); }
 function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function nz(a,b){ let v=0; while(v===0) v=rnd(a,b); return v; }
 const UMINUS = '−';
-const CC = '\\(\\mathbb{C}\\)';
 
 function norm(s){
   return String(s||'')
-    .replace(/\u2212/g,'-')  // − → - (pour parsing)
+    .replace(/\u2212/g,'-')  // − → -
     .replace(/,/g,'.')       // virgule → point
     .replace(/·|×/g,'*')     // visuels → *
     .trim();
 }
 
-/* Affichage serré + simplifications globales (texte à l'intérieur de LaTeX) */
+/* Affichage serré + simplifications globales */
 function fmtNum(n){
   const v = Math.abs(n);
   const s = Number.isInteger(n) ? String(v) : String(v).replace('.',',');
@@ -193,7 +183,8 @@ function eqComplexStr(str, A, B){
 /* Helpers d’affichage pour les étapes — suppriment les termes nuls et 1i */
 const PM = v => v >= 0 ? ' + ' : ' − ';
 const IABS = v => (Math.abs(v) === 1 ? 'i' : String(Math.abs(v)).replace('.',',') + 'i');
-const IABS2 = v => (Math.abs(v) === 1 ? 'i^{2}' : String(Math.abs(v)).replace('.',',') + 'i^{2}');
+// juste sous: const IABS = v => ...
+const IABS2 = v => (Math.abs(v) === 1 ? 'i<sup>2</sup>' : String(Math.abs(v)).replace('.',',') + 'i<sup>2</sup>');
 function powResult(z, pow){
   return (pow===2)
     ? { a: z.a*z.a - z.b*z.b, b: 2*z.a*z.b }
@@ -214,23 +205,11 @@ const parenZ_steps = z => `(${dispZ_steps(z)})`;
 function termR(v){ if(v===0) return ''; return PM(v) + String(Math.abs(v)); }
 function termI(v){ if(v===0) return ''; return PM(v) + IABS(v); }
 
-/* k·z_j sans espace interne (−3z₁, 5z₂, z₁, −z₂) → version LaTeX z_{j} */
-function termC(k, label/* 'z_{1}' etc. */){
+/* k·z_j sans espace interne (−3z₁, 5z₂, z₁, −z₂) */
+function termC(k, label){
   if (k === 1)  return label;
   if (k === -1) return UMINUS + label;
   return (k < 0 ? UMINUS + Math.abs(k) : String(k)) + label;
-}
-
-/* ===== MathJax helper ===== */
-function typesetAll(root){
-  const run = () => MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
-  if (window.MathJax && MathJax.startup && MathJax.startup.promise){
-    MathJax.startup.promise.then(run);
-  } else {
-    const t = setInterval(()=>{
-      if (window.MathJax && MathJax.startup && MathJax.typesetPromise){ clearInterval(t); run(); }
-    }, 60);
-  }
 }
 
 /* ===== Rendu commun ===== */
@@ -244,9 +223,7 @@ function mkRow(host, enonceHTML, fields){
   const inputs=document.createElement('div'); inputs.className='inputs';
   fields.forEach(f=>{
     const row=document.createElement('div'); row.className='ans-row';
-    // labels : accepter labelTex (chaîne déjà entre \\( ... \\)) ou label simple
-    const lab = f.labelTex ? `\\(${f.labelTex}\\)` : (f.label ? `<span aria-hidden="true">${f.label}</span>` : '');
-    row.innerHTML = lab +
+    row.innerHTML = (f.label? `<span class="equ" aria-hidden="true">${f.label}</span>` : '')+
       `<input type="text" id="${f.id}" placeholder="${f.placeholder||'…'}" style="flex:1;min-width:0">`+
       `<span class="tick" id="${f.id}-tick"></span>`;
     inputs.appendChild(row);
@@ -255,9 +232,6 @@ function mkRow(host, enonceHTML, fields){
 
   const res=document.createElement('div'); res.id='res'; wrap.appendChild(res);
   host.appendChild(wrap);
-
-  // Typeset LaTeX
-  typesetAll(wrap);
 
   fields.forEach(f=>{
     $('#'+f.id,host)?.addEventListener('keydown', e=>{
@@ -269,9 +243,8 @@ function setTick(host, id, val){ const el = $('#'+id+'-tick',host); if(el) el.te
 function anyEmpty(host, ids){ return ids.some(id => !($('#'+id,host)?.value||'').trim()); }
 function showSteps(host, steps){
   const uniq=[]; for(const L of steps){ if(!uniq.length || uniq[uniq.length-1]!==L) uniq.push(L); }
-  $('#res',host).innerHTML = '<div class="steps">'+uniq.map(t=>'\n<div class="step">'+t+'</div>').join('')+'</div>';
+  $('#res',host).innerHTML = '<div class="steps">'+uniq.map(t=>'<div class="step">'+t+'</div>').join('')+'</div>';
   $('#res',host).className='small';
-  typesetAll($('#res',host));
 }
 
 /* ====== Générateurs ====== */
@@ -288,14 +261,14 @@ const ex1 = {
     const order = Math.random()<0.5 ? 'a+bi' : 'bi+a';
     const enonce = `
       <div class="consigne"><strong>Exercice 1 :</strong> Identifier la partie réelle et la partie imaginaire du nombre complexe suivant :</div>
-      <div>\\( z = ${fmtComplex(z.a, z.b, order)} \\)</div>
+      <div><code class="equ">z = ${fmtComplex(z.a, z.b, order)}</code></div>
     `;
     return {z, enonce};
   },
   render(h,st){
     mkRow(h, st.enonce, [
-      {id:'re', labelTex:'\\mathrm{Re}(z) =', placeholder:'…'},
-      {id:'im', labelTex:'\\mathrm{Im}(z) =', placeholder:'…'}
+      {id:'re', label:'Re(z) =', placeholder:'…'},
+      {id:'im', label:'Im(z) =', placeholder:'…'}
     ]);
   },
   correct(h,st){
@@ -311,7 +284,7 @@ const ex1 = {
     return {ok: ok1 && ok2, total:1};
   },
   solution(h,st){
-    showSteps(h, [ `Lecture directe : \\(\\mathrm{Re}(z) = ${st.z.a}\\) et \\(\\mathrm{Im}(z) = ${st.z.b}\\).` ]);
+    showSteps(h, [ `Lecture directe : Re(z) = ${st.z.a} et Im(z) = ${st.z.b}.` ]);
   },
   reset(h){ ['re','im'].forEach(id=>{ const el=$('#'+id,h); if(el) el.value=''; setTick(h,id,''); }); $('#res',h).textContent=''; }
 };
@@ -325,16 +298,17 @@ const ex2 = {
     const rB = {a:z1.a-z2.a, b:z1.b-z2.b};
     const enonce = `
       <div class="consigne"><strong>Exercice 2 :</strong></div>
-      <div>Soient \\( z_{1} = ${fmtComplex(z1.a,z1.b)} \\) et \\( z_{2} = ${fmtComplex(z2.a,z2.b)} \\).</div>
-      <div>Mettre le nombre suivant sous la forme algébrique \\( a+bi \\).</div>
+      <div>Soient <code class="equ">z<sub>1</sub> = ${fmtComplex(z1.a,z1.b)}</code> et
+           <code class="equ">z<sub>2</sub> = ${fmtComplex(z2.a,z2.b)}</code>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <code>a + bi</code>.</div>
 
-      <div style="margin-top:.4rem"><strong>a)</strong> \\( z_{1} + z_{2} \\)</div>
-      <div class="ans-row"><span aria-hidden="true">\\( z_{1} + z_{2} = \\)</span>
+      <div style="margin-top:.4rem"><strong>a)</strong> <code class="equ">z<sub>1</sub> + z<sub>2</sub></code></div>
+      <div class="ans-row"><span class="equ">z<sub>1</sub> + z<sub>2</sub> =</span>
         <input type="text" id="ans_a" placeholder="a + bi" style="flex:1;min-width:0">
         <span class="tick" id="ans_a-tick"></span></div>
 
-      <div style="margin-top:.4rem"><strong>b)</strong> \\( z_{1} - z_{2} \\)</div>
-      <div class="ans-row"><span aria-hidden="true">\\( z_{1} - z_{2} = \\)</span>
+      <div style="margin-top:.4rem"><strong>b)</strong> <code class="equ">z<sub>1</sub> − z<sub>2</sub></code></div>
+      <div class="ans-row"><span class="equ">z<sub>1</sub> − z<sub>2</sub> =</span>
         <input type="text" id="ans_b" placeholder="a + bi" style="flex:1;min-width:0">
         <span class="tick" id="ans_b-tick"></span></div>
     `;
@@ -346,7 +320,6 @@ const ex2 = {
     const S=document.createElement('div'); S.className='statement'; S.innerHTML=st.enonce;
     const res=document.createElement('div'); res.id='res';
     wrap.appendChild(S); wrap.appendChild(res); host.appendChild(wrap);
-    typesetAll(wrap);
     ['ans_a','ans_b'].forEach(id=>{
       host.querySelector('#'+id)?.addEventListener('keydown', e=>{
         if(e.key==='Enter'){ e.preventDefault(); check(); }
@@ -363,13 +336,16 @@ const ex2 = {
     return {ok:Aok && Bok, total:1};
   },
   solution(host,st){
-  const L1 = `\\( z_{1} + z_{2} =  ${dispZ_steps(st.z1)}${termR(st.z2.a)}${termI(st.z2.b)} = ${fmtComplex(st.rA.a, st.rA.b,'a+bi')} \\)`;
+    let sumLine = `z₁ + z₂ = ${dispZ_steps(st.z1)}`;
+    sumLine += termR(st.z2.a) + termI(st.z2.b);
+    sumLine += ` = ${fmtComplex(st.rA.a, st.rA.b,'a+bi')}`;
 
-  const L2 = `\\( z_{1} - z_{2} = ${dispZ_steps(st.z1)} - ${parenZ_steps(st.z2)} = ${dispZ_steps(st.z1)}${termR(-st.z2.a)}${termI(-st.z2.b)} = ${fmtComplex(st.rB.a, st.rB.b,'a+bi')} \\)`;
+    const diffParen = `z₁ − z₂ = ${dispZ_steps(st.z1)} − ${parenZ_steps(st.z2)}`;
+    const diffDistrib = dispZ_steps(st.z1) + termR(-st.z2.a) + termI(-st.z2.b);
+    const diffLine = `${diffParen} = ${diffDistrib} = ${fmtComplex(st.rB.a, st.rB.b,'a+bi')}`;
 
-  showSteps(host, [L1, L2]);
-},
-
+    showSteps(host, [sumLine, '', diffLine]);
+  },
   reset(host){
     ['ans_a','ans_b'].forEach(id=>{
       const el=host.querySelector('#'+id); if(el) el.value='';
@@ -385,19 +361,19 @@ const ex3 = {
   gen(){
     const z1=randZnz(), z2=randZnz();
     const p=nz(-5,5), q=nz(-5,5);
-    const t1 = termC(p, 'z_{1}');
+    const t1 = termC(p, 'z<sub>1</sub>');
     const expr = (q >= 0)
-      ? `${t1} + ${termC(q, 'z_{2}')}`
-      : `${t1} − ${termC(-q, 'z_{2}')}`;
+      ? `${t1} + ${termC(q, 'z<sub>2</sub>')}`
+      : `${t1} − ${termC(-q, 'z<sub>2</sub>')}`;
     const r = {a: p*z1.a + q*z2.a, b: p*z1.b + q*z2.b};
     const enonce = `
       <div class="consigne"><strong>Exercice 3 :</strong></div>
-      <div>Soient \\( z_{1} = ${fmtComplex(z1.a,z1.b)} \\) et \\( z_{2} = ${fmtComplex(z2.a,z2.b)} \\).</div>
-      <div>Mettre le nombre suivant sous la forme algébrique \\( a + bi \\).</div>
+      <div>Soient <code class="equ">z<sub>1</sub> = ${fmtComplex(z1.a,z1.b)}</code> et <code class="equ">z<sub>2</sub> = ${fmtComplex(z2.a,z2.b)}</code>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <code>a + bi</code>.</div>
 
-      <div style="margin-top:.35rem">\\( ${expr} \\)</div>
+      <div style="margin-top:.35rem"><code class="equ" id="ex3-expr">${expr}</code></div>
       <div class="ans-row" style="margin-top:.15rem">
-        <span aria-hidden="true">\\( ${expr} = \\)</span>
+        <span class="equ" id="ex3-label">${expr} =</span>
         <input type="text" id="ans_ex3" placeholder="a + bi" style="flex:1;min-width:0">
         <span class="tick" id="ans_ex3-tick"></span>
       </div>
@@ -410,7 +386,6 @@ const ex3 = {
     const S=document.createElement('div'); S.className='statement'; S.innerHTML=st.enonce;
     const res=document.createElement('div'); res.id='res';
     wrap.appendChild(S); wrap.appendChild(res); host.appendChild(wrap);
-    typesetAll(wrap);
     host.querySelector('#ans_ex3')?.addEventListener('keydown', e=>{
       if(e.key==='Enter'){ e.preventDefault(); check(); }
     });
@@ -426,14 +401,15 @@ const ex3 = {
     const a1=st.z1.a, b1=st.z1.b, a2=st.z2.a, b2=st.z2.b, p=st.p, q=st.q;
     const expr = st.expr; // déjà bien formé "pz1 ± qz2"
 
-    // 2) p(…) ± q(…)  — garder le signe de p devant le premier facteur
-    const fac1core = (Math.abs(p) === 1 ? '' : Math.abs(p)) + parenZ_steps(st.z1);
-    const fac1     = (p < 0 ? '−' : '') + fac1core;   // signe de p restauré (sans espace)
+ // 2) p(…) ± q(…)  — garder le signe de p devant le premier facteur
+const fac1core = (Math.abs(p) === 1 ? '' : Math.abs(p)) + parenZ_steps(st.z1);
+const fac1     = (p < 0 ? '−' : '') + fac1core;   // << signe de p restauré (sans espace)
 
-    const op2  = (q >= 0 ? ' + ' : ' − ');            // signe entre les deux facteurs = signe de q
-    const fac2 = (Math.abs(q) === 1 ? '' : Math.abs(q)) + parenZ_steps(st.z2);
+const op2  = (q >= 0 ? ' + ' : ' − ');            // signe entre les deux facteurs = signe de q
+const fac2 = (Math.abs(q) === 1 ? '' : Math.abs(q)) + parenZ_steps(st.z2);
 
-    const line2 = `\\( ${expr} = ${fac1}${op2}${fac2} \\)`;
+const line2 = `${expr} = ${fac1}${op2}${fac2}`;
+
 
     // 3) Distribution : on ne garde que les termes non nuls, sans 1i/0
     const items = [];
@@ -451,10 +427,10 @@ const ex3 = {
         line3Expr += (it.v>=0 ? (idx? ' + ' : '') : (idx? ' − ' : '− ')) + seg;
       });
     }
-    const line3 = `\\( ${expr} = ${line3Expr} \\)`;
+    const line3 = `${expr} = ${line3Expr}`;
 
     // 4) Résultat final
-    const final = `\\( ${expr} = ${fmtComplex(st.r.a, st.r.b,'a+bi')} \\)`;
+    const final = `${expr} = ${fmtComplex(st.r.a, st.r.b,'a+bi')}`;
 
     showSteps(host, [line2, line3, final]);
   },
@@ -465,7 +441,7 @@ const ex3 = {
   }
 };
 
-/* Ex.4 — Produit z1 × z2 (mise en forme LaTeX) */
+/* Ex.4 — Produit z1 × z2 (mise en forme style screen) */
 const ex4 = {
   id:'cplx4', title:'Produit de deux nombres complexes',
   gen(){
@@ -473,9 +449,9 @@ const ex4 = {
     const r = { a: z1.a*z2.a - z1.b*z2.b, b: z1.a*z2.b + z1.b*z2.a };
     const enonce = `
       <div class="consigne"><strong>Exercice 4 :</strong></div>
-      <div>Soient \\( z_{1} = ${fmtComplex(z1.a,z1.b)} \\) et \\( z_{2} = ${fmtComplex(z2.a,z2.b)} \\).</div>
-      <div>Mettre le nombre suivant sous la forme algébrique \\( a + bi \\).</div>
-      <div>\\( z_{1} \\times z_{2} \\)</div>
+      <div>Soient <code class="equ">z<sub>1</sub> = ${fmtComplex(z1.a,z1.b)}</code> et <code class="equ">z<sub>2</sub> = ${fmtComplex(z2.a,z2.b)}</code>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <code>a + bi</code>.</div>
+      <div><code class="equ">z<sub>1</sub> × z<sub>2</sub></code></div>
     `;
     return {z1,z2,r,enonce};
   },
@@ -484,16 +460,15 @@ const ex4 = {
     const wrap=document.createElement('div'); wrap.className='row';
     const S=document.createElement('div'); S.className='statement'; S.innerHTML=st.enonce;
 
-    // Label "z1 × z2 =" devant la saisie (LaTeX)
+    // ⟶ Label "z1 × z2 =" devant la saisie
     const row=document.createElement('div'); row.className='ans-row';
-    row.innerHTML = `<span aria-hidden="true">\\( z_{1} \\times z_{2} = \\)</span>
+    row.innerHTML = `<span class="equ">z<sub>1</sub> × z<sub>2</sub> =</span>
       <input type="text" id="ans" placeholder="a + bi" style="flex:1;min-width:0">
       <span class="tick" id="ans-tick"></span>`;
     S.appendChild(row);
 
     const res=document.createElement('div'); res.id='res';
     wrap.appendChild(S); wrap.appendChild(res); host.appendChild(wrap);
-    typesetAll(wrap);
 
     host.querySelector('#ans')?.addEventListener('keydown', e=>{
       if(e.key==='Enter'){ e.preventDefault(); check(); }
@@ -509,6 +484,7 @@ const ex4 = {
     const a1=st.z1.a, b1=st.z1.b, a2=st.z2.a, b2=st.z2.b;
     const t1=a1*a2, t2=a1*b2, t3=b1*a2, t4=b1*b2; // 4 termes
 
+    // util : ajoute un terme non nul avec bons signes et sans "1i"/"1i²"
     const addTerm = (rhs, val, render) => {
       if(val===0) return rhs;
       const piece = render(Math.abs(val));
@@ -516,28 +492,32 @@ const ex4 = {
       return rhs + (val>0 ? ' + ' : ' − ') + piece;
     };
 
-    const L1 = `\\( z_{1} \\times z_{2} = (${fmtComplex(a1,b1,'a+bi')})(${fmtComplex(a2,b2,'a+bi')}) \\)`;
+    // L1 : (a+bi)(c+di)
+    const L1 = `z₁ × z₂ = (${fmtComplex(a1,b1,'a+bi')})(${fmtComplex(a2,b2,'a+bi')})`;
 
+    // L2 : produits développés (… + …i + …i + …i²) sans zéros ni "1i"
     let rhs2 = '';
     rhs2 = addTerm(rhs2, t1, v => String(v));
     rhs2 = addTerm(rhs2, t2, v => (v===1 ? 'i' : v + 'i'));
     rhs2 = addTerm(rhs2, t3, v => (v===1 ? 'i' : v + 'i'));
-    rhs2 = addTerm(rhs2, t4, v => IABS2(v));
+    rhs2 = addTerm(rhs2, t4, v => (v===1 ? 'i<sup>2</sup>' : v + 'i<sup>2</sup>'));
     if (!rhs2) rhs2 = '0';
-    const L2 = `\\( z_{1} \\times z_{2} = ${rhs2} \\)`;
+    const L2 = `z₁ × z₂ = ${rhs2}`;
 
+    // L3 : remplace i² par −1 (si le terme existe)
     const L3 = (t4!==0)
       ? (()=> {
           let rhs3 = '';
           rhs3 = addTerm(rhs3, t1, v => String(v));
           rhs3 = addTerm(rhs3, t2, v => (v===1 ? 'i' : v + 'i'));
           rhs3 = addTerm(rhs3, t3, v => (v===1 ? 'i' : v + 'i'));
-          rhs3 = addTerm(rhs3, -t4, v => String(v)); // i^2 = −1
-          return `\\( z_{1} \\times z_{2} = ${rhs3}  \\)`;
+          rhs3 = addTerm(rhs3, -t4, v => String(v)); // i² = −1
+          return `z₁ × z₂ = ${rhs3} (car i² = −1)`;
         })()
       : null;
 
-    const L4 = `\\( z_{1} \\times z_{2} = ${fmtComplex(st.r.a, st.r.b,'a+bi')} \\)`;
+    // L4 : résultat combiné
+    const L4 = `z₁ × z₂ = ${fmtComplex(st.r.a, st.r.b,'a+bi')}`;
 
     showSteps(host, L3 ? [L1, L2, L3, L4] : [L1, L2, L4]);
   },
@@ -554,12 +534,13 @@ const ex5 = {
   id:'cplx5', title:'Puissance d’un complexe (z² ou z³)',
   gen(){
     const z = randZnz();
-    const pow = (typeof window !== 'undefined' && window.ZPOW) ? window.ZPOW : 2;
+const pow = (typeof window !== 'undefined' && window.ZPOW) ? window.ZPOW : 2;
     const r = powResult(z, pow);
     const enonce = `
       <div class="consigne"><strong>Exercice 5 :</strong></div>
-      <div>Soit \\( z = ${fmtComplex(z.a,z.b)} \\).</div>
-      <div>Mettre le nombre suivant sous la forme algébrique \\( a + bi \\).</div>
+      <div>Soit <code class="equ">z = ${fmtComplex(z.a,z.b)}</code>.</div>
+      <div>Mettre le nombre suivant sous la forme algébrique <code>a + bi</code>.</div>
+      <div><code class="equ">z<sup>2</sup> ou z<sup>3</sup></code></div>
     `;
     return {z,pow,r,enonce};
   },
@@ -570,17 +551,18 @@ const ex5 = {
 
     // Sélecteur z² / z³
     const selRow=document.createElement('div'); selRow.className='ans-row';
-    selRow.innerHTML = `
-      <label for="pow-select" style="margin-right:6px">Puissance :</label>
-      <select id="pow-select">
-        <option value="2">z²</option>
-        <option value="3">z³</option>
-      </select>`;
-    S.appendChild(selRow);
+selRow.innerHTML = `
+  <label class="equ" for="pow-select" style="margin-right:6px">Puissance :</label>
+  <select id="pow-select">
+    <option value="2">z\u00B2</option>  <!-- z² -->
+    <option value="3">z\u00B3</option>  <!-- z³ -->
+  </select>`;
+S.appendChild(selRow);
 
-    // Saisie avec label dynamique "z^{n} ="
+
+    // Saisie avec label dynamique "z² =" / "z³ ="
     const row=document.createElement('div'); row.className='ans-row';
-    row.innerHTML = `<span aria-hidden="true" id="pow-label">\\( z^{${st.pow}} = \\)</span>
+    row.innerHTML = `<span class="equ" id="pow-label">z<sup>${st.pow}</sup> =</span>
       <input type="text" id="ans" placeholder="a + bi" style="flex:1;min-width:0">
       <span class="tick" id="ans-tick"></span>`;
     S.appendChild(row);
@@ -594,19 +576,16 @@ const ex5 = {
 
     // changement de puissance → met à jour l'état, le label, la cible corrigée, et vide saisie/solution
     sel.addEventListener('change', ()=>{
-      st.pow = parseInt(sel.value,10);
-      window.ZPOW = st.pow;                 // mémorise le choix
-      st.r = powResult(st.z, st.pow);
-      host.dataset.state = JSON.stringify(st);
-      const lab = host.querySelector('#pow-label');
-      if(lab) lab.innerHTML = `\\( z^{${st.pow}} = \\)`;
-      const inp = host.querySelector('#ans'); if(inp) inp.value='';
-      const tk  = host.querySelector('#ans-tick'); if(tk) tk.textContent='';
-      const rs  = host.querySelector('#res'); if(rs) rs.textContent='';
-      typesetAll(wrap);
-    });
+  st.pow = parseInt(sel.value,10);
+  window.ZPOW = st.pow;                 // << mémorise le choix
+  st.r = powResult(st.z, st.pow);
+  host.dataset.state = JSON.stringify(st);
+  host.querySelector('#pow-label').innerHTML = `z<sup>${st.pow}</sup> =`;
+  const inp = host.querySelector('#ans'); if(inp) inp.value='';
+  const tk  = host.querySelector('#ans-tick'); if(tk) tk.textContent='';
+  const rs  = host.querySelector('#res'); if(rs) rs.textContent='';
+});
 
-    typesetAll(wrap);
 
     host.querySelector('#ans')?.addEventListener('keydown', e=>{
       if(e.key==='Enter'){ e.preventDefault(); check(); }
@@ -618,91 +597,100 @@ const ex5 = {
     host.querySelector('#ans-tick').textContent = ok?'✔':'✘';
     return {ok,total:1};
   },
-  solution(host, st){
-    const a = st.z.a, b = st.z.b;
-    const zdisp = fmtComplex(a,b,'a+bi');
+  // --- remplace UNIQUEMENT la méthode solution(...) de ex5 par ceci ---
+solution(host, st){
+  const a = st.z.a, b = st.z.b;
+  const zdisp = fmtComplex(a,b,'a+bi');
 
-    const addTerm = (rhs, val, render) => {
-      if(val===0) return rhs;
-      const piece = render(Math.abs(val));
-      if(!rhs) return (val<0 ? '− ' : '') + piece;
-      return rhs + (val>0 ? ' + ' : ' − ') + piece;
-    };
-    const biStr = (b<0 ? '− ' : '') + (Math.abs(b)===1 ? 'i' : Math.abs(b)+'i');
+  // petit util local (respecte i / −i, pas 1i, etc.)
+  const addTerm = (rhs, val, render) => {
+    if(val===0) return rhs;
+    const piece = render(Math.abs(val));
+    if(!rhs) return (val<0 ? '− ' : '') + piece;
+    return rhs + (val>0 ? ' + ' : ' − ') + piece;
+  };
+  const biStr = (b<0 ? '− ' : '') + (Math.abs(b)===1 ? 'i' : Math.abs(b)+'i');
 
-    // z = a (b = 0)
-    if (b === 0){
-      if (st.pow === 2){
-        const L1 = `\\( z^{2} = ${a}^{2} \\)`;
-        const L2 = `\\( z^{2} = ${fmtComplex(a*a, 0, 'a+bi')} \\)`;
-        showSteps(host, [L1, L2]); return;
-      } else {
-        const L1 = `\\( z^{3} = ${a}^{3} \\)`;
-        const L2 = `\\( z^{3} = ${fmtComplex(a*a*a, 0, 'a+bi')} \\)`;
-        showSteps(host, [L1, L2]); return;
-      }
+  // --- CAS PARTICULIERS ---
+  // z = a (b = 0)
+  if (b === 0){
+    if (st.pow === 2){
+      const L1 = `z<sup>2</sup> = ${a}<sup>2</sup>`;
+      const L2 = `z<sup>2</sup> = ${fmtComplex(a*a, 0, 'a+bi')}`;
+      showSteps(host, [L1, L2]); return;
+    } else {
+      const L1 = `z<sup>3</sup> = ${a}<sup>3</sup>`;
+      const L2 = `z<sup>3</sup> = ${fmtComplex(a*a*a, 0, 'a+bi')}`;
+      showSteps(host, [L1, L2]); return;
     }
+  }
 
-    // z = bi (a = 0)
-    if (a === 0){
-      if (st.pow === 2){
-        const coef2 = b*b; // >= 0
-        const L1 = `\\( z^{2} = (${biStr})^{2} \\)`;
-        const L2 = `\\( z^{2} = ${coef2===1 ? 'i^{2}' : coef2+'i^{2}'} \\)`;
-        const L3 = `\\( z^{2} = ${fmtComplex(-coef2, 0, 'a+bi')} \\)`;
-        showSteps(host, [L1, L2, L3]); return;
-      } else {
-        const coef3 = b*b*b; // signe de b
-        const term3 = (Math.abs(coef3)===1 ? 'i^{3}' : Math.abs(coef3)+'i^{3}');
-        const L1 = `\\( z^{3} = (${biStr})^{3} \\)`;
-        const L2 = `\\( z^{3} = ${(coef3<0?'− ':'')+term3} \\)`;
-        const L3 = `\\( z^{3} = ${fmtComplex(0, -coef3, 'a+bi')} \\)`;
-        showSteps(host, [L1, L2, L3]); return;
-      }
+  // z = bi (a = 0)
+  if (a === 0){
+    if (st.pow === 2){
+      const coef2 = b*b; // >= 0
+      const L1 = `z<sup>2</sup> = (${biStr})<sup>2</sup>`;
+      const L2 = `z<sup>2</sup> = ${coef2===1 ? 'i<sup>2</sup>' : coef2+'i<sup>2</sup>'}`;
+      const L3 = `z<sup>2</sup> = ${fmtComplex(-coef2, 0, 'a+bi')}`;
+      showSteps(host, [L1, L2, L3]); return;
+    } else {
+      const coef3 = b*b*b; // signe de b
+      const term3 = (Math.abs(coef3)===1 ? 'i<sup>3</sup>' : Math.abs(coef3)+'i<sup>3</sup>');
+      const L1 = `z<sup>3</sup> = (${biStr})<sup>3</sup>`;
+      const L2 = `z<sup>3</sup> = ${(coef3<0?'− ':'')+term3}`;
+      const L3 = `z<sup>3</sup> = ${fmtComplex(0, -coef3, 'a+bi')}`;
+      showSteps(host, [L1, L2, L3]); return;
     }
+  }
 
-    // CAS GÉNÉRAL z^2
-    if(st.pow===2){
-      const t1=a*a, t2=2*a*b, t3=b*b;
-      const L1 = `\\( z^{2} = (${zdisp})^{2} \\)`;
-      let rhs2=''; rhs2=addTerm(rhs2,t1,v=>String(v)); rhs2=addTerm(rhs2,t2,v=>v===1?'i':v+'i'); rhs2=addTerm(rhs2,t3,v=> (Math.abs(v)===1?'i^{2}':v+'i^{2}'));
-      const L2 = `\\( z^{2} = ${rhs2} \\)`;
-      let rhs3=''; rhs3=addTerm(rhs3,t1,v=>String(v)); rhs3=addTerm(rhs3,t2,v=>v===1?'i':v+'i'); rhs3=addTerm(rhs3,-t3,v=>String(v));
-      const L3 = `\\( z^{2} = ${rhs3} \\)`;
-      const L4 = `\\( z^{2} = ${fmtComplex(st.r.a, st.r.b,'a+bi')} \\)`;
-      showSteps(host,[L1,L2,L3,L4]); return;
-    }
+  // --- CAS GÉNÉRAL (inchangé, avec lignes détaillées) ---
+  if(st.pow===2){
+    const t1=a*a, t2=2*a*b, t3=b*b;
+    const L1 = `z<sup>2</sup> = (${zdisp})<sup>2</sup>`;
+    let rhs2=''; rhs2=addTerm(rhs2,t1,v=>String(v)); rhs2=addTerm(rhs2,t2,v=>v===1?'i':v+'i'); rhs2=addTerm(rhs2,t3,v=> (Math.abs(v)===1?'i<sup>2</sup>':v+'i<sup>2</sup>'));
+    const L2 = `z<sup>2</sup> = ${rhs2}`;
+    let rhs3=''; rhs3=addTerm(rhs3,t1,v=>String(v)); rhs3=addTerm(rhs3,t2,v=>v===1?'i':v+'i'); rhs3=addTerm(rhs3,-t3,v=>String(v));
+    const L3 = `z<sup>2</sup> = ${rhs3}`;
+    const L4 = `z<sup>2</sup> = ${fmtComplex(st.r.a, st.r.b,'a+bi')}`;
+    showSteps(host,[L1,L2,L3,L4]); return;
+  }
 
-    // z^3 (général)
-    const L1 = `\\( z^{3} = (${zdisp})^{3} \\)`;
-    const L2 = `\\( z^{3} = (${zdisp})^{2}(${zdisp}) \\)`;
+  // z^3 (général) — y compris la ligne manquante L3b déjà intégrée
+  const L1 = `z<sup>3</sup> = (${zdisp})<sup>3</sup>`;
+  const L2 = `z<sup>3</sup> = (${zdisp})<sup>2</sup>(${zdisp})`;
 
-    const s1=a*a, s2=2*a*b, s3=b*b;
-    let sq=''; sq=addTerm(sq,s1,v=>String(v)); sq=addTerm(sq,s2,v=>v===1?'i':v+'i'); sq=addTerm(sq,s3,v=> (Math.abs(v)===1?'i^{2}':v+'i^{2}'));
-    const L3  = `\\( z^{3} = (${sq})(${zdisp}) \\)`;
+  const s1=a*a, s2=2*a*b, s3=b*b;
+  let sq=''; sq=addTerm(sq,s1,v=>String(v)); sq=addTerm(sq,s2,v=>v===1?'i':v+'i'); sq=addTerm(sq,s3,v=> (Math.abs(v)===1?'i<sup>2</sup>':v+'i<sup>2</sup>'));
+  const L3  = `z<sup>3</sup> = (${sq})(${zdisp})`;
 
-    let sqNoI2=''; sqNoI2=addTerm(sqNoI2,s1,v=>String(v)); sqNoI2=addTerm(sqNoI2,s2,v=>v===1?'i':v+'i'); sqNoI2=addTerm(sqNoI2,-s3,v=>String(v));
-    const L3b = `\\( z^{3} = (${sqNoI2})(${zdisp}) \\)`;
+  let sqNoI2=''; sqNoI2=addTerm(sqNoI2,s1,v=>String(v)); sqNoI2=addTerm(sqNoI2,s2,v=>v===1?'i':v+'i'); sqNoI2=addTerm(sqNoI2,-s3,v=>String(v));
+  const L3b = `z<sup>3</sup> = (${sqNoI2})(${zdisp})`;
 
-    const SR=a*a-b*b, SI=2*a*b;
-    const L4 = `\\( z^{3} = (${dispZ_steps({a:SR,b:SI})})(${zdisp}) \\)`;
+  const SR=a*a-b*b, SI=2*a*b;
+  const L4 = `z<sup>3</sup> = (${dispZ_steps({a:SR,b:SI})})(${zdisp}) `;
 
-    const t1=SR*a, t2=SR*b, t3=SI*a, t4=SI*b;
-    let dev1=''; dev1=addTerm(dev1,t1,v=>String(v)); dev1=addTerm(dev1,t2,v=>v===1?'i':v+'i'); dev1=addTerm(dev1,t3,v=>v===1?'i':v+'i'); dev1=addTerm(dev1,t4,v=> (Math.abs(v)===1?'i^{2}':v+'i^{2}'));
-    const L5 = `\\( z^{3} = ${dev1} \\)`;
+  const t1=SR*a, t2=SR*b, t3=SI*a, t4=SI*b;
+  let dev1=''; dev1=addTerm(dev1,t1,v=>String(v)); dev1=addTerm(dev1,t2,v=>v===1?'i':v+'i'); dev1=addTerm(dev1,t3,v=>v===1?'i':v+'i'); dev1=addTerm(dev1,t4,v=> (Math.abs(v)===1?'i<sup>2</sup>':v+'i<sup>2</sup>'));
+  const L5 = `z<sup>3</sup> = ${dev1}`;
 
-    let dev2=''; dev2=addTerm(dev2,t1,v=>String(v)); dev2=addTerm(dev2,t2,v=>v===1?'i':v+'i'); dev2=addTerm(dev2,t3,v=>v===1?'i':v+'i'); dev2=addTerm(dev2,-t4,v=>String(v));
-    const L6 = `\\( z^{3} = ${dev2} \\)`;
+  let dev2=''; dev2=addTerm(dev2,t1,v=>String(v)); dev2=addTerm(dev2,t2,v=>v===1?'i':v+'i'); dev2=addTerm(dev2,t3,v=>v===1?'i':v+'i'); dev2=addTerm(dev2,-t4,v=>String(v));
+  const L6 = `z<sup>3</sup> = ${dev2}`;
 
-    const L7 = `\\( z^{3} = ${fmtComplex(st.r.a, st.r.b,'a+bi')} \\)`;
-    showSteps(host,[L1,L2,L3,L3b,L4,L5,L6,L7]);
-  },
+  const L7 = `z<sup>3</sup> = ${fmtComplex(st.r.a, st.r.b,'a+bi')}`;
+  showSteps(host,[L1,L2,L3,L3b,L4,L5,L6,L7]);
+},
   reset(host){
     const el=host.querySelector('#ans'); if(el) el.value='';
     const tk=host.querySelector('#ans-tick'); if(tk) tk.textContent='';
     const rs=host.querySelector('#res'); if(rs) rs.textContent='';
+    const sel=host.querySelector('#pow-select');
+    if(sel){
+      // on ne change pas la puissance courante ; si tu préfères, force à 2 ici :
+      // sel.value='2'; const st=JSON.parse(host.dataset.state||'{}'); st.pow=2; st.r=powResult(st.z,2); host.dataset.state=JSON.stringify(st);
+    }
   }
 };
+
 
 
 /* ===== Registry & mécanique ===== */

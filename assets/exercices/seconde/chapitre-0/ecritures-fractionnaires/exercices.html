@@ -433,7 +433,6 @@ function formatMultiplesTo(d, L){
   return out.join(' ; ');
 }
 
-/* rendu d’une ligne */
 function renderRow(host, consigneText, labelLatex, placeholder="ex.  3/4", prefixLabel=""){
   const root=innerHost(host); root.innerHTML="";
 
@@ -442,14 +441,18 @@ function renderRow(host, consigneText, labelLatex, placeholder="ex.  3/4", prefi
   hint.innerHTML=`<span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span>`;
   root.appendChild(hint);
 
-  // bloc offscreen pour PDF : consigne + énoncé (le label "Consigne :" est masqué via CSS @media print)
+  // bloc offscreen pour PDF
   const off=document.createElement('div'); off.className="equ-offscreen";
-  off.innerHTML=`<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span></div><div class="equation">${wrap(labelLatex)}</div>`;
+  const needWrap = !(/\\\(|\\\[|<[^>]+>/.test(labelLatex));  // ⇐ déjà LaTeX ou HTML ?
+  off.innerHTML = `<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span></div>
+                   <div class="equation">${needWrap ? wrap(labelLatex) : labelLatex}</div>`;
   root.appendChild(off);
 
   // ligne interactive
   const row=document.createElement("div"); row.className="row";
-  const lab=document.createElement("div"); lab.className="col-label"; lab.innerHTML=wrap(labelLatex); row.appendChild(lab);
+  const lab=document.createElement("div"); lab.className="col-label";
+  lab.innerHTML = needWrap ? wrap(labelLatex) : labelLatex;   // ⇐ pas de double wrap
+  row.appendChild(lab);
 
   const inpLine=document.createElement('div'); inpLine.className='input-line';
   if(prefixLabel){ const pref=document.createElement('span'); pref.className='input-prefix'; pref.textContent=prefixLabel; inpLine.appendChild(pref); }
@@ -462,6 +465,7 @@ function renderRow(host, consigneText, labelLatex, placeholder="ex.  3/4", prefi
   typesetAll(root);
   return {inp,res,root,row,lab,off};
 }
+
 
 /* ========= Exercices ========= */
 /* 1 — Réduire (irréductible) */
@@ -532,7 +536,7 @@ const ex2={
     const left = `${exprFracTex(st.A)}`;
     const right = `${exprFracTex(Bneg?Babs:st.B)}`;
     const mid = (opDisp==='+'?'+':'−');
-    return `${left} ${mid} ${right}`;
+    return `F =${left} ${mid} ${right}`;
   },
   render(host, st){ renderRow(host, "Calculer et donner une écriture irréductible :", this.text(st)); },
   correct(host, st){
@@ -596,8 +600,8 @@ const ex3={
   },
   text(st){
     return (st.op==='×')
-      ? `${exprFracTex(st.A)} \\times ${parenFracTex(st.B)}`
-      : `${exprFracTex(st.A)} \\div ${parenFracTex(st.B)}`;
+      ? `F =${exprFracTex(st.A)} \\times ${parenFracTex(st.B)}`
+      : `F =${exprFracTex(st.A)} \\div ${parenFracTex(st.B)}`;
   },
   render(host, st){ renderRow(host, "Calculer et donner une écriture irréductible :", this.text(st)); },
   correct(host, st){
@@ -678,7 +682,7 @@ const ex4={
     let n; do{ n=rnd(1,20*denomPow-1)*sgn; }while(n%denomPow===0);
     const val=n/denomPow; return {value:val, denomPow, num:n};
   },
-  text(st){ return `${String(st.value).replace('.',',')}`; },
+  text(st){ return `F =${String(st.value).replace('.',',')}`; },
 render(host, st){
   renderRow(host,
     "Écrire sous la forme \\(\\dfrac{n}{10^{k}}\\) (pas de virgule) :",

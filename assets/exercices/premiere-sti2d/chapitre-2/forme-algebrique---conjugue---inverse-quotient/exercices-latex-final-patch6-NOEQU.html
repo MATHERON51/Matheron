@@ -34,7 +34,7 @@
   /* (héritage) styles de fractions HTML – inutilisés après conversion LaTeX mais conservés pour compat */
   .frac{display:inline-grid;grid-template-rows:auto 2px auto;justify-items:center;align-items:center;vertical-align:middle;line-height:1}
   .frac .num,.frac .den{display:block;text-align:center;padding:0 .2em;white-space:nowrap}
-  .frac .bar{display:block;width:100%;height:2px;background:currentColor;margin:.08em 0}
+  .frac .fracbar{display:block;width:100%;height:2px;background:currentColor;margin:.08em 0}
 
   /* Espacement autour des formules inline dans les énoncés */
   .statement code, code.equ, .equ{padding:.05rem .35rem;border-radius:6px;margin:0 .35rem;display:inline-block;white-space:nowrap}
@@ -42,6 +42,32 @@
   .statement code:last-child,  .equ:last-child{  margin-right:0 }
 
   @media (max-width:720px){ .controls{gap:6px} }
+
+.solution .mjx-container{font-size:115%}
+
+@media print{
+  .equ{
+    display:inline !important;
+    padding:0 !important; margin:0 .2rem !important;
+    border:0 !important; background:none !important; box-shadow:none !important;
+    text-decoration:none !important;
+  }
+  .steps .step::before,
+  .steps .step::after,
+  .steps .step *::before,
+  .steps .step *::after{
+    content:none !important;
+    border:0 !important;
+    background:transparent !important;
+  }
+  .bar, [class*="bar"]{
+    display:none !important;
+    border:0 !important;
+    height:0 !important; width:0 !important;
+    margin:0 !important; padding:0 !important;
+    background:transparent !important;
+  }
+}
 </style>
 
 <!-- MathJax (LaTeX) -->
@@ -49,32 +75,13 @@
   window.MathJax = {
     tex: {
       inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]']],
-      processEscapes: true
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true, macros: { frac: ['\\dfrac{#1}{#2}', 2] }
     },
     svg: { fontCache: 'global' }
   };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-<script>
-  function renderAllMath(root){
-    const el = root && root.body ? root.body : (root || document.body);
-    if (window.renderMathInElement) renderMathInElement(el,{
-      delimiters:[
-        {left:'$$',right:'$$',display:true},
-        {left:'\\[',right:'\\]',display:true},
-        {left:'\\(',right:'\\)',display:false},
-        {left:'$', right:'$', display:false}
-      ],
-      throwOnError:false
-    });
-  }
-  document.addEventListener('DOMContentLoaded',()=>renderAllMath(document));
-</script>
-
 </head>
 <body>
   <div class="header">
@@ -109,10 +116,13 @@
 
 <!-- Scripts partagés -->
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
 
 <script>
+const E = s => `\\(${s}\\)`;   // inline
+const D = s => `\\[${s}\\]`;   // bloc
+
 /* ===== Utils (général) ===== */
 function $(sel, root){ return (root||document).querySelector(sel); }
 function whenReady(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn, {once:true}); }
@@ -179,22 +189,29 @@ function eqComplexStr(str,A,B){ const p=parseComplex(str); return !!p && Math.ab
 /* Helpers d’affichage pour les étapes */
 const PM = v => v>=0 ? ' + ' : ' − ';
 const IABS = v => (Math.abs(v)===1? 'i' : String(Math.abs(v)).replace('.',',')+'i');
-const IABS2 = v => (Math.abs(v)===1? 'i<sup>2</sup>' : String(Math.abs(v)).replace('.',',')+'i<sup>2</sup>');
+const IABS2 = v => (Math.abs(v)===1? 'i^{2}' : String(Math.abs(v)).replace('.',',')+'i^{2}');
 function dispZ_steps(z){ let out=''; if(z.a!==0) out+=String(z.a); if(z.b!==0){ const pref = out? PM(z.b) : (z.b<0? '− ' : ''); out += pref + IABS(z.b); } return out||'0'; }
 
 /* Fractions (affichage, jamais /1) */
-function fracHTML(p,q){ p=Math.trunc(p); q=Math.trunc(q); if(q===1) return String(p); const neg=(p<0)!=(q<0); p=Math.abs(p); q=Math.abs(q); const [pp,qq]=reduce(p,q); return (neg? '<span class="frac-sign">'+UMINUS+'</span>' : '') + '<span class="frac"><span class="num">'+pp+'</span><span class="bar"></span><span class="den">'+qq+'</span></span>'; }
-// Fraction générique (numHTML/denHTML) pour écrire EN PILE partout (sera converti en LaTeX)
-function fracOf(numHTML, denHTML){
-  return '<span class="frac"><span class="num">'+numHTML+
-         '</span><span class="bar"></span><span class="den">'+denHTML+
-         '</span></span>';
+function fracHTML(p,q){
+  p=Math.trunc(p); q=Math.trunc(q);
+  if(q===1) return String(p);
+  const neg = (p<0)!=(q<0);
+  p=Math.abs(p); q=Math.abs(q);
+  const g=(a,b)=>b?g(b,a%b):a;
+  const d=g(p,q)||1; const pp=p/d, qq=q/d;
+  const core = `\\frac{${pp}}{${qq}}`;
+  return neg ? `- ${core}` : core;
 }
+// Fraction générique (numHTML/denHTML) pour écrire EN PILE partout (sera converti en LaTeX)
+function fracOf(numHTML, denHTML){ return `\\frac{${numHTML}}{${denHTML}}`; }
 // x² compact
 function pow2HTML(n){
   const tight = String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,'');
-  return (n<0 ? '('+tight+')' : tight) + '<sup>2</sup>';
+  const base = (n<0 ? `(${tight})` : tight);
+  return base + '^{2}';
 }
+
 // somme de termes (HTML, convertie ensuite)
 function joinTerms(parts){
   let out = '';
@@ -206,7 +223,7 @@ function joinTerms(parts){
     let body = '';
     if(kind==='re') body = String(mag);
     else if(kind==='i') body = (mag===1 ? 'i' : String(mag)+'i');
-    else body = (mag===1 ? 'i<sup>2</sup>' : String(mag)+'i<sup>2</sup>');
+    else body = (mag===1 ? 'i^{2}' : String(mag)+'i^{2}');
     out += sign + body;
   }
   return out || '0';
@@ -254,15 +271,19 @@ function nodeToTeX(node){
 function convertAllEquations(root){
   const scope = root || document;
   const els = Array.from(scope.querySelectorAll('.equ'));
-  // Traiter du plus profond au plus haut pour éviter les conversions imbriquées
   els.sort((a,b)=> (b.querySelectorAll('.equ').length - a.querySelectorAll('.equ').length));
   for(const el of els){
     if(el.dataset.ltxDone==='1') continue;
-    const tex = nodeToTeX(el).trim();
-    el.textContent = '\\('+tex+'\\)';
-    el.dataset.ltxDone = '1';
+    const raw = (typeof nodeToTeX==='function'? nodeToTeX(el) : el.textContent||'').trim();
+    const tex = raw.replace(/^\s*(?:\$\$?|\\\[|\\\()|(?:\$\$?|\\\]|\\\))\s*$/g,'');
+    const isBlock = el.matches('.equ.block, .equ[data-display="1"]') || !!el.closest('.steps, .corrige, .solution');
+    el.textContent = isBlock ? (`\\[${tex}\\]`) : (`\\(${tex}\\)`);
+    el.dataset.ltxDone='1';
   }
+  if(window.MathJax && MathJax.typesetPromise){ try{ MathJax.typesetPromise(); }catch(e){} }
 }
+
+
 function typesetAll(root){
   convertAllEquations(root);
   if(window.MathJax && MathJax.typesetPromise){
@@ -304,7 +325,7 @@ function _appendTerm(out, k, unit){
   if (unit === 'z')   body = (m===1 ? 'z'  : m+'z');
   else if (unit === 'iz') body = (m===1 ? 'iz' : m+'iz');
   else if (unit === 'i')  body = (m===1 ? 'i'  : m+'i');
-  else if (unit === 'i2') body = (m===1 ? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
+  else if (unit === 'i2') body = (m===1 ? 'i^{2}' : m+'i^{2}');
   else body = String(m);
   return out + sign + body;
 }
@@ -373,7 +394,7 @@ const ex2 = {
       <div class="consigne"><strong>Exercice 2 : Inverse dans C</strong></div>
       <div>Soit le nombre complexe <span class="equ">z = ${fmtComplex(z.a,z.b,'a+bi')}</span>.</div>
       <div>Mettre le nombre suivant sous la forme algébrique <span class="equ">\\(a+bi\\)</span>.</div>
-      <div style="margin-top:.25rem"><span class="equ">${fracOf('1','z')}</span></div>
+      <div style="margin-top:.25rem">${ E(fracOf('1','z' )) } </span></div>
     `;
     const den = z.a*z.a + z.b*z.b; // > 0
     const A = z.a/den, B = -z.b/den; // a/den + (-b/den)i
@@ -400,7 +421,7 @@ const ex2 = {
       const A = Math.abs(b);
       const s = b < 0 ? '-' : '';
       const k = (A === 1 ? '' : A);
-      return `${s}${k}i${sup2 ? '<sup>2</sup>' : ''}`;
+      return `${s}${k}i${sup2 ? '^{2}' : ''}`;
     }
     function parensIfNeg(txt, b){ return b < 0 ? `(${txt})` : txt; }
 
@@ -428,7 +449,7 @@ const ex2 = {
     const L2  = `<span class="equ">${fracOf('1','z')} = ${fracOf(fmtComplex(a,-b), String(D))}</span> (car <span class="equ">a^2 + b^2 = ${D}</span>).`;
 
     const [ra,rb] = reduce(a,D), [ia,ib] = reduce(-b,D);
-    const L3  = `<span class="equ">${fracOf('1','z')} = ${fracHTML(ra,rb)} ${(-b>=0?' + ':' − ')} ${fracHTML(Math.abs(ia),ib)} i</span>.`;
+    const L3  = `<span class="equ">${fracOf('1','z')} = ${(ra<0?'− ':'')}${fracHTML(Math.abs(ra),rb)} ${(-b>=0?' + ':' − ')} ${fracHTML(Math.abs(ia),ib)} i</span>.`;
 
     showSteps(host,[L1, L1b,L1c,L2, L3]);
   }
@@ -468,7 +489,7 @@ const ex3 = {
 
     const pow2 = n => {
       const tight = String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,'');
-      return (n<0 ? '('+tight+')' : tight) + '<sup>2</sup>';
+      return (n<0 ? '('+tight+')' : tight) + '^{2}';
     };
     const denPow = `${pow2(a2)} + ${pow2(b2)}`;
 
@@ -482,7 +503,7 @@ const ex3 = {
         let body = '';
         if(kind==='re') body = String(mag);
         else if(kind==='i') body = (mag===1 ? 'i' : String(mag)+'i');
-        else body = (mag===1 ? 'i<sup>2</sup>' : String(mag)+'i<sup>2</sup>');
+        else body = (mag===1 ? 'i^{2}' : String(mag)+'i^{2}');
         out += sign + body;
       }
       return out || '0';
@@ -524,7 +545,7 @@ const ex3 = {
     const parts = [];
     if (R!==0){
       const [r1x,r1y] = reduce(R, D);
-      parts.push(fracHTML(r1x, r1y));
+      parts.push((r1x<0?'− ':'') + fracHTML(Math.abs(r1x), r1y));
     }
     if (I!==0){
       const [r2x,r2y] = reduce(I, D);
@@ -668,7 +689,7 @@ const ex4 = {
       const L6 = `<span class="equ">z = ${fracOf(numRI, String(D))}</span>`;
 
       const parts = [];
-      if (R!==0){ const [x,y]=reduce(R,D); parts.push(fracHTML(x,y)); }
+      if (R!==0){ const [x,y]=reduce(R,D); parts.push((x<0?'− ':'') + fracHTML(Math.abs(x), y)); }
       if (I!==0){
         const [x,y]=reduce(I,D);
         const frag = fracHTML(Math.abs(x),y)+' i';
@@ -721,7 +742,7 @@ const ex4 = {
     const M7 = `<span class="equ">z = ${fracOf(numRI, String(D))}</span>`;
 
     const parts = [];
-    if (RR!==0){ const [x,y]=reduce(RR,D); parts.push(fracHTML(x,y)); }
+    if (RR!==0){ const [x,y]=reduce(RR,D); parts.push((x<0?'− ':'') + fracHTML(Math.abs(x), y)); }
     if (II!==0){
       const [x,y]=reduce(II,D);
       const frag = fracHTML(Math.abs(x),y)+' i';
@@ -844,7 +865,7 @@ const ex5 = {
   },
 
   solution(host, st){
-    const pow2HTML = n => { const t=String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,''); return (n<0?`(${t})`:t)+'<sup>2</sup>'; };
+    const pow2HTML = n => { const t=String(fmtNum(n)).replace(/[\u00A0\u202F\u2009\s]+/g,''); return (n<0?`(${t})`:t)+'^{2}'; };
     const zPlusReal = t => t ? ('z ' + (t>0?'+ '+t:'− '+Math.abs(t))) : 'z';
     const zPlusImag = t => t ? ('z ' + (t>0?'+ ':'− ') + (Math.abs(t)===1?'i':Math.abs(t)+'i')) : 'z';
 
@@ -857,7 +878,7 @@ const ex5 = {
       if(unit==='z')   body = (m===1? 'z' : m+'z');
       else if(unit==='iz') body = (m===1? 'iz': m+'iz');
       else if(unit==='i')  body = (m===1? 'i' : m+'i');
-      else if(unit==='i2') body = (m===1? 'i<sup>2</sup>' : m+'i<sup>2</sup>');
+      else if(unit==='i2') body = (m===1? 'i^{2}' : m+'i^{2}');
       else body = String(m);
       return s + sign + body;
     }
@@ -869,11 +890,32 @@ const ex5 = {
       s = addTerm(s, -b*l,'');
       return s || '0';
     }
+    // Ajout local : développement (a+bi)(z + l) pour cette section
+    const dev_z_plus_l = (a,b,l)=>{
+      let s='';
+      s = addTerm(s, a,   'z');
+      s = addTerm(s, a*l, '');
+      s = addTerm(s, b,   'iz');
+      s = addTerm(s, b*l, 'i');
+      return s||'0';
+    };
+
     function leftZCombo(a,b){ let s=''; s=addTerm(s,1-a,'z'); s=addTerm(s,-b,'iz'); return s||'0'; }
     function leftZFact(a,b){ let inside=''; inside=addTerm(inside,1-a,''); inside=addTerm(inside,-b,'i'); return `z(${inside})`; }
     const joinTerms = parts => { let out=''; for(const {coef,kind} of parts){ if(!coef) continue; out = addTerm(out, coef, (kind==='re'?'':kind)); } return out || '0'; };
-    function finalAplusBi(R,I,D){ const p=[]; if(R){ const [rx,ry]=reduce(R,D); p.push(fracHTML(rx,ry)); } if(I){ const [ix,iy]=reduce(I,D); p.push((I>0&&p.length?' + ':(I<0&&p.length?' − ':(I<0?'− ':'')))+fracHTML(Math.abs(ix),iy)+' i'); } return p.join('')||'0'; }
-    const dev_z_plus_l  = (a,b,l)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,''); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,'i'); return s||'0'; };
+    function finalAplusBi(R,I,D){
+  const p = [];
+  if (R) {
+    const [rx,ry] = reduce(R,D);
+    p.push((R<0?'− ':'') + fracHTML(Math.abs(rx), ry));
+  }
+  if (I) {
+    const [ix,iy] = reduce(I,D);
+    p.push((I>0 && p.length ? ' + ' : (I<0 && p.length ? ' − ' : (I<0 ? '− ' : '')))
+           + fracHTML(Math.abs(ix), iy) + ' i');
+  }
+  return p.join('') || '0';
+};
     const dev_z_plus_li = (a,b,l,withI2=true)=>{ let s=''; s=addTerm(s,a,'z'); s=addTerm(s,a*l,'i'); s=addTerm(s,b,'iz'); s=addTerm(s,b*l,withI2?'i2':''); return s||'0'; };
 
     const denCoefs = (a,b)=>({c1:1-a, c2:-b});

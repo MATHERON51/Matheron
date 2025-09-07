@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seconde – Chapitre 0 – Calculs – Factorisation (F = …)</title>
-
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
@@ -30,7 +29,8 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 /* Tableaux (l’écran utilise .tbl ; les styles PDF sont inline dans le HTML injecté) */
 .tbl{width:100%;margin:.55rem auto;table-layout:fixed;border-collapse:collapse}
 
-
+/* Facteur commun (rouge) à l’écran */
+.fc{color:#d32f2f;font-weight:700}
 
 /* Saisie */
 .ans-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -44,30 +44,10 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .sqbox{border:1px solid #e0e0e0;background:#fff;padding:8px 10px;border-radius:8px;text-align:center;font-variant-numeric:tabular-nums}
 
 @media (max-width:980px){ .row3{grid-template-columns:1fr} }
+
+
 </style>
-
-<!-- MathJax v3 -->
-<script>
-  window.MathJax = {
-    loader: { load: ['[tex]/color'] },
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      packages: { '[+]': ['color'] },
-      macros: {
-        frac: ['\\dfrac{#1}{#2}', 2],
-        // rouge Material D32F2F ≈ (0.827, 0.184, 0.184)
-        fc:   ['{\\color[rgb]{0.827,0.184,0.184}{#1}}', 1]
-      }
-    },
-    chtml: { matchFontHeight: false },
-    startup: { typeset: true }
-  };
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
-
 <body>
   <div class="header">
     <div class="wrap" style="padding:10px 18px">
@@ -108,7 +88,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 
 <script>
 (function(){'use strict';
-/* ====== util ====== */
 const $=(s,r=document)=>r.querySelector(s);
 const choice=a=>a[Math.floor(Math.random()*a.length)];
 const rndEx=(a,except)=>{let v=choice(a); if(except!=null){while(v===except){v=choice(a);} } return v;}
@@ -116,16 +95,24 @@ const MULT='×';
 
 /* ==== Évaluation tolérante ==== */
 // ajout de \u2212 (moins unicode)
-const SAFE_RE = /^[-0-9xX+*/().\s^·×²\u2212]+$/;
+const SAFE_RE = /^[0-9xX+\-*/().\s^·×²\u2212]+$/;
 
+/* ==== Évaluation tolérante ==== */
 function insertImplicitMultiplication(s){
   return String(s)
+    // nombre  x   → nombre*x  (espaces autorisés)
     .replace(/(\d)\s*x/gi, '$1*x')
+    // x  nombre → x*nombre
     .replace(/x\s*(\d)/gi, 'x*$1')
+    // nombre ( … ) → nombre*( … )
     .replace(/(\d)\s*\(/g, '$1*(')
+    // x ( … ) → x*( … )
     .replace(/x\s*\(/gi, 'x*(')
+    // ( … ) nombre → ( … )*nombre
     .replace(/\)\s*(\d)/g, ')*$1')
+    // ( … ) x → ( … )*x
     .replace(/\)\s*x/gi, ')*x')
+    // ( … ) ( … ) → ( … )*( … )
     .replace(/\)\s*\(/g, ')*(');
 }
 
@@ -146,76 +133,51 @@ function algebraicEqual(user,ref){
 }
 function isTrivialByOne(user){
   const s = insertImplicitMultiplication(String(user||'')).replace(/\s+/g,'');
+  // 1*(...) ou (...)*1
   if (/^[+]?1\*/.test(s)) return true;
   if (/\*1$/.test(s))     return true;
+  // juste des parenthèses autour d’un polynôme : ( ... ) sans produit/puissance
   if (/^\([^()]+\)$/.test(s)) return true;
   return false;
 }
 
 function looksFactorized(user){
   if (isTrivialByOne(user)) return false;
-  var s = insertImplicitMultiplication(String(user||'').replace(/\u2212/g,'-')).replace(/\s+/g,'');
+
+  // normalisation douce : implicite → *, espaces supprimés, − unicode → '-'
+  var s = insertImplicitMultiplication(String(user||'').replace(/\u2212/g,'-'))
+            .replace(/\s+/g,'');
+
+  // (…)(…)  OU  …*(…)  OU  (…)*…   → produit de blocs
   if (/\)\(/.test(s)) return true;
   if (/\*\(/.test(s) || /\)\*/.test(s)) return true;
+
+  // k(…) avec k ≠ 1
   if (/^[+-]?\d+\(.*\)$/.test(s) && !/^[+-]?1\(/.test(s)) return true;
+
+  // ±kx(…)  ou  ±x(…)  ou  ±kx^n(…)
   if (/^[+-]?(?:\d+)?x(?:\^\d+)?\(.+\)$/i.test(s)) return true;
+
+  // (… )^n / ² / ³ : puissance d’un bloc parenthésé
   if (/\([^()]+\)(?:\^\d+|²|³)$/.test(s)) return true;
+
   return false;
 }
 
-/* ==== helpers ==== */
-function uminus(n){return n<0?'−'+Math.abs(n):String(n);}
-function fmtAx(a){ if(a===1) return 'x'; if(a===-1) return '−x'; return `${uminus(a)}x`; }
-function binom(a,b){ return `( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} )`; }
-function fc(s){ return '\\fc{'+ s +'}'; }
-function dedup(lines){ const out=[]; for(const L of lines){ if(!out.length || out[out.length-1]!==L) out.push(L); } return out; }
-
-/* === LaTeX helpers === */
-function toTex(s){
-  return String(s||'')
-    .replace(/&nbsp;/g,' ')
-    .replace(/\u2212/g,'-')
-    .replace(/−/g,'-')
-    .replace(/×/g,'\\times')
-    .replace(/·/g,'\\cdot')
-    .replace(/x²/g,'x^2')
-    .replace(/x³/g,'x^3')
-    .replace(/\(\s*/g,'(').replace(/\s*\)/g,')');
-}
-function latexWrap(s){ return '\\( ' + toTex(s) + ' \\)'; }
-
-/* Enveloppe toutes les lignes solution/PDF en \( ... \)
-   - Si la ligne contient déjà du TeX (\\( ou \\[) OU commence par "<" (HTML/table),
-     on NE rajoute pas un second wrapper. */
-function renderStepsLatex(lines){
-  const L = Array.isArray(lines) ? lines : (lines ? [lines] : []);
-  if(!L.length) return '<div class="steps"><div class="line">Aucune étape.</div></div>';
-  const parts = L.map(t=>{
-    const str = String(t);
-    const isHTML = /^\s*</.test(str);
-    const hasTeX = /\\\(|\\\[/.test(str);
-    if(isHTML) return '<div class="line">'+str+'</div>';
-    return '<div class="line">'+(hasTeX?str:latexWrap(str))+'</div>';
-  }).join('');
-  return '<div class="steps">'+parts+'</div>';
-}
-
-/* ==== PDF helpers ==== */
-function acceptAnyFactorization(user,expandedRef){
-  const eq=algebraicEqual(user,expandedRef); if(!eq) return false; return looksFactorized(user);
-}
-const gcd = (a,b)=>{ a=Math.abs(a); b=Math.abs(b); while(b){ const t=b; b=a%b; a=t; } return a||0; };
-
-/* Parsers/ultimes spécifiques (ex.4, ex.6, ex.7) */
+// Normalisation légère pour les motifs
 function _normDS(s){
   return String(s||'')
-    .replace(/\u2212/g,'-')
-    .replace(/\s+/g,'')
-    .replace(/\*\*/g,'^')
-    .replace(/²/g,'^2')
-    .replace(/[×·]/g,'*');
+    .replace(/\u2212/g,'-')     // minus unicode
+    .replace(/\s+/g,'')         // espaces
+    .replace(/\*\*/g,'^')       // **2 -> ^2
+    .replace(/²/g,'^2')         // ² -> ^2
+    .replace(/[×·]/g,'*');      // × · -> *
 }
-const _isPerfectSquare = n => { const k = Math.sqrt(n); return Number.isInteger(k) && k>=0; };
+const _isPerfectSquare = n => {
+  const k = Math.sqrt(n);
+  return Number.isInteger(k) && k>=0;
+};
+// (x±n)(x∓n) présent ?
 function _alreadyFactoredDSX(s){
   const t = _normDS(s);
   const re = /\(x([+-])(\d+)\)\*?\(x([+-])(\d+)\)/gi;
@@ -226,8 +188,10 @@ function _alreadyFactoredDSX(s){
   }
   return false;
 }
+// Contient un (x^2 - n) ou (n - x^2) avec n carré parfait, non encore factorisé ?
 function _hasReducibleX2MinusSquare(s){
   const t = _normDS(s);
+  // cherche dans des parenthèses quelconques
   const re = /\((?:x\^2-(\d+)|(\d+)-x\^2)\)/g;
   let m;
   while((m=re.exec(t))){
@@ -236,24 +200,34 @@ function _hasReducibleX2MinusSquare(s){
   }
   return false;
 }
+// "Ultime" pour l'ex.4 : déjà (x±n)(x∓n) OU pas de x^2 - n^2 résiduel
 function isUltimateEx4(user){
   if (_alreadyFactoredDSX(user)) return true;
   return !_hasReducibleX2MinusSquare(user);
 }
+// Normalise pour comparer proprement
 function _normFlat(s){
   return insertImplicitMultiplication(String(s||''))
-    .replace(/\u2212/g,'-')
-    .replace(/[×·]/g,'*')
-    .replace(/\s+/g,'');
+    .replace(/\u2212/g,'-')    // minus unicode → '-'
+    .replace(/[×·]/g,'*')      // × · → *
+    .replace(/\s+/g,'');       // sans espaces
 }
+
+// Détecte "réécriture brute" pour ex.6 : (..)*(..) + (..)*(..)
+// avec un facteur parenthésé identique des deux côtés du '+'
 function isRewriteOriginalEx6(user){
   const t = _normFlat(user);
+  // force ')(' → ')*(' via insertImplicitMultiplication ⇒ on peut chercher '*'
   const re = /\(([^()]+)\)\*\(([^()]+)\)\+\(([^()]+)\)\*\(([^()]+)\)/;
   const m = re.exec(t);
   if(!m) return false;
   const a=m[1], b=m[2], c=m[3], d=m[4];
+  // facteur commun répété à gauche et à droite ?
   return (a===c || a===d || b===c || b===d);
 }
+
+// Détecte "réécriture brute" pour ex.7 : (..)*(..) - (..)*(..)
+// avec un facteur parenthésé identique des deux côtés du '−'
 function isRewriteOriginalEx7(user){
   const t = _normFlat(user);
   const re = /\(([^()]+)\)\*\(([^()]+)\)\-\(([^()]+)\)\*\(([^()]+)\)/;
@@ -262,6 +236,16 @@ function isRewriteOriginalEx7(user){
   const a=m[1], b=m[2], c=m[3], d=m[4];
   return (a===c || a===d || b===c || b===d);
 }
+
+
+function acceptAnyFactorization(user,expandedRef){
+  const eq=algebraicEqual(user,expandedRef); if(!eq) return false; return looksFactorized(user);
+}
+// PGFC
+// PGCD
+const gcd = (a,b)=>{ a=Math.abs(a); b=Math.abs(b); while(b){ const t=b; b=a%b; a=t; } return a||0; };
+
+// Toutes les parenthèses "linéaires" (ax+b), formes: ax+b, b+ax, ax, x, etc.
 function parseAllLinearInParens(user){
   let s = String(user||'').replace(/\u2212/g,'-');
   s = insertImplicitMultiplication(s);
@@ -285,25 +269,60 @@ function parseAllLinearInParens(user){
       let a = r[1]===''||r[1]==='+'?1:(r[1]==='-'?-1:parseInt(r[1],10));
       L.push({a,b:0}); continue;
     }
+    // constante seule → on ignore
   }
   return L;
 }
+
+// x placé à l’extérieur d’une parenthèse ? (utile pour ex.1)
 function hasOuterXAroundParen(user){
   let s = insertImplicitMultiplication(String(user||'').replace(/\u2212/g,'-')).replace(/\s+/g,'');
   return /x\*\(|\)\*x/i.test(s);
 }
+
+// "Ultime" générique : tous les (ax±b) copremiers ; possibilité d’exiger x dehors (ex.1)
 function isUltimateGeneric(user, opts={}){
   if (opts.requireOuterX && !hasOuterXAroundParen(user)) return false;
   const L = parseAllLinearInParens(user);
   for(const {a,b} of L){ if (gcd(a,b)>1) return false; }
   return true;
 }
-// -- Relance MathJax sur un nœud quand on injecte du LaTeX --
-function mjxTypeset(node){
-  if (window.MathJax && MathJax.typesetPromise) {
-    MathJax.typesetPromise([node]).catch(()=>{ /* noop */ });
+
+// Extrait (a,b) de la première parenthèse rencontrée si elle est linéaire en x
+function parseLinearFromFirstParen(user){
+  let s = String(user||'').replace(/\u2212/g,'-');
+  s = insertImplicitMultiplication(s);
+  const m = s.match(/\(([^()]+)\)/);
+  if(!m) return null;
+  let t = m[1].replace(/\s+/g,'').replace(/\*/g,'');
+  // formes "ax+b" ou "b+ax"
+  let r = t.match(/^([+-]?\d*)x([+-]\d+)$/);
+  if(r){
+    let a = r[1]===''||r[1]==='+'?1:(r[1]==='-'?-1:parseInt(r[1],10));
+    let b = parseInt(r[2],10);
+    return {a,b};
   }
+  r = t.match(/^([+-]?\d+)([+-])(\d*)x$/);
+  if(r){
+    let b = parseInt(r[1],10);
+    let a = (r[3]===''?1:parseInt(r[3],10)) * (r[2]==='-'?-1:1);
+    return {a,b};
+  }
+  return null;
 }
+
+// x placé hors de la parenthèse (…)*x ou x*(…)
+function hasOuterXAroundParen(user){
+  let s = insertImplicitMultiplication(String(user||'').replace(/\u2212/g,'-')).replace(/\s+/g,'');
+  return /x\*\(|\)\*x/i.test(s);
+}
+
+/* ==== helpers ==== */
+function uminus(n){return n<0?'−'+Math.abs(n):String(n);}
+function fmtAx(a){ if(a===1) return 'x'; if(a===-1) return '−x'; return `${uminus(a)}x`; }
+function binom(a,b){ return `( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} )`; }
+function fc(s){ return `<span class="fc" style="color:#d32f2f;font-weight:700">${s}</span>`; }
+function dedup(lines){ const out=[]; for(const L of lines){ if(!out.length || out[out.length-1]!==L) out.push(L); } return out; }
 
 /* ==== rendu ==== */
 function renderFrame(host,enonceHTML,placeholder){
@@ -312,7 +331,7 @@ function renderFrame(host,enonceHTML,placeholder){
   row.innerHTML=`
     <div class="consigne" style="grid-column:1/-1">Factoriser :</div>
     <div class="eq-left">
-      <div class="line">\\( F\\;=\\;${toTex(enonceHTML)} \\)</div>
+      <div class="line">F = <span class="equ">${enonceHTML}</span></div>
       <div style="margin-top:.7rem"><strong>Réponse (forme factorisée) :</strong></div>
       <div class="ans-row" style="margin-top:.1rem"><span class="F">F =</span> <input type="text" id="reponse" placeholder="${placeholder}"></div>
       <div id="res"></div>
@@ -321,13 +340,13 @@ function renderFrame(host,enonceHTML,placeholder){
     <div id="sol" class="steps"></div>
   `;
   host.appendChild(row);
-  mjxTypeset(host);   // ⟵  AJOUT
   const ip=$("#reponse",host); ip&&ip.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); check(); }});
 }
 
 /* ================= EXERCICES ================= */
 
 /* 1. Facteur commun */
+/* 1. Facteur commun — PGFC systématique */
 const ex1 = {
   id:"facteur-commun",
   title:"Mise en évidence du plus grand facteur commun",
@@ -337,6 +356,7 @@ const ex1 = {
     const B=choice([1,2,3,4,5,6,7,8,9]);
     const a=g*A, b=g*B;
 
+    // PGFC numérique
     const d = gcd(a,b);
     const A1 = a/d, B1 = b/d;
 
@@ -351,22 +371,34 @@ const ex1 = {
       lines:dedup(lines)
     };
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
-  correct(h,st){
-    const v = ($("#reponse",h).value||"").trim();
-    const ok = acceptAnyFactorization(v, st.ref);
-    $("#res",h).textContent = ok ? "✔" : "✘ Réponse attendue : une forme factorisée équivalente (pas la forme développée, ni 1(…)).";
-    $("#res",h).className = ok ? "res-ok" : "res-ko";
-    return {ok,total:1};
-  },
+  render(h,st){ renderFrame(h,st.txt,"ex.  12x(2x+3)"); },
+
+  // on exige la factorisation MAXIMALE : x dehors + coefficients copremiers dedans
+  title:"Mise en évidence d’un facteur commun",
+
+correct(h,st){
+  const v = ($("#reponse",h).value||"").trim();
+  const ok = acceptAnyFactorization(v, st.ref); // équivalence + vraie factorisation
+  $("#res",h).textContent = ok
+    ? "✔"
+    : "✘ Réponse attendue : une forme factorisée équivalente (pas la forme développée, ni 1(…)).";
+  $("#res",h).className = ok ? "res-ok" : "res-ko";
+  return {ok,total:1};
+},
+
+
   solution(h,st){
-    $("#sol",h).innerHTML = renderStepsLatex(st.lines);
-	mjxTypeset($("#sol",h));   // ⟵  AJOUT
+    $("#sol",h).innerHTML = st.lines.map(t=>`<div class="line">${t}</div>`).join("");
   },
   printSolutionPDF(st){
-    return renderStepsLatex(st && st.lines ? st.lines : []);
-  }
+  const lines = Array.isArray(st?.lines) ? st.lines : (st?.lines ? [st.lines] : []);
+  if (!lines.length) return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  const inner = lines.map(t => '<div class="line">' + String(t) + '</div>').join('');
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
+
 
 /* 2. (a ± b)² — A/B et « car » sur la même ligne ; PDF resserré ET aligné à gauche */
 const ex2={ id:"carre-parfait", title:"Reconnaitre (a ± b)²",
@@ -381,55 +413,63 @@ const ex2={ id:"carre-parfait", title:"Reconnaitre (a ± b)²",
     const tbl_screen=`
       <table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid #000">
         <tr>
-          <td ${tdTop}>\\(A = ${p}x\\) <u>car</u> : \\( (${p}x)^2 \\) = \\( ${a2}x^2 \\)</td>
-          <td ${tdTop}>\\(B = ${q}\\) <u>car</u> : \\( ${q}^2 \\) = \\( ${b2} \\)</td>
+          <td ${tdTop}>A = ${p}x&nbsp;&nbsp; <u>car</u> : (${p}x)² = ${a2}x²</td>
+          <td ${tdTop}>B = ${q}&nbsp;&nbsp; <u>car</u> : ${q}² = ${b2}</td>
         </tr>
-        <tr><td ${td0} colspan="2" style="text-align:center">\\( 2AB = 2 \\times ${p}x \\times ${q} = ${mid}x \\)</td></tr>
+        <tr><td ${td0} colspan="2" style="text-align:center">2AB = 2 ${MULT} ${p}x ${MULT} ${q} = ${mid}x</td></tr>
         <tr><td ${tdBot} colspan="2"><u>c’est</u> donc bon</td></tr>
       </table>`;
 
     const tbl_pdf=`<div style="max-width:560px;margin:.2rem 0;font-size:95%">
       <table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid #000">
         <tr>
-          <td ${tdTop}>\\(A = ${p}x\\) <u>car</u> : \\( (${p}x)^2 \\) = \\( ${a2}x^2 \\)</td>
-          <td ${tdTop}>\\(B = ${q}\\) <u>car</u> : \\( ${q}^2 \\) = \\( ${b2} \\)</td>
+          <td ${tdTop}>A = ${p}x&nbsp;&nbsp; <u>car</u> : (${p}x)² = ${a2}x²</td>
+          <td ${tdTop}>B = ${q}&nbsp;&nbsp; <u>car</u> : ${q}² = ${b2}</td>
         </tr>
-        <tr><td ${td0} colspan="2" style="text-align:center">\\( 2AB = 2 \\times ${p}x \\times ${q} = ${mid}x \\)</td></tr>
+        <tr><td ${td0} colspan="2" style="text-align:center">2AB = 2 ${MULT} ${p}x ${MULT} ${q} = ${mid}x</td></tr>
         <tr><td ${tdBot} colspan="2"><u>c’est</u> donc bon</td></tr>
       </table></div>`;
 
-    const txt=`${a2}x^2 ${minus?'−':'+'} ${mid}x + ${b2}`;
+    const txt=`${a2}x² ${minus?'−':'+'} ${mid}x + ${b2}`;
     const ref=`${a2}*x**2 ${minus?'-':'+'} ${mid}*x + ${b2}`;
-const l0 = minus
-  ? 'Rappel : \\( A^2 - 2AB + B^2 = (A - B)^2 \\)'
-  : 'Rappel : \\( A^2 + 2AB + B^2 = (A + B)^2 \\)';
 
-const l1 = `On cherche \\(A\\) tel que \\(A^2 = ${a2}x^2\\), \\(B\\) tel que \\(B^2 = ${b2}\\),
-puis on vérifie si \\(2AB = ${mid}x\\)`;
-
-    const lines = [
-  l0,
-  l1,
-  tbl_screen,
-  `F = ${a2}x^2 ${minus?'−':'+'} ${mid}x + ${b2}`,
-  `F = (${p}x ${minus?'−':'+'} ${q})^2`
-];
-
+    const lines=[
+      minus?`Rappel : A² − 2AB + B² = (A − B)²`:`Rappel : A² + 2AB + B² = (A + B)²`,
+      `On cherche A tel que A² = ${a2}x², B tel que B² = ${b2} puis on vérifie si 2AB = ${mid}`,
+      tbl_screen,
+      `F = ${a2}x² ${minus?'−':'+'} ${mid}x + ${b2}`,
+      `F = (${p}x ${minus?'−':'+'} ${q})²`
+    ];
     return {txt,ref,lines:dedup(lines),tbl_pdf};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  (5x±7)^2"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Réponse attendue : forme factorisée équivalente (non triviale)."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){
-    const src = Array.isArray(st?.lines) ? st.lines : (st?.lines ? [st.lines] : []);
-    const pick = i => (i >= 0 && i < src.length ? src[i] : null);
-    const selected = [ pick(0), pick(1), st?.tbl_pdf, pick(3), pick(4) ]
-      .filter(Boolean).map(String);
-    return renderStepsLatex(selected);
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+ printSolutionPDF(st){
+  const src = Array.isArray(st && st.lines) ? st.lines
+            : (st && st.lines ? [st.lines] : []);
+  const pick = i => (i >= 0 && i < src.length ? src[i] : null);
+
+  const selected = [
+    pick(0),
+    pick(1),
+    st && st.tbl_pdf,
+    pick(3),
+    pick(4)
+  ].filter(Boolean).map(String);
+
+  if (!selected.length) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
   }
+
+  var inner = '';
+  for (var i = 0; i < selected.length; i++) {
+    inner += '<div class="line">' + selected[i] + '</div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
 /* 3. A² − B² — même format ; PDF resserré & aligné à gauche */
@@ -442,48 +482,61 @@ const ex3={ id:"diff-carres", title:"Différence de deux carrés",
     const tbl_screen=`
       <table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid #000">
         <tr>
-          <td ${tdTop}>\\(A = ${t}x\\) <u>car</u> : \\( (${t}x)^2 \\) = \\( ${t*t}x^2 \\)</td>
-          <td ${tdTop}>\\(B = ${c}\\) <u>car</u> : \\( ${c}^2 \\) = \\( ${c*c} \\)</td>
+          <td ${tdTop}>A = ${t}x&nbsp;&nbsp; <u>car</u> : (${t}x)² = ${t*t}x²</td>
+          <td ${tdTop}>B = ${c}&nbsp;&nbsp; <u>car</u> : ${c}² = ${c*c}</td>
         </tr>
       </table>`;
 
     const tbl_pdf=`<div style="max-width:560px;margin:.2rem 0;font-size:95%">
       <table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse;border:2px solid #000">
         <tr>
-          <td ${tdTop}>\\(A = ${t}x\\)  <u>car</u> : \\( (${t}x)^2 \\) = \\( ${t*t}x^2 \\)</td>
-          <td ${tdTop}>\\(B = ${c}\\)  <u>car</u> : \\( ${c}^2 \\) = \\( ${c*c} \\)</td>
+          <td ${tdTop}>A = ${t}x&nbsp;&nbsp; <u>car</u> : (${t}x)² = ${t*t}x²</td>
+          <td ${tdTop}>B = ${c}&nbsp;&nbsp; <u>car</u> : ${c}² = ${c*c}</td>
         </tr>
       </table></div>`;
 
-    const txt=`${t*t}x^2 − ${c*c}`;
+    const txt=`${t*t}x² − ${c*c}`;
     const ref=`${t*t}*x**2 - ${c*c}`;
 
-  const l0 = 'Rappel : \\( A^2 - B^2 = (A + B)(A - B) \\)';
-const l1 = `On cherche \\(A \\) tel que \\(A^2 = ${t*t}x^2\\), \\(B \\) tel que \\(B^2 = ${c*c}\\).`;
-
-const lines = [
-  l0,
-  l1,
-  tbl_screen,
-  `F = ${t*t}x^2 − ${c*c}`,
-  `F = ( ${t}x + ${c} )( ${t}x − ${c} )`
-];
-
+    const lines=[
+      `Rappel : A² − B² = (A + B)(A − B)`,
+      `On cherche A tel que A² = ${t*t}x², B tel que B² = ${c*c}`,
+      tbl_screen,
+      `F = ${t*t}x² − ${c*c}`,
+      `F = ( ${t}x + ${c} )( ${t}x − ${c} )`
+    ];
     return {txt,ref,lines:dedup(lines),tbl_pdf};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  (13x+8)(13x−8)"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Attendu : (tx±c)(tx∓c) ou forme équivalente."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
   printSolutionPDF(st){
-    const src = Array.isArray(st?.lines) ? st.lines : (st?.lines ? [st.lines] : []);
-    const pick=i=>(i>=0 && i<src.length)?src[i]:null;
-    const parts=[ pick(0), pick(1), st?.tbl_pdf, pick(3), pick(4) ]
-      .filter(v=>v!=null && v!=='').map(String);
-    return renderStepsLatex(parts);
+  var src = Array.isArray(st && st.lines) ? st.lines : (st && st.lines ? [st.lines] : []);
+  function pick(i){ return (i>=0 && i<src.length) ? src[i] : null; }
+
+  var parts = [
+    pick(0),
+    pick(1),
+    st && st.tbl_pdf,
+    pick(3),
+    pick(4)
+  ].filter(function(v){ return v!=null && v!==''; }).map(String);
+
+  if (!parts.length){
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
   }
+
+  var seen = Object.create(null), inner = '';
+  for (var i=0;i<parts.length;i++){
+    var t = parts[i];
+    if (seen[t]) continue;     // évite les doublons éventuels
+    seen[t] = true;
+    inner += '<div class="line">' + t + '</div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
 /* 4. Différence de deux carrés (après factorisation) – x² − r² */
@@ -494,53 +547,87 @@ const ex4={ id:"diff-carres-apres-facto", title:"Différence de deux carrés (ap
     const ref=`${k}*x**2 - ${k*r*r}`;
     const lines=[
       `F = ${txt}`,
-      `F = ${fc(String(k))}( x^2 − ${r*r} )`,
+      `F = ${fc(String(k))}( x² − ${r*r} )`,
       `F = ${fc(String(k))}( x + ${r} )( x − ${r} )`,
-      `Rappel : A^2 − B^2 = (A + B)(A − B)`
+      `Rappel : A² − B² = (A + B)(A − B)`
     ];
     return {txt,ref,lines:dedup(lines)};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  3(x+3)(x−3)"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
-    $("#res",h).textContent= ok?"✔":"✘ Attendu : extraire k puis utiliser A^2−B^2."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){ return renderStepsLatex(st?.lines||[]); }
+    $("#res",h).textContent= ok?"✔":"✘ Attendu : extraire k puis utiliser A²−B²."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+  printSolutionPDF(st){
+  var L = Array.isArray(st && st.lines) ? st.lines
+        : (st && st.lines ? [st.lines] : []);
+  if (!L.length) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+
+  var seen = Object.create(null), inner = '';
+  for (var i = 0; i < L.length; i++) {
+    var t = L[i];
+    if (t == null || t === '') continue;
+    t = String(t);
+    if (seen[t]) continue;     // évite les doublons éventuels
+    seen[t] = true;
+    inner += '<div class="line">' + t + '</div>';
+  }
+
+  if (!inner) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
 /* 5. Trinôme – phrase « Il faudra résoudre un système. » */
-const ex5={ id:"trinome-hors", title:"x^2 + bx + c (hors programme)",
+const ex5={ id:"trinome-hors", title:"x² + bx + c (hors programme)",
   gen(){
     let r=choice([-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9]);
     let s=choice([-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9]); while(s===r) s=choice([-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9]);
     const S=r+s, P=r*s;
     const B=-(S), C=P;
-    const txt=`x^2 ${B>=0?'+':'−'} ${Math.abs(B)}x + ${C}`;
+    const txt=`x² ${B>=0?'+':'−'} ${Math.abs(B)}x + ${C}`;
     const ref=`x**2 ${B>=0?'+':'-'} ${Math.abs(B)}*x + ${C}`;
-    
-	const l0 = `On cherche \\(r\\) et \\(s\\) tels que \\(r+s = ${S}\\) et \\(rs = ${P}\\).`;
-const l1 = '<span>Il faudra résoudre un système.</span>';
-
-const lines = [
-  l0,
-  l1,
-  `F = ${txt}`,
-  `F = ( x ${(-r>=0?'+':'−')} ${Math.abs(r)} )( x ${(-s>=0?'+':'−')} ${Math.abs(s)} )`
-];
-
+    const lines=[
+      `On cherche r, s tels que r + s = ${S} et rs = ${P}.`,
+      `Il faudra résoudre un système.`,
+      `F = ${txt}`,
+      `F = ( x ${(-r>=0?'+':'−')} ${Math.abs(r)} )( x ${(-s>=0?'+':'−')} ${Math.abs(s)} )`
+    ];
     return {txt,ref,lines:dedup(lines)};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  (x−r)(x−s)"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Attendu : (x−r)(x−s) (non trivial)."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){ return renderStepsLatex(st?.lines||[]); }
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+  printSolutionPDF(st){
+  var L = Array.isArray(st && st.lines) ? st.lines : (st && st.lines ? [st.lines] : []);
+  if (!L.length) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+
+  var seen = Object.create(null), inner = '';
+  for (var i = 0; i < L.length; i++) {
+    var t = L[i];
+    if (t == null || t === '') continue;
+    t = String(t);
+    if (seen[t]) continue; // évite un doublon éventuel
+    seen[t] = true;
+    inner += '<div class="line">' + t + '</div>';
+  }
+
+  if (!inner) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
-/* 6. Regrouper (somme de produits) */
+/* 6. Regrouper (somme de produits) — ajoute éventuellement la ligne k(ax+b) ou kx(ax+b) */
 const ex6={ id:"regroup-somme", title:"Regrouper (somme de produits)",
   gen(){
     const a=choice([-5,-4,-3,-2,-1,1,2,3,4,5]), b=choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]),
@@ -562,62 +649,97 @@ const ex6={ id:"regroup-somme", title:"Regrouper (somme de produits)",
 
     return {txt,ref,lines:dedup(lines)};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  (ax+b)((c+e)x+(d+f))"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Attendu : extraction du facteur commun puis simplification."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){ return renderStepsLatex(st?.lines||[]); }
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+  printSolutionPDF(st){
+  var L = Array.isArray(st && st.lines) ? st.lines : (st && st.lines ? [st.lines] : []);
+  if (!L.length) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+
+  var seen = Object.create(null), inner = '';
+  for (var i = 0; i < L.length; i++) {
+    var t = L[i];
+    if (t == null || t === '') continue;
+    t = String(t);
+    if (seen[t]) continue; // évite les doublons
+    seen[t] = true;
+    inner += '<div class="line">' + t + '</div>';
+  }
+
+  if (!inner) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
-/* 7. Regrouper (différence de produits) */
-const ex7 = { id: "regroup-diff", title: "Regrouper (différence de produits)",
+/* 7. Regrouper (différence de produits) — pas de doublons ; conclusions seulement si A=0 ou B=0 */
+const ex7={ id:"regroup-diff", title:"Regrouper (différence de produits)",
   gen(){
+    const u=choice([2,3,4,5,6,7,8,9]);
     const a=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
     const b=choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
-    const c=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const collapse = Math.random() < 0.30;
+    const c = collapse ? a : rndEx([-5,-4,-3,-2,-1,1,2,3,4,5], a);
     const d=choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
     const e=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
     const f=choice([-9,-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8,9]);
 
-    const axb = binom(a,b), cxd = binom(c,d), exf = binom(e,f);
+    const axb=binom(a,b), cxd=binom(c,d), exf=binom(e,f);
+    const txt=`${axb} ${cxd} − ${exf} ${axb}`.replace(/\)\s+\(/g,') (');
+    const ref=`(${a}*x+(${b}))*(${c}*x+(${d})) - (${e}*x+(${f}))*(${a}*x+(${b}))`;
 
-    // Énoncé (on garde l’espacement entre ) ( )
-    const txt = `${axb} ${cxd} − ${exf} ${axb}`.replace(/\)\s+\(/g,') (');
-
-    // Référence numérique pour l’évaluation
-    const ref = `(${a}*x+(${b}))*(${c}*x+(${d})) - (${e}*x+(${f}))*(${a}*x+(${b}))`;
-
-    // Coeffs après regroupement : (cx+d) - (ex+f) = (c-e)x + (d-f)
-    const A = c - e, B = d - f;
+    const A=a-c, B=b-d;                     // (x+u)(Ax + B)
     const last = A===0 ? `${B}` : `${fmtAx(A)} ${B>=0?'+':'−'} ${Math.abs(B)}`;
 
     const lines = [
-      `F = ${fc(axb)} ${cxd} − ${exf} ${fc(axb)}`,
-      `F = ${fc(axb)} [ ${cxd} − ${exf} ]`,
-      `F = ${fc(axb)} ( ${fmtAx(c)} ${d>=0?'+':'−'} ${Math.abs(d)} ${(-e)>=0?'+':'−'} ${Math.abs(e)}x ${(-f)>=0?'+':'−'} ${Math.abs(f)} )`,
-      `F = ${fc(axb)} ( ${last} )`
+      `F = ${fc('( x + '+u+' )')} ${axb} − ${cxd} ${fc('( x + '+u+' )')}`,
+      `F = ${fc('( x + '+u+' )')} [ ${axb} − ${cxd} ]`,
+      `F = ${fc('( x + '+u+' )')} ( ${fmtAx(a)} ${b>=0?'+':'−'} ${Math.abs(b)} ${(-c)>=0?'+':'−'} ${Math.abs(c)}x ${(-d)>=0?'+':'−'} ${Math.abs(d)} )`,
+      `F = ${fc('( x + '+u+' )')} ( ${last} )`
     ];
-
-    if (A===0) { lines.push(`F = ${B}${fc(axb)}`); }
-    else if (B===0) {
-      lines.push(`F = ( ${fc(axb)} )( ${fmtAx(A)} )`);
-      lines.push(`F = ${fmtAx(A)}${fc(axb)}`);
+    if (A === 0) {
+      lines.push(`F = ${B}( x + ${u} )`);
+    } else if (B === 0) {
+      lines.push(`F = ( x + ${u} )( ${fmtAx(A)} )`);
+      lines.push(`F = ${fmtAx(A)}( x + ${u} )`);
     }
 
-    return { txt, ref, lines: dedup(lines) };
+    return {txt,ref,lines:dedup(lines)};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  (x+u)((a−c)x+(b−d)) ou k(x+u)"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Attendu : extraction de (x+u) puis regroupement (avec signe « − »)."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines); 
-  mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){ return renderStepsLatex(st?.lines||[]); }
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+  printSolutionPDF(st){
+  var L = Array.isArray(st && st.lines) ? st.lines : (st && st.lines ? [st.lines] : []);
+  if (!L.length) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+
+  var seen = Object.create(null), inner = '';
+  for (var i = 0; i < L.length; i++) {
+    var t = L[i];
+    if (t == null || t === '') continue;
+    t = String(t);
+    if (seen[t]) continue; // évite les doublons
+    seen[t] = true;
+    inner += '<div class="line">' + t + '</div>';
+  }
+
+  if (!inner) {
+    return '<div class="steps"><div class="line">Corrigé indisponible.</div></div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
-/* 8. Mélange — 1re ligne du corrigé : facteur commun en ROUGE (si x², seul le x est coloré) */
+/* 8. Mélange — la 1ʳᵉ ligne du corrigé est l’énoncé avec le facteur commun en ROUGE (x² → x coloré, ² gardé) */
 const ex8={ id:"melange", title:"Sommes / différences factorisables",
   gen(){
     const pat=choice([1,2,3]);
@@ -625,12 +747,12 @@ const ex8={ id:"melange", title:"Sommes / différences factorisables",
 
     if(pat===1){
       const k=choice([2,3,4,5]), u=choice([2,3,4,5,6,7]), b=choice([2,3,4]), c=choice([2,3,4,5,6]);
-      txt=`${k}x( x − ${u} ) − ${2*k}x^2( x − ${u} )( ${b}x − ${c} )`;
+      txt=`${k}x( x − ${u} ) − ${2*k}x²( x − ${u} )( ${b}x − ${c} )`;
       ref=`${k}*x*(x-(${u})) - ${2*k}*x**2*(x-(${u}))*(${b}*x-(${c}))`;
-      const first=`F = ${fc(`${k}x( x − ${u} )`)} − ${2*k}x^2( x − ${u} )( ${b}x − ${c} )`;
+      const first=`F = ${fc(`${k}x( x − ${u} )`)} − ${2*k}x²( x − ${u} )( ${b}x − ${c} )`;
       lines=[ first,
               `F = ${fc(`${k}x( x − ${u} )`)} [ 1 − 2x( ${b}x − ${c} ) ]`,
-              `F = ${fc(`${k}x( x − ${u} )`)} ( 1 − ${2*b}x^2 + ${2*c}x )`];
+              `F = ${fc(`${k}x( x − ${u} )`)} ( 1 − ${2*b}x² + ${2*c}x )`];
 
     }else if(pat===2){
       const a=choice([-4,-3,-2,-1,1,2,3,4]), b=choice([-8,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,8]);
@@ -646,42 +768,64 @@ const ex8={ id:"melange", title:"Sommes / différences factorisables",
     }else{ // pat===3
       const a=choice([1,2,3]), b=choice([-6,-5,-4,-3,-2,-1,1,2,3,4,5,6]);
       const u=choice([-4,-3,-2,-1,1,2,3,4]), v=choice([-4,-3,-2,-1,1,2,3,4]);
-      txt=`x^2( ${a}x ${b>=0?'+':'−'} ${Math.abs(b)} ) + x( x ${u>=0?'+':'−'} ${Math.abs(u)} )( x ${v>=0?'+':'−'} ${Math.abs(v)} )`;
+      txt=`x²( ${a}x ${b>=0?'+':'−'} ${Math.abs(b)} ) + x( x ${u>=0?'+':'−'} ${Math.abs(u)} )( x ${v>=0?'+':'−'} ${Math.abs(v)} )`;
       ref=`x**2*(${a}*x+(${b})) + x*(x+(${u}))*(x+(${v}))`;
+      // Colore uniquement le x de x², garde bien ² ; colore le x factored du second terme (quel que soit le signe)
       const txtFC = txt
-        .replace('x^2', `${fc('x')}^2`)
+        .replace('x²', `${fc('x')}²`)
         .replace(/([+\-])\s*x\(/, (_,s)=> `${s} ${fc('x')}(`);
       const first=`F = ${txtFC}`;
-      const expandUV=`x^2 ${(u+v)>=0?'+':'−'} ${Math.abs(u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
-      const combined=`${a+1}x^2 ${(b+u+v)>=0?'+':'−'} ${Math.abs(b+u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
-      lines=[ first, `F = ${fc('x')} [ ${a}x^2 ${b>=0?'+':'−'} ${Math.abs(b)}x + ${expandUV} ]`, `F = ${fc('x')} ( ${combined} )`];
+      const expandUV=`x² ${(u+v)>=0?'+':'−'} ${Math.abs(u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
+      const combined=`${a+1}x² ${(b+u+v)>=0?'+':'−'} ${Math.abs(b+u+v)}x ${(u*v)>=0?'+':'−'} ${Math.abs(u*v)}`;
+      lines=[ first, `F = ${fc('x')} [ ${a}x² ${b>=0?'+':'−'} ${Math.abs(b)}x + ${expandUV} ]`, `F = ${fc('x')} ( ${combined} )`];
     }
 
     return {txt,ref,lines:dedup(lines)};
   },
-  render(h,st){ renderFrame(h,st.txt,""); },
+  render(h,st){ renderFrame(h,st.txt,"ex.  …"); },
   correct(h,st){ const v=($("#reponse",h).value||"").trim(); const ok=acceptAnyFactorization(v,st.ref);
     $("#res",h).textContent= ok?"✔":"✘ Attendu : extraction d’un facteur pertinent puis simplification."; $("#res",h).className= ok?"res-ok":"res-ko"; return {ok,total:1}; },
-  solution(h,st){ $("#sol",h).innerHTML=renderStepsLatex(st.lines);
-mjxTypeset($("#sol",h));   // ⟵  AJOUT
-  },
-  printSolutionPDF(st){ return renderStepsLatex(st?.lines||[]); }
+  solution(h,st){ $("#sol",h).innerHTML=st.lines.map(t=>`<div class="line">${t}</div>`).join(""); },
+  printSolutionPDF(st){
+  var L = Array.isArray(st && st.lines) ? st.lines
+        : (st && st.lines ? [st.lines] : []);
+  var inner = '';
+
+  if (L.length){
+    var seen = Object.create(null);
+    for (var i = 0; i < L.length; i++){
+      var t = L[i];
+      if (t == null || t === '') continue;
+      t = String(t);
+      if (seen[t]) continue; // évite les doublons éventuels
+      seen[t] = true;
+      inner += '<div class="line">' + t + '</div>';
+    }
+  }
+
+  if (!inner){
+    inner = '<div class="line">Corrigé indisponible.</div>';
+  }
+  return '<div class="steps">' + inner + '</div>';
+}
+
 };
 
-const REGISTRY=[ex1,ex2,ex3,ex4,ex6,ex7,ex8];
+const REGISTRY=[ex1,ex2,ex3,ex4,ex5,ex6,ex7,ex8];
 window.REGISTRY=REGISTRY;
-
-/* Correcteurs « ultime » + rejets spécifiques */
+// Fabrique un correcteur "accepte + signale si non-ultime", avec rejets spécifiques
 function makeCorrector(opts){
   return function(h, st){
     const v = ($("#reponse",h).value||"").trim();
 
+    // 0) Rejet ciblé : réécriture brute de l’énoncé (ex.6/7)
     if (opts && typeof opts.rejectOriginalRewrite === 'function' && opts.rejectOriginalRewrite(v, st)){
       $("#res",h).textContent = "✘ Ce n’est pas une factorisation : tu as réécrit l’énoncé. Extrais d’abord le facteur commun.";
       $("#res",h).className = "res-ko";
       return {ok:false,total:1};
     }
 
+    // 1) Doit être une factorisation équivalente et non triviale
     const okCore = acceptAnyFactorization(v, st.ref);
     if(!okCore){
       $("#res",h).textContent = "✘ Réponse attendue : une forme factorisée équivalente (pas la forme développée, ni 1(…)).";
@@ -689,6 +833,7 @@ function makeCorrector(opts){
       return {ok:false,total:1};
     }
 
+    // 2) Ultime ? (spécifique si fourni, sinon générique)
     const ultime = (opts && typeof opts.customUltimate==='function')
       ? opts.customUltimate(v, st)
       : isUltimateGeneric(v, opts||{});
@@ -699,25 +844,27 @@ function makeCorrector(opts){
   };
 }
 
+// (Ré-)installation des correcteurs pour tous les exos
 (function installUltimateCheck(){
   const OPTS = {
     "facteur-commun": { requireOuterX:true },
     "carre-parfait": {},
     "diff-carres": {},
+    // ex.4 : règle spéciale “x² − n²” (si tu l'as déjà ajoutée)
     "diff-carres-apres-facto": { customUltimate: (typeof isUltimateEx4==='function'? isUltimateEx4 : undefined) },
-
-    // ⟵ ICI : pas d'exigence "ultime"
-    "regroup-somme": { rejectOriginalRewrite: isRewriteOriginalEx6, customUltimate: ()=>true },
-    "regroup-diff":  { rejectOriginalRewrite: isRewriteOriginalEx7, customUltimate: ()=>true },
-    "melange":       { customUltimate: ()=>true },
-
-    "trinome-hors": {}
+    // ⬇️ refus explicite de la réécriture brute
+    "regroup-somme": { rejectOriginalRewrite: isRewriteOriginalEx6 },
+    "regroup-diff":  { rejectOriginalRewrite: isRewriteOriginalEx7 },
+    "trinome-hors": {},
+    "melange": {}
   };
+
   (window.REGISTRY||REGISTRY).forEach(ex=>{
     const opts = OPTS[ex.id] || {};
     ex.correct = makeCorrector(opts);
   });
 })();
+
 
 
 /* ==== Orchestration ==== */
@@ -734,8 +881,7 @@ document.addEventListener('DOMContentLoaded',function(){
   sel.addEventListener('change',buildOne);
 
   // carrés utiles
-  const sbox=$("#squares-host"); const items=[]; for(let n=0;n<=20;n++){items.push(`<div class="sqbox">\\( ${n}^2 = ${n*n} \\)</div>`);} sbox.innerHTML=items.join("");
-mjxTypeset(sbox);   // ⟵  AJOUT
+  const sbox=$("#squares-host"); const items=[]; for(let n=0;n<=20;n++){items.push(`<div class="sqbox">${n}<sup>2</sup> = ${n*n}</div>`);} sbox.innerHTML=items.join("");
 
   $("#btn-new").addEventListener('click',buildOne);
   $("#btn-check").addEventListener('click',check);
@@ -748,7 +894,7 @@ mjxTypeset(sbox);   // ⟵  AJOUT
 </script>
 
 <!-- Générateur de fiches PDF -->
-<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   if(window.ExoPDF && ExoPDF.init){
@@ -760,9 +906,11 @@ document.addEventListener('DOMContentLoaded',function(){
       beforeRender:function(def,st,withSolutions){
         if(!withSolutions){
           const txt=(st&&st.txt?String(st.txt):'').replace(/<[^>]+>/g,'');
-          return {statement:`\\( F = ${toTex(txt)} \\)`};
+          return {statement:`F = ${txt}`};
         }
+        // si l’exo expose une version PDF dédiée (tableaux resserrés, alignés à gauche)
         if(typeof def.printSolutionPDF==='function'){ return {solution:def.printSolutionPDF(st)}; }
+        // sinon on rend la solution telle quelle (conserve le rouge pour l’énoncé de l’ex. 8)
         try{
           const tmp=document.createElement('div'); def.render(tmp,st);
           if(typeof def.solution==='function') def.solution(tmp,st);
@@ -783,30 +931,32 @@ document.addEventListener('DOMContentLoaded',function(){
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
-  // 1) Barre d’actions mobile
+  // 1) Barre d’actions mobile (clones des boutons existants)
   if (window.innerWidth <= 760) {
     const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-        const src = document.querySelector(sel);
-        if (src) {
-          const clone = src.cloneNode(true);
-          clone.classList.add('btn');
-          clone.type = 'button';
-          clone.removeAttribute('id');
-          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-          bar.appendChild(clone);
-        } else {
-          const fallback = document.createElement('button');
-          fallback.className = 'btn';
-          fallback.type = 'button';
-          fallback.textContent = label;
-          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-          bar.appendChild(fallback);
-        }
-      });
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
       document.body.appendChild(bar);
     }
   }
@@ -828,10 +978,11 @@ document.addEventListener('DOMContentLoaded', () => {
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 
-  // 4) Points à déplacer (si jamais il y en avait)
+  // 4) Points à déplacer : rayon + touche
   if (coarse) {
     document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
       const r = parseFloat(c.getAttribute('r')||'5');

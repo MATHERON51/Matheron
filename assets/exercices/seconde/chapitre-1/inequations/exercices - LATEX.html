@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Chapitre 1 – Inéquations (1er degré) – Exercices (LaTeX)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;overflow-x:auto}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dadada;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap}
+.small{font-size:.92rem;color:#666}
+
+/* grille : énoncé + saisie en ligne 1, corrigé plein largeur en dessous */
+.row{
+  display:grid;
+  grid-template-columns:1fr minmax(240px,320px);
+  grid-template-areas:
+    'lab inp'
+    'res res';
+  gap:10px;
+  align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row input[type=text]{grid-area:inp}
+.row #res{grid-area:res;margin-top:2px}
+
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
+.hint{opacity:.85;margin:.2rem 0 .6rem}
+
+/* Bloc étapes */
+.steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.2rem 0; white-space:nowrap}
+
+/* === Bloc .equ-offscreen : ENONCÉ complet (consigne + équation) pour le PDF === */
+@media screen{
+  .equ-offscreen{position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+}
+@media print{
+  .hint{display:none !important;} /* pas de doublon de consigne */
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+}
+.equ-offscreen .consigne{margin-bottom:6px;font-weight:600}
+</style>
+
+<!-- MathJax config (réutilise le modèle "exercices - LATEX.html") -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [["\\(","\\)"], ["$", "$"]],
+      displayMath: [["\\[","\\]"], ["$$","$$"]],
+      processEscapes: true,
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] } // \frac -> \dfrac pour un rendu lisible
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight: false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 1 – <strong>Inéquations (1er degré)</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul style="margin:8px 0 0 18px">
+        <li>Règle : Lorsque l'on multiplie ou divise par un nombre négatif, <strong>on change le sens de l’inégalité</strong>.</li>
+        <li>Règle : Diviser par une fraction \(\frac{a}{b}\) revient à multiplier par son inverse \(\frac{b}{a}\).</li>
+        <li>Inégalité : tape <span class="code">x &gt;= -2/3</span>, <span class="code">x &lt; 5</span>, <span class="code">x &lt;= 1.5</span>…</li>
+        <li>Ensemble : \(S = ]-\infty ; -\tfrac{2}{3}]\), \(S = ]-\infty ; \tfrac{3}{2}[\), \([a ; b]\) acceptés ; séparateur <code>;</code> ou <code>,</code>.</li>
+        <li>Fractions au clavier : tape <code>a/b</code> (elles s’affichent en « pile » dans l’énoncé / la solution).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<script>
+(function(){'use strict';
+/* ===== util DOM ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== MathJax helper ===== */
+function typesetAll(root){
+  const run = () => MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+    MathJax.startup.promise.then(run);
+  } else {
+    const t = setInterval(()=>{ if(window.MathJax && MathJax.startup && MathJax.typesetPromise){ clearInterval(t); run(); } }, 60);
+  }
+}
+const L = s => `\\(${s}\\)`; // wrap in inline LaTeX
+
+/* ========= Rationnels ========= */
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function norm(p,q){ if(q===0) throw new Error("denominator 0"); let g=gcd(p,q); p/=g; q/=g; if(q<0){ p=-p; q=-q; } return {p,q}; }
+function addR(A,B){ return norm(A.p*B.q + B.p*A.q, A.q*B.q); }
+function subR(A,B){ return norm(A.p*B.q - B.p*A.q, A.q*B.q); }
+function mulR(A,B){ return norm(A.p*B.p, A.q*B.q); }
+function divR(A,B){ if(B.p===0) throw new Error("div by 0"); return norm(A.p*B.q, A.q*B.p); }
+function isZero(R){ return R.p===0; }
+function toNumber(R){ return R.p / R.q; }
+function makeR(p,q){ return norm(p,q||1); }
+function absR(R){ return makeR(Math.abs(R.p), R.q); }
+function quotientRaw(N,D){
+  let num = N.p * D.q;
+  let den = N.q * D.p;
+  // ⟵ Cas voulu : afficher 0/(-8)
+  if (num === 0) return { p: 0, q: den };
+  // Sinon on garde la normalisation usuelle (denominateur > 0)
+  if (den < 0){ num = -num; den = -den; }
+  return { p: num, q: den };
+}
+function needsSimplify(fr){ return gcd(Math.abs(fr.p), Math.abs(fr.q)) > 1; }
+
+/* ========= Affichages LaTeX ========= */
+function fracLatex(p,q){
+  if (q === 1) return String(p);           // entier
+  if (p === 0) return `\\frac{0}{${q}}`;   // ⟵ garde le signe du dénominateur
+  const neg = (p < 0) !== (q < 0);
+  p = Math.abs(p); q = Math.abs(q);
+  return (neg ? '-' : '') + `\\frac{${p}}{${q}}`;
+}
+
+function fracOf(numLatex, denLatex){ return `\\frac{${numLatex}}{${denLatex}}`; }
+function isOne(R){ return R.q===1 && R.p===1; }
+function isNegOne(R){ return R.q===1 && R.p===-1; }
+function fmtCoeffXLatex(A){ if(isOne(A)) return 'x'; if(isNegOne(A)) return '-x'; return `${fracLatex(A.p,A.q)}x`; }
+function fmtConstLatex(B){ return fracLatex(B.p,B.q); }
+function fmtSignedConstLatex(B){ if(isZero(B)) return ""; const abs=absR(B); const core=fmtConstLatex(abs); return (B.p>0?" + ":" - ") + core.replace(/^-/, ''); }
+function sideLatex(A,B){ return fmtCoeffXLatex(A) + fmtSignedConstLatex(B); }
+function fracExprLatex(numerLatex, denLatex){ return `\\frac{${numerLatex}}{${denLatex}}`; }
+
+/* ========= Parsing réponses ========= */
+function parseNumberOrFrac(str){
+  if(!str) return null;
+  let s = str.trim().replace(/\u2212/g,'-');
+  if(/^[-+]?(\d+([.,]\d+)?|\d*[.,]\d+)$/.test(s)){ s=s.replace(',', '.'); return parseFloat(s); }
+  const m = s.match(/^([-+]?\d+)\s*\/\s*([-+]?\d+)$/);
+  if(m){ const p = parseInt(m[1],10), q = parseInt(m[2],10); if(q===0) return null; return p/q; }
+  return null;
+}
+function sameNumber(a,b){ const na=Number(a), nb=Number(b); if(!isFinite(na)||!isFinite(nb)) return false; return Math.abs(na-nb) < 1e-9; }
+
+function parseIneq(str){
+  if(!str) return null;
+  let s = str.trim().replace(/\s+/g,'').replace(/^x=/i,'').replace(/^x/i,'x');
+  s = s.replace(/<=/g,'≤').replace(/>=/g,'≥');
+  const m = s.match(/^x(≤|≥|<|>)(.+)$/i);
+  if(!m) return null;
+  const op = m[1];
+  const v  = parseNumberOrFrac(m[2]); if(v===null) return null;
+  return {op, val: v};
+}
+function parseInterval(str){
+  if(!str) return null;
+  let s = String(str).trim();
+  s = s.replace(/\s+/g,'').replace(/^S=/i,'');
+  s = s.replace(/\(/g,']').replace(/\)/g,'[').replace(/,/g,';');
+  s = s.replace(/\u2212/g,'−');
+  s = s.replace(/[-−]\s*∞/g,'−∞');
+  s = s.replace(/-\s*oo/gi,'−∞').replace(/\+\s*oo/gi,'+∞').replace(/-\s*inf(?:inity|ty)?/gi,'−∞').replace(/\+\s*inf(?:inity|ty)?/gi,'+∞').replace(/oo/gi,'∞');
+  const m = s.match(/^([\[\]])([^;]+);([^ \[\]]+)([\[\]])$/);
+  if(!m) return null;
+  const leftB = m[1], a = m[2], b = m[3], rightB = m[4];
+  const leftOpen  = (leftB === ']');
+  const rightOpen = (rightB === '[');
+  const leftInf   = (a === '−∞');
+  const rightInf  = (b === '+∞' || b === '∞');
+  let leftVal = null, rightVal = null;
+  if(!leftInf){ const v = parseNumberOrFrac(a); if(v===null) return null; leftVal = v; }
+  if(!rightInf){ const v = parseNumberOrFrac(b); if(v===null) return null; rightVal = v; }
+  return {leftOpen, rightOpen, leftInf, rightInf, leftVal, rightVal};
+}
+
+/* ========= Construction solution canonique ========= */
+const invert = {'<':'>','>':'<','≤':'≥','≥':'≤'};
+function cmpIneq(a,b){ return a && b && a.op===b.op && sameNumber(a.val,b.val); }
+
+function canonFromBound(op, R){
+  const boundTex = fmtConstLatex(R);
+  const boundTxt = (R.q===1 ? String(R.p) : `${R.p}/${R.q}`);
+  const val = toNumber(R);
+  const ineqLatex = `x ${op} ${boundTex}`;
+  const ineqText  = `x ${op} ${boundTxt}`;
+  let intervalLatex, intervalText, intervalObj;
+  if(op === '>'){
+    intervalLatex = `S = ] ${boundTex} ; +\\infty [`;
+    intervalText  = `S = ]${boundTxt} ; +∞[`;
+    intervalObj   = {leftOpen:true,leftInf:false,leftVal:val,rightOpen:true,rightInf:true};
+  }
+  if(op === '≥'){
+    intervalLatex = `S = [ ${boundTex} ; +\\infty [`;
+    intervalText  = `S = [${boundTxt} ; +∞[`;
+    intervalObj   = {leftOpen:false,leftInf:false,leftVal:val,rightOpen:true,rightInf:true};
+  }
+  if(op === '<'){
+    intervalLatex = `S = ] -\\infty ; ${boundTex} [`;
+    intervalText  = `S = ]−∞ ; ${boundTxt}[`;
+    intervalObj   = {leftOpen:true,leftInf:true,rightOpen:true,rightInf:false,rightVal:val};
+  }
+  if(op === '≤'){
+    intervalLatex = `S = ] -\\infty ; ${boundTex} ]`;
+    intervalText  = `S = ]−∞ ; ${boundTxt}]`;
+    intervalObj   = {leftOpen:true,leftInf:true,rightOpen:false,rightInf:false,rightVal:val};
+  }
+  return {ineqLatex, ineqText, ineqObj:{op, val}, intervalLatex, intervalText, intervalObj};
+}
+function intervalToString(obj){
+  const L = obj.leftInf ? '−∞' : (Number.isInteger(obj.leftVal)? String(obj.leftVal): String(obj.leftVal));
+  const R = obj.rightInf? '+∞' : (Number.isInteger(obj.rightVal)? String(obj.rightVal): String(obj.rightVal));
+  const lb = obj.leftOpen? ']' : '[';
+  const rb = obj.rightOpen? '[' : ']';
+  return `S = ${lb}${L} ; ${R}${rb}`;
+}
+function cmpInterval(ans, exp){
+  if(!ans || !exp) return false;
+  if(!!ans.leftInf !== !!exp.leftInf) return false;
+  if(!!ans.rightInf !== !!exp.rightInf) return false;
+  if(!ans.leftInf && !sameNumber(ans.leftVal, exp.leftVal)) return false;
+  if(!ans.rightInf && !sameNumber(ans.rightVal, exp.rightVal)) return false;
+  return (ans.leftOpen===exp.leftOpen) && (ans.rightOpen===exp.rightOpen);
+}
+
+/* ========= Rendu / correction ========= */
+// Affiche l'étape de multiplication par l'inverse; si le membre droit est 0, on évite le "\times"
+function stepMulInverse(op, rightR, coefR){
+  // Si le membre droit vaut 0, inutile d'afficher le \times
+  if(rightR && rightR.p===0) return L(`x ${op} 0`);
+  const inv = fracLatex(coefR.q, coefR.p);
+  const invPrint = (coefR.p < 0 ? `\\left(${inv}\\right)` : inv);
+  return L(`x ${op} ${fmtConstLatex(rightR)} \\times ${invPrint}`);
+}
+// Étape supplémentaire : écrire la division brute par le coefficient
+function stepDivideRaw(op, rightR, coefR){
+  // On veut exactement num/den, y compris un dénominateur négatif (ex : -14/-3, 0/-8)
+  return L(`x ${op} ${fracOf(fmtConstLatex(rightR), fmtConstLatex(coefR))}`);
+}
+
+function renderTwoAnswers(host, latexIneq){
+  host.innerHTML="";
+  const hint=document.createElement('p'); hint.className="hint"; hint.textContent="Consigne : Résoudre l’inéquation."; host.appendChild(hint);
+  const off=document.createElement('div'); off.className="equ-offscreen";
+  off.innerHTML='<div class="consigne">Résoudre l’inéquation.</div>' + `<div class="equation">${L(latexIneq)}</div>`;
+  host.appendChild(off);
+
+  const row1=document.createElement("div"); row1.className="row";
+  const lab1=document.createElement("div"); lab1.className="col-label"; lab1.innerHTML=L(latexIneq); row1.appendChild(lab1);
+  const inp1=document.createElement("input"); inp1.type="text"; inp1.id="reponseIneq"; inp1.placeholder="x ≤ …  |  x ≥ …  |  x < …  |  x > …"; row1.appendChild(inp1);
+  const res1=document.createElement("div"); res1.id="resIneq"; row1.appendChild(res1);
+  host.appendChild(row1);
+
+  const row2=document.createElement("div"); row2.className="row";
+  const lab2=document.createElement("div"); lab2.className="col-label"; lab2.textContent="Ensemble solution :"; row2.appendChild(lab2);
+  const inp2=document.createElement("input"); inp2.type="text"; inp2.id="reponseSet"; inp2.placeholder="S = ]−∞; 3[  |  S = [a; b]"; row2.appendChild(inp2);
+  const res2=document.createElement("div"); res2.id="resSet"; row2.appendChild(res2);
+  host.appendChild(row2);
+
+  typesetAll(host);
+}
+
+/* ========= Utilitaires étapes ========= */
+function stepKey(s){ return String(s).replace(/<[^>]*>/g,'').replace(/\\\(|\\\)/g,'').replace(/\s+/g,' ').trim(); }
+function dedupSteps(arr){ const out=[], seen=new Set(); for(const s of arr){ const k=stepKey(s); if(!seen.has(k)){ seen.add(k); out.push(s); } } return out; }
+
+/* ========= Types d’exercices ========= */
+function randOp(){ return choice(['<','>','≤','≥']); }
+
+/* 1) ax + b ? c */
+const ex1 = {
+  id:"ineq_simple",
+  title:"Résoudre : ax + b ? c",
+  gen(){
+    let a=0; while(a===0) a=rnd(-9,9);
+    const b=rnd(-12,12), c=rnd(-12,12), op=randOp();
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1);
+    const rhs = subR(C,B); // c - b
+    let finalOp = (A.p<0? invert[op]:op);
+    const frac = quotientRaw(rhs, A);
+    const solR = divR(rhs, A);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,op, rhs, Aneg:(A.p<0), finalOp, frac, solR, canon};
+  },
+  text(st){ return `${sideLatex(st.A,st.B)} ${st.op} ${fmtConstLatex(st.C)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct(host, st){
+    const ie = parseIneq($("#reponseIneq",host).value);
+    const se = parseInterval($("#reponseSet",host).value);
+    const okI = cmpIneq(ie, st.canon.ineqObj);
+    const okS = cmpInterval(se, st.canon.intervalObj);
+    $("#resIneq",host).innerHTML = okI ? "✔" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : `✘ (attendu : ${L(st.canon.ineqLatex)})` );
+    $("#resIneq",host).className = okI ? "res-ok" : ( ($("#reponseIneq",host).value.trim()==="") ? "" : "res-ko" );
+    $("#resSet",host).innerHTML  = okS ? "✔" : ( ($("#reponseSet",host).value.trim()==="") ? "" : `✘ (attendu : ${L(st.canon.intervalLatex)})` );
+    $("#resSet",host).className  = okS ? "res-ok" : ( ($("#reponseSet",host).value.trim()==="") ? "" : "res-ko" );
+    typesetAll(host);
+    return {ok: okI && okS, total: 2};
+  },
+  solution(host, st){
+    const steps=[];
+    steps.push(L(`${sideLatex(st.A,st.B)} ${st.op} ${fmtConstLatex(st.C)}`));
+    if(!isZero(st.B)) steps.push(L(`${fmtCoeffXLatex(st.A)} ${st.op} ${fmtConstLatex(st.C)} ${st.B.p>0? ' - ' : ' + '}${fmtConstLatex(absR(st.B))}`));
+    steps.push(L(`${fmtCoeffXLatex(st.A)} ${st.op} ${fmtConstLatex(st.rhs)}`));
+    if(st.Aneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.A) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+    if(st.A && st.A.q && ((st.A.q!==1) || (st.rhs && st.rhs.q && st.rhs.q!==1)) && !(st.A.p===1 && st.A.q===1)){
+      steps.push(stepMulInverse(st.finalOp, st.rhs, st.A));
+    }
+	// juste avant: if(st.A && st.A.q ...){ steps.push(stepMulInverse(...)) }
+if(!(st.A.p===1 && st.A.q===1)){           // inutile si a = 1
+  steps.push(stepDivideRaw(st.finalOp, st.rhs, st.A));  // ⟵ x ≥ -14/-3 par ex.
+}
+steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`)); // x ≥ 14/3
+
+    if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    steps.push(L(st.canon.intervalLatex));
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html; typesetAll($("#resSet",host));
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset(host){ const st=JSON.parse(host.dataset.state||"{}"); if(st&&st.canon){ $("#reponseIneq",host).value=st.canon.ineqText; $("#reponseSet",host).value=st.canon.intervalText; } $("#resIneq",host).textContent=""; $("#resSet",host).textContent=""; }
+};
+
+/* 2) ax + b ? cx + d */
+const ex2 = {
+  id:"ineq_two_sides",
+  title:"Résoudre : ax + b ? cx + d",
+  gen(){
+    let a=0,c=0; while(a===0) a=rnd(-8,8); while(c===0||c===a) c=rnd(-8,8);
+    const b=rnd(-12,12), d=rnd(-12,12), op=randOp();
+    const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1), D=makeR(d,1);
+    const Ld = subR(A,C);     // a-c
+    const Rd = subR(D,B);     // d-b
+    let finalOp = (Ld.p<0? invert[op]:op);
+    const frac = quotientRaw(Rd, Ld);
+    const solR = divR(Rd, Ld);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,D,op,L:Ld,Rr:Rd, Lneg:(Ld.p<0), finalOp, frac, solR, canon};
+  },
+  text(st){ return `${sideLatex(st.A,st.B)} ${st.op} ${sideLatex(st.C,st.D)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const steps=[];
+    steps.push(L(`${sideLatex(st.A,st.B)} ${st.op} ${sideLatex(st.C,st.D)}`));
+    steps.push(L(`${fmtCoeffXLatex(st.A)}${isZero(st.C)? '' : (st.C.p>0? ' - ' : ' + ')+fmtCoeffXLatex(absR(st.C))} ${st.op} ${fmtConstLatex(st.D)}${isZero(st.B)? '' : (st.B.p>0? ' - ' : ' + ')+fmtConstLatex(absR(st.B))}`));
+    steps.push(L(`${fmtCoeffXLatex(st.L)} ${st.op} ${fmtConstLatex(st.Rr)}`));
+    if(st.Lneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.L) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){
+      steps.push(stepMulInverse(st.finalOp, st.Rr, st.L));
+    }
+if(!(st.L.p===1 && st.L.q===1)){
+  steps.push(stepDivideRaw(st.finalOp, st.Rr, st.L));
+}
+steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`));
+    if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    steps.push(L(st.canon.intervalLatex));
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html; typesetAll($("#resSet",host));
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset: ex1.reset
+};
+
+/* 3) a(x+b) ? c   et   a(x+b) ? c(x+d)+e */
+const ex3 = {
+  id:"ineq_parentheses",
+  title:"Résoudre avec parenthèses",
+  gen(){
+    const mode = choice(['one','two']);
+    const op=randOp();
+    if(mode==='one'){
+      let a=0; while(a===0) a=rnd(-6,6);
+      const b=rnd(-6,6), c=rnd(-18,18);
+      const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1);
+      const ab = mulR(A,B);
+      const rhs = subR(C, ab);          // c - ab
+      let finalOp = (A.p<0? invert[op]:op);
+      const frac = quotientRaw(rhs, A);
+      const solR = divR(rhs, A);
+      const canon = canonFromBound(finalOp, solR);
+      return {fmt:'one', A,B,C, op, ab, rhs, Aneg:(A.p<0), finalOp, frac, solR, canon};
+    } else {
+      let a=0,c=0; while(a===0) a=rnd(-6,6); while(c===0||c===a) c=rnd(-6,6);
+      const b=rnd(-6,6), d=rnd(-6,6), e=rnd(-10,10);
+      const A=makeR(a,1), B=makeR(b,1), C=makeR(c,1), D=makeR(d,1), E=makeR(e,1);
+      const left  = mulR(A,B);           // ab
+      const cd    = mulR(C,D);
+      const right = addR(cd, E);         // cd + e
+      const L = subR(A,C);               // a-c
+      const Rr= subR(right, left);       // (cd+e) - ab
+      let finalOp = (L.p<0? invert[op]:op);
+      const frac = quotientRaw(Rr, L);
+      const solR = divR(Rr, L);
+      const canon = canonFromBound(finalOp, solR);
+      return {fmt:'two', A,B,C,D,E, left, cd, right, L, Rr, op, Lneg:(L.p<0), finalOp, frac, solR, canon};
+    }
+  },
+  text(st){
+    if(st.fmt==='one') return `${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${fmtConstLatex(st.C)}`;
+    const left = `${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)})`;
+    const right = `${st.C.p}(x ${st.D.p>=0?'+':'-'} ${Math.abs(st.D.p)})${st.E.p===0?'':(st.E.p>0?' + '+st.E.p:' - '+Math.abs(st.E.p))}`;
+    return `${left} ${st.op} ${right}`;
+  },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const steps=[];
+    if(st.fmt==='one'){
+      const AB = mulR(st.A,st.B);
+      steps.push(L(`${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${fmtConstLatex(st.C)}`));
+      // Développement : ax + ab (signe géré)
+      steps.push(L(`${fmtCoeffXLatex(st.A)}${fmtSignedConstLatex(AB)} ${st.op} ${fmtConstLatex(st.C)}`));
+      // Passage du terme constant de l'autre côté : C ± |ab|
+      steps.push(L(`${fmtCoeffXLatex(st.A)} ${st.op} ${fmtConstLatex(st.C)} ${AB.p>0 ? ' - ' : ' + '}${fmtConstLatex(absR(AB))}`));
+      steps.push(L(`${fmtCoeffXLatex(st.A)} ${st.op} ${fmtConstLatex(st.rhs)}`));
+      if(st.Aneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.A) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+      if(st.A && st.A.q && ((st.A.q!==1) || (st.rhs && st.rhs.q && st.rhs.q!==1)) && !(st.A.p===1 && st.A.q===1)){
+        steps.push(stepMulInverse(st.finalOp, st.rhs, st.A));
+      }
+if(!(st.A.p===1 && st.A.q===1)){
+  steps.push(stepDivideRaw(st.finalOp, st.rhs, st.A));
+}
+steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`));
+      if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    } else {
+      const AB = st.left; // ab
+      const CD = st.cd;   // cd
+      steps.push(L(`${st.A.p}(x ${st.B.p>=0?'+':'-'} ${Math.abs(st.B.p)}) ${st.op} ${st.C.p}(x ${st.D.p>=0?'+':'-'} ${Math.abs(st.D.p)})${st.E.p===0?'':(st.E.p>0?' + '+st.E.p:' - '+Math.abs(st.E.p))}`));
+      // Développements avec signes
+      steps.push(L(`${fmtCoeffXLatex(st.A)}${fmtSignedConstLatex(AB)} ${st.op} ${fmtCoeffXLatex(st.C)}${fmtSignedConstLatex(CD)} ${st.E.p===0?'':(st.E.p>0?' + '+fmtConstLatex(st.E):' - '+fmtConstLatex(absR(st.E)))}`));
+      // Regroupements : (A - C)x d’un côté, constantes de l’autre, et signe de -ab géré
+      steps.push(L(`${fmtCoeffXLatex(subR(st.A,st.C))} ${st.op} ${fmtConstLatex(CD)} ${st.E.p===0?'':(st.E.p>0?' + '+fmtConstLatex(st.E):' - '+fmtConstLatex(absR(st.E)))} ${AB.p>0?' - ':' + '}${fmtConstLatex(absR(AB))}`));
+      steps.push(L(`${fmtCoeffXLatex(st.L)} ${st.op} ${fmtConstLatex(st.Rr)}`));
+      if(st.Lneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.L) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+      if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){
+        steps.push(stepMulInverse(st.finalOp, st.Rr, st.L));
+      }
+if(!(st.L.p===1 && st.L.q===1)){
+  steps.push(stepDivideRaw(st.finalOp, st.Rr, st.L));
+}
+steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`));
+      if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    }
+    steps.push(L(st.canon.intervalLatex));
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html; typesetAll($("#resSet",host));
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset: ex1.reset
+};
+
+/* 4) (px+q)/m ? (rx+s)/n */
+const ex4 = {
+  id:"ineq_fractions",
+  title:"Inéquations avec fractions (formes rationnelles)",
+  gen(){
+    const m=choice([2,3,4,5,6]), n=choice([2,3,4,5,6]), op=randOp();
+    let p=0,r=0; while(p===0) p=rnd(-6,6); while(r===0) r=rnd(-6,6);
+    const q=rnd(-8,8), s=rnd(-8,8);
+    const M=makeR(m,1), N=makeR(n,1), P=makeR(p,1), Q=makeR(q,1), R=makeR(r,1), S0=makeR(s,1);
+    const Ld = subR( mulR(N,P), mulR(M,R) ); // Np - Mr
+    const Rd = subR( mulR(M,S0), mulR(N,Q) ); // Ms - Nq
+    let finalOp = (Ld.p<0? invert[op]:op);
+    const solR = divR(Rd, Ld);
+    const frac = quotientRaw(Rd, Ld);
+    const canon = canonFromBound(finalOp, solR);
+    return {M,N,P,Q,R,S0, op, L:Ld,Rr:Rd, Lneg:(Ld.p<0), finalOp, solR, frac, canon};
+  },
+  text(st){
+    const leftNum  = st.Q.p===0 ? fmtCoeffXLatex(st.P) : (fmtCoeffXLatex(st.P) + (st.Q.p>0? ` + ${fmtConstLatex(st.Q)}` : ` - ${fmtConstLatex(absR(st.Q))}`));
+    const rightNum = st.S0.p===0? fmtCoeffXLatex(st.R) : (fmtCoeffXLatex(st.R) + (st.S0.p>0? ` + ${fmtConstLatex(st.S0)}` : ` - ${fmtConstLatex(absR(st.S0))}`));
+    return `${fracExprLatex(leftNum, st.M.p)} ${st.op} ${fracExprLatex(rightNum, st.N.p)}`;
+  },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const steps=[];
+    steps.push(L(this.text(st)));
+    steps.push(L(`${st.N.p}( ${fmtCoeffXLatex(st.P)} ${st.Q.p===0?'':(st.Q.p>0?' + ':' - ')+fmtConstLatex(absR(st.Q))} ) ${st.op} ${st.M.p}( ${fmtCoeffXLatex(st.R)} ${st.S0.p===0?'':(st.S0.p>0?' + ':' - ')+fmtConstLatex(absR(st.S0))} )`));
+    steps.push(L(`${fmtConstLatex(mulR(st.N,st.P))}x ${fmtSignedConstLatex(mulR(st.N,st.Q))} ${st.op} ${fmtConstLatex(mulR(st.M,st.R))}x ${fmtSignedConstLatex(mulR(st.M,st.S0))}`));
+    steps.push(L(`${fmtCoeffXLatex(st.L)} ${st.op} ${fmtConstLatex(st.Rr)}`));
+    if(st.Lneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.L) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){
+      steps.push(stepMulInverse(st.finalOp, st.Rr, st.L));
+    }
+if(!(st.L.p===1 && st.L.q===1)){
+  steps.push(stepDivideRaw(st.finalOp, st.Rr, st.L));
+}
+steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`));
+    if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    steps.push(L(st.canon.intervalLatex));
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html; typesetAll($("#resSet",host));
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset: ex1.reset
+};
+
+/* 5) ax + b ? cx + d (coeffs entiers OU fractions ; a ≠ c) */
+const ex5 = {
+  id:"ineq_two_sides_rational",
+  title:"ax + b ? cx + d (coefficients entiers ou fractions)",
+  gen(){
+    function randRational(opts={allowZero:true}){
+      const isFrac = Math.random()<0.45;
+      if(!isFrac){
+        let v = opts.allowZero ? rnd(-9,9) : (function(){let x=0;while(x===0) x=rnd(-9,9); return x;})();
+        return makeR(v,1);
+      }
+      const d = choice([2,3,4,5,6]);
+      const n = opts.allowZero ? rnd(-9,9) : (function(){let x=0;while(x===0) x=rnd(-9,9); return x;})();
+      return makeR(n,d);
+    }
+    let A=randRational({allowZero:false}), C=randRational({allowZero:false});
+    while(A.p===C.p && A.q===C.q){ C=randRational({allowZero:false}); }
+    const B=randRational(), D=randRational(), op=randOp();
+    const Ld=subR(A,C), Rd=subR(D,B);
+    let finalOp = (Ld.p<0? invert[op]:op);
+    const solR = divR(Rd, Ld);
+    const frac = quotientRaw(Rd, Ld);
+    const canon = canonFromBound(finalOp, solR);
+    return {A,B,C,D,op,L:Ld,Rr:Rd, Lneg:(Ld.p<0), finalOp, solR, frac, canon};
+  },
+  text(st){ return `${sideLatex(st.A,st.B)} ${st.op} ${sideLatex(st.C,st.D)}`; },
+  render(host, st){ renderTwoAnswers(host, this.text(st)); },
+  correct: ex1.correct,
+  solution(host, st){
+    const steps=[];
+    steps.push(L(`${sideLatex(st.A,st.B)} ${st.op} ${sideLatex(st.C,st.D)}`));
+    steps.push(L(`${fmtCoeffXLatex(st.A)}${isZero(st.C)? '' : (st.C.p>0? ' - ' : ' + ')+fmtCoeffXLatex(absR(st.C))} ${st.op} ${fmtConstLatex(st.D)}${isZero(st.B)? '' : (st.B.p>0? ' - ' : ' + ')+fmtConstLatex(absR(st.B))}`));
+    steps.push(L(`${fmtCoeffXLatex(st.L)} ${st.op} ${fmtConstLatex(st.Rr)}`));
+    if(st.Lneg) steps.push('<div class="hint">Comme ' + L(fmtConstLatex(st.L) + ' < 0') + ', on change le sens de l’inégalité.</div>');
+    if(st.L && st.L.q && ((st.L.q!==1) || (st.Rr && st.Rr.q && st.Rr.q!==1)) && !(st.L.p===1 && st.L.q===1)){
+      steps.push(stepMulInverse(st.finalOp, st.Rr, st.L));
+    }
+    steps.push(L(`x ${st.finalOp} ${fracLatex(st.frac.p, st.frac.q)}`));
+    if(needsSimplify(st.frac)) steps.push(L(`x ${st.finalOp} ${fracLatex(st.solR.p, st.solR.q)}`));
+    steps.push(L(st.canon.intervalLatex));
+    const _steps = dedupSteps(steps);
+    const html = `<div class="steps">${_steps.map(s=>`<div class="step">${s}</div>`).join("")}</div>`;
+    $("#resSet",host).innerHTML = html; typesetAll($("#resSet",host));
+    $("#reponseIneq",host).value = st.canon.ineqText;
+    $("#reponseSet",host).value  = st.canon.intervalText;
+  },
+  reset: ex1.reset
+};
+
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY; // pour exo-pdf-kit
+
+/* ========= Score & actions ========= */
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+
+function buildOne(){
+  const sel=$("#exo-select"), host=$("#host");
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const inp = $("#reponseIneq",host); if(inp) inp.focus();
+}
+function check(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  const r=def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  const st=JSON.parse(host.dataset.state||"{}");
+  def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$("#host");
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(def){ def.reset(host); typesetAll(host); }
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  const sel=$("#exo-select");
+  REGISTRY.forEach(e=>{ const o=document.createElement("option"); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener("change", buildOne);
+  $("#btn-new").addEventListener("click", buildOne);
+  $("#btn-check").addEventListener("click", check);
+  $("#btn-solution").addEventListener("click", solution);
+  $("#btn-reset").addEventListener("click", resetAll);
+  sel.value = REGISTRY[0].id;
+  buildOne(); updateScore();
+});
+})();
+</script>
+
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: 'Seconde – Chapitre 1 – Inéquations du premier degré',
+      max: 50,
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, withSolutions){
+        try{
+          const tmp = document.createElement('div');
+          tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+          def.render(tmp, st);
+          if(!withSolutions){
+            const equ = tmp.querySelector('.equ-offscreen');
+            if(equ) return equ.outerHTML;
+            return tmp.innerHTML;
+          }else{
+            if(typeof def.solution==='function'){ def.solution(tmp, st); }
+            const steps = tmp.querySelector('.steps');
+            if(steps) return steps.outerHTML;
+            return tmp.innerHTML;
+          }
+        }catch(e){ return null; }
+      }
+    });
+  }
+  // Normalisation Unicode après chargement des libs
+  if (window.DevRules && DevRules.attachCleaner) DevRules.attachCleaner();
+});
+</script>
+
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type = 'button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className = 'btn';
+          fallback.type = 'button';
+          fallback.textContent = label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+</body>
+</html>

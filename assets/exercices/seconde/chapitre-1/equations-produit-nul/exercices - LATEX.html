@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Seconde – Chapitre 1 – Équations produit (produit nul) – Exercices</title>
+<title>Seconde – Chapitre 1 – Équations produit (produit nul) – Exercices (LaTeX)</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -37,14 +38,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .res-ok{color:#11823b;font-weight:700}
 .res-ko{color:#b00020;font-weight:700}
 .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
-.equ{font-weight:600}
-.hint{opacity:.85;margin:.2rem 0 .6rem}
-
-/* Fractions “pile” (sans LaTeX) */
-.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
-.frac .num,.frac .den{padding:0 .2em; white-space:nowrap}
-.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
-.frac-sign{margin-right:.15em}
 
 /* Bloc étapes : une égalité par ligne, éviter les retours qui cassent le '=' */
 .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
@@ -64,10 +57,22 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .proof-table{display:grid;column-gap:14px;row-gap:0;margin-top:.4rem;white-space:nowrap}
 .proof-table .cell{align-self:start}
 .proof-table .ou{align-self:start;text-align:center;color:#555;white-space:nowrap;padding:.35rem .5rem}
-
-
-
 </style>
+
+<!-- MathJax v3 (LaTeX) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight: false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
@@ -85,7 +90,9 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
       <button id="btn-reset" class="btn" title="Réinitialise la saisie et le score">🧹 Réinitialiser</button>
       <span class="score">Score : <span id="score">0 / 0</span></span>
     </div>
-<div class="card" id="host"></div>
+
+    <div class="card" id="host"></div>
+
     <!-- Saisie & indications -->
     <div class="card small">
       <strong>Saisie & réponses acceptées :</strong>
@@ -96,8 +103,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
       </ul>
     </div>
 
-    
-
     <!-- Clavier math, centré -->
     <div class="card">
       <div data-math-kbd style="display:flex; justify-content:center"></div>
@@ -107,27 +112,29 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 <!-- Librairies alignées sur v8 -->
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 
 <script>
 (function(){'use strict';
+/* ===== Utils ===== */
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=a=>a[Math.floor(Math.random()*a.length)];
 
-/* ===== Fractions “pile” ===== */
-function fracHTML(p,q){
-  const sign = (p<0) ? '−' : '';
-  p = Math.abs(p); q = Math.abs(q);
-  if(q===1) return sign + String(p);
-  return (sign ? `<span class="frac-sign">${sign}</span>` : '') +
-         `<span class="frac"><span class="num">${p}</span><span class="bar"></span><span class="den">${q}</span></span>`;
+/* ===== MathJax typeset helper ===== */
+function typesetAll(root){
+  const run = () => MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+    MathJax.startup.promise.then(run);
+  } else {
+    const t = setInterval(()=>{
+      if (window.MathJax && MathJax.startup && MathJax.typesetPromise){ clearInterval(t); run(); }
+    }, 60);
+  }
 }
-function fracExprHTML(numerHTML, denHTML){
-  return `<span class="frac"><span class="num">${numerHTML}</span><span class="bar"></span><span class="den">${denHTML}</span></span>`;
-}
+const L = s => `\\(${s}\\)`;
 
 /* ===== Arithmétique rationnelle ===== */
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
@@ -144,66 +151,95 @@ function isZero(R){ return R.p===0; }
 function toNumber(R){ return R.p / R.q; }
 function makeR(p,q){ return norm(p,q||1); }
 function absR(R){ return makeR(Math.abs(R.p), R.q); }
-function negR(R){ return makeR(-R.p, R.q); }
 function quotientRaw(N,D){ let num = N.p * D.q; let den = N.q * D.p; if(den<0){ num=-num; den=-den; } return {p:num,q:den}; }
 function needsSimplify(fr){ return gcd(Math.abs(fr.p), Math.abs(fr.q)) > 1; }
 
-/* ===== Affichages ===== */
+/* ===== Affichages LaTeX ===== */
+function fracLatex(p,q){
+  const neg = (p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q);
+  if(q===1) return (neg?'-':'')+String(p);
+  return (neg?'-':'')+`\\frac{${p}}{${q}}`;
+}
+function fracOf(numLatex, denLatex){ return `\\frac{${numLatex}}{${denLatex}}`; }
+
 function isOne(R){ return R.q===1 && R.p===1; }
 function isNegOne(R){ return R.q===1 && R.p===-1; }
-function i(n){ return String(n).replace(/-/g,'−'); }
-function fmtCoeffXHTML(A){ // A·x
-  if(isOne(A)) return "x";
-  if(isNegOne(A)) return "−x";
-  return `${fracHTML(A.p,A.q)}x`;
+
+function fmtCoeffXLatex(A){ // A·x
+  if(isOne(A)) return `x`;
+  if(isNegOne(A)) return `-x`;
+  const s = fracLatex(A.p, A.q).replace(/^-/,'-');
+  return `${s}x`;
 }
-function fmtConstHTML(B){
-  return (B.q===1? String(B.p).replace(/-/g,'−') : fracHTML(B.p,B.q));
+function fmtConstLatex(B){
+  if(B.q===1) return String(B.p);
+  return fracLatex(B.p,B.q);
 }
-function fmtSignedConstHTML(B){
+function fmtSignedConstLatex(B){
   if(isZero(B)) return "";
   const abs = absR(B);
-  const core = fmtConstHTML(abs);
-  return (B.p>0? " + " : " − ") + core;
+  const core = fmtConstLatex(abs);
+  return (B.p>0? " + " : " - ") + core.replace(/^-/,'');
 }
-function sideHTML(A,B){ // A≠0 garanti
-  return fmtCoeffXHTML(A) + fmtSignedConstHTML(B);
+function sideLatex(A,B){ // A≠0 garanti
+  return fmtCoeffXLatex(A) + fmtSignedConstLatex(B);
 }
 
-/* ===== Helpers étapes ===== */
-function showDiffHTML(U,V){ // affiche U − V (sans calcul), simplifie si 0
-  if(isZero(V)) return fmtConstHTML(U);
-  if(isZero(U)) return "− " + fmtConstHTML(absR(V));
-  if(V.p<0) return fmtConstHTML(U) + " + " + fmtConstHTML(absR(V));
-  return fmtConstHTML(U) + " − " + fmtConstHTML(V);
+// Affiche U − V (sans calcul), gère bien U=0 ou V<0
+function showDiffLatex(U, V){
+  if (isZero(V)) return fmtConstLatex(U);              // U - 0 -> U
+  if (isZero(U)) {
+    if (V.p < 0) return fmtConstLatex(absR(V));        // 0 - (-v) -> +v
+    return `- ${fmtConstLatex(V)}`;                    // 0 - v -> -v
+  }
+  if (V.p < 0) return fmtConstLatex(U) + " + " + fmtConstLatex(absR(V));
+  return fmtConstLatex(U) + " - " + fmtConstLatex(V);
 }
-function normalizeSigns(html){
-  return html
-    .replace(/\+\s*[−-]/g, ' − ')
-    .replace(/[−-]\s*\+/g, ' − ')
-    .replace(/[−-]\s*[−-]/g, ' + ')
+
+/* — Normalisation + dédoublonnage des étapes — */
+function normalizeSigns(txt){
+  return txt
+    .replace(/\+\s*-/g, ' - ')
+    .replace(/-\s*\+/g, ' - ')
+    .replace(/-\s*-/g, ' + ')
     .replace(/\+\s*\+/g, ' + ')
     .replace(/\s{2,}/g, ' ');
+}
+function ensureArray(x){ return Array.isArray(x) ? x : []; }
+function stepKey(s){ return String(s).replace(/\s+/g,' ').replace(/^\\\(|\\\)$/g,'').trim(); }
+function dedupeSteps(list){
+  const out=[]; for(const s of list){
+    if(!out.length || stepKey(out[out.length-1])!==stepKey(s)) out.push(s);
+  } return out;
+}
+function finalizeSteps(steps){
+  steps = ensureArray(steps);
+  return dedupeSteps(steps.map(normalizeSigns));
 }
 
 /* Étapes pédagogiques communes :
    - si A est fractionnaire, insérer x = K × (d/n) + phrase
    - si A < 0, insérer x = K / (−a) joliment */
 function insertCoeffHints(steps, A, K){
-  const insertIndex = Math.max(steps.length - 1, 0);
-  // Inverse normalisé : inv = d/n (signe porté par le numérateur)
-  const inv = norm(A.q, A.p); // ex : A = −5/3 → inv = −3/5
-  if (A.q !== 1) {
-    const invHTML = (inv.p < 0 ? '(' + fracHTML(inv.p, inv.q) + ')' : fracHTML(inv.p, inv.q));
-    steps.splice(insertIndex, 0,
-      `x = ${fmtConstHTML(K)} × ${invHTML}<span style="display:inline-block;width:3ch"></span>— Diviser par un nombre revient à multiplier par son inverse.`
+  if (!Array.isArray(steps)) return;
+
+  const KisZero = isZero(K);
+  const firstXeq = steps.findIndex(s => /^x\s*=/.test(stepKey(s)));
+  let insertIndex = (firstXeq >= 0) ? firstXeq : steps.length;
+
+  // 1) Si A est fractionnaire → on montre "multiplier par l'inverse" (une seule fois)
+  if (!KisZero && A.q !== 1) {
+    const inv = norm(A.q, A.p);            // inverse dA/nA
+    const invRaw = fracLatex(inv.p, inv.q);
+    const invL   = (inv.p < 0) ? `\\left(${invRaw}\\right)` : invRaw;  // (−a/b)
+    steps.splice(
+      insertIndex, 0,
+      `${L(`x = ${fmtConstLatex(K)} \\times ${invL}`)} — Diviser par un nombre revient à multiplier par son inverse.`
     );
-  }
-  if (A.p < 0) {
-    const denomHTML = '−' + fmtConstHTML(absR(A));
-    steps.splice(insertIndex, 0,
-      `x = ${fracExprHTML(fmtConstHTML(K), denomHTML)}`
-    );
+
+  // 2) Sinon, si A est un entier négatif → on montre "x = K / (−a)"
+  } else if (!KisZero && A.p < 0) {
+    steps.splice(insertIndex, 0, L(`x = ${fracOf(fmtConstLatex(K), fmtConstLatex(A))}`));
   }
 }
 
@@ -248,21 +284,64 @@ function cmpSets(ans, exp){
 }
 
 /* ===== Rendu commun (structure v8) ===== */
-function renderRow(host, htmlEq){
+function renderRow(host, latexEq){
   host.innerHTML="";
   // Consigne visible
   const hint=document.createElement('p'); hint.className="hint"; hint.textContent="Consigne : Résoudre l’équation."; host.appendChild(hint);
   // Bloc énoncé pour PDF (consigne + équation)
   const off=document.createElement('div'); off.className="equ-offscreen";
-  off.innerHTML='<div class="consigne">Résoudre l’équation.</div>' + '<div class="equation">'+htmlEq+'</div>';
+  off.innerHTML='<div class="consigne">Résoudre l’équation.</div>' + '<div class="equation">'+L(latexEq)+'</div>';
   host.appendChild(off);
 
   const row=document.createElement("div"); row.className="row";
-  const lab=document.createElement("div"); lab.className="col-label equ"; lab.innerHTML=htmlEq; row.appendChild(lab);
-  const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder="S = { 2 ; −3/4 }"; row.appendChild(inp);
+  const lab=document.createElement("div"); lab.className="col-label"; lab.innerHTML=L(latexEq); row.appendChild(lab);
+  const inp=document.createElement("input"); inp.type="text"; inp.id="reponse"; inp.placeholder=""; row.appendChild(inp);
   const res=document.createElement("div"); res.id="res"; row.appendChild(res);
   host.appendChild(row);
+  typesetAll(host);
   return {inp, res};
+}
+
+/* ===== Étapes LaTeX pour un facteur (ax+b)=0 ===== */
+function factorStepsHTML(F){
+  const isZeroNum = (F.raw.p === 0); // numérateur 0 → solution x = 0
+
+  let steps = [
+    L(`${sideLatex(F.A,F.B)} = 0`),
+    L(`${fmtCoeffXLatex(F.A)} = ${fmtConstLatex(F.rhs)}`)
+  ];
+
+  if (isZeroNum) {
+    // On ne montre ni la fraction 0/q, ni les hints d'inversion de coefficient
+    steps.push(L(`x = 0`));
+  } else {
+    steps.push(L(`x = ${fracLatex(F.raw.p, F.raw.q)}`));
+    insertCoeffHints(steps, F.A, F.rhs);
+    if (needsSimplify(F.raw)) steps.push(L(`x = ${fmtConstLatex(F.S)}`));
+  }
+
+  steps = finalizeSteps(steps);
+const box = document.createElement('div');
+box.className = 'steps';
+steps.forEach(t => {
+  const d = document.createElement('div');
+  d.className = 'step';
+  d.innerHTML = t;
+  box.appendChild(d);
+});
+return box.outerHTML;
+}
+
+function factorGridHTML(fs){
+  const cols = [];
+  for(let i=0;i<fs.length;i++){ cols.push('1fr'); if(i<fs.length-1) cols.push('auto'); }
+  let html = `<div class="proof-table" style="grid-template-columns:${cols.join(' ')}">`;
+  for(let i=0;i<fs.length;i++){
+    html += `<div class="cell">${factorStepsHTML(fs[i])}</div>`;
+    if(i<fs.length-1) html += `<div class="ou">ou</div>`;
+  }
+  html += `</div>`;
+  return html;
 }
 
 /* ===== Générateurs d’exercices ===== */
@@ -294,43 +373,51 @@ function genLinearRat(){
   const raw = quotientRaw(rhs, A);
   return {A,B,rhs,S,raw};
 }
+function negR(R){ return makeR(-R.p, R.q); }
+/* === Unicité des facteurs (ax+b) === */
+function eqR(U,V){ return U.p===V.p && U.q===V.q; }       // rationnels normalisés
+function sameFactor(F,G){ return eqR(F.A,G.A) && eqR(F.B,G.B); }
 
-/* ===== Étapes pour un facteur (ax+b)=0, avec pédagogie v8 ===== */
-function factorStepsHTML(F){
-  let steps = [
-    `${sideHTML(F.A,F.B)} = 0`,
-    `${fmtCoeffXHTML(F.A)} = ${fmtConstHTML(F.rhs)}`,
-    `x = ${fracHTML(F.raw.p, F.raw.q)}`
-  ];
-  insertCoeffHints(steps, F.A, F.rhs);
-  if(needsSimplify(F.raw)) steps.push(`x = ${F.S.q===1? String(F.S.p).replace(/-/g,'−') : fracHTML(F.S.p,F.S.q)}`);
-  steps = steps.map(normalizeSigns);
-  return `<div class="steps">${steps.map(t=>`<div class="step">${t}</div>`).join("")}</div>`;
-}
-function factorGridHTML(fs){
-  const cols = [];
-  for(let i=0;i<fs.length;i++){ cols.push('1fr'); if(i<fs.length-1) cols.push('auto'); }
-  let html = `<div class="proof-table" style="grid-template-columns:${cols.join(' ')}">`;
-  for(let i=0;i<fs.length;i++){
-    html += `<div class="cell">${factorStepsHTML(fs[i])}</div>`;
-    if(i<fs.length-1) html += `<div class="ou">ou</div>`;
+function genDistinct(fgen, n){
+  const out=[];
+  while(out.length < n){
+    const f = fgen();
+    if(!out.some(g=>sameFactor(f,g))) out.push(f);
   }
-  html += `</div>`;
-  return html;
+  return out;
+}
+// Tri croissant et dédoublonnage de rationnels {p,q} (normalisés)
+function sortUniqueRationals(Rs){
+  const uniq=[];
+  Rs.forEach(R=>{
+    if(!uniq.some(U => U.p*R.q === R.p*U.q)) uniq.push(R); // même valeur
+  });
+  uniq.sort((A,B)=> A.p*B.q - B.p*A.q); // tri par valeur
+  return uniq;
+}
+// Ne pas pré-remplir la saisie quand on affiche la solution
+const PREFILL_ON_SOLUTION = false;
+
+function maybePrefill(host, text){
+  if (!PREFILL_ON_SOLUTION) return;
+  const inp = $("#reponse", host);
+  if (inp) inp.value = text;
 }
 
 /* ===== Exercices ===== */
 const ex1 = {
   id:"prod2_int",
   title:"(ax + b)(cx + d) = 0 (coefficients entiers)",
-  gen(){ const f1=genLinearInt(), f2=genLinearInt(); return {f1,f2}; },
-  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+gen(){
+  const [f1, f2] = genDistinct(genLinearInt, 2);
+  return {f1, f2};
+},
+  text(st){ return `\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)\\left(${sideLatex(st.f2.A,st.f2.B)}\\right) = 0`; },
   render(host, st){ renderRow(host, this.text(st)); },
   correct(host, st){
     const exp=[toNumber(st.f1.S), toNumber(st.f2.S)];
     const expU=[]; exp.forEach(v=>{ if(!expU.some(u=>sameNumber(u,v))) expU.push(v); });
     const parsed = (function(v){
-      // exiger S = { ... }
       if(!v) return {okFormat:false, values:[]};
       const m = v.trim().match(/^S\s*=\s*\{([\s\S]*)\}$/i);
       if(!m) return {okFormat:false, values:[]};
@@ -357,66 +444,99 @@ const ex1 = {
     $("#res",host).className = ok? "res-ok":"res-ko";
     return {ok,total:1};
   },
-  solution(host, st){
-    $$(".hint",host).forEach(n=>n.remove());
-    $$(".equ-offscreen",host).forEach(n=>n.remove());
+solution(host, st){
+  $$(".hint",host).forEach(n=>n.remove());
+  $$(".equ-offscreen",host).forEach(n=>n.remove());
 
-    const s1=st.f1.S, s2=st.f2.S;
-    const html = [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-    $("#res",host).innerHTML = html;
-    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
-  },
-  printSolutionHTML(st){
-    const s1=st.f1.S, s2=st.f2.S;
-    return [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-  },
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  const sText  = `S = { ${sols.map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+
+  const html = [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+
+  $("#res",host).innerHTML = html;
+maybePrefill(host, sText);
+  typesetAll($("#res",host));
+},
+
+printSolutionHTML(st){
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  return [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+},
+
   reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
 };
 
 const ex2 = {
   id:"k_prod2",
   title:"k(ax + b)(cx + d) = 0 (k ≠ 0)",
-  gen(){ let k=0; while(k===0) k=rint(-6,6); const f1=genLinearInt(), f2=genLinearInt(); return {k,f1,f2}; },
-  text(st){ return `${i(st.k)}·(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+gen(){
+  let k;
+  do { k = rint(-6, 6); } while (k === 0 || k === 1); // ⟵ exclut k=0 et k=1
+
+  // si tu as déjà les helpers de non-duplication
+  const [f1, f2] = genDistinct(genLinearInt, 2);
+  return { k, f1, f2 };
+
+  // (fallback sans genDistinct)
+  // const f1 = genLinearInt(); let f2; do { f2 = genLinearInt(); } while (sameFactor(f1, f2));
+  // return { k, f1, f2 };
+},
+
+text(st){
+  return `${st.k}\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)\\left(${sideLatex(st.f2.A,st.f2.B)}\\right) = 0`;
+},
   render: ex1.render,
   correct: ex1.correct,
-  solution(host, st){
-    $$(".hint",host).forEach(n=>n.remove());
-    $$(".equ-offscreen",host).forEach(n=>n.remove());
+solution(host, st){
+  $$(".hint",host).forEach(n=>n.remove());
+  $$(".equ-offscreen",host).forEach(n=>n.remove());
 
-    const s1=st.f1.S, s2=st.f2.S;
-    const html = [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step"><span class="hint">Comme ${i(st.k)} ≠ 0, le facteur ${i(st.k)} n’influence pas l’égalité à 0.</span></div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-    $("#res",host).innerHTML = html;
-    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
-  },
-  printSolutionHTML(st){
-    const s1=st.f1.S, s2=st.f2.S;
-    return [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step"><span class="hint">Comme ${i(st.k)} ≠ 0, le facteur ${i(st.k)} n’influence pas l’égalité à 0.</span></div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-  },
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  const sText  = `S = { ${sols.map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+
+  const html = [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step"><span class="hint">Comme ${st.k} ≠ 0, le facteur ${st.k} n’influence pas l’égalité à 0.</span></div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+
+  $("#res",host).innerHTML = html;
+maybePrefill(host, sText);
+  typesetAll($("#res",host));
+},
+
+printSolutionHTML(st){
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  return [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step"><span class="hint">Comme ${st.k} ≠ 0, le facteur ${st.k} n’influence pas l’égalité à 0.</span></div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+},
+
   reset: ex1.reset
 };
 
 const ex3 = {
   id:"prod3_int",
   title:"(ax + b)(cx + d)(ex + f) = 0 (coefficients entiers)",
-  gen(){ const f1=genLinearInt(), f2=genLinearInt(), f3=genLinearInt(); return {f1,f2,f3}; },
-  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)})(${sideHTML(st.f3.A,st.f3.B)}) = 0`; },
+gen(){
+  const [f1, f2, f3] = genDistinct(genLinearInt, 3);
+  return {f1, f2, f3};
+},
+  text(st){ return `\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)\\left(${sideLatex(st.f2.A,st.f2.B)}\\right)\\left(${sideLatex(st.f3.A,st.f3.B)}\\right) = 0`; },
   render: ex1.render,
   correct(host, st){
     const exp=[toNumber(st.f1.S), toNumber(st.f2.S), toNumber(st.f3.S)];
@@ -433,91 +553,123 @@ const ex3 = {
     $("#res",host).className = ok? "res-ok":"res-ko";
     return {ok,total:1};
   },
-  solution(host, st){
-    $$(".hint",host).forEach(n=>n.remove());
-    $$(".equ-offscreen",host).forEach(n=>n.remove());
+solution(host, st){
+  $$(".hint",host).forEach(n=>n.remove());
+  $$(".equ-offscreen",host).forEach(n=>n.remove());
 
-    const s1=st.f1.S, s2=st.f2.S, s3=st.f3.S;
-    const html = [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2, st.f3]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2,s3].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-    $("#res",host).innerHTML = html;
-    $("#reponse",host).value = `S = { ${[s1,s2,s3].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
-  },
-  printSolutionHTML(st){
-    const s1=st.f1.S, s2=st.f2.S, s3=st.f3.S;
-    return [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2, st.f3]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2,s3].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-  },
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S, st.f3.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  const sText  = `S = { ${sols.map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+
+  const html = [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2, st.f3]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+
+  $("#res",host).innerHTML = html;
+maybePrefill(host, sText);
+  typesetAll($("#res",host));
+},
+
+printSolutionHTML(st){
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S, st.f3.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  return [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2, st.f3]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+},
+
   reset: ex1.reset
 };
 
 const ex4 = {
   id:"prod2_frac",
   title:"(ax + b)(cx + d) = 0 (coefficients fractionnaires possibles)",
-  gen(){ const f1=genLinearRat(), f2=genLinearRat(); return {f1,f2}; },
-  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+gen(){
+  const [f1, f2] = genDistinct(genLinearRat, 2);
+  return {f1, f2};
+},
+  text(st){ return `\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)\\left(${sideLatex(st.f2.A,st.f2.B)}\\right) = 0`; },
   render: ex1.render,
   correct: ex1.correct,
-  solution(host, st){
-    $$(".hint",host).forEach(n=>n.remove());
-    $$(".equ-offscreen",host).forEach(n=>n.remove());
+solution(host, st){
+  $$(".hint",host).forEach(n=>n.remove());
+  $$(".equ-offscreen",host).forEach(n=>n.remove());
 
-    const s1=st.f1.S, s2=st.f2.S;
-    const html = [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-    $("#res",host).innerHTML = html;
-    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
-  },
-  printSolutionHTML(st){
-    const s1=st.f1.S, s2=st.f2.S;
-    return [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-  },
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  const sText  = `S = { ${sols.map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+
+  const html = [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+
+  $("#res",host).innerHTML = html;
+maybePrefill(host, sText);
+  typesetAll($("#res",host));
+},
+
+printSolutionHTML(st){
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  return [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+},
+
   reset: ex1.reset
 };
 
 const ex5 = {
   id:"square_prod",
   title:"(ax + b)² (cx + d) = 0",
-  gen(){ const f1=genLinearInt(), f2=genLinearInt(); return {f1,f2}; },
-  text(st){ return `(${sideHTML(st.f1.A,st.f1.B)})²(${sideHTML(st.f2.A,st.f2.B)}) = 0`; },
+gen(){
+  const f1 = genLinearInt();
+  let f2;
+  do { f2 = genLinearInt(); } while(sameFactor(f1, f2));
+  return {f1, f2};
+},
+  text(st){ return `\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)^{2}\\left(${sideLatex(st.f2.A,st.f2.B)}\\right) = 0`; },
   render: ex1.render,
   correct: ex1.correct,
-  solution(host, st){
-    $$(".hint",host).forEach(n=>n.remove());
-    $$(".equ-offscreen",host).forEach(n=>n.remove());
+solution(host, st){
+  $$(".hint",host).forEach(n=>n.remove());
+  $$(".equ-offscreen",host).forEach(n=>n.remove());
 
-    const s1=st.f1.S, s2=st.f2.S;
-    const html = [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      `<div class="steps"><div class="step">(${sideHTML(st.f1.A,st.f1.B)})² = 0 ⟺ ${sideHTML(st.f1.A,st.f1.B)} = 0</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-    $("#res",host).innerHTML = html;
-    $("#reponse",host).value = `S = { ${[s1,s2].map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
-  },
-  printSolutionHTML(st){
-    const s1=st.f1.S, s2=st.f2.S;
-    return [
-      `<div class="steps"><div class="step">${this.text(st)}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
-      `<div class="steps"><div class="step">(${sideHTML(st.f1.A,st.f1.B)})² = 0 ⟺ ${sideHTML(st.f1.A,st.f1.B)} = 0</div></div>`,
-      factorGridHTML([st.f1, st.f2]),
-      `<div class="steps"><div class="step">S = { ${[s1,s2].map(R=>R.q===1? String(R.p).replace(/-/g,'−') : fracHTML(R.p,R.q)).join(' ; ')} }</div></div>`
-    ].join("");
-  },
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  const sText  = `S = { ${sols.map(R=> R.q===1? String(R.p) : `${R.p}/${R.q}`).join(' ; ')} }`;
+
+  const html = [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    `<div class="steps"><div class="step">${L(`\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)^{2} = 0 \\iff ${sideLatex(st.f1.A,st.f1.B)} = 0`)}</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+
+  $("#res",host).innerHTML = html;
+maybePrefill(host, sText);
+  typesetAll($("#res",host));
+},
+
+printSolutionHTML(st){
+  const sols = sortUniqueRationals([st.f1.S, st.f2.S]);
+  const sLatex = L(`S = \\{ ${sols.map(fmtConstLatex).join(' \\; ; \\; ')} \\}`);
+  return [
+    `<div class="steps"><div class="step">${L(this.text(st))}</div><div class="step">Un produit est nul si et seulement si l’un des facteurs est nul.</div></div>`,
+    `<div class="steps"><div class="step">${L(`\\left(${sideLatex(st.f1.A,st.f1.B)}\\right)^{2} = 0 \\iff ${sideLatex(st.f1.A,st.f1.B)} = 0`)}</div></div>`,
+    factorGridHTML([st.f1, st.f2]),
+    `<div class="steps"><div class="step">${sLatex}</div></div>`
+  ].join("");
+},
+
   reset: ex1.reset
 };
 
@@ -538,6 +690,7 @@ function buildOne(){
   host.dataset.state  = JSON.stringify(st);
   def.render(host, st);
   const inp = $("#reponse",host); if(inp) inp.focus();
+  typesetAll(host);
 }
 function check(){
   const host=$("#host");
@@ -603,7 +756,9 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 })();
 </script>
+
 <script>
+/* === Confort mobile, clavier, etc. (inchangé) === */
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
@@ -613,26 +768,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
-[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-  const src = document.querySelector(sel);
-  if (src) {
-    const clone = src.cloneNode(true);
-    clone.classList.add('btn');
-    clone.type = 'button';
-    clone.removeAttribute('id');        // id doit rester unique
-    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-    bar.appendChild(clone);
-  } else {
-    // fallback si jamais l’original est absent (rare)
-    const fallback = document.createElement('button');
-    fallback.className = 'btn';
-    fallback.type = 'button';
-    fallback.textContent = label;
-    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-    bar.appendChild(fallback);
-  }
-});
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type = 'button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className = 'btn';
+          fallback.type = 'button';
+          fallback.textContent = label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
       document.body.appendChild(bar);
     }
   }
@@ -654,7 +807,6 @@ document.addEventListener('DOMContentLoaded', () => {
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
-    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 

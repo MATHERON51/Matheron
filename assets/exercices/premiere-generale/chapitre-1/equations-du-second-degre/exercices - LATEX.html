@@ -58,6 +58,26 @@
   .answers .qa-row label{ margin-right:.3rem; }
 
   @media print{ .controls{display:none !important;} }
+  /* +++ Espacement vertical des lignes de calcul +++ */
+.table td .line,
+.steps .line{
+  margin: .32rem 0;      /* espace entre deux lignes */
+  line-height: 1.9;      /* interligne interne aux formules */
+}
+
+/* Sécurité pour les fractions/racines qui “descendent” un peu */
+.table td .line mjx-container{   /* élément racine rendu par MathJax v3 */
+  padding-bottom: .08em;
+}
+
+@media print{
+  .table td .line,
+  .steps .line{ 
+    margin: .36rem 0;
+    line-height: 2;
+  }
+}
+
 </style>
 
 <!-- MathJax (rendu LaTeX \( ... \) ) -->
@@ -163,6 +183,8 @@
     }
     return s || '0';
   }
+const ax2 = a => (a===1 ? 'x^{2}' : a===-1 ? '-x^{2}' : `${a}x^{2}`);
+const ax  = a => (a===1 ? 'x'     : a===-1 ? '-x'     : `${a}x`);
 
   /* ===== Numeric helpers ===== */
   function sqrtDecomp(N){ let k=1,n=N; for(let d=2; d*d<=n; d++){ while(n%(d*d)===0){ n/=d*d; k*=d; } } return [k,n]; }
@@ -183,7 +205,11 @@
 
   /* ===== Helpers pour l'affichage en 4 lignes ===== */
   function pushIfNew(arr, html){ if(!arr.length || arr[arr.length-1]!==html) arr.push(html); }
-  function line(label, rhsTex){ return '<div class="line">'+wrap(`${label} = ${rhsTex}`)+'</div>'; }
+function line(label, rhsTex){
+  return '<div class="line" style="margin:.36rem 0; line-height:1.95">'
+       + wrap(`${label} = ${rhsTex}`)
+       + '</div>';
+}
 
   /* ===== Énoncé ===== */
   function buildHostHTML(st){
@@ -211,51 +237,43 @@
 
   /* ===== Correction ===== */
   function solutionHTML(st){
-    const a=st.a,b=st.b,c=st.c,D=st.delta;
-    const out=[];
-    out.push('<div class="step">'+wrap(`a=${a} \\; ;\\; b=${b} \\; \\text{et}\\; c=${c}`)+'</div>');
+  const a=st.a,b=st.b,c=st.c,D=st.delta;
+  const out=[];
+  out.push('<div class="step">'+wrap(`a=${a} \\; ;\\; b=${b} \\; \\text{et}\\; c=${c}`)+'</div>');
 
-    { // Δ
-      const prod4ac = 4 * a * c;
-      const b2 = b*b;
-      const prettyProd = `4 \\times ${a<0?`(${a})`:a} \\times ${c<0?`(${c})`:c}`;
-      const middle = prod4ac < 0 ? (`${b2} + ${Math.abs(prod4ac)}`) : (`${b2} - ${prod4ac}`);
-      const tail = D>0 ? ' > 0' : (D<0 ? ' < 0' : ' ');
-      out.push('<div class="step" style="color:#b00020">'+wrap(`\\Delta = b^{2} - 4ac = ${b2} - ${prettyProd} = ${middle} = ${D}${tail}`)+'</div>');
-    }
+  { // Δ
+    const prod4ac = 4 * a * c;
+    const b2 = b*b;
+    const prettyProd = `4 \\times ${a<0?`(${a})`:a} \\times ${c<0?`(${c})`:c}`;
+    const middle = prod4ac < 0 ? (`${b2} + ${Math.abs(prod4ac)}`) : (`${b2} - ${prod4ac}`);
+    const tail = D>0 ? ' > 0' : (D<0 ? ' < 0' : ' ');
+    out.push('<div class="step" style="color:#b00020">'+wrap(`\\Delta = b^{2} - 4ac = ${b2} - ${prettyProd} = ${middle} = ${D}${tail}`)+'</div>');
+  }
 
-    if(D<0){
-      out.push('<div class="step">Ainsi l’équation n’admet pas de solution réelle.</div>');
-      out.push('<div class="step" style="text-align:center;font-weight:700">'+wrap('S = \\varnothing')+'</div>');
-      out.push('<div class="step"><i>\\(P(x)\\)</i> n’a pas de forme factorisée.</div>');
-      return '<div class="steps">'+out.join('')+'</div>';
-    }
-
-    if(D===0){
-      const L=[];
-	        L.push(line('\\alpha', `\\frac{-b}{2a}`));                 // (1) formule
-
-      L.push(line('\\alpha', texRatRaw(-b, 2*a)));                 // (1) \frac{-b}{2a}
-      // simplification
-      const g=gcd(Math.abs(-b), Math.abs(2*a));
-      const Pn=(-b)/g, Qn=(2*a)/g;
-      pushIfNew(L, line('\\alpha', Qn!==1 ? texRat([Pn,Qn]) : String(Pn))); // (3) résultat
-      const alpha = Pn/Qn;
-      out.push('<div class="step">Ainsi l’équation admet une seule solution :</div>');
-      out.push('<div class="step">'+L.join('')+'</div>');
-      out.push('<div class="step" style="text-align:center;font-weight:700">'+wrap(`S = \\{ ${alpha} \\}`)+'</div>');
-      const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x ${alpha<0?'+ '+Math.abs(alpha):'- '+Math.abs(alpha)}\\right)^{2}`;
-      out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
-      return '<div class="steps">'+out.join('')+'</div>';
-    }
-
+  // ===== Corps principal (inchangé fonctionnellement) =====
+  if(D<0){
+    out.push('<div class="step">Ainsi l’équation n’admet pas de solution réelle.</div>');
+    out.push('<div class="step" style="text-align:center;font-weight:700">'+wrap('S = \\varnothing')+'</div>');
+    out.push('<div class="step"><i>\\(P(x)\\)</i> n’a pas de forme factorisée.</div>');
+  } else if(D===0){
+    const L=[];
+    L.push(line('\\alpha', `\\frac{-b}{2a}`));
+    L.push(line('\\alpha', texRatRaw(-b, 2*a)));
+    const g=gcd(Math.abs(-b), Math.abs(2*a));
+    const Pn=(-b)/g, Qn=(2*a)/g;
+    pushIfNew(L, line('\\alpha', Qn!==1 ? texRat([Pn,Qn]) : String(Pn)));
+    const alpha = Pn/Qn;
+    out.push('<div class="step">Ainsi l’équation admet une seule solution :</div>');
+    out.push('<div class="step">'+L.join('')+'</div>');
+    out.push('<div class="step" style="text-align:center;font-weight:700">'+wrap(`S = \\{ ${alpha} \\}`)+'</div>');
+    const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x ${alpha<0?'+ '+Math.abs(alpha):'- '+Math.abs(alpha)}\\right)^{2}`;
+    out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
+  } else {
     function xiThreeLines(signPM){
       const label = signPM<0 ? 'x_{1}' : 'x_{2}';
       const pmS   = signPM<0 ? ' - '  : ' + ';
       const lines = [];
-      // (1) formule
       lines.push(line(label, `\\frac{-b ${pmS} \\sqrt{\\Delta}}{2a}`));
-
       if(isSquare(D)){
         const r=Math.sqrt(D);
         lines.push(line(label, `\\frac{${-b} ${pmS} ${r}}{${fmtAx2_tex(a)}}`));
@@ -282,18 +300,18 @@
       out.push('<div class="step">Et '+wrap(`\\sqrt{\\Delta} = ${Math.sqrt(D)}`)+'</div>');
       out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
       const L = xiThreeLines(-1), R = xiThreeLines(+1);
- out.push(
-   '<table class="table" style="width:100%">' +
-     '<thead><tr>' +
-       '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_1\\)</th>' +
-      '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_2\\)</th>' +
-     '</tr></thead>' +
-    '<tbody><tr>' +
-      '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+L+'</td>' +
-       '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+R+'</td>' +
-     '</tr></tbody>' +
-   '</table>'
- );
+      out.push(
+        '<table class="table xgap" style="width:100%">' +
+          '<thead><tr>' +
+            '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_1\\)</th>' +
+            '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_2\\)</th>' +
+          '</tr></thead>' +
+          '<tbody><tr>' +
+            '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap; line-height:1.95">'+L+'</td>' +
+            '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap; line-height:1.95">'+R+'</td>' +
+          '</tr></tbody>' +
+        '</table>'
+      );
       const r=Math.sqrt(D); const x1 = (-b - r)/(2*a), x2 = (-b + r)/(2*a);
       const Ssorted = [x1,x2].sort((u,v)=>u-v);
       out.push('<div class="step" style="text-align:center;font-weight:700">'+wrap(`S = \\{ ${Ssorted[0]} \\; ; \\; ${Ssorted[1]} \\}`)+'</div>');
@@ -303,31 +321,124 @@
       out.push('<div class="step">Et '+wrap(`\\sqrt{\\Delta} = \\sqrt{${D}}`)+'</div>');
       out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
       const L = xiThreeLines(-1), R = xiThreeLines(+1);
- out.push(
-   '<table class="table" style="width:100%">' +
-     '<thead><tr>' +
-       '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_1\\)</th>' +
-      '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_2\\)</th>' +
-     '</tr></thead>' +
-    '<tbody><tr>' +
-      '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+L+'</td>' +
-       '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+R+'</td>' +
-     '</tr></tbody>' +
-   '</table>'
- );
+      out.push(
+        '<table class="table xgap" style="width:100%">' +
+          '<thead><tr>' +
+            '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_1\\)</th>' +
+            '<th style="text-align:center; padding:8px 24px; border:1px solid #e5e5e5">\\(x_2\\)</th>' +
+          '</tr></thead>' +
+          '<tbody><tr>' +
+            '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+L+'</td>' +
+            '<td style="vertical-align:top; padding:8px 28px; border:1px solid #e5e5e5; white-space:nowrap">'+R+'</td>' +
+          '</tr></tbody>' +
+        '</table>'
+      );
       const [kfac,nrest]=sqrtDecomp(D);
       let den = 2*a; const gCommon = gcd(gcd(Math.abs(b), Math.abs(kfac)), Math.abs(den)); if(gCommon>1) den/=gCommon;
       const num1 = `${(-b/gCommon)||(-b)} - ${((kfac/gCommon)>1? (kfac/gCommon+`\\sqrt{${nrest}}`) : (`\\sqrt{${nrest}}`))}`;
       const num2 = `${(-b/gCommon)||(-b)} + ${((kfac/gCommon)>1? (kfac/gCommon+`\\sqrt{${nrest}}`) : (`\\sqrt{${nrest}}`))}`;
       const approx1 = (-b - Math.sqrt(D))/(2*a), approx2 = (-b + Math.sqrt(D))/(2*a);
       const pair = [{v:approx1, s:wrap(`\\frac{${num1}}{${den}}`)}, {v:approx2, s:wrap(`\\frac{${num2}}{${den}}`)}].sort((p,q)=>p.v-q.v);
-      out.push('<div class="step" style="text-align:center;font-weight:700">'+`S = { ${pair[0].s} ; ${pair[1].s} }`+'</div>');
+      out.push('<div class="step" style="text-align:center;font-weight:700">'+`\\(S\\) = { ${pair[0].s} ; ${pair[1].s} }`+'</div>');
       const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x - ${pair[0].s.replace('\\(','').replace('\\)','')}\\right)\\left(x - ${pair[1].s.replace('\\(','').replace('\\)','')}\\right)`;
       out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
     }
-
-    return '<div class="steps">'+out.join('')+'</div>';
   }
+
+  // ===== Remarques intégrées (ex-remarkBlock) =====
+ // --- push unique: évite d'afficher 2 fois la même ligne consécutive ---
+function pushStepUnique(arr, innerHTML){
+  const line = '<div class="step">'+innerHTML+'</div>';
+  if (!arr.length || arr[arr.length-1] !== line) arr.push(line);
+}
+
+const R = [];
+const pushR = s => pushStepUnique(R, s);   // ⟵ remplace ton ancien pushR
+
+
+  // Cas c = 0 (produit avec x)
+  if(a!==0 && c===0 && b!==0){
+    pushR('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+    let eq = (a === 1) ? 'x^{2}' : (a === -1) ? '-x^{2}' : `${a}x^{2}`;
+    if (b !== 0) eq += (b > 0 ? ' + ' : ' - ') + `${Math.abs(b)}x`;
+    eq += ' = 0';
+    pushR(wrap(eq));
+    pushR(wrap(`x\\left(${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)}\\right) = 0`));
+    pushR(wrap(`x = 0 \\;\\text{ ou }\\; ${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)} = 0`));
+    const sAB = simp(-b,a);
+    pushR(wrap(`x = 0 \\;\\text{ ou }\\; x = ${texRat(sAB)}`));
+  }
+
+  // Cas b = 0, c ≠ 0  (x^2 = k)
+  if(a!==0 && b===0 && c!==0){
+    pushR('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+   pushR(wrap(`${ax2(a)} ${c>=0?'+':'-'} ${Math.abs(c)} = 0`));
+pushR(wrap(`${ax2(a)} = ${-c}`));
+
+    const sAC = simp(-c,a);
+    pushR(wrap(`x^{2} = ${texRat(sAC)}`));
+    const t = (-c)/a;
+    if(t<0){ pushR('Pas de solution réelle.'); }
+    else if(t===0){ pushR(wrap('x = 0')); }
+    else{
+      const [pn,qn]=[Math.abs(sAC[0]), Math.abs(sAC[1])];
+      const right = qn===1 ? String(pn) : `\\left( \\frac{${pn}}{${qn}} \\right)`;
+      pushR(wrap(`x = -\\sqrt{${right}} \\;\\text{ ou }\\; x = \\sqrt{${right}}`));
+      const rn = Math.sqrt(pn), rd = Math.sqrt(qn);
+      if(Number.isInteger(rn) && Number.isInteger(rd)){
+        const [sp,sq] = simp(rn|0, rd|0);
+        if(sq===1){ pushR(wrap(`x = -${sp} \\;\\text{ ou }\\; x = ${sp}`)); }
+        else{ pushR(wrap(`x = -${texRat([sp,sq])} \\;\\text{ ou }\\; x = ${texRat([sp,sq])}`)); }
+      }
+    }
+  }
+
+  // Cas b = 0, c = 0  (x^2 = 0)
+  if(a!==0 && b===0 && c===0){
+    pushR('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+pushR(wrap(`${ax2(a)} = 0`));
+    pushR(wrap(`x^{2} = 0`));
+    pushR(wrap(`x = 0`));
+  }
+
+  // Cas Δ = 0 (factorisation au carré parfait)
+  if(a!==0 && D===0){
+    const sAB = simp(-b, 2*a);
+    const alpha    = texRat(sAB);
+    const alphaAbs = texRat([Math.abs(sAB[0]), sAB[1]]);
+    const op = (sAB[0] < 0 ? ' + ' : ' - ');
+    pushR('<b>Remarque :</b> On aurait pu utiliser la méthode suivante :');
+const bx = b ? (b>0 ? ' + ' : ' - ') + (Math.abs(b)===1 ? 'x' : `${Math.abs(b)}x`) : '';
+const cterm = c ? (c>0 ? ' + ' : ' - ') + `${Math.abs(c)}` : '';
+pushR(wrap(`${ax2(a)}${bx}${cterm} = 0`));
+    if (a !== 1) {
+      const sb = simp(b, a), sc = simp(c, a);
+      let termBx = '';
+      if (b !== 0) {
+        const signB = (sb[0] >= 0 ? ' + ' : ' - ');
+        const magB  = Math.abs(sb[0]) === sb[1] ? '' : texRat([Math.abs(sb[0]), sb[1]]);
+        termBx = signB + magB + 'x';
+      }
+      let termC  = '';
+      if (c !== 0) {
+        const signC = (sc[0] >= 0 ? ' + ' : ' - ');
+        const magC  = texRat([Math.abs(sc[0]), sc[1]]);
+        termC = signC + magC;
+      }
+      pushR(wrap(`${a}\\left(x^{2}${termBx}${termC}\\right) = 0`));
+    }
+    if (a !== 1) { pushR(wrap(`${a}\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); }
+    if (sAB[0] === 0) { pushR(wrap(`x^{2} = 0`)); pushR(wrap(`x = 0`)); }
+    else { pushR(wrap(`\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); pushR(wrap(`x${op}${alphaAbs} = 0`)); pushR(wrap(`x = ${alpha}`)); }
+  }
+
+  // ===== Jointure finale =====
+  // Nettoyage petites collisions " + − " etc.
+  let html = '<div class="steps">'+out.join('')+(R.length?('<div class="sep" style="height:1px;background:#e5e7eb;margin:.4rem 0"></div>'+R.join('')):'')+'</div>';
+  html = html.replace(/\+\s*−/g,' − ').replace(/−\s*−/g,' + ').replace(/−\s*\+/g,' − ');
+  return html;
+}
+
 
   /* ===== Vérification ===== */
   function parseSetInput(val){
@@ -497,103 +608,7 @@
   </script>
 
   <!-- === JS — Remarques & Δ en LaTeX === -->
-  <script>
-// === MatHeron — PATCH remarques & Δ (version LaTeX) ===
-(function(){
-  const isSquare = window.isSquare || function(n){ if(n<0) return false; const r=Math.floor(Math.sqrt(n)); return r*r===n; };
-  const gcd = window.gcd || function(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; };
-  function simp(p,q){ if(q<0){ p=-p; q=-q; } const g=gcd(Math.abs(p),Math.abs(q)); return [p/g,q/g]; }
-  function texRatCore(p,q){ const neg=(p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q); if(q===1) return (neg?'-':'')+p; return (neg?'-':'')+`\\frac{${p}}{${q}}`; }
-  function texRat(pq){ const s=simp(pq[0],pq[1]); return texRatCore(s[0],s[1]); }
-  function texRatRaw(p,q){ return texRatCore(p,q); }
-  const wrap = s => `\\(${s}\\)`;
 
-  function remarkBlock(st){
-    const a=st.a,b=st.b,c=st.c,D=st.delta;
-    const steps=[];
-    const push=s=>steps.push('<div class="step">'+s+'</div>');
-
-    // Cas c=0 (produit avec x)
-    if(a!==0 && c===0 && b!==0){
-      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
-      let eq = (a === 1) ? 'x^{2}' : (a === -1) ? '-x^{2}' : `${a}x^{2}`;
-      if (b !== 0) eq += (b > 0 ? ' + ' : ' - ') + `${Math.abs(b)}x`;
-      eq += ' = 0';
-      push(wrap(eq));
-      push(wrap(`x\\left(${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)}\\right) = 0`));
-      push(wrap(`x = 0 \\;\\text{ ou }\\; ${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)} = 0`));
-      const s = simp(-b,a);
-      push(wrap(`x = 0 \\;\\text{ ou }\\; x = ${texRat(s)}`));
-      return steps.join('');
-    }
-
-    // Cas b=0, c≠0 (x^2 = k)
-    if(a!==0 && b===0 && c!==0){
-      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
-      push(wrap(`${a===1?'x^{2}':a===-1?'-x^{2}':(a+'x^{2}')} ${c>=0?'+':'-'} ${Math.abs(c)} = 0`));
-      push(wrap(`${a}x^{2} = ${-c}`));
-      const s = simp(-c,a);
-      push(wrap(`x^{2} = ${texRat(s)}`));
-      const t = (-c)/a;
-      if(t<0){ push('Pas de solution réelle.'); return steps.join(''); }
-      if(t===0){ push(wrap('x = 0')); return steps.join(''); }
-      const [pn,qn]=[Math.abs(s[0]), Math.abs(s[1])];
-      const right = qn===1 ? String(pn) : `\\left( \\frac{${pn}}{${qn}} \\right)`;
-      push(wrap(`x = -\\sqrt{${right}} \\;\\text{ ou }\\; x = \\sqrt{${right}}`));
-      const rn = Math.sqrt(pn), rd = Math.sqrt(qn);
-      if(Number.isInteger(rn) && Number.isInteger(rd)){
-        const [sp,sq] = simp(rn|0, rd|0);
-        if(sq===1){ push(wrap(`x = -${sp} \\;\\text{ ou }\\; x = ${sp}`)); }
-        else{ push(wrap(`x = -${texRat([sp,sq])} \\;\\text{ ou }\\; x = ${texRat([sp,sq])}`)); }
-      }
-      return steps.join('');
-    }
-
-    // Cas b=0, c=0 (x^2 = 0)
-    if(a!==0 && b===0 && c===0){
-      push('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
-      push(wrap(`${a}x^{2} = 0`)); push(wrap(`x^{2} = 0`)); push(wrap(`x = 0`));
-      return steps.join('');
-    }
-
-    // Cas Δ=0
-    if(a!==0 && D===0){
-      const s = simp(-b, 2*a);
-      const alpha    = texRat(s);
-      const alphaAbs = texRat([Math.abs(s[0]), s[1]]);
-      const op = (s[0] < 0 ? ' + ' : ' - ');
-      push('<b>Remarque :</b> On aurait pu utiliser la méthode suivante :');
-      push(wrap(`${a}x^{2} ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c} = 0`));
-      if (a !== 1) {
-        const sb = simp(b, a), sc = simp(c, a);
-        let termBx = ''; if (b !== 0) { const signB = (sb[0] >= 0 ? ' + ' : ' - '); const magB  = Math.abs(sb[0]) === sb[1] ? '' : texRat([Math.abs(sb[0]), sb[1]]); termBx = signB + magB + 'x'; }
-        let termC  = ''; if (c !== 0) { const signC = (sc[0] >= 0 ? ' + ' : ' - '); const magC  = texRat([Math.abs(sc[0]), sc[1]]); termC = signC + magC; }
-        push(wrap(`${a}\\left(x^{2}${termBx}${termC}\\right) = 0`));
-      }
-      if (a !== 1) { push(wrap(`${a}\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); }
-      if (s[0] === 0) { push(wrap(`x^{2} = 0`)); push(wrap(`x = 0`)); }
-      else { push(wrap(`\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); push(wrap(`x${op}${alphaAbs} = 0`)); push(wrap(`x = ${alpha}`)); }
-      return steps.join('');
-    }
-    return '';
-  }
-
-  const _origSolution = window.solutionHTML;
-  if(typeof _origSolution === 'function'){
-    window.solutionHTML = function(st){
-      let html = _origSolution(st);
-      html = html.replace(/=\\s*0\\s*=\\s*0/g,'= 0');
-      const ins = remarkBlock(st);
-      if(ins){
-        html = html.replace(/<\\/div>\\s*$/,'<div class="sep" style="height:1px;background:#e5e7eb;margin:.4rem 0"></div>'+ins+'</div>');
-      }
-      html = html.replace(/\\+\\s*−/g,' − ').replace(/−\\s*−/g,' + ').replace(/−\\s*\\+/g,' − ');
-      if (window.MathJax?.typeset) setTimeout(()=>MathJax.typeset(),0);
-      return html;
-    };
-  }
-})();
-  </script>
 
  <!-- === Adaptateur PDF côté HTML (corrigé) === -->
 <script>

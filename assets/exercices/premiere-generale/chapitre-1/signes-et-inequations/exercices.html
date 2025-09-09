@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Première – Inéquations du second degré (Δ carré parfait) — Tableau de signe</title>
+<title>Première – Inéquations du second degré (Δ carré parfait) — Tableau de signe [LaTeX]</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
-
 
 <style>
    *{box-sizing:border-box}
@@ -23,16 +23,10 @@
   .btn:hover{background:#f6f6f6}
   .score{margin-left:auto}
 
-  .equ{font-variant-numeric:tabular-nums}
   .steps{margin:.6rem 0 0 .15rem;padding:.6rem .7rem;background:#f7f8fb;border:1px dashed #c7d2fe;border-radius:10px}
   .table{width:100%;border-collapse:collapse;margin:.35rem 0}
   .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
   .table th{background:#f3f3f6;text-align:left}
-
-  .frac{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;vertical-align:middle;line-height:1}
-  .frac .bar{display:block;border-top:1px solid #000;width:100%;margin:.08em 0}
-  .frac .num,.frac .den{padding:0 .15em}
-  .frac-sign{display:inline-block;margin-right:.08em;vertical-align:middle}
 
 .sign-table{
   width:100%;
@@ -109,7 +103,54 @@
   vertical-align: middle !important;
 }
 .pdf-large.sign-table .lbl{ text-align: center !important; }
+
+/* Demi-taille pour le tableau de signes */
+.sign-table.half{
+  font-size:.575rem;           /* 1.15 / 2 */
+  --zeroW:55px;                /* 110 / 2 */
+}
+.sign-table.half th,
+.sign-table.half td{ padding:5px 7px; }      /* 10–14 -> ~5–7 */
+.sign-table.half .cell{ width:42px; height:22px; font-size:.56rem; } /* 84x44 -> moitié */
+.sign-table.half .sel{ height:20px; min-width:42px; }
+.sign-table.half .root{ min-width:55px; height:22px; font-size:.56rem; }
+/* Extrémités de la ligne f(x) : gauche -> droite ; droite -> gauche */
+
+
+/* Si tu utilises .half ou .pdf-large, on réaffirme pareil */
+.sign-table.half tbody tr:nth-child(2) td.int:first-of-type{ text-align:right !important; }
+.sign-table.half tbody tr:nth-child(2) td.int:last-of-type { text-align:left  !important; }
+.pdf-large.sign-table tbody tr:nth-child(2) td.int:first-of-type{ text-align:right !important; }
+.pdf-large.sign-table tbody tr:nth-child(2) td.int:last-of-type { text-align:left  !important; }
+/* Table des deux solutions x1/x2 */
+.table.sol2 { table-layout:fixed; width:100% }
+.table.sol2 col { width:50% }
+.table.sol2 th, .table.sol2 td { padding:12px 18px; vertical-align:top }
+
+/* Chaque ligne de calcul : vrai bloc, marge verticale visible */
+.table.sol2 .line mjx-container { 
+  margin:6px 0 0 !important;    /* espace réel autour de la fraction */
+}
+
+
 </style>
+
+<!-- MathJax v3 pour rendre le LaTeX -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script id="MathJax-script" defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
@@ -136,7 +177,7 @@
   <li><b>Colonnes extrêmes :</b> <code>−∞</code> (gauche) et <code>+∞</code> (droite) sont fixes.</li>
   <li><b>Ligne x :</b>
     <ul>
-      <li><b>r₁</b> et <b>r₂</b> acceptent : entier (<code>-1</code>), fraction <code>p/q</code> (<code>7/2</code>…), ou décimal (<code>3.5</code> / <code>3,5</code>). Les fractions seront rendues <span style="font-style:normal;">en pile</span> dans la correction et dans le tableau.</li>
+      <li><b>r₁</b> et <b>r₂</b> acceptent : entier (<code>-1</code>), fraction <code>p/q</code> (<code>7/2</code>…), ou décimal (<code>3.5</code> / <code>3,5</code>). Les fractions seront rendues en LaTeX dans la correction et dans le tableau.</li>
       <li><b>α doit rester vide</b> (pour cet exercice).</li>
     </ul>
   </li>
@@ -161,8 +202,9 @@
     <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
   </div>
 
+
   <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
-  <script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+  <script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
   <script src='../../../../js/math-kbd.js' defer></script>
   <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 
@@ -190,39 +232,52 @@ function simplify(p,q){
   if(q<0){ p=-p; q=-q; }
   var g=gcd(Math.abs(p),Math.abs(q)); return [p/g, q/g];
 }
-function fracHTML(p,q){
-  var neg = (p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q);
-  var g=gcd(p,q); p/=g; q/=g;
-  if(q===1) return (neg? '<span class="frac-sign">'+UMINUS+'</span>':'') + p;
-  return (neg? '<span class="frac-sign">'+UMINUS+'</span>':'')+
-         '<span class="frac"><span class="num">'+p+'</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+
+/* ===== Aides LaTeX ===== */
+function L(s){ return '\\(' + s + '\\)'; }
+function withParensIfNeg(s, val){ return (val<0) ? '('+s+')' : s; }
+
+function polyTex(a,b,c){
+  var t=[];
+  if(a) t.push( (a===-1?'-':'') + (Math.abs(a)===1?'':'') + 'x^2' );
+  if(b){
+    var s = (Math.abs(b)===1? 'x' : Math.abs(b)+'x');
+    t.push( (b>0?'+':'-') + ' ' + s );
+  }
+  if(c){
+    t.push( (c>0?'+':'-') + ' ' + Math.abs(c) );
+  }
+  var s = t.join(' ').trim();
+  if(!a && !b && !c) s='0';
+  if(s.startsWith('+ ')) s = s.slice(2);
+  return s;
 }
-function fracRaw(p,q){
-  function s(n){ return String(n).replace(/-/g,'−'); }
-  return '<span class="frac"><span class="num">'+s(p)+'</span><span class="bar"></span><span class="den">'+s(q)+'</span></span>';
+function fracTex(p,q){
+  if(q===0) return '\\text{ND}';
+  const neg = (p<0)!==(q<0); p=Math.abs(p); q=Math.abs(q);
+  if(q===1) return (neg?'-':'') + String(p);
+  return (neg?'-':'') + '\\frac{'+p+'}{'+q+'}';
 }
-function numToFracHTML(x){
-  if (Math.floor(x)===x) return String(x).replace(/-/g,'−');
+
+function numToFracTex(x){
+  if(!isFinite(x)) return (x===Infinity? '+\\infty' : (x===-Infinity? '-\\infty' : '\\text{ND}'));
+  if(Math.floor(x)===x) return String(x);
   var qMax=16;
   for(var q=2;q<=qMax;q++){
     var p=Math.round(x*q);
-    if (Math.abs(x - p/q) < 1e-10) return fracHTML(p,q);
+    if (Math.abs(x - p/q) < 1e-10) return fracTex(p,q);
   }
-  return String(x).replace(/-/g,'−');
+  return String(x).replace('.',',');
+}
+function polyCmpSymbol(cmp){
+  if(cmp==='<=') return '\\le';
+  if(cmp=== '>=') return '\\ge';
+  if(cmp=== '<') return '<';
+  if(cmp=== '>') return '>';
+  return '<';
 }
 
-function polyHTML(a,b,c){
-  function kx2(k){ if(k===1) return 'x<sup>2</sup>'; if(k===-1) return UMINUS+'x<sup>2</sup>'; if(k<0) return UMINUS+' '+Math.abs(k)+'x<sup>2</sup>'; return k+'x<sup>2</sup>'; }
-  function kx(k){ if(k===0) return ''; var s=(k>0?' + ':' '+UMINUS+' '); var v=Math.abs(k); return (v===1)? s+'x' : s+v+'x'; }
-  function kc(k){ if(k===0) return ''; var s=(k>0?' + ':' '+UMINUS+' '); return s+Math.abs(k); }
-  var s='';
-  if(a!==0) s = kx2(a);
-  s += kx(b);
-  s += kc(c);
-  s = s.replace(/^ \+ /,'');
-  return s||'0';
-}
-
+/* ===== Générateurs ===== */
 function genInEq(){
   for(var tries=0;tries<999;tries++){
     var a = choice([-3,-2,-1,1,2,3]);
@@ -258,8 +313,8 @@ function signTableHTML(st){
       '</colgroup>',
       '<tbody>',
         '<tr>',
-          '<th class="lbl">x</th>',
-          '<td class="int cap-left">−∞</td>',
+          '<th class="lbl">\\(x\\)</th>',
+          '<td class="int cap-left">\\(−∞\\)</td>',
           '<td class="zero">',
             '<div class="cell-inline">',
               '<input id="r1" class="root" placeholder="r₁">',
@@ -278,10 +333,10 @@ function signTableHTML(st){
               '<span id="ok_r2" class="tick nu"></span>',
             '</div>',
           '</td>',
-          '<td class="int cap-right">+∞</td>',
+          '<td class="int cap-right">\\(+∞\\)</td>',
         '</tr>',
         '<tr>',
-          '<th class="lbl">f(x)</th>',
+          '<th class="lbl">\\(f(x)\\)</th>',
           '<td class="int">',
             '<div class="cell-inline">',
               '<select id="s1" class="sel">',
@@ -329,14 +384,14 @@ function signTableHTML(st){
   ].join('');
 }
 function buildHost(st){
-  var P = polyHTML(st.a,st.b,st.c);
+  var P = polyTex(st.a,st.b,st.c);
   return [
-    '<div class="equ"><strong>Résoudre l’inéquation dans ℝ suivante :</strong> ', P,
-    ' <select id="cmp" style="margin:0 6px;"><option value="<">&lt; 0</option><option value=">">&gt; 0</option><option value="<=">&le; 0</option><option value=">=">&ge; 0</option></select></div>',
+    '<div><strong>Résoudre l’inéquation dans ℝ suivante :</strong> ',
+      L(P), ' ',
+      '<select id="cmp" style="margin:0 6px;"><option value="<">&lt; 0</option><option value=">">&gt; 0</option><option value="<=">&le; 0</option><option value=">=">&ge; 0</option></select></div>',
     signTableHTML(st),
     '<div style="margin-top:.6rem">',
-      '<div><label><strong>S=</strong>&nbsp;</label> <input id="ansSet" class="inp" placeholder="ex. ]−∞ ; r₁[ ∪ ]r₂ ; +∞[" style="min-width:340px"> <span id="ok_S" class="tick nu"></span></div>',
-      '<div style="margin-top:.25rem"><em>Astuce&nbsp;:</em> compléter le tableau, puis écrire S.</div>',
+      '<div><label><strong>\\(S=\\)</strong>&nbsp;</label> <input id="ansSet" class="inp" placeholder="ex. ]−∞ ; r₁[ ∪ ]r₂ ; +∞[" style="min-width:340px"> <span id="ok_S" class="tick nu"></span></div>',
     '</div>',
     '<div id="res" style="margin-top:.6rem"></div>'
   ].join('');
@@ -437,49 +492,41 @@ function check(host, st){
   scoreTot+=tot; scoreOK+=ok; updateScore();
 }
 
-function cmpSymbol(cmp){
-  if(cmp==='<=') return '≤';
-  if(cmp=== '>=') return '≥';
-  if(cmp=== '<') return '<';
-  if(cmp=== '>') return '>';
-  return '<';
-}
-
 function solutionHTML(st, cmp){
   var a=st.a,b=st.b,c=st.c,D=st.delta;
   var r = Math.sqrt(D);
+  var sb = -b;                     // ← on calcule -b une fois
+var aTex = (a<0 ? '\\left('+a+'\\right)' : String(a)); // parenthèses UNIQUEMENT si a<0
+
   var x1n = -b - r, x2n = -b + r, den = 2*a;
   var s1 = simplify(x1n,den);
   var s2 = simplify(x2n,den);
-  var x1html = fracHTML(s1[0],s1[1]);
-  var x2html = fracHTML(s2[0],s2[1]);
   var r1 = st.r, r2 = st.s;
-  var P = polyHTML(a,b,c);
+  var P = polyTex(a,b,c);
+
   function solSetFor(a,r1,r2,cmpVal){
-    var Lopen=']', Ropen='[', Lclosed='[', Rclosed=']';
-    var r1H=numToFracHTML(r1), r2H=numToFracHTML(r2);
+    var r1H=numToFracTex(r1), r2H=numToFracTex(r2);
     if(a>0){
-      if(cmpVal==='<' ) return Lopen+' '+r1H+' ; '+r2H+' '+Ropen;
-      if(cmpVal==='<=') return Lclosed+' '+r1H+' ; '+r2H+' '+Rclosed;
-      if(cmpVal==='>' ) return '] −∞ ; '+r1H+' [ ∪ ] '+r2H+' ; +∞ [';
-      if(cmpVal==='>=') return '] −∞ ; '+r1H+' ] ∪ [ '+r2H+' ; +∞ [';
+      if(cmpVal==='<' ) return ']\\, '+r1H+' \\;;\\; '+r2H+' [';
+      if(cmpVal==='<=') return '[\\, '+r1H+' \\;;\\; '+r2H+' ]';
+      if(cmpVal==='>' ) return ']\\, -\\infty \\;;\\; '+r1H+' ['+' \\cup ' + ']\\, '+r2H+' \\;;\\; +\\infty [';
+      if(cmpVal==='>=') return ']\\, -\\infty \\;;\\; '+r1H+' ]'+' \\cup ' + '[\\, '+r2H+' \\;;\\; +\\infty [';
     } else {
-      if(cmpVal==='<' ) return '] −∞ ; '+r1H+' [ ∪ ] '+r2H+' ; +∞ [';
-      if(cmpVal==='<=') return '] −∞ ; '+r1H+' ] ∪ [ '+r2H+' ; +∞ [';
-      if(cmpVal==='>' ) return Lopen+' '+r1H+' ; '+r2H+' '+Ropen;
-      if(cmpVal==='>=') return Lclosed+' '+r1H+' ; '+r2H+' '+Rclosed;
+      if(cmpVal==='<' ) return ']\\, -\\infty \\;;\\; '+r1H+' ['+' \\cup ' + ']\\, '+r2H+' \\;;\\; +\\infty [';
+      if(cmpVal==='<=') return ']\\, -\\infty \\;;\\; '+r1H+' ]'+' \\cup ' + '[\\, '+r2H+' \\;;\\; +\\infty [';
+      if(cmpVal==='>' ) return ']\\, '+r1H+' \\;;\\; '+r2H+' [';
+      if(cmpVal==='>=') return '[\\, '+r1H+' \\;;\\; '+r2H+' ]';
     }
-    return Lopen+' '+r1H+' ; '+r2H+' '+Ropen;
+    return ']\\, '+r1H+' \\;;\\; '+r2H+' [';
   }
 
   var t1 = (b*b);
   var t2 = 4*a*c;
-  var aS = (a<0? '('+UMINUS+Math.abs(a)+')' : String(a));
-  var cS = (c<0? '('+UMINUS+Math.abs(c)+')' : String(c));
-  var mid = t1 + (t2>=0? ' − ' + t2 : ' + ' + Math.abs(t2));
-  var Dline = t1 + ' − 4 × ' + aS + ' × ' + cS + ' = ' + mid + ' = ' + D + ' > 0';
+  var aS = withParensIfNeg(String(a), a);
+  var cS = withParensIfNeg(String(c), c);
+  var mid = String(t1) + (t2>=0? ' - ' + t2 : ' + ' + Math.abs(t2));
+var Dline = '\\Delta = b^2 - 4ac = '+t1+' - 4\\times '+aS+'\\times '+cS+' = '+mid+' = '+D+' > 0';
 
-  function asHTML(x){ return numToFracHTML(x); }
 
   var outSign = (a>0? '+':'−');
   var inSign  = (a>0? '−':'+');
@@ -492,15 +539,15 @@ function solutionHTML(st, cmp){
       '</colgroup>',
       '<tbody>',
         '<tr>',
-          '<th class="lbl">x</th>',
-          '<td class="int cap-left">−∞</td>',
-          '<td class="zero"><b>', asHTML(r1), '</b></td>',
+          '<th class="lbl">\\(x\\)</th>',
+          '<td class="int cap-left">\\(−∞\\)</td>',
+          '<td class="zero"><b>', L(numToFracTex(r1)), '</b></td>',
           '<td class="int"><b><!-- α vide --></b></td>',
-          '<td class="zero"><b>', asHTML(r2), '</b></td>',
-          '<td class="int cap-right">+∞</td>',
+          '<td class="zero"><b>', L(numToFracTex(r2)), '</b></td>',
+          '<td class="int cap-right">\\(+∞\\)</td>',
         '</tr>',
         '<tr>',
-          '<th class="lbl">f(x)</th>',
+          '<th class="lbl">\\(f(x)\\)</th>',
           '<td class="int">', outSign, '</td>',
           '<td class="zero"><div class="cell"><b>0</b></div></td>',
           '<td class="int">', inSign, '</td>',
@@ -513,44 +560,205 @@ function solutionHTML(st, cmp){
   ].join('');
 
   var solSet = solSetFor(a, r1, r2, cmp||'<');
-  var cmpNice = cmpSymbol(cmp||'<');
+  var cmpNice = polyCmpSymbol(cmp||'<');
 
   return [
   '<div class="steps">',
-    '<div>On note f(x) = ', P, '</div>',
-    '<div><b>1<sup>ère</sup> étape :</b> On cherche les racines de f(x) en résolvant l’équation f(x) = 0.</div>',
-    '<div>a = ', a, ' ; b = ', b, ' et c = ', c, '</div>',
-    '<div><b>Δ = b² − 4ac</b> = ', Dline, '</div>',
-    '<div>Et √Δ = ', Math.sqrt(D), '</div>',
+    '<div>On note :', L(' f(x) = '+P), '</div>',
+    '<div><b>1<sup>ère</sup> étape :</b> On cherche les solutions de ', L('f(x)=0'), '.</div>',
+    '<div>', L('a = '+a+',\\; b = '+b+',\\; c = '+c), '</div>',
+    '<div>', L(Dline), '</div>',
+    '<div>', L('\\sqrt{\\Delta} = '+Math.sqrt(D)), '</div>',
     '<div>Ainsi l’équation admet deux solutions réelles :</div>',
-    '<table class="table"><thead><tr><th style="width:50%">x₁</th><th>x₂</th></tr></thead>',
-      '<tbody><tr>',
-        '<td>',
-          '<div><b>x₁</b> = <span class="frac"><span class="num">−b − √Δ</span><span class="bar"></span><span class="den">2a</span></span></div>',
-          '<div><b>x₁</b> = <span class="frac"><span class="num">', -b, ' − ', Math.sqrt(D), '</span><span class="bar"></span><span class="den">', 2*a, '</span></span></div>',
-          '<div><b>x₁</b> = ', fracRaw(x1n, den), '</div>',
-          '<div><b>x₁</b> = ', x1html, '</div>',
-        '</td>',
-        '<td>',
-          '<div><b>x₂</b> = <span class="frac"><span class="num">−b + √Δ</span><span class="bar"></span><span class="den">2a</span></span></div>',
-          '<div><b>x₂</b> = <span class="frac"><span class="num">', -b, ' + ', Math.sqrt(D), '</span><span class="bar"></span><span class="den">', 2*a, '</span></span></div>',
-          '<div><b>x₂</b> = ', fracRaw(x2n, den), '</div>',
-          '<div><b>x₂</b> = ', x2html, '</div>',
-        '</td>',
-      '</tr></tbody>',
-    '</table>',
-    '<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de signes en utilisant le signe de a (à l’extérieur des racines). ', (a<0?'a < 0':'a > 0'), ' ainsi la parabole est tournée vers ', (a<0?'le bas.':'le haut.'), '</div>',
+    // (remplace le bloc de table x1/x2 dans solutionHTML)
+// --- remplace le <table> des solutions dans solutionHTML() ---
+'<table class="table sol2">' +
+  '<colgroup><col class="c1"><col class="c2"></colgroup>' +
+  '<thead><tr><th>x₁</th><th>x₂</th></tr></thead>' +
+  '<tbody><tr>' +
+    '<td>' +
+      // 1) Formule générale
+      '<div class="line">'+ L('x_1 = \\frac{-b - \\sqrt{\\Delta}}{2a}') +'</div>' +
+      // 2) Substitution des valeurs (ETAPE MANQUANTE)
+'<div class="line">'+
+  L('x_1 = \\frac{'+ sb +' - '+ r +'}{2\\times '+ aTex +'}') +
+'</div>',      // 3) Numérateur / dénominateur calculés
+      '<div class="line">'+ L('x_1 = ' + fracTex(-b - r, 2*a)) +'</div>' +
+      // 4) Résultat simplifié
+      '<div class="line"><b>'+ L('x_1 = ' + fracTex(s1[0], s1[1])) +'</b></div>' +
+    '</td>' +
+    '<td>' +
+      '<div class="line">'+ L('x_2 = \\frac{-b + \\sqrt{\\Delta}}{2a}') +'</div>' +
+'<div class="line">'+
+  L('x_2 = \\frac{'+ sb +' + '+ r +'}{2\\times '+ aTex +'}') +
+'</div>',      '<div class="line">'+ L('x_2 = ' + fracTex(-b + r, 2*a)) +'</div>' +
+      '<div class="line"><b>'+ L('x_2 = ' + fracTex(s2[0], s2[1])) +'</b></div>' +
+    '</td>' +
+  '</tr></tbody>' +
+'</table>',
+
+
+    '<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de signes en utilisant le signe de ', L('a'), ' (à l’extérieur des racines). ', (a<0?'a < 0':'a > 0'), ' ainsi la parabole est tournée vers ', (a<0?'le bas.':'le haut.'), '</div>',
     tableSolved,
     '<div><b>3<sup>ème</sup> étape :</b> On résout l’inéquation demandée :</div>',
-    '<div>', P, ' ', cmpNice, ' 0 pour x ∈ ', solSet, '</div>',
-    '<div style="font-weight:700;margin-top:.25rem">S = ', solSet, '</div>',
+    '<div>', L(P + ' \\; ' + cmpNice + ' \\; 0 \\;\\; \\text{pour} \\; x \\in ' + solSet), '</div>',
+    '<div style="font-weight:700;margin-top:.25rem">', L('S = ' + solSet), '</div>',
   '</div>'
   ].join('');
 }
 
+/* ===== Δ < 0 ===== */
+function genDeltaNeg(){
+  for(var t=0;t<999;t++){
+    var a = choice([-3,-2,-1,1,2,3]);
+    var b = rnd(-9,9);
+    var c = rnd(-9,9);
+    if(a===0) continue;
+    var D = b*b - 4*a*c;
+    if(D<0){
+      return {a:a,b:b,c:c,delta:D};
+    }
+  }
+  return {a:1,b:0,c:1,delta:-4};
+}
+function solutionHTML_Dneg(st, cmp){
+  var a=st.a,b=st.b,c=st.c,D=st.delta;
+  var P = polyTex(a,b,c);
+  var outSign = (a>0? '+':'−');
+  function solSetFor(a,cmpVal){
+    if(a>0){
+      if(cmpVal==='<'||cmpVal==='<=') return '\\varnothing';
+      return '\\mathbb{R}';
+    }else{
+      if(cmpVal==='<'||cmpVal==='<=') return '\\mathbb{R}';
+      return '\\varnothing';
+    }
+  }
+
+  var tableSolved = [
+  '<div class="signwrap">',
+    '<table class="sign-table">',
+      '<colgroup>',
+        '<col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int">',
+      '</colgroup>',
+      '<tbody>',
+        '<tr>',
+          '<th class="lbl">\\(x\\)</th>',
+          '<td class="int cap-left">\\(−∞\\)</td>',
+          '<td class="zero"></td>',
+          '<td class="int"><b><!-- signe seulement sous α --></b></td>',
+          '<td class="zero"></td>',
+          '<td class="int cap-right">\\(+∞\\)</td>',
+        '</tr>',
+        '<tr>',
+          '<th class="lbl">\\(f(x)\\)</th>',
+          '<td class="int"></td>',
+          '<td class="zero"></td>',
+          '<td class="int">', outSign, '</td>',
+          '<td class="zero"></td>',
+          '<td class="int"></td>',
+        '</tr>',
+      '</tbody>',
+    '</table>',
+  '</div>'
+  ].join('');
+
+  var cmpNice = polyCmpSymbol(cmp||'<');
+  var solSet = solSetFor(a,(cmp||'<'));
+
+  return [
+  '<div class="steps">',
+    '<div>On note :', L('f(x) = '+P), '</div>',
+    '<div><b>1<sup>ère</sup> étape :</b> On cherche les solutions ', L('f(x)=0'), '.</div>',
+    '<div>', L('a = '+a+',\\; b = '+b+',\\; c = '+c), '</div>',
+    '<div>', L('\\Delta = b^2 - 4ac = '+(b*b)+' - 4\\times '+withParensIfNeg(String(a),a)+'\\times '+withParensIfNeg(String(c),c)+' = '+(b*b) + ((4*a*c)>=0? ' - '+(4*a*c) : ' + '+Math.abs(4*a*c)) +' < 0'), '</div>',
+    '<div>Ainsi l’équation n’admet pas de solution réelle.</div>',
+    '<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de signes en utilisant le signe de ', L('a'), '.</div>',
+    tableSolved,
+    '<div><b>3<sup>ème</sup> étape :</b> On résout l’inéquation demandée :</div>',
+    '<div>', L(P + ' \\; ' + cmpNice + ' \\; 0 \\;\\; \\text{pour} \\; x \\in ' + solSet), '</div>',
+    '<div style="text-align:center;margin:.3rem 0"><b>', L('S = '+solSet), '</b></div>',
+  '</div>'
+  ].join('');
+}
+
+/* ===== Δ = 0 ===== */
+function genDeltaZero(){
+  var a = choice([-3,-2,-1,1,2,3]);
+  var alpha = rnd(-8,8);
+  var b = -2*a*alpha;
+  var c = a*alpha*alpha;
+  return {a:a,b:b,c:c,delta:0,alpha:alpha};
+}
+function solutionHTML_Dzero(st, cmp){
+  var a=st.a,b=st.b,c=st.c;
+  var P = polyTex(a,b,c);
+  var alpha = -b/(2*a);
+  var outSign = (a>0? '+':'−');
+  function solSetFor(a,alpha,cmpVal){
+    var aH=numToFracTex(alpha);
+    if(cmpVal==='<') return (a>0? '\\varnothing' : '\\mathbb{R}\\setminus\\{'+aH+'\\}');
+    if(cmpVal==='<=') return (a>0? '\\{'+aH+'\\}' : '\\mathbb{R}');
+    if(cmpVal==='>') return (a>0? '\\mathbb{R}\\setminus\\{'+aH+'\\}' : '\\varnothing');
+    if(cmpVal==='>=') return (a>0? '\\mathbb{R}' : '\\{'+aH+'\\}');
+    return '';
+  }
+
+  var tableSolved = [
+  '<div class="signwrap">',
+    '<table class="sign-table">',
+      '<colgroup>',
+        '<col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int">',
+      '</colgroup>',
+      '<tbody>',
+        '<tr>',
+          '<th class="lbl">\\(x\\)</th>',
+          '<td class="int cap-left">\\(−∞\\)</td>',
+          '<td class="zero"></td>',
+          '<td class="int"><b>', L(numToFracTex(alpha)), '</b></td>',
+          '<td class="zero"></td>',
+          '<td class="int cap-right">\\(+∞\\)</td>',
+        '</tr>',
+        '<tr>',
+          '<th class="lbl">\\(f(x)\\)</th>',
+          '<td class="int">', outSign, '</td>',
+          '<td class="zero"></td>',
+          '<td class="int"><b>0</b></td>',
+          '<td class="zero"></td>',
+          '<td class="int">', outSign, '</td>',
+        '</tr>',
+      '</tbody>',
+    '</table>',
+  '</div>'
+  ].join('');
+
+  var cmpNice = polyCmpSymbol(cmp||'<');
+  var solSet = solSetFor(a,alpha,(cmp||'<'));
+
+  return [
+  '<div class="steps">',
+    '<div>On note :', L('f(x) = '+P), '</div>',
+    '<div><b>1<sup>ère</sup> étape :</b> On cherche les solutions de ', L('f(x)=0'), '.</div>',
+    '<div>', L('a = '+a+',\\; b = '+b+',\\; c = '+c), '</div>',
+    '<div>', L('\\Delta = b^2 - 4ac = '+(b*b)+' - 4\\times '+withParensIfNeg(String(a),a)+'\\times '+withParensIfNeg(String(c),c)+' = 0'), '</div>',
+'<div>Ainsi l’équation admet une seule solution :</div>',
+'<div style="margin-top:.25rem">',
+  L('\\alpha = -\\frac{b}{2a} = '+fracTex(-b,2*a)+' = '+numToFracTex(alpha)),
+'</div>',
+
+	'<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de signes en utilisant le signe de ', L('a'), '.</div>',
+    tableSolved,
+    '<div><b>3<sup>ème</sup> étape :</b> On résout l’inéquation demandée :</div>',
+    '<div>', L(P + ' \\; ' + cmpNice + ' \\; 0 \\;\\; \\text{pour} \\; x \\in ' + solSet), '</div>',
+    '<div style="text-align:center;margin:.3rem 0"><b>', L('S = '+solSet), '</b></div>',
+  '</div>'
+  ].join('');
+}
+
+/* ===== REGISTRY ===== */
 var exIneq = { id:'ineq', title:'Inéquation – Δ > 0 (carré parfait)', gen:function(host, st){ st = st && st.a!==undefined ? st : genInEq(); host.innerHTML=buildHost(st); setCmpRandom(host, st); host.dataset.state = JSON.stringify(st); },
   correct:function(host, st){ check(host, st); },
-  solution:function(host, st){ var cmp = getCmpFrom(host); try{ st = st || JSON.parse(host.dataset.state||'{}'); }catch(e){} st = st || {}; st.cmp = cmp; host.dataset.state = JSON.stringify(st); $('#res',host).innerHTML = solutionHTML(st, cmp); },
+  solution:function(host, st){ var cmp = getCmpFrom(host); try{ st = st || JSON.parse(host.dataset.state||'{}'); }catch(e){} st = st || {}; st.cmp = cmp; host.dataset.state = JSON.stringify(st); $('#res',host).innerHTML = solutionHTML(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); },
   reset:function(host){
     var resEl = $('#res',host); if(resEl) resEl.textContent='';
     var msg = document.getElementById('msg'); if(msg) msg.textContent='';
@@ -563,17 +771,121 @@ var exIneq = { id:'ineq', title:'Inéquation – Δ > 0 (carré parfait)', gen:f
   }
 };
 
-var REG = [exIneq];
+function check_Dneg(host, st){
+  var ok=0, tot=0;
+  var a=st.a;
+  var outSign = (a>0? '+':'−');
+  var s2=($("#s2",host)||{}).value||'';
+  function sc(val,exp){ if(val){ tot++; if(val===exp) ok++; } }
+  sc(s2,outSign);
+  var ans = (document.getElementById('ansSet')||{}).value||'';
+ans = ans.replace(/\s/g,'');
+  var cmp = getCmpFrom(host);
+  var target = (a>0? ((cmp==='<'||cmp==='<=')?'∅':'ℝ') : ((cmp==='<'||cmp==='<=')?'ℝ':'∅'));
+  if(ans){ tot++; if(ans===target || ans==='R' || ans==='\\mathbb{R}') ok++; }
+  scoreOK+=ok; scoreTot+=tot; updateScore();
+}
+
+function check_Dzero(host, st){
+  var ok=0, tot=0;
+  var a=st.a, alpha = -st.b/(2*st.a);
+  var outSign = (a>0? '+':'−');
+
+  var s1=($("#s1",host)||{}).value||'', s2=($("#s2",host)||{}).value||'', s3=($("#s3",host)||{}).value||'';
+  function sc(val,exp){ if(val){ tot++; if(val===exp) ok++; } }
+  sc(s1,outSign); sc(s2,'0'); sc(s3,outSign);
+
+  var z1=($("#z1",host)||{}).value||'', z2=($("#z2",host)||{}).value||'';
+  tot++; ok += (z1==='')?1:0;
+  tot++; ok += (z2==='')?1:0;
+
+  var alphaIn = parseNumber(($("#alpha",host)||{}).value||'');
+  if(!isNaN(alphaIn)){ tot++; if(Math.abs(alphaIn-alpha)<1e-6) ok++; }
+
+  scoreOK+=ok; scoreTot+=tot; updateScore();
+}
+
+function buildHost_Generic(st){
+  return buildHost(st);
+}
+
+var exDneg = { id:'dneg', title:'Inéquation – Δ < 0', gen:function(host, st){ st = st && st.a!==undefined ? st : genDeltaNeg(); host.innerHTML=buildHost_Generic(st); setCmpRandom(host, st); host.dataset.state = JSON.stringify(st); },
+  correct:function(host, st){ check_Dneg(host, st); },
+  solution:function(host, st){ var cmp = getCmpFrom(host); $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); },
+  reset:function(host){ exIneq.reset(host); }
+};
+
+var exDzero = { id:'dzero', title:'Inéquation – Δ = 0', gen:function(host, st){ st = st && st.a!==undefined ? st : genDeltaZero(); host.innerHTML=buildHost_Generic(st); setCmpRandom(host, st); host.dataset.state = JSON.stringify(st); },
+  correct:function(host, st){ check_Dzero(host, st); },
+  solution:function(host, st){ var cmp = getCmpFrom(host); $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); },
+  reset:function(host){ exIneq.reset(host); }
+};
+
+// ===== Mélange (route par delta) =====
+var exMix = { id:'mix', title:'Mélange',
+  gen:function(host, st){
+    if (st && st.a!==undefined) {
+      host.innerHTML = buildHost_Generic(st);
+      setCmpRandom(host, st);
+      host.dataset.state = JSON.stringify(st);
+      if (typeof st.delta === 'number') {
+        host.dataset.mode = (st.delta<0 ? 'dneg' : (st.delta===0 ? 'dzero' : 'dpos'));
+      }
+      return;
+    }
+    var r=Math.random();
+    if(r<0.60){
+      var st1=genInEq(); host.innerHTML=buildHost(st1); setCmpRandom(host, st1);
+      host.dataset.state = JSON.stringify(st1); host.dataset.mode='dpos';
+    }else if(r<0.85){
+      var st2=genDeltaZero(); host.innerHTML=buildHost_Generic(st2); setCmpRandom(host, st2);
+      host.dataset.state = JSON.stringify(st2); host.dataset.mode='dzero';
+    }else{
+      var st3=genDeltaNeg(); host.innerHTML=buildHost_Generic(st3); setCmpRandom(host, st3);
+      host.dataset.state = JSON.stringify(st3); host.dataset.mode='dneg';
+    }
+  },
+  correct:function(host, st){
+    st = st || JSON.parse(host.dataset.state||'{}');
+    if (st && typeof st.delta === 'number') {
+      if (st.delta<0) return check_Dneg(host, st);
+      if (st.delta===0) return check_Dzero(host, st);
+      return exIneq.correct(host, st);
+    }
+    var mode = host.dataset.mode;
+    if(mode==='dzero') return check_Dzero(host, st);
+    if(mode==='dneg')  return check_Dneg(host, st);
+    return exIneq.correct(host, st);
+  },
+  solution:function(host, st){
+    st = st || JSON.parse(host.dataset.state||'{}');
+    var cmp = getCmpFrom(host);
+    if (st && typeof st.delta === 'number') {
+      if (st.delta<0) { $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); return; }
+      if (st.delta===0) { $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); return; }
+      $('#res',host).innerHTML = solutionHTML(st, cmp); if(window.MathJax) MathJax.typesetPromise?.();
+      return;
+    }
+    var mode = host.dataset.mode;
+    if(mode==='dzero') { $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); return; }
+    if(mode==='dneg')  { $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp); if(window.MathJax) MathJax.typesetPromise?.(); return; }
+    $('#res',host).innerHTML = solutionHTML(st, cmp); if(window.MathJax) MathJax.typesetPromise?.();
+  },
+  reset:function(host){ exIneq.reset(host); }
+};
+
+var REG = [exIneq, exDneg, exDzero, exMix];
 window.REG=REG; window.REGISTRY=REG;
 
+/* ===== Montage & UX ===== */
 function mount(){
   var sel=$("#exo-select"); if(!sel) return;
   sel.innerHTML=REG.map(function(e,i){return '<option value="'+e.id+'">'+(i+1)+'. '+e.title+'</option>';}).join('');
   function get(){ var id=sel.value||REG[0].id; for(var i=0;i<REG.length;i++){ if(REG[i].id===id) return REG[i]; } return REG[0]; }
-  function newOne(){ var ex=get(); var host=$("#host"); ex.gen(host); }
+  function newOne(){ var ex=get(); var host=$("#host"); ex.gen(host); if(window.MathJax) MathJax.typesetPromise?.(); }
   function _check(){ var ex=get(); var host=$("#host"); ex.correct(host, JSON.parse(host.dataset.state||'{}')); }
   function sol(){ var ex=get(); var host=$("#host"); ex.solution(host, JSON.parse(host.dataset.state||'{}')); }
-  function reset(){ var ex=get(); ex.reset($("#host")); }
+  function reset(){ var ex=get(); ex.reset($("#host")); if(window.MathJax) MathJax.typesetPromise?.(); }
 
   sel.onchange=newOne;
   $("#btn-new").onclick=newOne;
@@ -597,7 +909,8 @@ function mount(){
   sel.value=REG[0].id; newOne();
 }
 document.addEventListener('DOMContentLoaded', mount);
-  
+
+/* ===== Ticks & validation ===== */
 function parseNumberLite(s){
   if(!s) return NaN;
   var t = (''+s).trim().replace(/−/g,'-').replace(/,/g,'.');
@@ -650,6 +963,7 @@ function updateTicks(host, st){
   else{
     function parseIntervals(txt){
       var t = txt.replace(/\s/g,'').replace(/−/g,'-');
+      if(t==='ℝ'||t==='R'||t==='\\mathbb{R}') return [{A:-Infinity,B:Infinity,L:'[',R:']'}];
       var parts = t.split(/∪|U|u/).filter(function(x){return x;});
       var ints = [];
       for(var i=0;i<parts.length;i++){
@@ -697,467 +1011,136 @@ function bindLiveValidation(host, st){ /* volontairement inactif */ }
 </script>
 
 <script>
-function genDeltaNeg(){
-  for(var t=0;t<999;t++){
-    var a = choice([-3,-2,-1,1,2,3]);
-    var b = rnd(-9,9);
-    var c = rnd(-9,9);
-    if(a===0) continue;
-    var D = b*b - 4*a*c;
-    if(D<0){
-      return {a:a,b:b,c:c,delta:D};
-    }
-  }
-  return {a:1,b:0,c:1,delta:-4};
-}
-
-function genDeltaZero(){
-  var a = choice([-3,-2,-1,1,2,3]);
-  var alpha = rnd(-8,8);
-  var b = -2*a*alpha;
-  var c = a*alpha*alpha;
-  return {a:a,b:b,c:c,delta:0,alpha:alpha};
-}
-
-function solutionHTML_Dneg(st, cmp){
-  var a=st.a,b=st.b,c=st.c,D=st.delta;
-  var P = polyHTML(a,b,c);
-  var outSign = (a>0? '+':'−');
-  function solSetFor(a,cmpVal){
-    if(a>0){
-      if(cmpVal==='<'||cmpVal==='<=') return '∅';
-      return 'ℝ';
-    }else{
-      if(cmpVal==='<'||cmpVal==='<=') return 'ℝ';
-      return '∅';
-    }
-  }
-  var tableSolved = [
-  '<div class="signwrap">',
-    '<table class="sign-table">',
-      '<colgroup>',
-        '<col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int">',
-      '</colgroup>',
-      '<tbody>',
-        '<tr>',
-          '<th class="lbl">x</th>',
-          '<td class="int cap-left">−∞</td>',
-          '<td class="zero"></td>',
-          '<td class="int"><b><!-- signe uniquement sous α --></b></td>',
-          '<td class="zero"></td>',
-          '<td class="int cap-right">+∞</td>',
-        '</tr>',
-        '<tr>',
-          '<th class="lbl">f(x)</th>',
-          '<td class="int"></td>',
-          '<td class="zero"></td>',
-          '<td class="int">', outSign, '</td>',
-          '<td class="zero"></td>',
-          '<td class="int"></td>',
-        '</tr>',
-      '</tbody>',
-    '</table>',
-  '</div>'
-  ].join('');
-
-  var cmpNice = cmpSymbol(cmp||'<');
-  var solSet = solSetFor(a,(cmp||'<'));
-
-  return [
-  '<div class="steps">',
-    '<div>On note f(x) = ', P, '</div>',
-    '<div><b>1<sup>ère</sup> étape :</b> On cherche les racines de f(x) en résolvant l’équation f(x) = 0.</div>',
-    '<div>a = ', a, ' ; b = ', b, ' et c = ', c, '</div>',
-    '<div><b>Δ = b² − 4ac</b> = ', (b*b) ,' − 4 × ', (a<0? '('+UMINUS+Math.abs(a)+')': a) ,' × ', (c<0? '('+UMINUS+Math.abs(c)+')': c) ,' = ', (b*b) , ((4*a*c)>=0? ' − '+(4*a*c) : ' + '+Math.abs(4*a*c)) ,' = ', D ,' &lt; 0</div>',
-    '<div>Ainsi l’équation n’admet pas de solution réelle.</div>',
-    '<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de variations en utilisant le signe de <i>a</i>.</div>',
-    '<div>a ', (a>0? '&gt;':'&lt;'), ' 0 ainsi la parabole est tournée vers le ', (a>0?'haut':'bas'), '.</div>',
-    tableSolved,
-    '<div><b>3<sup>ème</sup> étape :</b> On résout l’inéquation demandée :</div>',
-    '<div>', P, ' ', cmpNice, ' 0 pour x ∈ ', solSet, '</div>',
-    '<div style="text-align:center;margin:.3rem 0"><b>S = ', solSet, '</b></div>',
-  '</div>'
-  ].join('');
-}
-
-function solutionHTML_Dzero(st, cmp){
-  var a=st.a,b=st.b,c=st.c;
-  var P = polyHTML(a,b,c);
-  var alpha = -b/(2*a);
-  var outSign = (a>0? '+':'−');
-  function solSetFor(a,alpha,cmpVal){
-    var aH=numToFracHTML(alpha);
-    if(cmpVal==='<') return (a>0? '∅' : 'ℝ\\{'+aH+'}');
-    if(cmpVal==='<=') return (a>0? '{'+aH+'}' : 'ℝ');
-    if(cmpVal==='>') return (a>0? 'ℝ\\{'+aH+'}' : '∅');
-    if(cmpVal==='>=') return (a>0? 'ℝ' : '{'+aH+'}');
-    return '';
-  }
-  var tableSolved = [
-  '<div class="signwrap">',
-    '<table class="sign-table">',
-      '<colgroup>',
-        '<col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int">',
-      '</colgroup>',
-      '<tbody>',
-        '<tr>',
-          '<th class="lbl">x</th>',
-          '<td class="int cap-left">−∞</td>',
-          '<td class="zero"></td>',
-          '<td class="int"><b>', numToFracHTML(alpha), '</b></td>',
-          '<td class="zero"></td>',
-          '<td class="int cap-right">+∞</td>',
-        '</tr>',
-        '<tr>',
-          '<th class="lbl">f(x)</th>',
-          '<td class="int">', outSign, '</td>',
-          '<td class="zero"></td>',
-          '<td class="int"><b>0</b></td>',
-          '<td class="zero"></td>',
-          '<td class="int">', outSign, '</td>',
-        '</tr>',
-      '</tbody>',
-    '</table>',
-  '</div>'
-  ].join('');
-
-  var cmpNice = cmpSymbol(cmp||'<');
-  var solSet = solSetFor(a,alpha,(cmp||'<'));
-
-  return [
-  '<div class="steps">',
-    '<div>On note f(x) = ', P, '</div>',
-    '<div><b>1<sup>ère</sup> étape :</b> On cherche les racines de f(x) en résolvant l’équation f(x) = 0.</div>',
-    '<div>a = ', a, ' ; b = ', b, ' et c = ', c, '</div>',
-    '<div><b>Δ = b² − 4ac</b> = ', (b*b), ' − 4 × ', (a<0? '('+UMINUS+Math.abs(a)+')': a) ,' × ', (c<0? '('+UMINUS+Math.abs(c)+')': c) ,' = ', (b*b) , ((4*a*c)>=0? ' − '+(4*a*c) : ' + '+Math.abs(4*a*c)) ,' = 0</div>',
-    '<div>Ainsi l’équation admet une seule solution :</div>',
-    '<div><b>α = −</b><span class="frac"><span class="num">b</span><span class="bar"></span><span class="den">2a</span></span> = ', fracRaw(-b, 2*a), ' = <b>', numToFracHTML(alpha), '</b></div>',
-    '<div><b>2<sup>ème</sup> étape :</b> On fait le tableau de variations en utilisant le signe de <i>a</i>.</div>',
-    tableSolved,
-    '<div><b>3<sup>ème</sup> étape :</b> On résout l’inéquation demandée :</div>',
-    '<div>', P, ' ', cmpNice, ' 0 pour x ∈ ', solSet, '</div>',
-    '<div style="text-align:center;margin:.3rem 0"><b>S = ', solSet, '</b></div>',
-  '</div>'
-  ].join('');
-}
-
-function check_Dneg(host, st){
-  var ok=0, tot=0;
-  var a=st.a;
-  var outSign = (a>0? '+':'−');
-  var s2=($("#s2",host)||{}).value||'';
-  function sc(val,exp){ if(val){ tot++; if(val===exp) ok++; } }
-  sc(s2,outSign);
-  var ans = (document.getElementById('ansSet')||{}).value||'';
-  ans = ans.replace(/\s/g,'');
-  var cmp = getCmpFrom(host);
-  var target = (a>0? ((cmp==='<'||cmp==='<=')?'∅':'ℝ') : ((cmp==='<'||cmp==='<=')?'ℝ':'∅'));
-  if(ans){ tot++; if(ans===target || ans==='R' || ans==='\\mathbb{R}') ok++; }
-  scoreOK+=ok; scoreTot+=tot; updateScore();
-}
-
-function check_Dzero(host, st){
-  var ok=0, tot=0;
-  var a=st.a, alpha = -st.b/(2*st.a);
-  var outSign = (a>0? '+':'−');
-
-  var s1=($("#s1",host)||{}).value||'', s2=($("#s2",host)||{}).value||'', s3=($("#s3",host)||{}).value||'';
-  function sc(val,exp){ if(val){ tot++; if(val===exp) ok++; } }
-  sc(s1,outSign); sc(s2,'0'); sc(s3,outSign);
-
-  var z1=($("#z1",host)||{}).value||'', z2=($("#z2",host)||{}).value||'';
-  tot++; ok += (z1==='')?1:0;
-  tot++; ok += (z2==='')?1:0;
-
-  var alphaIn = parseNumber(($("#alpha",host)||{}).value||'');
-  if(!isNaN(alphaIn)){ tot++; if(Math.abs(alphaIn-alpha)<1e-6) ok++; }
-
-  scoreOK+=ok; scoreTot+=tot; updateScore();
-}
-
-function buildHost_Generic(st){
-  return buildHost(st);
-}
-
-var exDneg = { id:'dneg', title:'Inéquation – Δ < 0', gen:function(host, st){ st = st && st.a!==undefined ? st : genDeltaNeg(); host.innerHTML=buildHost_Generic(st); setCmpRandom(host, st); host.dataset.state = JSON.stringify(st); },
-  correct:function(host, st){ check_Dneg(host, st); },
-  solution:function(host, st){ var cmp = getCmpFrom(host); $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp); },
-  reset:function(host){ exIneq.reset(host); }
-};
-
-var exDzero = { id:'dzero', title:'Inéquation – Δ = 0', gen:function(host, st){ st = st && st.a!==undefined ? st : genDeltaZero(); host.innerHTML=buildHost_Generic(st); setCmpRandom(host, st); host.dataset.state = JSON.stringify(st); },
-  correct:function(host, st){ check_Dzero(host, st); },
-  solution:function(host, st){ var cmp = getCmpFrom(host); $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp); },
-  reset:function(host){ exIneq.reset(host); }
-};
-
-// ===== FIX: exMix respects provided state; route by delta =====
-var exMix = { id:'mix', title:'Mélange (60% Δ>0 PF, 25% Δ=0, 15% Δ<0)',
-  gen:function(host, st){
-    // If a state is provided (PDF flow), render exactly this state (no random)
-    if (st && st.a!==undefined) {
-      host.innerHTML = buildHost_Generic(st);
-      setCmpRandom(host, st);
-      host.dataset.state = JSON.stringify(st);
-      if (typeof st.delta === 'number') {
-        host.dataset.mode = (st.delta<0 ? 'dneg' : (st.delta===0 ? 'dzero' : 'dpos'));
-      }
-      return;
-    }
-    // Otherwise: random draw with weights
-    var r=Math.random();
-    if(r<0.60){
-      var st1=genInEq(); host.innerHTML=buildHost(st1); setCmpRandom(host, st1);
-      host.dataset.state = JSON.stringify(st1); host.dataset.mode='dpos';
-    }else if(r<0.85){
-      var st2=genDeltaZero(); host.innerHTML=buildHost_Generic(st2); setCmpRandom(host, st2);
-      host.dataset.state = JSON.stringify(st2); host.dataset.mode='dzero';
-    }else{
-      var st3=genDeltaNeg(); host.innerHTML=buildHost_Generic(st3); setCmpRandom(host, st3);
-      host.dataset.state = JSON.stringify(st3); host.dataset.mode='dneg';
-    }
-  },
-  correct:function(host, st){
-    st = st || JSON.parse(host.dataset.state||'{}');
-    if (st && typeof st.delta === 'number') {
-      if (st.delta<0) return check_Dneg(host, st);
-      if (st.delta===0) return check_Dzero(host, st);
-      return exIneq.correct(host, st);
-    }
-    // Fallback on mode if ever needed
-    var mode = host.dataset.mode;
-    if(mode==='dzero') return check_Dzero(host, st);
-    if(mode==='dneg')  return check_Dneg(host, st);
-    return exIneq.correct(host, st);
-  },
-  solution:function(host, st){
-    st = st || JSON.parse(host.dataset.state||'{}');
-    var cmp = getCmpFrom(host);
-    if (st && typeof st.delta === 'number') {
-      if (st.delta<0) return $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp);
-      if (st.delta===0) return $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp);
-      return $('#res',host).innerHTML = solutionHTML(st, cmp);
-    }
-    // Fallback on mode
-    var mode = host.dataset.mode;
-    if(mode==='dzero') return $('#res',host).innerHTML = solutionHTML_Dzero(st, cmp);
-    if(mode==='dneg')  return $('#res',host).innerHTML = solutionHTML_Dneg(st, cmp);
-    return $('#res',host).innerHTML = solutionHTML(st, cmp);
-  },
-  reset:function(host){ exIneq.reset(host); }
-};
-
-REG.push(exDneg, exDzero, exMix);
-window.REG=REG; window.REGISTRY=REG;
-
-(function(){
-  var rules = document.querySelector('.card.small ul');
-  if(!rules) return;
-  rules.insertAdjacentHTML('beforeend',
-    '<li><b>Ex. 2 – Δ &lt; 0 :</b> laisser <b>r₁</b>, <b>α</b>, <b>r₂</b> vides ; ne choisir que le <b>signe central</b> (sous α) qui est le signe de <i>a</i>.</li>'+
-    '<li><b>Ex. 3 – Δ = 0 :</b> laisser <b>r₁</b> et <b>r₂</b> vides ; remplir <b>α</b>, mettre <b>0</b> en dessous ; signes extérieurs = signe de <i>a</i>.</li>'+
-    '<li><b>Ex. 4 – Mélange :</b> tirage pondéré : 60% Δ&gt;0 (carré parfait), 25% Δ=0, 15% Δ&lt;0.</li>'
-  );
-})();
-</script>
-
-<script>
-window.updateTicks_orig = window.updateTicks;
-window.updateTicks = function(host, st){
-  if(st && st.delta<0){
-    var a=st.a;
-    var outSign=(a>0? '+':'−');
-    var s2=(host.querySelector('#s2')||{}).value||'';
-    setTick('ok_r1','ok'); setTick('ok_r2','ok'); setTick('ok_alpha','ok');
-    setTick('ok_s1','ok'); setTick('ok_s3','ok'); setTick('ok_z1','ok'); setTick('ok_z2','ok');
-    setTick('ok_s2', s2===''? 'nu' : (s2===outSign? 'ok':'ko'));
-    var ans = (document.getElementById('ansSet')||{}).value||'';
-    if(ans===''){ setTick('ok_S','nu'); }
-    else{
-      var clean = ans.replace(/\s/g,'');
-      var cmp = getCmpFrom(host);
-      var target = (a>0? ((cmp==='<'||cmp==='<=')?'∅':'ℝ') : ((cmp==='<'||cmp==='<=')?'ℝ':'∅'));
-      setTick('ok_S', (clean===target || clean==='R' || clean==='\\mathbb{R}')? 'ok':'ko');
-    }
-    return;
-  }
-  if(st && st.delta===0){
-    var a2=st.a, alpha = -st.b/(2*st.a);
-    var outSign2=(a2>0? '+':'−');
-    var r1t=(host.querySelector('#r1')||{}).value||'';
-    var r2t=(host.querySelector('#r2')||{}).value||'';
-    var at=(host.querySelector('#alpha')||{}).value||'';
-    var av = parseNumberLite(at);
-    setTick('ok_r1', r1t===''?'ok':'ko');
-    setTick('ok_r2', r2t===''?'ok':'ko');
-    setTick('ok_alpha', (at!=='' && !isNaN(av) && Math.abs(av-alpha)<1e-6)? 'ok' : (at===''? 'nu':'ko'));
-    var s1=(host.querySelector('#s1')||{}).value||'';
-    var s2=(host.querySelector('#s2')||{}).value||'';
-    var s3=(host.querySelector('#s3')||{}).value||'';
-    var z1=(host.querySelector('#z1')||{}).value||'';
-    var z2=(host.querySelector('#z2')||{}).value||'';
-    setTick('ok_s1', s1===''?'nu':(s1===outSign2?'ok':'ko'));
-    setTick('ok_s2', s2===''?'nu':(s2==='0'?'ok':'ko'));
-    setTick('ok_s3', s3===''?'nu':(s3===outSign2?'ok':'ko'));
-    setTick('ok_z1', z1===''?'ok':'ko');
-    setTick('ok_z2', z2===''?'ok':'ko');
-    var ans2 = (document.getElementById('ansSet')||{}).value||'';
-    if(ans2===''){ setTick('ok_S','nu'); }
-    else{
-      function parseIntervals(txt){
-        var t = txt.replace(/\s/g,'').replace(/−/g,'-');
-        if(t==='ℝ'||t==='R'||t==='\\mathbb{R}') return [{A:-Infinity,B:Infinity,L:'[',R:']'}];
-        var parts = t.split(/∪|U|u/).filter(function(x){return x;});
-        var ints = [];
-        for(var i=0;i<parts.length;i++){
-          var p = parts[i];
-          var L=p.charAt(0), R=p.charAt(p.length-1);
-          var inner=p.slice(1,-1);
-          var semi=inner.indexOf(';'); if(semi<0) continue;
-          var Araw=inner.slice(0,semi), Braw=inner.slice(semi+1);
-          var A=(Araw==='-∞'||Araw==='-oo')? -Infinity : parseNumberLite(Araw);
-          var B=(Braw==='+∞'||Braw==='+oo')?  Infinity : parseNumberLite(Braw);
-          ints.push({A:A,B:B,L:L,R:R});
-        }
-        return ints;
-      }
-      function inU(x,U){
-        for(var i=0;i<U.length;i++){
-          var I = U[i];
-          var okL = (I.L===']'? x>I.A : x>=I.A);
-          var okR = (I.R==='['? x<I.B : x<=I.B);
-          if(okL && okR) return true;
-        }
-        return false;
-      }
-      var U = parseIntervals(ans2);
-      var cmp2 = getCmpFrom(host);
-      var EPS=1e-9;
-      function inside(x){
-        var y = st.a*x*x + st.b*x + st.c;
-        if(cmp2==='<') return y < -EPS;
-        if(cmp2==='>') return y >  EPS;
-        if(cmp2==='<=')return y <= EPS;
-        if(cmp2=== '>=')return y >=-EPS;
-        return y < -EPS;
-      }
-      var tests = [alpha-1, alpha, alpha+1];
-      var ok = true;
-      for(var j=0;j<tests.length;j++){
-        var x = tests[j];
-        if( inU(x,U) !== inside(x) ){ ok=false; break; }
-      }
-      setTick('ok_S', ok? 'ok':'ko');
-    }
-    return;
-  }
-  return window.updateTicks_orig(host, st);
-};
-</script>
-
-<script>
 (function(){
   document.addEventListener('DOMContentLoaded', function () {
     if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
 
-    function validState(st){
-      return st && isFinite(st.a) && isFinite(st.b) && isFinite(st.c);
-    }
-
     ExoPDF.init({
       title: document.title,
+      mountAfterSelector: '#host',
+
+      // Récupère un état figé depuis l'exo
       beforeGen(def, _st, ctx){
         const host = document.createElement('div');
         if (def && typeof def.gen === 'function') def.gen(host);
         let st = {};
-        try{ st = JSON.parse(host.dataset.state||'{}'); }catch(_){}
-        return st; // état gelé pour énoncé + correction
+        try { st = JSON.parse(host.dataset.state || '{}'); } catch(_){}
+        return st;
       },
 
-      beforeRender: function(def, _st, withSolutions){
+      // Construit l'HTML à imprimer
+      beforeRender(def, st, withSolutions){
         try{
-          var host = document.createElement('div');
+          const host = document.createElement('div');
           host.id = 'pdf-host';
           host.style.position='fixed';
           host.style.left='-200vw';
           document.body.appendChild(host);
 
-          var REG = (window.REGISTRY || window.REG || []);
-          var theDef = def || REG[0];
-          if(!theDef){ document.body.removeChild(host); return null; }
+          // ⟵ On régénère l'exo avec la bonne API (gen)
+          if (def && typeof def.gen === 'function') {
+            def.gen(host, st);
 
-          // Générer en utilisant EXACTEMENT l'état fourni
-          try{ theDef.gen(host, _st); }catch(_){ theDef.gen(host); }
 
-          var st = _st;
-          try{
-            if(!st && host.dataset.state) st = JSON.parse(host.dataset.state);
-          }catch(e){ st = null; }
-
-          if(!validState(st)){
-            theDef.gen(host);
-            try{ if(host.dataset.state) st = JSON.parse(host.dataset.state); }catch(e){ st=null; }
-          }
-          if(!validState(st)){
-            st = {a:1,b:0,c:-1,delta:4,r:-1,s:1,alpha:0};
-            host.dataset.state = JSON.stringify(st);
+          } else if (typeof window.buildHost === 'function') {
+            host.innerHTML = buildHost(st);
           }
 
-          if(st && st.cmp){ var cmpSel = host.querySelector('#cmp'); if(cmpSel){ cmpSel.value = st.cmp; } }
-          if(withSolutions && typeof theDef.solution === 'function'){
-            theDef.solution(host, st);
+          host.dataset.state = JSON.stringify(st||{});
+
+          // Reposer le comparateur si mémorisé
+          if (st && st.cmp){
+            const cmpSel = host.querySelector('#cmp');
+            if (cmpSel) cmpSel.value = st.cmp;
           }
 
-          // Remplacement des champs par du texte avant export
-          var fields = host.querySelectorAll('input, textarea, select, [contenteditable="true"]');
-          for(var i=0;i<fields.length;i++){
-            var el = fields[i];
-            var tVal=' '; if(el.tagName==='SELECT'){var opt=el.options&&el.selectedIndex>=0&&el.options[el.selectedIndex]; tVal = opt ? (opt.textContent||opt.innerText||el.value||' ') : (el.value||' ');} else { tVal = el.value||' '; } var t=document.createTextNode(tVal);
-            el.parentNode.replaceChild(t, el);
+          // Corrigé si demandé
+          if (withSolutions && def && typeof def.solution === 'function'){
+            try { def.solution(host, st); } catch(_){}
           }
 
-          function upscaleSignTables(root){
-            var list = root.querySelectorAll('.sign-table');
-            for(var i=0;i<list.length;i++){
-              var t = list[i];
-              t.classList.add('pdf-large');
-              t.style.setProperty('--zeroW','140px');
-              var cells = t.querySelectorAll('th,td');
-              for(var k=0;k<cells.length;k++){
-                var c = cells[k];
-                c.style.textAlign    = 'center';
-                c.style.verticalAlign= 'middle';
-                c.style.padding      = '14px 16px';
-                if(c.classList.contains('lbl')) c.style.borderRight = '2px solid #000';
-              }
+          // Figer les champs (select -> libellé visible)
+          host.querySelectorAll('input, textarea, select, [contenteditable="true"]').forEach(el=>{
+            let txt = ' ';
+            if (el.tagName === 'SELECT') {
+              const opt = el.options && el.selectedIndex >= 0 && el.options[el.selectedIndex];
+              txt = (opt ? (opt.textContent || opt.innerText) : el.value) || ' ';
+            } else {
+              txt = (el.value != null ? el.value : el.textContent) || ' ';
             }
-          }
-          upscaleSignTables(host);
+            el.replaceWith(document.createTextNode(txt));
+          });
+(function shrinkForPDF(root){
+  root.querySelectorAll('table.sign-table').forEach(tbl=>{
+    tbl.classList.add('half');
+    tbl.style.width='auto';
+    tbl.style.margin='6px 0';
+  });
+})(host);
+// ↓↓↓ PDF: empêcher le chevauchement des formules dans x1/x2 ↓↓↓
+(function fixMathBlocksForPDF(root){
+  const scope = root.querySelectorAll('table.table.sol2').length
+    ? root.querySelectorAll('table.table.sol2')
+    : root.querySelectorAll('#res table.table'); // fallback si .sol2 absent
 
-          var tables = host.querySelectorAll('table');
-          for(var k=0;k<tables.length;k++){
-            var table = tables[k];
-            var csT = window.getComputedStyle(table);
-            table.style.borderCollapse = csT.borderCollapse;
-            table.style.borderSpacing  = csT.borderSpacing;
-            var hasOuter = (csT.borderTopWidth!=='0px'||csT.borderRightWidth!=='0px'||csT.borderBottomWidth!=='0px'||csT.borderLeftWidth!=='0px');
-            table.style.border = hasOuter ? (csT.borderTopWidth+' '+csT.borderTopStyle+' '+csT.borderTopColor) : 'none';
-            var tds = table.querySelectorAll('th,td');
-            for(var m=0;m<tds.length;m++){
-              var td=tds[m], cs=window.getComputedStyle(td);
-              td.style.borderTop    = cs.borderTopWidth+' '+cs.borderTopStyle+' '+cs.borderTopColor;
-              td.style.borderRight  = cs.borderRightWidth+' '+cs.borderRightStyle+' '+cs.borderRightColor;
-              td.style.borderBottom = cs.borderBottomWidth+' '+cs.borderBottomStyle+' '+cs.borderBottomColor;
-              td.style.borderLeft   = cs.borderLeftWidth+' '+cs.borderLeftStyle+' '+cs.borderLeftColor;
-              td.style.verticalAlign = 'top';
-            }
-          }
+  scope.forEach(t=>{
+  
 
-          var outHTML = withSolutions
-            ? ( (function(){ var el = host.querySelector('#res'); return el? el.outerHTML : host.innerHTML; })() )
+    // chaque ligne : hauteur réelle + marges
+    t.querySelectorAll('.line').forEach(div=>{
+      div.style.margin = '10px 0';
+      div.style.lineHeight = '1.1';
+      div.style.padding = '2px 0';
+    });
+
+    // le point clé : les containers MathJax deviennent des blocs
+    t.querySelectorAll('.line mjx-container').forEach(mjx=>{
+      mjx.style.display = 'block';
+      mjx.style.margin  = '6px 0 0';
+    });
+  });
+})(host);
+// ↑↑↑ Fin patch ↑↑↑
+
+          // === Important : inliner les styles de bordure / padding pour le PDF ===
+          (function inlineTableStyles(root){
+            const tables = root.querySelectorAll('table');
+            tables.forEach(table=>{
+              const csT = window.getComputedStyle(table);
+              table.style.borderCollapse = csT.borderCollapse;
+              table.style.borderSpacing  = csT.borderSpacing;
+
+              ['Top','Right','Bottom','Left'].forEach(side=>{
+                table.style['border'+side] =
+                  csT['border'+side+'Width']+' '+csT['border'+side+'Style']+' '+csT['border'+side+'Color'];
+              });
+
+              // Largeurs de colgroup (sinon perdues dans le PDF)
+              table.querySelectorAll('col').forEach(col=>{
+                const csC = window.getComputedStyle(col);
+                if (csC.width && csC.width !== 'auto') col.style.width = csC.width;
+              });
+
+              // Cells
+              table.querySelectorAll('th,td').forEach(td=>{
+                const cs = window.getComputedStyle(td);
+                ['Top','Right','Bottom','Left'].forEach(side=>{
+                  td.style['border'+side] =
+                    cs['border'+side+'Width']+' '+cs['border'+side+'Style']+' '+cs['border'+side+'Color'];
+                });
+                td.style.verticalAlign = cs.verticalAlign;
+                td.style.textAlign     = cs.textAlign;
+                td.style.padding       = cs.paddingTop+' '+cs.paddingRight+' '+cs.paddingBottom+' '+cs.paddingLeft;
+              });
+            });
+          })(host);
+          // === Fin : styles inline = bordures identiques à l'écran ===
+
+          const outHTML = withSolutions
+            ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
             : host.innerHTML;
 
-          document.body.removeChild(host);
+          host.remove();
           return outHTML;
         }catch(e){
           console.error('PDF beforeRender error:', e);
@@ -1169,7 +1152,9 @@ window.updateTicks = function(host, st){
 })();
 </script>
 
+
 <script>
+/* Petit scaffold pour #enonce/#res si besoin (inchangé) */
 (function(){
   function isHost(x){ return x && x.nodeType===1; }
   function scaffold(host){
@@ -1216,32 +1201,30 @@ document.addEventListener('change', function(ev){
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
-  // 1) Barre d’actions mobile (clones des boutons existants)
+  // 1) Barre d’actions mobile
   if (window.innerWidth <= 760) {
     const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
-[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-  const src = document.querySelector(sel);
-  if (src) {
-    const clone = src.cloneNode(true);
-    clone.classList.add('btn');
-    clone.type = 'button';
-    clone.removeAttribute('id');        // id doit rester unique
-    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-    bar.appendChild(clone);
-  } else {
-    // fallback si jamais l’original est absent (rare)
-    const fallback = document.createElement('button');
-    fallback.className = 'btn';
-    fallback.type = 'button';
-    fallback.textContent = label;
-    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-    bar.appendChild(fallback);
-  }
-});
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type = 'button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className = 'btn';
+          fallback.type = 'button';
+          fallback.textContent = label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
       document.body.appendChild(bar);
     }
   }
@@ -1263,11 +1246,10 @@ document.addEventListener('DOMContentLoaded', () => {
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
-    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 
-  // 4) Points à déplacer : rayon + touche
+  // 4) Ajustements tactiles
   if (coarse) {
     document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
       const r = parseFloat(c.getAttribute('r')||'5');

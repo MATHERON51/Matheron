@@ -205,7 +205,7 @@ function unwrapLegacyEqu(html){
 
     if (typeof def.printSolutionHTML === 'function')
       return stripSmallHints(def.printSolutionHTML(st));
-if (html && html.trim()) return stripSmallHints( unwrapLegacyEqu(html) );
+// if (html && html.trim()) return stripSmallHints( unwrapLegacyEqu(html) );// 
 
     return '<div class="steps"><div class="step">Corrigé non disponible pour ce type.</div></div>';
   }

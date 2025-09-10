@@ -6,6 +6,8 @@
 <title>Seconde – Repère : Abscisse et ordonnée</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
@@ -34,12 +36,15 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #dd
 .chip.active{border-color:#111;box-shadow:inset 0 0 0 1px #111}
 .chip .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
 @media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
+
+.svgbox{ touch-action: manipulation; user-select: none; }
+
 </style>
 
   <!-- DevRules in inputs-only mode -->
   <script>window.DEVRULES_MODE='inputs-only';</script>
   <script src="../../../../js/dev-rules-clean.dedup.vB.inputs-only.js" defer></script>
-  <script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
   <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
   <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
   <script src="../../../../js/repere_patch_0813.js" defer></script>
@@ -70,7 +75,7 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #dd
       <span>y ∈ [</span><input id="ymin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
       <input id="ymax" type="number" value="6"  min="-12" max="12" step="1"><span>]</span>
       <button id="amp-apply" class="btn">↴ Appliquer</button>
-      <label class="small" style="margin-left:10px"><input id="pdfRand" type="checkbox" checked> PDF : amplitude aléatoire (par énoncé)</label>
+      <label class="small" style="margin-left:10px"><input id="pdfRand" type="checkbox"> PDF : amplitude aléatoire (par énoncé)</label>
       <span style="margin-left:16px"></span>
       <strong>Nombre de points (exos 6–9) :</strong>
       <input id="nbPts" type="number" value="3" min="3" max="10" step="1" style="width:80px"> <label class="small" style="margin-left:10px"><input id="nbPts-random" type="checkbox"> Nombre aléatoire (par énoncé)</label>
@@ -132,7 +137,10 @@ const seededRndInt=(rng,a,b)=>a+Math.floor(rng()*(b-a+1));
 
 /* =============== Amplitude (UI) =============== */
 const AMP = { xmin:-6, xmax:6, ymin:-6, ymax:6 };
-const getNbPts = () => {
+const getNbPts = (...args) => {
+  if (typeof window.getNbPts === 'function') {
+    try { return window.getNbPts.apply(window, args); } catch(e){}
+  }
   const n = parseInt($('#nbPts')?.value??'3',10);
   return clamp(isNaN(n)?3:n,3,10);
 };
@@ -170,33 +178,81 @@ class Repere{
     this.points=[]; this.user=[]; this.clickable=false; this.onClick=null;
     this.el=this._makeSVG(); this.redraw();
   }
-  _makeSVG(){
-    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
-    const defs=document.createElementNS(s.namespaceURI,'defs');
-    const marker=document.createElementNS(s.namespaceURI,'marker');
-    marker.setAttribute('id','arrow'); marker.setAttribute('orient','auto');
-    marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8');
-    marker.setAttribute('refX','0'); marker.setAttribute('refY','3');
-    const path=document.createElementNS(s.namespaceURI,'path');
-    path.setAttribute('d','M0,0 L0,6 L8,3 z'); path.setAttribute('fill','#000');
-    marker.appendChild(path); defs.appendChild(marker); s.appendChild(defs);
-    this.gGrid=document.createElementNS(s.namespaceURI,'g');
-    this.gAxes=document.createElementNS(s.namespaceURI,'g');
-    this.gQ=document.createElementNS(s.namespaceURI,'g');
-    this.gPts=document.createElementNS(s.namespaceURI,'g');
-    this.gUser=document.createElementNS(s.namespaceURI,'g');
-    [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
-    s.addEventListener('click',ev=>{
-      if(!this.clickable||!this.onClick) return;
-      const r=s.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
-      const c=this.screenToCoord(x,y);
-      const lim=this.innerLimits(), xi=Math.round(c.x), yi=Math.round(c.y);
-      if(xi<lim.xmin||xi>lim.xmax||yi<lim.ymin||yi>lim.ymax) return;
-      this.onClick({x:xi,y:yi});
-    });
-    return s;
-  }
+_makeSVG(){
+  const ns = 'http://www.w3.org/2000/svg';
+  const s  = document.createElementNS(ns,'svg');
+  s.setAttribute('class','svgbox');
+  s.setAttribute('viewBox','0 0 420 420');
+  s.setAttribute('preserveAspectRatio','xMidYMid meet'); // important pour les conversions
+
+  // --- defs (flèche) ---
+  const defs   = document.createElementNS(ns,'defs');
+  const marker = document.createElementNS(ns,'marker');
+  marker.setAttribute('id','arrow');
+  marker.setAttribute('orient','auto');
+  marker.setAttribute('markerWidth','8');
+  marker.setAttribute('markerHeight','8');
+  marker.setAttribute('refX','0');
+  marker.setAttribute('refY','3');
+  const path = document.createElementNS(ns,'path');
+  path.setAttribute('d','M0,0 L0,6 L8,3 z');
+  path.setAttribute('fill','#000');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  s.appendChild(defs);
+
+  // --- calques ---
+  this.gGrid = document.createElementNS(ns,'g');
+  this.gAxes = document.createElementNS(ns,'g');
+  this.gQ    = document.createElementNS(ns,'g');
+  this.gPts  = document.createElementNS(ns,'g');
+  this.gUser = document.createElementNS(ns,'g');
+  [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
+
+  // --- gestion du tap/clic : écran -> unités du viewBox ---
+  const handleTap = (ev) => {
+    if (!this.clickable || !this.onClick) return;
+
+    const ctm = s.getScreenCTM && s.getScreenCTM();
+    let x, y;
+
+    if (ctm && ctm.inverse) {
+      // Chemin “parfait” : utilise la matrice écran↔SVG
+      const pt = s.createSVGPoint();
+      pt.x = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      pt.y = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      const p = pt.matrixTransform(ctm.inverse());
+      x = p.x; y = p.y;
+    } else {
+      // Fallback (rare) : ratios rect/viewBox
+      const r  = s.getBoundingClientRect();
+      const vb = s.viewBox?.baseVal || {x:0,y:0,width:420,height:420};
+      const cx = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      const cy = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      x = (cx - r.left) * (vb.width  / r.width);
+      y = (cy - r.top)  * (vb.height / r.height);
+    }
+
+    const c   = this.screenToCoord(x, y);
+    const lim = this.innerLimits();
+    const xi  = Math.round(c.x), yi = Math.round(c.y);
+    if (xi < lim.xmin || xi > lim.xmax || yi < lim.ymin || yi > lim.ymax) return;
+
+    this.onClick({ x: xi, y: yi });
+  };
+
+  // Pointer events (meilleur sur mobile)
+  s.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'touch') ev.preventDefault(); // évite le scroll qui “mange” le tap
+    handleTap(ev);
+  }, { passive: false });
+
+  // Fallback desktop
+  s.addEventListener('click', handleTap, { passive: true });
+
+  return s;
+}
+
   innerLimits(){ return { xmin:this.R.xmin+1, xmax:this.R.xmax-1, ymin:this.R.ymin+1, ymax:this.R.ymax-1 }; }
   basis(){
     const w=420,h=420,m=20, X=this.R.xmax-this.R.xmin, Y=this.R.ymax-this.R.ymin;
@@ -644,7 +700,7 @@ window.addEventListener('load',function(){
       const wantRand = !!document.querySelector('#pdfRand')?.checked;
 
       // Amplitude tirée / reprise, puis forçage : englober au moins [-6;6]
-      let R = wantRand ? randAMPWithOriginMin6() : ensureCoverMin6Origin({...AMP});
+      let R = wantRand ? randAMPWithOriginMin6() : ({...AMP});
 
       // seed unique par occurrence, avec tentative si duplication détectée
       const base = defSeedBase(def.id);
@@ -674,7 +730,13 @@ window.addEventListener('load',function(){
           case 'lire_ABC':
           case 'placer_ABC_mode':
           case 'lire_ABC_mode': {
-            const n = seededRndInt(rng,3,10);          // ← nombre de points aléatoire au PDF
+            const nbEl = document.getElementById('nbPts');
+const chkNb = document.getElementById('nbPts-random');
+const minNb = parseInt((nbEl && nbEl.min) || '3', 10);
+const maxNb = parseInt((nbEl && nbEl.max) || '10', 10);
+const n = (chkNb && chkNb.checked)
+  ? seededRndInt(rng, minNb, maxNb)     // coche ON → aléatoire par énoncé
+  : clamp(parseInt((nbEl && nbEl.value) || '3', 10), minNb, maxNb); // coche OFF → valeur écran
             const labels = LETTERS.slice(0,n);
             const P = distinctPointsSeeded(R,rng,n);
             S.PTS = labels.map((L,i)=>({label:L,x:P[i].x,y:P[i].y,fill:colorOf(L)}));
@@ -835,7 +897,7 @@ window.addEventListener('load',function(){
 
       // Hook beforeGen to (re)define getNbPts consistently for PDF
       var origBG = opts.beforeGen;
-      opts.beforeGen = function(ctx){
+      opts.beforeGen = function(){
         try{
           var nbEl = document.getElementById('nbPts');
           var chk  = document.getElementById('nbPts-random');
@@ -851,7 +913,7 @@ window.addEventListener('load',function(){
             }
           };
         } catch(e){}
-        if (typeof origBG === 'function') return origBG(ctx);
+        if (typeof origBG === 'function') return origBG.apply(null, arguments);
       };
 
       return _init.call(ExoPDF, opts);
@@ -864,6 +926,71 @@ window.addEventListener('load',function(){
     wrapExoPDFInit();
   }
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
 </script>
 </body>
 </html>

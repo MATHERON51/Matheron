@@ -8,6 +8,7 @@
 <!-- mêmes dépendances que ton exemple -->
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="courbes-print-fix.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 
@@ -112,6 +113,21 @@
 
 
 </style>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 <script>
@@ -192,7 +208,7 @@
 
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js"></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js"></script>
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 
 
@@ -212,7 +228,14 @@ const fmtNum = n => `<span class="num">${fmtFR(n)}</span>`;          // espaces 
 const fmtUnit = (n,u)=> `${fmtNum(n)}&nbsp;${u||''}`;                 // espace insécable entre nombre et unité
 const parseNumFR = s => Number(String(s||'').replace(/\u2212/g,'-').replace(',','.').trim());
 const parseListFR = s => !s ? [] : String(s).replace(/[{}()[\]]/g,'').split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);
-
+function MJ(el){ // re-typeset MathJax après injection
+  try{
+    if (window.MathJax){
+      if (MathJax.typesetPromise) MathJax.typesetPromise([el||document.body]).catch(()=>{});
+      else if (typeof MathJax.typeset === 'function') MathJax.typeset([el||document.body]);
+    }
+  }catch(_){}
+}
 /* ========= Amplitudes contrôlables (Exos 1,2,4) ========= */
 let AMP={ xmin:-5,xmax:6,ymin:-6,ymax:6 };
 function applyAMP(){
@@ -408,6 +431,32 @@ function genCurveIntegerGrid(R, forceCross=true){
   }
   return { Xs: xs, Ys: ys };
 }
+// Interpolation cubique monotone (Fritsch–Carlson) → pas d'overshoot
+function monotoneBezierPathXY(rep, xs, ys, ymin, ymax){
+  const X=rep.X, Y=rep.Y, n=xs.length;
+  if(n<2) return '';
+  const h=new Array(n-1), s=new Array(n-1);
+  for(let i=0;i<n-1;i++){ h[i]=xs[i+1]-xs[i]; s[i]=(ys[i+1]-ys[i])/h[i]; }
+
+  const d=new Array(n);
+  d[0]=s[0]; d[n-1]=s[n-2];
+  for(let i=1;i<n-1;i++){
+    if(s[i-1]*s[i] <= 0){ d[i]=0; }
+    else{
+      const w1 = 2*h[i] + h[i-1], w2 = h[i] + 2*h[i-1];
+      d[i] = (w1+w2)/((w1/s[i-1]) + (w2/s[i]));   // tangente FC
+    }
+  }
+
+  let dstr = `M ${X(xs[0])} ${Y(ys[0])}`;
+  for(let i=0;i<n-1;i++){
+    const x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1], hi=h[i];
+    const c1x = X(x0 + hi/3), c1y = Y(Math.min(ymax, Math.max(ymin, y0 + d[i]   * hi/3)));
+    const c2x = X(x1 - hi/3), c2y = Y(Math.min(ymax, Math.max(ymin, y1 - d[i+1] * hi/3)));
+    dstr += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${X(x1)} ${Y(y1)}`;
+  }
+  return dstr;
+}
 
 
 function buildGridWithConstraints(R, nbAnt, Yask){
@@ -599,6 +648,7 @@ function __forceWordParenSpaces(root){
   }
 }
 
+
 /* ========================== EXERCICE 1 ========================== */
 const ex1 = {
   id:'rg1',
@@ -631,26 +681,23 @@ const ex1 = {
       if(!okImg) continue;
 
       // 3) ANTÉCÉDENTS — on veut (qAnt-1) y avec 1..3 solutions entières + 1 y inexistant
-      const wantAntPerY =  Math.min(3, 3); // borne haute 3
+      const wantAntPerY =  Math.min(3, 3);
       let okAnt=false, gForced=null, ysChosen=[];
 
       for(let t=0; t<400; t++){
-        // choisir (qAnt-1) y distincts à l'intérieur
         const ysTry = uniq(shuffle(Ypool)).slice(0, Math.max(0,qAnt-1));
-        // forcer la grille pour ces y avec <=3 antécédents
         gForced = buildGridWithConstraints(R, wantAntPerY, ysTry);
-        // vérif: chaque yTry doit avoir entre 1 et 3 solutions entières
         const allOk = ysTry.every(y=>{
-  const A = antecedentsOfGrid(gForced, y);
-  const Ai = A.filter(x=>Math.abs(x - Math.round(x))<1e-9);
-  const An = A.filter(x=>Math.abs(x - Math.round(x))>=1e-9);
-  return Ai.length>=1 && Ai.length<=3 && An.length===0;
-});
+          const A = antecedentsOfGrid(gForced, y);
+          const Ai = A.filter(x=>Math.abs(x - Math.round(x))<1e-9);
+          const An = A.filter(x=>Math.abs(x - Math.round(x))>=1e-9);
+          return Ai.length>=1 && Ai.length<=3 && An.length===0;
+        });
         if(allOk){ ysChosen = ysTry; okAnt=true; break; }
       }
       if(!okAnt) continue;
 
-      // y inexistant : prioritairement un y intérieur sans intersection sur gForced
+      // y inexistant
       const zeroInside = Ypool.filter(y => !ysChosen.includes(y) && antecedentsOfGrid(gForced, y).length===0);
       yNone = zeroInside.length ? zeroInside[0] : (Math.random()<0.5 ? (R.ymax+1) : (R.ymin-1));
 
@@ -661,120 +708,135 @@ const ex1 = {
     }
 
     return { R, grid, Ximg, Yask };
-
-
-
   },
+
   render(host,st){
-    const ui=mkRow(host,'Lecture graphique.');
-    const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
-    addPath(rep.plot, pathFromGridSmooth(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
-    ui.st.appendChild(rep.svg);
+    const ui = mkRow(host,'Lecture graphique.');
+  const rep = buildRepereSVG({ xmin:st.R.xmin, xmax:st.R.xmax, ymin:st.R.ymin, ymax:st.R.ymax, grid:true, arrows:true });
+  addPath(rep.plot, pathFromGridSmooth(rep, st.grid), { stroke:'#c00', 'stroke-width':3.2 });
+  ui.st.appendChild(rep.svg);
 
-    let html = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="aD" type="text"><span id="aDm" class="qmark"></span></div></div>`;
-    st.Ximg.forEach((x,i)=>{
-      html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de ${fmtNum(x)}:&nbsp;<input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span></div></div>`;
-    });
-    st.Yask.forEach((y,j)=>{
-      const k=2+st.Ximg.length+j;
-      html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de ${fmtNum(y)}:&nbsp;<input id="aA${j}" type="text"><span id="aA${j}m" class="qmark"></span></div></div>`;
-    });
-    ui.form.innerHTML=html;
-    host.dataset.state=JSON.stringify(st); host.dataset.active='rg1';
-  
-    
-    // Clear prefilled Domaine input for Ex.1
-    (function(){ const aD = $('#aD',host); if(aD) aD.value=''; })();
-// INLINE_COLORIZED: appliquer couleurs directement dans l’énoncé
-    try {
-      const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
-      const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
-      if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
-        const input = host.querySelector('#aI'+i);
-        if(input && input.parentElement) {
-          const a = input.parentElement;
-          const needle = 'Image de ' + fmtNum(x) + ':';
-          const repl = 'Image de <span style="color:'+paletteI[i%5]+';font-weight:700">'+fmtNum(x)+'</span> :';
-          a.innerHTML = a.innerHTML.replace(needle, repl);
-        }
-      });
-      if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
-        const input = host.querySelector('#aA'+j);
-        if(input && input.parentElement) {
-          const a = input.parentElement;
-          const needle = 'Antécédent(s) de ' + fmtNum(y) + ':';
-          const repl = 'Antécédent(s) de <span style="color:'+paletteA[j%5]+';font-weight:700">'+fmtNum(y)+'</span> :';
-          a.innerHTML = a.innerHTML.replace(needle, repl);
-        }
-      });
-    } catch(e){}
-    },
-  solution(host,st){
-  const rep = host.querySelector('svg.repere');
-const plot = rep.querySelector('.plot');
-// Aligner les pointillés exactement sur le cadre interne du repère
-const frame = rep.querySelector('rect.frame');
-const mLeft = +frame.getAttribute('x');
-const mTop  = +frame.getAttribute('y');
-const W0    = +frame.getAttribute('width');
-const H0    = +frame.getAttribute('height');
-const X = x => mLeft + (x - st.R.xmin) * W0 / (st.R.xmax - st.R.xmin);
-const Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
+  // Énoncé 100% LaTeX (y compris les nombres)
+  let html = `
+    <div class="qa">
+      <div class="q">1.</div>
+      <div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="aD" type="text"><span id="aDm" class="qmark"></span></div>
+    </div>`;
 
-  // axes visibles ?
-  const hasXaxis = (st.R.ymin <= 0 && 0 <= st.R.ymax); // axe des abscisses (y=0)
-  const hasYaxis = (st.R.xmin <= 0 && 0 <= st.R.xmax); // axe des ordonnées (x=0)
-
-  // --- Images : traits vers les AXES ---
   st.Ximg.forEach((x,i)=>{
-    const col = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'][i%5];
-    const y  = interpAtGrid(st.grid, x);
-
-    // vertical : (x,y) → (x, 0) si l’axe x existe, sinon fallback bas (ymin)
-    addLine(plot,
-      X(x), Y(y),
-      X(x), hasXaxis ? Y(0) : (hasXaxis ? Y(0) : Y(st.R.ymin)),
-      { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-dashoffset': 0, 'stroke-opacity': 0.95, 'class': 'helper-line' }
-    );
-
-    // horizontal : (x,y) → (0,y) si l’axe y existe, sinon fallback bord gauche (xmin)
-    addLine(plot,
-      hasYaxis ? X(0) : (hasYaxis ? X(0) : X(st.R.xmin)), Y(y),
-      X(x), Y(y),
-      { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-dashoffset': 0, 'stroke-opacity': 0.95, 'class': 'helper-line' }
-    );
+    html += `
+      <div class="qa">
+        <div class="q">${i+2}.</div>
+        <div class="a">Image de \\(${fmtFR(x)}\\)&nbsp;:&nbsp;<input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span></div>
+      </div>`;
   });
 
-  // --- Antécédents : traits vers les AXES ---
   st.Yask.forEach((y,j)=>{
-    const col = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'][j%5];
-    antecedentsOfGrid(st.grid, y).forEach(x=>{
-      // vertical : (x,y) → (x, 0) si axe x visible, sinon bas
-      addLine(plot,
-        X(x), Y(y),
-        X(x), hasXaxis ? Y(0) : (hasXaxis ? Y(0) : Y(st.R.ymin)),
-        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-dashoffset': 0, 'stroke-opacity': 0.95, 'class': 'helper-line' }
-      );
-      // horizontal : (x,y) → (0,y) si axe y visible, sinon gauche
-      addLine(plot,
-        hasYaxis ? X(0) : (hasYaxis ? X(0) : X(st.R.xmin)), Y(y),
-        X(x), Y(y),
-        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-dashoffset': 0, 'stroke-opacity': 0.95, 'class': 'helper-line' }
-      );
-    });
+    const k = 2 + st.Ximg.length + j;
+    html += `
+      <div class="qa">
+        <div class="q">${k}.</div>
+        <div class="a">Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:&nbsp;<input id="aA${j}" type="text"><span id="aA${j}m" class="qmark"></span></div>
+      </div>`;
   });
 
-  const steps=[`Ensemble de définition : [${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]`];
-  st.Ximg.forEach(x=>steps.push(`f(${fmtFR(x)}) = ${fmtFR(interpAtGrid(st.grid,x))}`));
-  st.Yask.forEach(y=>{
-    const A=antecedentsOfGrid(st.grid,y)
-      .filter(v=>Math.abs(v-Math.round(v))<1e-9)
-      .map(v=>fmtFR(Math.round(v)));
-    steps.push(`Antécédent(s) de ${fmtFR(y)} : ${A.length?A.join(' ; '):'aucun'}`);
-  });
-  showSteps(host,steps);
-  document.body.classList.add('solution-active');
-},
+  ui.form.innerHTML = html;
+
+  // État
+  host.dataset.state = JSON.stringify(st);
+  host.dataset.active = 'rg1';
+
+  // Vider l’entrée du domaine
+  (function(){ const aD = $('#aD',host); if (aD) aD.value=''; })();
+
+  // === Couleurs inline compatibles LaTeX ===
+  try{
+    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e']; // images
+    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f']; // antécédents
+
+    // Colorer « Image de \(x\) » en conservant le LaTeX
+    if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
+      const input = host.querySelector('#aI'+i);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      // motif EXACT tel qu’écrit plus haut (avec &nbsp;)
+      const needle = `Image de \\(${fmtFR(x)}\\)&nbsp;:`;
+      const repl   = `Image de <span style="color:${paletteI[i%5]};font-weight:700">\\(${fmtFR(x)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
+    });
+
+    // Colorer « Antécédent(s) de \(y\) »
+    if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
+      const input = host.querySelector('#aA'+j);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      const needle = `Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:`;
+      const repl   = `Antécédent(s) de <span style="color:${paletteA[j%5]};font-weight:700">\\(${fmtFR(y)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
+    });
+  }catch(e){ /* silencieux */ }
+
+  // Typeset MathJax après injection et recoloration
+  MJ(host);
+  },
+
+  solution(host,st){
+    const rep = host.querySelector('svg.repere');
+    const plot = rep.querySelector('.plot');
+    const frame = rep.querySelector('rect.frame');
+    const mLeft = +frame.getAttribute('x');
+    const mTop  = +frame.getAttribute('y');
+    const W0    = +frame.getAttribute('width');
+    const H0    = +frame.getAttribute('height');
+    const X = x => mLeft + (x - st.R.xmin) * W0 / (st.R.xmax - st.R.xmin);
+    const Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
+
+    const hasXaxis = (st.R.ymin <= 0 && 0 <= st.R.ymax);
+    const hasYaxis = (st.R.xmin <= 0 && 0 <= st.R.xmax);
+
+    // Traits d'aide (inchangé)
+    st.Ximg.forEach((x,i)=>{
+      const col = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'][i%5];
+      const y  = interpAtGrid(st.grid, x);
+      addLine(plot, X(x), Y(y), X(x), hasXaxis ? Y(0) : Y(st.R.ymin),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+      addLine(plot, hasYaxis ? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+    });
+
+    st.Yask.forEach((y,j)=>{
+      const col = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'][j%5];
+      antecedentsOfGrid(st.grid, y).forEach(x=>{
+        addLine(plot, X(x), Y(y), X(x), hasXaxis ? Y(0) : Y(st.R.ymin),
+          { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+        addLine(plot, hasYaxis ? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+          { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+      });
+    });
+
+    // Étapes en LaTeX
+    const steps = [
+      `Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`
+    ];
+
+    st.Ximg.forEach(x=>{
+      const fx = fmtFR(interpAtGrid(st.grid,x));
+      steps.push(`\\( f(${fmtFR(x)}) = ${fx} \\)`);
+    });
+
+    st.Yask.forEach(y=>{
+      const Aint = antecedentsOfGrid(st.grid,y)
+        .filter(v=>Math.abs(v - Math.round(v))<1e-9)
+        .map(v=>fmtFR(Math.round(v)));
+      const rhs = Aint.length ? Aint.map(v=>`\\(${v}\\)`).join(' ; ') : 'aucun';
+      steps.push(`Antécédent(s) de \\(${fmtFR(y)}\\) : ${rhs}`);
+    });
+
+    showSteps(host, steps);
+    MJ(host);
+    document.body.classList.add('solution-active');
+  },
+
   correct(host,st){
     clearMarks(host);
     let okAll=true;
@@ -788,6 +850,7 @@ const Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
       const ok=(String($('#aI'+i,host).value).trim()==='' ? true : (Number.isInteger(got)&&got===want));
       const m=$('#aI'+i+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
     });
+
     st.Yask.forEach((y,j)=>{
       const t=$('#aA'+j,host).value.trim().toLowerCase();
       const A=antecedentsOfGrid(st.grid,y).filter(v=>Math.abs(v-Math.round(v))<1e-9).map(v=>Math.round(v));
@@ -799,15 +862,20 @@ const Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
       }
       const m=$('#aA'+j+'m',host); m.textContent=ok?'✔':'✘'; m.style.color=ok?'#14532d':'#991b1b'; okAll&=ok;
     });
+
     (function(){
       const anyEmpty = Array.from(host.querySelectorAll('input[type="text"]')).some(i=>i.value.trim()==='');
-      const okFlag = true; /* placeholder; will be set below by previous code */
+      const okFlag = true;
     })();
+
     return {ok:okAll,total:1};
   },
+
   reset(host){ host.querySelectorAll('input').forEach(i=>i.value=''); clearMarks(host); document.body.classList.remove('solution-active'); },
+
   pdfStatement(s){ return buildPDFStatementFromRender(ex1, s); }
 };
+
 
 /* ========================== EXERCICE 2 (x entiers/0,5) ========================== */
 const ex2={
@@ -886,109 +954,142 @@ return { R, grid, Ximg, Yask };
     
       },
   render(host,st){
-    const ui=mkRow(host,'Lecture graphique.');
-    const rep=buildRepereSVG({xmin:st.R.xmin,xmax:st.R.xmax,ymin:st.R.ymin,ymax:st.R.ymax,grid:true,arrows:true});
-    addPath(rep.plot, pathFromGridSmooth(rep, st.grid), {stroke:'#c00','stroke-width':3.2});
-    ui.st.appendChild(rep.svg);
+    const ui = mkRow(host, 'Lecture graphique.');
+  const rep = buildRepereSVG({ xmin:st.R.xmin, xmax:st.R.xmax, ymin:st.R.ymin, ymax:st.R.ymax, grid:true, arrows:true });
+  addPath(rep.plot, pathFromGridSmooth(rep, st.grid), { stroke:'#c00', 'stroke-width':3.2 });
+  ui.st.appendChild(rep.svg);
 
-    let html = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="bD" type="text"><span id="bDm" class="qmark"></span></div></div>`;
-    st.Ximg.forEach((x,i)=>{
-      html+=`<div class="qa"><div class="q">${i+2}.</div><div class="a">Image de ${fmtNum(x)}:&nbsp;<input id="bI${i}" type="text"><span id="bI${i}m" class="qmark"></span></div></div>`;
+  // Énoncé 100% LaTeX (nombres au format FR à l’intérieur de \( … \))
+  let html = `
+    <div class="qa">
+      <div class="q">1.</div>
+      <div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="bD" type="text"><span id="bDm" class="qmark"></span></div>
+    </div>`;
+
+  (st.Ximg || []).forEach((x,i)=>{
+    html += `
+      <div class="qa">
+        <div class="q">${i+2}.</div>
+        <div class="a">Image de \\(${fmtFR(x)}\\)&nbsp;:&nbsp;<input id="bI${i}" type="text"><span id="bI${i}m" class="qmark"></span></div>
+      </div>`;
+  });
+
+  (st.Yask || []).forEach((y,j)=>{
+    const k = 2 + st.Ximg.length + j;
+    html += `
+      <div class="qa">
+        <div class="q">${k}.</div>
+        <div class="a">Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:&nbsp;<input id="bA${j}" type="text"><span id="bA${j}m" class="qmark"></span></div>
+      </div>`;
+  });
+
+  ui.form.innerHTML = html;
+
+  // État
+  host.dataset.state = JSON.stringify(st);
+  host.dataset.active = 'rg2';
+
+  // Vider l’entrée du domaine
+  (function(){ const bD = $('#bD',host); if (bD) bD.value=''; })();
+
+  // === Couleurs inline compatibles LaTeX ===
+  try{
+    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e']; // images
+    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f']; // antécédents
+
+    // Colorer « Image de \(x\) »
+    (st.Ximg || []).forEach((x,i)=>{
+      const input = host.querySelector('#bI'+i);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      const needle = `Image de \\(${fmtFR(x)}\\)&nbsp;:`; // EXACTEMENT la chaîne générée ci-dessus
+      const repl   = `Image de <span style="color:${paletteI[i%5]};font-weight:700">\\(${fmtFR(x)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
     });
-    st.Yask.forEach((y,j)=>{
-      const k=2+st.Ximg.length+j;
-      html+=`<div class="qa"><div class="q">${k}.</div><div class="a">Antécédent(s) de ${fmtNum(y)}:&nbsp;<input id="bA${j}" type="text"><span id="bA${j}m" class="qmark"></span></div></div>`;
+
+    // Colorer « Antécédent(s) de \(y\) »
+    (st.Yask || []).forEach((y,j)=>{
+      const input = host.querySelector('#bA'+j);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      const needle = `Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:`;
+      const repl   = `Antécédent(s) de <span style="color:${paletteA[j%5]};font-weight:700">\\(${fmtFR(y)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
     });
-    ui.form.innerHTML=html;
-    host.dataset.state=JSON.stringify(st); host.dataset.active='rg2';
-  
-    // INLINE_COLORIZED: appliquer couleurs directement dans l’énoncé
-    try {
-      const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
-      const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
-      if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
-        const input = host.querySelector('#bI'+i);
-        if(input && input.parentElement) {
-          const a = input.parentElement;
-          const needle = 'Image de ' + fmtNum(x) + ':';
-          const repl = 'Image de <span style="color:'+paletteI[i%5]+';font-weight:700">'+fmtNum(x)+'</span> :';
-          a.innerHTML = a.innerHTML.replace(needle, repl);
-        }
-      });
-      if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
-        const input = host.querySelector('#bA'+j);
-        if(input && input.parentElement) {
-          const a = input.parentElement;
-          const needle = 'Antécédent(s) de ' + fmtNum(y) + ':';
-          const repl = 'Antécédent(s) de <span style="color:'+paletteA[j%5]+';font-weight:700">'+fmtNum(y)+'</span> :';
-          a.innerHTML = a.innerHTML.replace(needle, repl);
-        }
-      });
-    } catch(e){}
+  }catch(e){ /* silencieux */ }
+
+  // Typeset MathJax après injection et recoloration
+  MJ(host);
     },
   
   solution(host,st){
-    const rep = host.querySelector('svg.repere');
-    const plot = rep ? rep.querySelector('.plot') : null;
-    const frame = rep ? (rep.querySelector('rect.frame') || rep.querySelector('rect')) : null;
-    let X,Y,hasXaxis=false,hasYaxis=false;
-    if(frame){
-      const mLeft = +frame.getAttribute('x'), mTop = +frame.getAttribute('y');
-      const W0 = +frame.getAttribute('width'), H0 = +frame.getAttribute('height');
-      X = x => mLeft + (x - st.R.xmin) * W0 / (st.R.xmax - st.R.xmin);
-      Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
-      hasXaxis = (st.R.ymin <= 0 && 0 <= st.R.ymax);
-      hasYaxis = (st.R.xmin <= 0 && 0 <= st.R.xmax);
-    }
+    const rep  = host.querySelector('svg.repere');
+  const plot = rep ? rep.querySelector('.plot') : null;
+  const frame = rep ? (rep.querySelector('rect.frame') || rep.querySelector('rect')) : null;
 
-    // Color palettes (enough colors even si compteur augmente)
-    const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
-    const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f','#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
+  let X, Y, hasXaxis=false, hasYaxis=false;
+  if(frame){
+    const mLeft = +frame.getAttribute('x'), mTop = +frame.getAttribute('y');
+    const W0 = +frame.getAttribute('width'), H0 = +frame.getAttribute('height');
+    X = x => mLeft + (x - st.R.xmin) * W0 / (st.R.xmax - st.R.xmin);
+    Y = y => mTop + H0 - (y - st.R.ymin) * H0 / (st.R.ymax - st.R.ymin);
+    hasXaxis = (st.R.ymin <= 0 && 0 <= st.R.ymax);
+    hasYaxis = (st.R.xmin <= 0 && 0 <= st.R.xmax);
+  }
 
-    // Helper to add a line into plot
-    function addLine(g,x1,y1,x2,y2,st={}){
-      if(!g) return;
-      const l=document.createElementNS(g.namespaceURI,'line');
-      l.setAttribute('x1',x1); l.setAttribute('y1',y1);
-      l.setAttribute('x2',x2); l.setAttribute('y2',y2);
-      for(const k in st){ if(Object.prototype.hasOwnProperty.call(st,k)) l.setAttribute(k, st[k]); }
-      g.appendChild(l);
-    }
+  // Traits d’aide (inchangés)
+  const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e','#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'];
+  const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f','#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'];
 
-    // Draw helper lines for images
-    if(rep && plot){
-      (st.Ximg||[]).forEach((x,i)=>{
-        const y = interpAtGrid(st.grid, x);
-        const col = paletteI[i % paletteI.length];
-        addLine(plot, X(x), Y(y), X(x), hasXaxis? Y(0) : Y(st.R.ymin),
+  function addLine2(g,x1,y1,x2,y2,stl){
+    if(!g) return;
+    const l=document.createElementNS(g.namespaceURI,'line');
+    l.setAttribute('x1',x1); l.setAttribute('y1',y1); l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+    for(const k in stl){ if(Object.prototype.hasOwnProperty.call(stl,k)) l.setAttribute(k, stl[k]); }
+    g.appendChild(l);
+  }
+
+  if(rep && plot){
+    (st.Ximg||[]).forEach((x,i)=>{
+      const y = interpAtGrid(st.grid, x);
+      const col = paletteI[i % paletteI.length];
+      addLine2(plot, X(x), Y(y), X(x), hasXaxis? Y(0) : Y(st.R.ymin),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
+      addLine2(plot, hasYaxis? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
+    });
+
+    (st.Yask||[]).forEach((y,j)=>{
+      if(y < st.R.ymin || y > st.R.ymax) return;
+      const col = paletteA[j % paletteA.length];
+      antecedentsOfGrid(st.grid, y).forEach(x=>{
+        addLine2(plot, X(x), Y(y), X(x), hasXaxis? Y(0) : Y(st.R.ymin),
           { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
-        addLine(plot, hasYaxis? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+        addLine2(plot, hasYaxis? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
           { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
       });
-      // Draw helper lines for antecedents (only those inside amplitude)
-      (st.Yask||[]).forEach((y,j)=>{
-        if(y < st.R.ymin || y > st.R.ymax) return;
-        const col = paletteA[j % paletteA.length];
-        antecedentsOfGrid(st.grid, y).forEach(x=>{
-          addLine(plot, X(x), Y(y), X(x), hasXaxis? Y(0) : Y(st.R.ymin),
-            { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
-          addLine(plot, hasYaxis? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
-            { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray':'6 5', 'stroke-opacity':0.95, 'class':'helper-line' });
-        });
-      });
-    }
+    });
+  }
 
-    const fAt=x=>interpAtGrid(st.grid,x);
-    // Build answers (case grise)
-    const imgRows = st.Ximg.map((x,i)=>{
-      return `<div class="qa"><div class="q">${i+1}.</div><div class="a">Image de ${fmtNum(x)} : <b>${fmtNum(fAt(x))}</b></div></div>`;
-    }).join('');
-    const antRows = (st.Yask||[]).map((y,j)=>{
-      const A = antecedentsOfGrid(st.grid, y).map(v=>Math.round(v*10)/10);
-      const txt = A.length ? A.map(fmtNum).join(' ; ') : 'aucun';
-      return `<div class="qa"><div class="q">${j+1+st.Ximg.length}.</div><div class="a">Antécédent(s) de ${fmtNum(y)} : <b>${txt}</b></div></div>`;
-    }).join('');
-    showSteps(host, ['Réponses attendues :<br>'+imgRows+antRows]);
+  // Étapes/solutions en LaTeX
+  const fAt = x => Math.round(interpAtGrid(st.grid,x)*2)/2;
+  const steps = [
+    `Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`
+  ];
+
+  (st.Ximg || []).forEach(x=>{
+    steps.push(`\\( f(${fmtFR(x)}) = ${fmtFR(fAt(x))} \\)`);
+  });
+
+  (st.Yask || []).forEach(y=>{
+    const A = antecedentsOfGrid(st.grid, y).map(v=>Math.round(v*10)/10);
+    const rhs = A.length ? A.map(v=>`\\(${fmtFR(v)}\\)`).join(' ; ') : 'aucun';
+    steps.push(`Antécédent(s) de \\(${fmtFR(y)}\\) : ${rhs}`);
+  });
+
+  showSteps(host, steps);
+  MJ(host);
+  document.body.classList.add('solution-active');
   },
 
   correct(host,st){
@@ -1042,8 +1143,27 @@ function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
 function makeShape(kind, th){
   const [xmin,xmax]=th.x,[ymin,ymax]=th.y; const H=ymax-ymin, W=xmax-xmin;
   switch(kind){
-    case 'exp_decay':{const A=Math.max(0.4*H,rand(0.55,0.85)*H),k=rand(0.25,0.6),base=Math.max(0,ymin+0.01*H); return x=>Math.max(0, base+A*Math.exp(-k*(x-xmin))); }
-    case 'damped_sine':{const A=rand(0.25,0.45)*H,k=rand(0.12,0.3),w=rand(1.6,2.6),phi=rand(-Math.PI,Math.PI),base=ymin+0.02*H; return x=>base+A*Math.exp(-k*(x-xmin))*Math.abs(Math.sin(w*(x-xmin)+phi));}
+case 'exp_decay': {
+  const [xmin,xmax]=th.x, [ymin,ymax]=th.y;
+  const H = ymax - ymin, W = xmax - xmin;
+
+  // Amplitude raisonnable, décroissance "lente" (échelle normalisée à la largeur W)
+  const A    = rand(0.40, 0.65) * H;
+  const k    = rand(2.0, 3.2) / W;                 // ⬅️ dépend de W → fin non collée à 0
+  const base = ymin + 0.08 * H;                    // ⬅️ plancher (évite "presque 0")
+
+  // Toujours ≥ ymin + petit epsilon
+  const eps  = ymin + 0.02 * H;
+  return x => Math.max(eps, base + A * Math.exp(-k * (x - xmin)));
+}
+case 'damped_sine':{
+  const A   = rand(0.25, 0.45)*H;
+  const k   = rand(0.12, 0.3);
+  const w   = rand(1.6, 2.6);
+  const phi = Math.PI/2;                 // ⬅️ départ au maximum (pic initial)
+  const base= ymin + 0.02*H;
+  return x => base + A * Math.exp(-k*(x-xmin)) * Math.abs(Math.sin(w*(x-xmin) + phi));
+}
     case 'sine_mix':{const A=rand(0.25,0.4)*H,base=ymin+0.06*H,w1=rand(0.4,0.7),w2=rand(0.9,1.3),p1=rand(-Math.PI,Math.PI),p2=rand(-Math.PI,Math.PI); return x=>clampv(base+A*(0.6*Math.sin(w1*x+p1)+0.4*Math.sin(w2*x+p2)+1.2),Math.max(0,ymin+0.01*H),ymax-0.01*H); }
     case 'piecewise_linear':{const K=6,xs=Array.from({length:K},(_,i)=>xmin+i*(W/(K-1))),ys=xs.map(()=>ymin+0.1*H+rand(0.1,0.85)*H); return x=>{let j=0; while(j<xs.length-1&&x>xs[j+1]) j++; if(j>=xs.length-1) return ys[ys.length-1]; const t=(x-xs[j])/(xs[j+1]-xs[j]); return lerp(ys[j],ys[j+1],t);} }
     case 'piecewise_linear_up':{const baseUp=rand(0.35,0.6)*H; return x=>ymin+0.02*H+(baseUp*(x-xmin)/W)+0.08*H*Math.sin(1.1*x+0.7*Math.sin(2.2*x));}
@@ -1061,7 +1181,11 @@ function makeCurveForTheme(th){
   const f=makeShape(pick(th.shapes), th), n=Math.max(60,(xmax-xmin)*12);
   const xs=Array.from({length:n+1},(_,k)=>xmin+k*(xmax-xmin)/n);
   let ys=xs.map(x=>f(x));
-  if(th.y[0]===0){ const eps=0.01*(th.y[1]-th.y[0]); ys=ys.map(y=>Math.max(eps,y)); }
+  if (th.y[0] === 0) {
+  const eps = 0.02 * (th.y[1] - th.y[0]);          // 2% de la hauteur
+  ys = ys.map(y => Math.max(eps, y));
+}
+
   return {xs,ys};
 }
 
@@ -1217,20 +1341,21 @@ const THEMES = [
   },
 
   {
-    id: 'reaction',
-    xLabel: `temps (en s)`,
-    yLabel: `concentration (en mol·L⁻¹)`,
-    yName: `la concentration du réactif`,
-    context: `Lors d’une expérience de chimie, on suit la concentration d’un réactif (en mol·L⁻¹) pendant 10 s. Le modèle retenu décroît de manière régulière ; les lectures demandées se font sur des secondes entières.`,
-    title: `Concentration d’un réactif`,
-    x: [0, 10, 1],
-    y: [0, 3, 0.5],
-    shapes: ['exp_decay'],
-    xUnit: `s`,
-    yUnit: `mol·L⁻¹`,
-    q2: (r1, r2) => `D’après la courbe « Concentration d’un réactif », donner la concentration (en mol·L⁻¹) à ${fmtUnit(r1,'s')} et à ${fmtUnit(r2,'s')} (répondre par un entier). <input id="c2a" type="text"> / <input id="c2b" type="text">`,
-    q3: y => `D’après la courbe « Concentration d’un réactif », au bout de combien de secondes la concentration vaut ${fmtUnit(y,'mol·L⁻¹')} ? (antécédents entiers) <input id="c3a" type="text">`
-  },
+  id: 'reaction',
+  xLabel: `temps (en s)`,
+  yLabel: `concentration (en mol·L⁻¹)`,
+  yName: `la concentration du réactif`,
+  context: `Lors d’une expérience de chimie, on suit la concentration d’un réactif (en mol·L⁻¹) pendant 10 s. Le modèle retenu décroît de manière régulière ; les lectures demandées se font sur des secondes entières.`,
+  title: `Concentration d’un réactif`,
+  x: [0, 10, 1],
+  y: [0, 3, 0.5],
+  shapes: ['exp_decay'],
+  xUnit: `s`,
+  yUnit: `mol·L⁻¹`,
+  // ⬇️ Remplacer CETTE ligne :
+  q2: (r1, r2) => `D’après la courbe « Concentration d’un réactif », donner la concentration (en mol·L⁻¹) à ${fmtUnit(r1,'s')} et à ${fmtUnit(r2,'s')} (répondre au demi près). <input id="c2a" type="text"> / <input id="c2b" type="text">`,
+  q3: y => `D’après la courbe « Concentration d’un réactif », au bout de combien de secondes la concentration vaut ${fmtUnit(y,'mol·L⁻¹')} ? (antécédents entiers) <input id="c3a" type="text">`
+},
 
   {
     id: 'debit',
@@ -1299,7 +1424,16 @@ function makeCurveState(th){
     const k  = Math.round((y - ymin) / stepY);       // entier
     const yq = ymin + k * stepY;                      // multiple exact du pas
     return Math.min(ymax, Math.max(ymin, yq));        // clamp
-  });
+  }  );
+// --- Cohérence thématique après quantification sur la grille ---
+if (th && th.id === 'population') {
+  // Population : non décroissante
+  for (let i = 1; i < Y.length; i++) Y[i] = Math.max(Y[i], Y[i-1]);
+}
+if (th && th.id === 'reaction') {
+  // Concentration : non croissante
+  for (let i = 1; i < Y.length; i++) Y[i] = Math.min(Y[i], Y[i-1]);
+}
 
   // 3) choisir les points Q2/Q3 **uniquement** sur la grille projetée
   const idx1 = (Math.random() * X.length) | 0;
@@ -1453,8 +1587,11 @@ const ex3={
     const rep=buildRepereSVG({ xmin:st.xmin,xmax:st.xmax,ymin:st.ymin,ymax:st.ymax, grid:true, arrows:true, ticks:{x:st.stepX,y:st.stepY} });
     rep.svg.setAttribute('data-heavylabels','1');
     const pts = st.xs.map((x,i)=>({x:rep.X(x), y:rep.Y(st.ys[i])}));
-    addPath(rep.plot, catmullRomPath(pts), {'stroke':'#000','stroke-width':2.6});
-    box.appendChild(rep.svg);
+addPath(
+  rep.plot,
+  monotoneBezierPathXY(rep, st.xs, st.ys, st.ymin, st.ymax),
+  {'stroke':'#000','stroke-width':2.6}
+);    box.appendChild(rep.svg);
 
     const form=document.createElement('div'); form.className='input-wrap'; row.appendChild(form);
     const q1 = `Quelles légendes placer au bout des flèches&nbsp;?
@@ -1670,12 +1807,12 @@ const ex4={
   solution(host,st){
     const fAt=x=>interpAtGrid(st.grid,x);
     const Aofy=y=>antecedentsOfGrid(st.grid,y);
-    const t1='<table class="tbl"><tbody><tr><th>x</th>'+st.Xs.map(x=>'<td>'+fmtFR(x)+'</td>').join('')+'</tr>'+
-             '<tr><th>f(x)</th>'+st.Xs.map(x=>'<td>'+fmtFR(fAt(x))+'</td>').join('')+'</tr></tbody></table>';
-    const t2='<table class="tbl"><tbody><tr><th>y</th>'+st.Ys.map(y=>'<td>'+fmtFR(y)+'</td>').join('')+'</tr>'+
-             '<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y).map(fmtFR); return '<td>'+(A.length?A.join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
-    showSteps(host,[`Ensemble de définition : [${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]`,'Tableau images :<br>'+t1,'Antécédents :<br>'+t2]);
-  },
+    const t1='<table class="tbl"><tbody><tr><th>\\(x\\)</th>'+st.Xs.map(x=>'<td>\\('+fmtFR(x)+'\\)</td>').join('')+'</tr>'+
+            '<tr><th>\\(f(x)\\)</th>'+st.Xs.map(x=>'<td>\\('+fmtFR(fAt(x))+'\\)</td>').join('')+'</tr></tbody></table>';
+   const t2='<table class="tbl"><tbody><tr><th>\\(y\\)</th>'+st.Ys.map(y=>'<td>\\('+fmtFR(y)+'\\)</td>').join('')+'</tr>'+
+             '<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y).map(v=>'\\('+fmtFR(v)+'\\)'); return '<td>'+(A.length?A.join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
+showSteps(host,[`Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`,`Tableau images :<br>${t1}`,`Antécédents :<br>${t2}`]);
+    MJ(host);  },
   render(host,st){
     host.innerHTML='';
     const row1=document.createElement('div'); row1.className='row single'; host.appendChild(row1);
@@ -1687,14 +1824,14 @@ const ex4={
 
     const row2=document.createElement('div'); row2.className='row single'; host.appendChild(row2);
     const box=document.createElement('div'); row2.appendChild(box);
-    const t1=`<table class="tbl"><thead><tr><th>x</th>${st.Xs.map(x=>`<th>${fmtFR(x)}</th>`).join('')}</tr></thead>
-              <tbody><tr><th>f(x)</th>${st.Xs.map(()=>`<td><input class="c1" type="text"></td>`).join('')}</tr></tbody></table>`;
-    const t2=`<table class="tbl"><thead><tr><th>y</th>${st.Ys.map(y=>`<th>${fmtFR(y)}</th>`).join('')}</tr></thead>
-              <tbody><tr><th>Antécédent(s)</th>${st.Ys.map(()=>`<td><input class="c2" type="text"></td>`).join('')}</tr></tbody></table>`;
+       const t1=`<table class="tbl"><thead><tr><th>\\(x\\)</th>${st.Xs.map(x=>`<th>\\(${fmtFR(x)}\\)</th>`).join('')}</tr></thead>
+              <tbody><tr><th>\\(f(x)\\)</th>${st.Xs.map(()=>`<td><input class="c1" type="text"></td>`).join('')}</tr></tbody></table>`;
+    const t2=`<table class="tbl"><thead><tr><th>\\(y\\)</th>${st.Ys.map(y=>`<th>\\(${fmtFR(y)}\\)</th>`).join('')}</tr></thead>
+               <tbody><tr><th>Antécédent(s)</th>${st.Ys.map(()=>`<td><input class="c2" type="text"></td>`).join('')}</tr></tbody></table>`;
     box.innerHTML = `<div class="qa"><div class="q">1.</div><div class="a">Ensemble de définition&nbsp;:&nbsp;<input id="dD" type="text"><span id="dDm" class="qmark"></span></div></div>
                      <div class="qa"><div class="q">2.</div><div class="a">${t1}</div></div>
                      <div class="qa"><div class="q">3.</div><div class="a">${t2}</div></div>`;
-
+MJ(box);
     
     // Assign ids and add mark spans for each input in tables
     (box.querySelectorAll('input.c1')||[]).forEach((el,i)=>{
@@ -1723,12 +1860,12 @@ host.dataset.state=JSON.stringify(st); host.dataset.active='rg4';
   solution(host,st){
     const fAt=x=>interpAtGrid(st.grid,x);
     const Aofy=y=>antecedentsOfGrid(st.grid,y);
-    const t1='<table class="tbl"><tbody><tr><th>x</th>'+st.Xs.map(x=>'<td>'+fmtFR(x)+'</td>').join('')+'</tr>'+
-             '<tr><th>f(x)</th>'+st.Xs.map(x=>'<td>'+fmtFR(fAt(x))+'</td>').join('')+'</tr></tbody></table>';
-    const t2='<table class="tbl"><tbody><tr><th>y</th>'+st.Ys.map(y=>'<td>'+fmtFR(y)+'</td>').join('')+'</tr>'+
-             '<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y).map(fmtFR); return '<td>'+(A.length?A.join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
-    showSteps(host,[`Ensemble de définition : [${fmtFR(st.R.xmin)} ; ${fmtFR(st.R.xmax)}]`,'Tableau images :<br>'+t1,'Antécédents :<br>'+t2]);
-  },
+    const t1='<table class="tbl"><tbody><tr><th>\\(x\\)</th>'+st.Xs.map(x=>'<td>\\('+fmtFR(x)+'\\)</td>').join('')+'</tr>'+
+             '<tr><th>\\(f(x)\\)</th>'+st.Xs.map(x=>'<td>\\('+fmtFR(fAt(x))+'\\)</td>').join('')+'</tr></tbody></table>';
+   const t2='<table class="tbl"><tbody><tr><th>\\(y\\)</th>'+st.Ys.map(y=>'<td>\\('+fmtFR(y)+'\\)</td>').join('')+'</tr>'+
+             '<tr><th>Antécédent(s)</th>'+st.Ys.map(y=>{ const A=Aofy(y).map(v=>'\\('+fmtFR(v)+'\\)'); return '<td>'+(A.length?A.join(' ; '):'aucun')+'</td>'; }).join('')+'</tr></tbody></table>';
+     showSteps(host,[`Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`,`Tableau images :<br>${t1}`,`Antécédents :<br>${t2}`]);
+    MJ(host);  },
   correct(host,st){
     const v=$('#dD',host).value.replace(/\s/g,'').replace(/\u2212/g,'-').replace(/[()[\]]/g,'').split(/[;:,]/);
     const okDom=(v.length===2 && v[0]!=='' && v[1]!=='' ? (+v[0]===st.R.xmin && +v[1]===st.R.xmax) : true);
@@ -1750,7 +1887,7 @@ function drawAbs(g){ const pts=[]; for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x)
 function drawSigm(g){ const pts=[]; for(let x=-4;x<=4;x+=0.05) pts.push({x:g.X(x),y:g.Y(3/(1+Math.exp(-x))-1.5)}); addMiniPath(g,catmullRomPath(pts)); }
 function drawLineC(g){ addLine(g.plot, g.X(-4), g.Y(-2), g.X(4), g.Y(2), {'stroke':'#000','stroke-width':2}); }
 
-function drawCircle(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.01;t+=0.02){ const x=2.6*Math.cos(t), y=2.0*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)});} addMiniPath(g,catmullRomPath(pts)); }
+function drawCircle(g){ const pts=[]; for(let t=0;t<=2*Math.PI+0.01;t+=0.02){ const x=2.6*Math.cos(t), y=2.6*Math.sin(t); pts.push({x:g.X(x),y:g.Y(y)});} addMiniPath(g,catmullRomPath(pts)); }
 function drawEllipse(g){ const a=3,b=1.6,ang=Math.PI/6,pts=[]; for(let t=0;t<=2*Math.PI+0.001;t+=0.02){ const x=a*Math.cos(t), y=b*Math.sin(t); const xr=x*Math.cos(ang)-y*Math.sin(ang), yr=x*Math.sin(ang)+y*Math.cos(ang); pts.push({x:g.X(xr),y:g.Y(yr)});} addMiniPath(g,catmullRomPath(pts)); }
 function drawRect(g){ const r=[[-2.8,-1.8],[2.8,-1.8],[2.8,1.8],[-2.8,1.8],[-2.8,-1.8]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
 function drawDiamond(g){ const r=[[0,3],[-3,0],[0,-3],[3,0],[0,3]]; addMiniPath(g,catmullRomPath(r.map(([x,y])=>({x:g.X(x),y:g.Y(y)})))); }
@@ -1899,7 +2036,7 @@ const ex5={
 };
 
 /* ========== Registry & moteur ========== */
-const REGISTRY=[ex1,ex2,ex3,ex4,ex5];
+const REGISTRY=[ex1,ex2,ex4,ex5];
 window.REGISTRY = REGISTRY; // expose for exo-pdf-kit
 let scoreOK=0, scoreTot=0;
 function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
@@ -2161,156 +2298,351 @@ function buildPDFStatementFromRender(def, st){
   return stEl.outerHTML;
 }
 </script>
-/* ==== PDF (même UX : si la lib est là, on l’utilise ; sinon fallback print) ==== */
+
 <script>
-window.addEventListener('load',function(){
-  if(window.ExoPDF && ExoPDF.init){
-    ExoPDF.init({
-      title: `Seconde — Représentation graphique`,
-      max: 50,
-      lead: '',
-      leadByDefId: { rg1:'', rg2:'', rg3:'', rg4:'', rg5:'' },
-      mountAfterSelector: '.card.small'
-      ,
-                beforeRender(def, st, withSolutions){
-            try{
-              const tmp=document.createElement('div');
-              tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
-              tmp.style.width='0'; tmp.style.height='0'; tmp.style.overflow='hidden';
-              document.body.appendChild(tmp);
+/* ==== PDF — Ex.1→4 : Énoncé 2 colonnes ; Ex.4 : tables sans inputs ==== */
+window.addEventListener('load', function () {
+  if (!(window.ExoPDF && ExoPDF.init)) return;
 
-              if(typeof def.render==='function'){ def.render(tmp, st); }
+  ExoPDF.init({
+    title: `Seconde — Représentation graphique`,
+    max: 50,
+    lead: '',
+    leadByDefId: { rg1:'', rg2:'', rg3:'', rg4:'', rg5:'' },
+    mountAfterSelector: '.card.small',
 
-              const wRef = (document.querySelector('.statement svg.repere')?.getBoundingClientRect().width) || 560;
-              tmp.querySelectorAll('svg.repere').forEach(svg=>{
-                svg.style.width = Math.round(wRef) + 'px';
-                svg.style.height = 'auto';
-                svg.style.maxWidth = 'none';
-                svg.style.display = 'block';
-                svg.style.margin = '.25rem auto';
-              });
+    beforeRender(def, st, withSolutions){
+      try{
+        const isTarget = def && ['rg1','rg2','rg3','rg4'].includes(def.id);
 
-              if(!withSolutions){
-                const row = tmp.querySelector('.row') || tmp;
-                row.querySelectorAll('#res,.optionline,.controls,.kbd-host,button').forEach(n=>n.remove());
-                row.querySelectorAll('input[type="text"]').forEach(inp=>{
-                  const span=document.createElement('span'); span.textContent='▢';
-                  inp.replaceWith(span);
-                });
-                const html = row.outerHTML || tmp.innerHTML;
-                tmp.remove();
-                return {statement: html};
-              }
+        const mkTmp = () => {
+          const tmp = document.createElement('div');
+          Object.assign(tmp.style, { position:'fixed', left:'-10000px', top:'-10000px', width:'0', height:'0', overflow:'hidden' });
+          document.body.appendChild(tmp);
+          return tmp;
+        };
 
-              // === Solutions ===
-              if(typeof def.solution==='function'){
-                try{ def.solution(tmp, st); }catch(_){}
-              }else if(typeof def.correct==='function'){
-                try{ def.correct(tmp, st); }catch(_){}
-              }
-              tmp.querySelectorAll('input#reponse,input[name=reponse]').forEach(n=>n.remove());
+        const freezeSVG = (root)=>{
+          const wRef = (document.querySelector('.statement svg.repere')?.getBoundingClientRect().width) || 560;
+          root.querySelectorAll('svg.repere').forEach(svg=>{
+            svg.style.width = Math.round(wRef) + 'px';
+            svg.style.height = 'auto';
+            svg.style.maxWidth = 'none';
+            svg.style.display = 'block';
+            svg.style.margin = '.25rem auto';
+          });
+        };
 
-              // ex1 & ex2: table layout with curve (corrected) + steps
-              if(def && (def.id==='rg1' || def.id==='rg2')){
-                const row = tmp.querySelector('.row') || tmp;
-                const steps = tmp.querySelector('.steps') || tmp.querySelector('.solution') || tmp.querySelector('#res') || null;
-                if(steps){
-                  // Ensure steps are on the right column
-                  let stCol = row.querySelector('.statement');
-                  if(!stCol){
-                    stCol = document.createElement('div'); stCol.className='statement'; 
-                    // Move existing SVGs into stCol
-                    row.querySelectorAll('svg.repere').forEach(svg=>stCol.appendChild(svg));
-                    row.prepend(stCol);
-                  }
-                  // Remove forms/controls
-                  row.querySelectorAll('#res,.optionline,.controls,.kbd-host,button').forEach(n=>n.remove());
-                  row.querySelectorAll('input[type="text"]').forEach(n=>n.remove());
-                  // Put steps in the right pane
-                  let rh = row.querySelector('.worksheet'); 
-                  if(!rh){ rh = document.createElement('div'); rh.className='worksheet'; row.appendChild(rh); }
-                  rh.innerHTML = steps.outerHTML;
-                }
-                const html = (row.outerHTML||tmp.innerHTML||'');
-                tmp.remove();
-                return {solution: html};
-              }
+  const TABLE_STYLE = `
+  <style>
+    /* Grille énoncé en 2 colonnes */
+    table.pdf-two-col{ width:100%; border-collapse:collapse; table-layout:fixed; }
+    table.pdf-two-col th, table.pdf-two-col td{
+      border:1px solid #000; vertical-align:top; padding:6px 8px;
+    }
+    .pdf-curves{ text-align:center; }
 
-              // other exercises: steps only
-              const sol = tmp.querySelector('.steps') || tmp.querySelector('.solution') || tmp.querySelector('#res') || tmp;
-              const html = sol.outerHTML || sol.innerHTML || tmp.innerHTML || '';
-              tmp.remove();
-              return {solution: html};
-            }catch(e){ /* let kit fallback */ }
-          }
-    ,
-      beforeGen(def, st, ctx){
-        try{
-          const ampRnd = document.getElementById('pdfRandAmp')?.checked;
-          const naRnd  = document.getElementById('pdfRandNA')?.checked;
+    /* Largeurs par défaut (Ex.1–3) */
+    table.pdf-two-col col.curves{ width:42%; }
+    table.pdf-two-col col.enonce{ width:58%; }
 
-          const xminEl=document.getElementById('xmin'), xmaxEl=document.getElementById('xmax');
-          const yminEl=document.getElementById('ymin'), ymaxEl=document.getElementById('ymax');
-          const imgEl = document.getElementById('cfg-img'), antEl=document.getElementById('cfg-ant');
+    /* Spécifique Ex.4 (déjà en place) */
+    table.pdf-two-col.ex4 col.curves{ width:35%; }
+    table.pdf-two-col.ex4 col.enonce{ width:65%; }
 
-          const thRnd = document.getElementById('pdfRandTheme')?.checked;
-          if(def && def.id==='rg3'){
-            if(thRnd){ window.__rg3_last_theme = null; }
-            else{
-              const sel = document.getElementById('themeSel');
-              if(sel){ window.__rg3_last_theme = sel.value; }
-            }
-          }
-
-          const save = {
-            AMP: {...AMP},
-            xmin: xminEl && xminEl.value, xmax: xmaxEl && xmaxEl.value,
-            ymin: yminEl && yminEl.value, ymax: ymaxEl && ymaxEl.value,
-            img: imgEl && imgEl.value, ant: antEl && antEl.value
-          };
-
-          const seed = (ctx && (ctx.index||0)) * 2654435761 ^ Date.now();
-          let t = Math.imul(1779033703 ^ seed, 3432918353); t=(t<<13)|(t>>>19);
-          function rng(){ t=Math.imul(t^(t>>>16),2246822507); t=Math.imul(t^(t>>>13),3266489909); t^=t>>>16; return (t>>>0)/4294967296; }
-          function ri(a,b){ return a + Math.floor(rng()*(b-a+1)); }
-
-          if (ampRnd){
-            const xi = ri(-12, -2), xa = ri(2, 12);
-            const yi = ri(-12, -2), ya = ri(2, 12);
-            AMP = { xmin: Math.min(xi,xa), xmax: Math.max(xi,xa), ymin: Math.min(yi,ya), ymax: Math.max(yi,ya) };
-            if (xminEl) xminEl.value = AMP.xmin;
-            if (xmaxEl) xmaxEl.value = AMP.xmax;
-            if (yminEl) yminEl.value = AMP.ymin;
-            if (ymaxEl) ymaxEl.value = AMP.ymax;
-          }
-
-          if (naRnd && (def && (def.id==='rg1' || def.id==='rg2' || def.id==='rg4'))){
-            const rImg = ri(2,10), rAnt = ri(2,10);
-            if (imgEl) imgEl.value = String(rImg);
-            if (antEl) antEl.value = String(rAnt);
-          }
-
-          return function restore(){
-            AMP = save.AMP;
-            if (xminEl) xminEl.value = save.xmin;
-            if (xmaxEl) xmaxEl.value = save.xmax;
-            if (yminEl) yminEl.value = save.ymin;
-            if (ymaxEl) ymaxEl.value = save.ymax;
-            if (imgEl) imgEl.value = save.img;
-            if (antEl) antEl.value = save.ant;
-          };
-        }catch(e){ /* silent */ }
+    /* ✅ Tous exos : les courbes remplissent la colonne (écran + impression) */
+    .pdf-curves svg.repere{
+      width:100% !important;
+      height:auto !important;
+      max-width:100% !important;
+      box-sizing:border-box;
+      display:block;
+      margin:.25rem auto;
+    }
+    @media print{
+      .pdf-curves svg.repere{
+        width:100% !important; height:auto !important; max-width:100% !important;
       }
-    });
-  }else{
-    const slot=document.querySelector('.card.small');
-    const div=document.createElement('div'); div.className='controls';
-    div.innerHTML='<button id="btn-print" class="btn">🖨️ Générer un PDF</button><small style="opacity:.7;margin-left:8px">Choisissez « Enregistrer au format PDF ».</small>';
-    slot.appendChild(div);
-    document.getElementById('btn-print').addEventListener('click',()=>window.print());
+    }
+
+    /* Bordures noires pour tous les tableaux */
+    .tbl{ border-collapse:collapse !important; }
+    .tbl th,.tbl td{ border:1px solid #000 !important; }
+
+    /* Ex.4 : tables plein-largeur dans la colonne (comme déjà souhaité) */
+    table.pdf-two-col.ex4 .pdf-enonce .tbl{
+      width:100% !important; table-layout:auto; font-size:12px;
+    }
+    table.pdf-two-col.ex4 .pdf-enonce .tbl th,
+    table.pdf-two-col.ex4 .pdf-enonce .tbl td{
+      padding:4px 6px; min-width:0; word-break:break-word;
+    }
+    table.pdf-two-col.ex4 .pdf-enonce .tbl-wrap{ transform:none !important; }
+	table.pdf-two-col.ex4 .pdf-enonce .tbl-wrap{
+    display: flex;               /* empile les tableaux verticalement */
+    flex-direction: column;
+    gap: 12px;                   /* ← espace entre les tableaux (ajuste si besoin) */
   }
+
+  /* Fallback au cas où le wrapper ne serait pas présent */
+  table.pdf-two-col.ex4 .pdf-enonce .tbl + .tbl{
+    margin-top: 12px !important;
+  }
+  .pdf-solution .tbl{
+    width:100% !important;
+    max-width:100% !important;
+    table-layout:auto;          /* laisse les colonnes s'étirer naturellement */
+    font-size:14px;             /* ← agrandit le texte des tableaux en correction */
+    border-collapse:collapse !important;
+  }
+  .pdf-solution .tbl th,
+  .pdf-solution .tbl td{
+    border:1px solid #000 !important;
+    padding:6px 10px;           /* un peu plus d’air */
+    min-width:0;                /* évite les débordements */
+    word-break:break-word;
+  }
+
+  /* Ex.4 seulement : titres un poil plus visibles dans la correction */
+  .pdf-solution .tbl th{ font-weight:700; }
+  </style>`;
+
+const TILES_STYLE_RG5 = `
+  <style>
+    table.pdf-tiles { width:100%; border-collapse:collapse; table-layout:fixed; }
+    table.pdf-tiles td { width:33.333%; border:1px solid #000; padding:8px; vertical-align:top; }
+    .pdf-tiles .tile .title { text-align:center; font-weight:600; margin-bottom:6px; }
+    .pdf-tiles svg.repere { width:100% !important; height:auto !important; display:block; margin:0 auto; }
+    .pdf-tiles .tile.empty { min-height:120px; }
+  </style>`;
+        // supprime toutes les saisies (partout dans un sous-arbre)
+        const stripInputs = (root)=>{
+          root.querySelectorAll('input, textarea, select, button').forEach(n=>n.remove());
+          root.querySelectorAll('.qmark').forEach(n=>n.remove());
+        };
+if (def && def.id === 'rg5') {
+  const mkTmp = () => { const t=document.createElement('div'); Object.assign(t.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',overflow:'hidden'}); document.body.appendChild(t); return t; };
+
+  const tmp = mkTmp();
+  if (typeof def.render === 'function') def.render(tmp, st);
+  if (withSolutions && typeof def.solution === 'function') { try{ def.solution(tmp, st); }catch(_){} }
+
+  const minis = Array.from(tmp.querySelectorAll('.mini')).slice(0,5);
+
+  const tileHTML = (miniEl)=>{
+    const c = miniEl.cloneNode(true);
+    const yn = c.querySelector('.yesno'); if (yn) (yn.closest('div') || yn).remove();
+    const svg = c.querySelector('svg.repere'); if (svg){ svg.removeAttribute('width'); svg.removeAttribute('height'); svg.style.width='100%'; svg.style.height='auto'; }
+    const title = c.querySelector('.title') ? c.querySelector('.title').outerHTML : '';
+    const svgHTML = svg ? svg.outerHTML : '';
+    return `<div class="tile">${title}${svgHTML}</div>`;
+  };
+
+  const cells = minis.map(tileHTML);
+  while (cells.length < 6) cells.push('<div class="tile empty"></div>');
+
+  const rows = `
+    <tr>${cells.slice(0,3).map(h=>`<td>${h}</td>`).join('')}</tr>
+    <tr>${cells.slice(3,6).map(h=>`<td>${h}</td>`).join('')}</tr>
+  `;
+
+  const tableHTML = `
+    ${TILES_STYLE_RG5}
+    <table class="pdf-tiles"><tbody>${rows}</tbody></table>
+  `;
+
+  const QUESTION_RG5 = `<div class="pdf-q">Pour chaque courbe, dire si elle représente une fonction.</div>`;
+
+  tmp.remove();
+  return withSolutions
+    ? { solution: tableHTML }                       // corrigé : même grille, droites & badges déjà tracés
+    : { statement: QUESTION_RG5 + tableHTML };     // énoncé : ajoute la question au-dessus
+}
+        if (!withSolutions && isTarget){
+          // ===== ÉNONCÉ =====
+          const tmp = mkTmp();
+          if (typeof def.render==='function') def.render(tmp, st);
+
+          // Colonne COURBES
+          freezeSVG(tmp);
+          const svgs = Array.from(tmp.querySelectorAll('.statement svg.repere, svg.repere'));
+          // ✅ Rendre les SVG responsive (écrase largeur/hauteur figées)
+svgs.forEach(s=>{
+  s.removeAttribute('width');
+  s.removeAttribute('height');
+  s.style.width = '100%';
+  s.style.height = 'auto';
+});
+const curvesHTML = svgs.map(s=>s.outerHTML).join('');
+
+
+          // Colonne ÉNONCÉ
+          const right = document.createElement('div');
+
+          // consigne
+          const cons = tmp.querySelector('.consigne');
+          if (cons) right.appendChild(cons.cloneNode(true));
+
+          // EXERCICE 4 : cloner les tableaux ET ENLEVER LES INPUTS à l'intérieur
+          if (def.id==='rg4'){
+            const wrap = document.createElement('div');
+            tmp.querySelectorAll('.tbl').forEach(t => {
+              const clone = t.cloneNode(true);
+              // ⚠️ suppression totale des champs dans les cellules des tableaux
+              clone.querySelectorAll('input, textarea, select, button').forEach(n=>n.remove());
+              clone.querySelectorAll('.qmark').forEach(n=>n.remove());
+              wrap.appendChild(clone);
+            });
+            // bloc pour mise à l’échelle si besoin (CSS déjà défini)
+            wrap.className = 'tbl-wrap';
+            right.appendChild(wrap);
+          }
+
+          // questions (sans champs)
+          const form = tmp.querySelector('.input-wrap');
+          if (form){
+            const clone = form.cloneNode(true);
+            stripInputs(clone);
+            right.appendChild(clone);
+          }
+
+          // Ex.3 : retirer le sélecteur de thème
+          if (def.id === 'rg3') {
+            right.querySelectorAll('#themeSel, select').forEach(n => n.remove());
+          }
+
+          const isEx4 = def.id==='rg4';
+          const colgroup = isEx4 ? `<colgroup><col class="curves"><col class="enonce"></colgroup>` : '';
+          const tableClass = 'pdf-two-col' + (isEx4 ? ' ex4' : '');
+
+          const statementHTML = `
+            ${TABLE_STYLE}
+            <table class="${tableClass}">
+              ${colgroup}
+              <thead><tr><th>Courbes</th><th>Énoncé</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="pdf-curves">${curvesHTML||''}</td>
+                  <td class="pdf-enonce">${right.innerHTML||''}</td>
+                </tr>
+              </tbody>
+            </table>`;
+
+          tmp.remove();
+          return { statement: statementHTML };
+        }
+
+        if (withSolutions && isTarget){
+          // ===== CORRIGÉ : uniquement les étapes, sans courbes ni énoncé =====
+          const tmp = mkTmp();
+          if (typeof def.render==='function') def.render(tmp, st);
+          if (typeof def.solution==='function') def.solution(tmp, st);
+
+          const steps = tmp.querySelector('.steps') || tmp.querySelector('.solution') || tmp.querySelector('#res') || tmp;
+          const out = document.createElement('div');
+          out.innerHTML = steps.outerHTML || steps.innerHTML;
+
+          stripInputs(out);
+          out.querySelectorAll('svg.repere').forEach(n=>n.remove());
+          out.querySelectorAll('.tbl').forEach(t=>{
+            t.style.borderCollapse = 'collapse';
+            t.querySelectorAll('th,td').forEach(c=>{ c.style.border = '1px solid #000'; });
+          });
+
+          const solHTML = TABLE_STYLE + out.innerHTML;
+          tmp.remove();
+return { solution: TABLE_STYLE + '<div class="pdf-solution">' + solHTML + '</div>' };
+        }
+
+        // ===== Fallback autres exos =====
+        const tmp = mkTmp();
+        if (typeof def.render==='function') def.render(tmp, st);
+
+        if (!withSolutions){
+          stripInputs(tmp); freezeSVG(tmp);
+          const html = tmp.innerHTML; tmp.remove();
+          return { statement: html };
+        }else{
+          if (typeof def.solution==='function') def.solution(tmp, st);
+          const steps = tmp.querySelector('.steps') || tmp;
+          const out = document.createElement('div');
+          out.innerHTML = steps.outerHTML || steps.innerHTML;
+          stripInputs(out);
+          out.querySelectorAll('.tbl').forEach(t=>{
+            t.style.borderCollapse='collapse';
+            t.querySelectorAll('th,td').forEach(c=>{ c.style.border='1px solid #000'; });
+          });
+          const html = TABLE_STYLE + out.innerHTML;
+          tmp.remove();
+return { solution: TABLE_STYLE + '<div class="pdf-solution">' + solHTML + '</div>' };
+        }
+      }catch(e){ /* fallback géré par le kit */ }
+    },
+
+    // (inchangé) aléas / amplitude / thèmes
+    beforeGen(def, st, ctx){
+      try{
+        const ampRnd = document.getElementById('pdfRandAmp')?.checked;
+        const naRnd  = document.getElementById('pdfRandNA')?.checked;
+
+        const xminEl=document.getElementById('xmin'), xmaxEl=document.getElementById('xmax');
+        const yminEl=document.getElementById('ymin'), ymaxEl=document.getElementById('ymax');
+        const imgEl = document.getElementById('cfg-img'), antEl=document.getElementById('cfg-ant');
+
+        const thRnd = document.getElementById('pdfRandTheme')?.checked;
+        if(def && def.id==='rg3'){
+          if(thRnd){ window.__rg3_last_theme = null; }
+          else{
+            const sel = document.getElementById('themeSel');
+            if(sel){ window.__rg3_last_theme = sel.value; }
+          }
+        }
+
+        const save = {
+          AMP: {...AMP},
+          xmin: xminEl && xminEl.value, xmax: xmaxEl && xmaxEl.value,
+          ymin: yminEl && yminEl.value, ymax: ymaxEl && ymaxEl.value,
+          img: imgEl && imgEl.value, ant: antEl && antEl.value
+        };
+
+        const seed = (ctx && (ctx.index||0)) * 2654435761 ^ Date.now();
+        let t = Math.imul(1779033703 ^ seed, 3432918353); t=(t<<13)|(t>>>19);
+        function rng(){ t=Math.imul(t^(t>>>16),2246822507); t=Math.imul(t^(t>>>13),3266489909); t^=t>>>16; return (t>>>0)/4294967296; }
+        function ri(a,b){ return a + Math.floor(rng()*(b-a+1)); }
+
+        if (ampRnd){
+          const xi = ri(-12, -2), xa = ri(2, 12);
+          const yi = ri(-12, -2), ya = ri(2, 12);
+          AMP = { xmin: Math.min(xi,xa), xmax: Math.max(xi,xa), ymin: Math.min(yi,ya), ymax: Math.max(yi,ya) };
+          if (xminEl) xminEl.value = AMP.xmin;
+          if (xmaxEl) xmaxEl.value = AMP.xmax;
+          if (yminEl) yminEl.value = AMP.ymin;
+          if (ymaxEl) yminEl.value = AMP.ymin;
+        }
+
+        if (naRnd && (def && (def.id==='rg1' || def.id==='rg2' || def.id==='rg4'))){
+          const rImg = ri(2,10), rAnt = ri(2,10);
+          if (imgEl) imgEl.value = String(rImg);
+          if (antEl) antEl.value = String(rAnt);
+        }
+
+        return function restore(){
+          AMP = save.AMP;
+          if (xminEl) xminEl.value = save.xmin;
+          if (xmaxEl) xmaxEl.value = save.xmax;
+          if (yminEl) yminEl.value = save.ymin;
+          if (ymaxEl) ymaxEl.value = save.ymax;
+          if (imgEl) imgEl.value = save.img;
+          if (antEl) antEl.value = save.ant;
+        };
+      }catch(e){ /* silent */ }
+    }
+  });
 });
 </script>
+
+
+
 
 
 <script>

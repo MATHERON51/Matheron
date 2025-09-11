@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Radian</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1280px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button{font:inherit}
+select{padding:6px 8px;border:1px solid #ddd;border-radius:10px;background:#fff}
+.btn{padding:8px 10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.score{margin-left:auto;font-weight:600}
+
+/* ===== Deux colonnes (énoncé / visuel) ===== */
+.grid-two{display:grid;grid-template-columns:auto 1fr;column-gap:140px;align-items:start}
+.visu{display:grid;grid-template-columns:auto auto;column-gap:0;align-items:center}
+.svgbox{background:#fff;border:1px solid #e5e5e5;border-right:none;border-radius:12px 0 0 12px;padding:8px 0;display:flex;justify-content:center;align-items:center;overflow:visible}
+.linebox{background:#fff;border:1px solid #e5e5e5;border-left:none;border-radius:0 12px 12px 0;padding:0}
+.statement{padding-left:0}
+
+/* === Blocs texte & marques ✓ ✗ === */
+.row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:10px 0}
+.row .q{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:10px;padding:10px}
+.input-line{display:flex;gap:8px;align-items:center}
+.solution-box{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-top:10px}
+li{position:relative}
+.mark{margin-left:8px;font-weight:700}
+.mark.ok{color:#16a34a}.mark.ko{color:#dc2626}
+.ok{color:#0b7f36;font-weight:600}.ko{color:#b91c1c;font-weight:600}
+
+/* === Fractions jolies (pile) === */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+
+/* === Tableau Ex. 1 (bordures noires visibles) === */
+.radtab{border-collapse:collapse;width:100%}
+.radtab th,.radtab td{border:2px solid #111;padding:10px 12px;text-align:center;vertical-align:middle}
+.radtab .lab{font-weight:700;text-align:left}
+.radtab input[type=text]{width:100%;padding:6px 8px}
+
+/* === Cercle & labels === */
+.svgbox svg{display:block;max-width:none}
+.ptlbl{
+  font-weight:800;
+  paint-order: stroke;
+  stroke:#fff;
+  stroke-width:4px; /* ++ primes plus visibles */
+}
+/* Primes plus visibles à côté des lettres */
+.ptlbl .prime { font-size: 1.45em; font-weight: 900; }  /* dans le SVG */
+.vec .prime, .statement .prime, .solution-box .prime { font-size: 1.25em; font-weight: 900; } /* dans le texte HTML */
+
+.badge{display:inline-block;border:1px solid #e5e7eb;border-radius:999px;padding:.1rem .5rem;background:#f8fafc}
+
+/* ===== Vecteurs (flèche au-dessus) ===== */
+.vec{position:relative;display:inline-block;line-height:1;padding:0 .18em .05em;}
+.vec::before{content:"";position:absolute;left:.10em;right:.52em;top:-.22em;border-top:1.8px solid currentColor;}
+.vec::after{content:"";position:absolute;right:0;top:-.36em;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;}
+
+/* ===== Tableau Q1 ===== */
+table.radtab{border-collapse:collapse;width:100%}
+.radtab th,.radtab td{border:2px solid #111;padding:6px 8px}
+.radtab th.lab{width:160px;text-align:left}
+.radtab input{width:100%;padding:6px;border:1px solid #dcdcdc;border-radius:8px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Seconde – <strong>Radian</strong></h1>
+  <div class="wrap" style="padding:0 18px">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card" id="mount-here"></div>
+  <div class="card small"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+</div>
+
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script>
+/* ====== Outils communs ====== */
+const $=(s,r=document)=>r.querySelector(s);
+const PI=Math.PI, TAU=2*Math.PI;
+const toRad=d=>d*PI/180, toDeg=r=>r*180/PI;
+const UMIN='−';
+
+/* HTML pour pπ/q sans “1π” et avec 0 */
+function fmtPiHTML(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? UMIN : '';
+  const an = Math.abs(k);
+  // rationalisation /12 pour affichage des nombres "remarquables"
+  const P=Math.round(an*12), Q=12;
+  const g=(a,b)=>b?g(b,a%b):a, gg=g(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));   // <-- plus de dénominateur 1
+  if (p===1) return sgn+'<span class="frac"><span class="num">π</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+  return sgn+'<span class="frac"><span class="num">'+p+'π</span><span class="bar"></span><span class="den">'+q+'</span></span>';
+}
+function fmtPiText(r){
+  if (Math.abs(r) < 1e-10) return '0';
+  const k = r/PI, sgn = k<0? '-' : '';
+  const an = Math.abs(k);
+  const P=Math.round(an*12), Q=12;
+  const g=(a,b)=>b?g(b,a%b):a, gg=g(P,Q), p=P/gg, q=Q/gg;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));   // <-- plus de “/1”
+  if (p===1) return sgn+'π/'+q;
+  return sgn+p+'π/'+q;
+}
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; }
+function degToPiHTML(d){
+  if (d===0) return '0';
+  const g=gcd(d,180), p=d/g, q=180/g;
+  if (p===q) return 'π';
+  if (q===1) return (p===1 ? 'π' : (p+'π'));         // <-- 360° → 2π (pas 2π/1)
+  if (p===1) return `<span class="frac"><span class="num">π</span><span class="bar"></span><span class="den">${q}</span></span>`;
+  return `<span class="frac"><span class="num">${p}π</span><span class="bar"></span><span class="den">${q}</span></span>`;
+}
+function degToPiText(d){
+  const g=gcd(d,180), p=d/g, q=180/g;
+  if (p===q) return 'π';
+  if (q===1) return (p===1 ? 'π' : (p+'π'));         // <-- sans “/1”
+  if (p===1) return `π/${q}`;
+  return `${p}π/${q}`;
+}
+
+/* Parsing */
+function parseAngleDeg(str){
+  if (typeof str!=='string') return NaN;
+  let s=str.trim().replace(/\s+/g,'').replace(/,/g,'.').replace(/°/g,'').replace(/−/g,'-');
+  if (/π|pi/i.test(s)) return NaN; // pas de π dans la ligne degrés
+  if(!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)) return NaN;
+  return parseFloat(s)*PI/180;
+}
+function parseAngleRad(str){
+  if (typeof str!=='string') return NaN;
+  let s=str.trim().replace(/\s+/g,'').replace(/,/,'.').replace(/−/g,'-');
+  if (s.includes('°')) return NaN;
+  if (/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(s)) return parseFloat(s);
+  s=s.replace(/pi/ig,'π');
+  let m;
+  if ((m=s.match(/^([-+]?\d*)π$/))) {
+    const k = m[1]===''||m[1]==='+'? 1 : (m[1]==='-'? -1 : parseFloat(m[1]));
+    return k*PI;
+  }
+  if ((m=s.match(/^([-+]?\d*)π\/(\d+)$/))) {
+    const k = m[1]===''||m[1]==='+'? 1 : (m[1]==='-'? -1 : parseFloat(m[1]));
+    const q = parseInt(m[2],10);
+    return k*PI/q;
+  }
+  return NaN;
+}
+function sameAngle(a,b,tolDeg=1.5){
+  if(!isFinite(a)||!isFinite(b)) return false;
+  let d=((a-b+PI)%TAU+TAU)%TAU-PI;
+  return Math.abs(toDeg(d))<=tolDeg;
+}
+/* Met les primes en <tspan> plus grand dans un <text> SVG */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function setSVGTextWithBigPrimes(textEl, raw){
+  const s = String(raw).replace(/’|′/g,"'");      // on unifie les variantes
+  const parts = s.split("'");                     // coupe sur les primes
+  parts.forEach((chunk, i) => {
+    if (chunk) {
+      const t1 = document.createElementNS(SVGNS,'tspan');
+      t1.textContent = chunk;
+      textEl.appendChild(t1);
+    }
+    if (i < parts.length - 1) {
+      const tp = document.createElementNS(SVGNS,'tspan');
+      tp.setAttribute('class','prime');
+      tp.setAttribute('dy','-0.15em');            // on remonte légèrement la prime
+      tp.textContent = '′';                       // U+2032
+      textEl.appendChild(tp);
+      const reset = document.createElementNS(SVGNS,'tspan');
+      reset.setAttribute('dy','0.15em');          // on revient à la ligne de base
+      reset.textContent = '';
+      textEl.appendChild(reset);
+    }
+  });
+}
+
+/* Aide d'affichage de labels avec prime visible */
+/* Pour les textes HTML (enoncés/solutions) : insère un <span class="prime"> */
+function prettyLbl(L){
+  return String(L).replace(/['’′]/g, '<span class="prime">′</span>');
+}
+
+
+/* ====== Cercle remarquable avec quadrillage, labels extérieurs & liaisons pointillées ====== */
+function circleWithPointsSVG({R=110}={}){
+  const pad=22, W=2*R+2*pad, H=2*R+2*pad;
+  const cx=pad+R, cy=pad+R;
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  const g=(n,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n); for(const k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e;};
+
+  // Quadrillage (±R/2)
+  const dash='4,4';
+  ['-0.5','0.5'].forEach(k=>{
+    const dx = R*parseFloat(k);
+    const dy = R*parseFloat(k);
+    g('line',{x1:cx+dx,y1:cy-R,x2:cx+dx,y2:cy+R,stroke:'#bbb','stroke-width':'1','stroke-dasharray':dash});
+    g('line',{x1:cx-R,y1:cy+dy,x2:cx+R,y2:cy+dy,stroke:'#bbb','stroke-width':'1','stroke-dasharray':dash});
+  });
+
+  // Cercle + axes
+  g('circle',{cx,cy,r:R,fill:'#fff',stroke:'#111','stroke-width':'2'});
+  g('line',{x1:cx-R,y1:cy,x2:cx+R,y2:cy,stroke:'#111','stroke-width':'1.4'});
+  g('line',{x1:cx,y1:cy+R,x2:cx,y2:cy-R,stroke:'#111','stroke-width':'1.4'});
+
+  // Ticks tous les 30°
+  for(let d=0; d<360; d+=30){
+    const a=toRad(d), x1=cx+(R-6)*Math.cos(a), y1=cy-(R-6)*Math.sin(a);
+    const x2=cx+R*Math.cos(a), y2=cy-R*Math.sin(a);
+    g('line',{x1,y1,x2,y2,stroke:'#333','stroke-width':'1'});
+  }
+
+  // Points remarquables (avec F et F', labels à l'extérieur)
+  const PTS=[
+    ['I',0], ['A',PI/6], ['B',PI/4], ['C',PI/3], ['J',PI/2], ['D',2*PI/3], ['E',3*PI/4], ['F',5*PI/6],
+    ['K',PI], ["F'",7*PI/6], ["E'",5*PI/4], ["D'",4*PI/3], ['L',3*PI/2], ["C'",5*PI/3], ["B'",7*PI/4], ["A'",11*PI/6]
+  ];
+  const coords = {};
+  const labelR = R+12;
+  for(const [name,a] of PTS){
+    const xp=cx+R*Math.cos(a), yp=cy-R*Math.sin(a);
+    const xl=cx+labelR*Math.cos(a), yl=cy-labelR*Math.sin(a);
+    coords[name]={x:xp,y:yp};
+    g('circle',{cx:xp,cy:yp,r:3,fill:'#111'});
+    const anchor = Math.abs(Math.cos(a))<0.2 ? 'middle' : (Math.cos(a)>0?'start':'end');
+    const dy = (Math.abs(Math.sin(a))<0.2) ? 4 : 1;
+    const t = g('text',{x:xl,y:yl+dy,'font-size':13,'text-anchor':anchor,'dominant-baseline':'middle',class:'ptlbl'});
+setSVGTextWithBigPrimes(t, name);
+
+  }
+
+  // Liaisons pointillées demandées
+  const LINKS=[ ['C',"C'"], ['D',"D'"], ['F','A'], ["F'","A'"], ["E'","B"], ['E',"B'"] ];
+  for(const [L,R] of LINKS){
+    const p=coords[L], q=coords[R];
+    if(p && q){
+      g('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:'#999','stroke-width':'1.4','stroke-dasharray':'4,4'});
+    }
+  }
+
+  // Label O
+  const tO=g('text',{x:cx-10,y:cy+16,class:'ptlbl'}); tO.textContent='O';
+
+  return {svg,cx,cy,R, width:W,height:H};
+}
+const POINTS_MAP = {
+  'I':0,'A':PI/6,'B':PI/4,'C':PI/3,'J':PI/2,'D':2*PI/3,'E':3*PI/4,'F':5*PI/6,'K':PI,
+  "F'":7*PI/6,"E'":5*PI/4,"D'":4*PI/3,'L':3*PI/2,"C'":5*PI/3,"B'":7*PI/4,"A'":11*PI/6
+};
+const ALL_LABELS = Object.keys(POINTS_MAP);
+
+/* =================== EXERCICE 1 — Tableau conversions =================== */
+function EXO_rad_table(){
+  const host = $('#mount-here'); host.innerHTML='';
+  const box = document.createElement('div'); box.className='row'; host.appendChild(box);
+
+  // Tirages + anti-doublons par ligne/colonne demandée
+  const DEG_BANK=[25,30,36,38,45,54,60,72,75,90,108,120,135,150];
+  const RAD_BANK=[PI/6,PI/4,PI/3,PI/2,2*PI/3,3*PI/4,5*PI/6,7*PI/6,5*PI/4,4*PI/3,3*PI/2,5*PI/3,7*PI/4,11*PI/6];
+
+  const pick = (arr)=>arr[(Math.random()*arr.length)|0];
+
+  let deg1 = pick(DEG_BANK);
+  let deg2 = pick(DEG_BANK);
+  while(deg2===deg1) deg2 = pick(DEG_BANK);
+
+  let r1 = pick(RAD_BANK), r2 = pick(RAD_BANK);
+  while (Math.abs(r2-r1)<1e-12) r2 = pick(RAD_BANK);
+
+  // Évite toute répétition entre ce qu'on DEMANDE à remplir (ligne rad = π,deg1,deg2 ; ligne deg = r1,r2)
+  // → donc pas de r1/r2 égaux à rad(deg1/deg2), et pas de deg(r1/r2) égaux à deg1/deg2
+  const radOfDeg1 = toRad(deg1), radOfDeg2 = toRad(deg2);
+  const degOf = (rr)=>Math.round(toDeg(rr));
+  const clashR = (rr)=> Math.abs(rr-radOfDeg1)<1e-12 || Math.abs(rr-radOfDeg2)<1e-12;
+  const clashD = (dd)=> dd===deg1 || dd===deg2;
+
+  while (clashR(r1)) r1 = pick(RAD_BANK);
+  while (Math.abs(r2-r1)<1e-12 || clashR(r2)) r2 = pick(RAD_BANK);
+
+  // Assure aussi que deg(r1), deg(r2) sont distincts de deg1/deg2
+  while (clashD(degOf(r1))) r1 = pick(RAD_BANK);
+  while (Math.abs(r2-r1)<1e-12 || clashD(degOf(r2)) || clashR(r2)) r2 = pick(RAD_BANK);
+
+  // Construction du tableau
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <table class="radtab">
+      <tbody>
+        <tr>
+          <th class="lab" style="width:280px">
+            <div>Mesures d’angles</div><div>en degrés</div>
+          </th>
+          <td><span>180</span></td>
+          <td><span>${deg1}</span></td>
+          <td><span>${deg2}</span></td>
+          <td><input type="text" data-kind="deg" placeholder="degrés uniquement"></td>
+          <td><input type="text" data-kind="deg" placeholder="degrés uniquement"></td>
+        </tr>
+        <tr>
+          <th class="lab">
+            <div>Mesures d’angles</div><div>en radians</div>
+          </th>
+          <td><input type="text" data-kind="rad" placeholder="radians (π, kπ/…)" /></td>
+          <td><input type="text" data-kind="rad" /></td>
+          <td><input type="text" data-kind="rad" /></td>
+          <td><span class="eq">${fmtPiHTML(r1)}</span></td>
+          <td><span class="eq">${fmtPiHTML(r2)}</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="solution-box" id="sol1" style="display:none"></div>
+  `;
+  box.appendChild(wrap);
+
+  // Cibles & attentes (appariement explicite)
+  const radInputs = wrap.querySelectorAll('input[data-kind="rad"]'); // π, deg1, deg2
+  const degInputs = wrap.querySelectorAll('input[data-kind="deg"]'); // r1, r2
+  const EXPECT = new Map();
+  EXPECT.set(radInputs[0], PI);
+  EXPECT.set(radInputs[1], toRad(deg1));
+  EXPECT.set(radInputs[2], toRad(deg2));
+  EXPECT.set(degInputs[0], toDeg(r1));
+  EXPECT.set(degInputs[1], toDeg(r2));
+
+  function check(){
+    let ok=0,total=0;
+    [...radInputs, ...degInputs].forEach(inp=>{
+      const raw = inp.value.trim();
+      if(!raw){ // validation progressive : champs vides ignorés
+        inp.style.borderColor = '#ddd';
+        return;
+      }
+      const kind=inp.dataset.kind; let val=NaN, good=EXPECT.get(inp);
+      if(kind==='deg'){ val = parseAngleDeg(raw); }
+      else { val = parseAngleRad(raw); }
+      let pass=false;
+      if(kind==='deg'){ pass = isFinite(val) && Math.abs(toDeg(val)-good)<=0.25; }
+      else { pass = isFinite(val) && sameAngle(val, good, 0.5); }
+      inp.style.borderColor = pass? '#16a34a' : '#dc2626';
+      total++; if(pass) ok++;
+    });
+    return {ok,total};
+  }
+
+  function solution(){
+    // On n'écrit rien dans les inputs
+    const s = $('#sol1'); 
+    s.style.display = '';
+
+    const fmtDeg = (x)=>{
+      const r = Math.round(x);
+      if (Math.abs(x - r) < 1e-9) return r + '°';
+      return (Math.round(x*100)/100).toString().replace('.',',') + '°';
+    };
+ const frac = (N,D)=> (D===1 || D==='1')
+   ? `${N}` 
+   : `<span class="frac"><span class="num">${N}</span><span class="bar"></span><span class="den">${D}</span></span>`;
+    const formules = `
+      <div>On utilise la <b>proportionnalité</b> entre degrés et radians :
+        <span class="badge">180° ↔ π</span>.
+        Ainsi, pour tout <i>x</i>,
+        <span class="badge">x° = ${frac('x×π','180')}</span>
+        et pour tout <i>y</i>,
+        <span class="badge">y rad = ${frac('y×180','π')}°</span>.
+      </div>`;
+
+    const table = `
+      <table class="radtab" style="margin-top:6px">
+        <tbody>
+          <tr>
+            <th class="lab"><div>Mesures d’angles</div><div>en degrés</div></th>
+            <td>180</td>
+            <td>${deg1}</td>
+            <td>${deg2}</td>
+            <td>${fmtDeg(toDeg(r1))}</td>
+            <td>${fmtDeg(toDeg(r2))}</td>
+          </tr>
+          <tr>
+            <th class="lab"><div>Mesures d’angles</div><div>en radians</div></th>
+            <td>π</td>
+            <td>${degToPiHTML(deg1)}</td>
+            <td>${degToPiHTML(deg2)}</td>
+            <td>${fmtPiHTML(r1)}</td>
+            <td>${fmtPiHTML(r2)}</td>
+          </tr>
+        </tbody>
+      </table>`;
+
+    s.innerHTML = `<div><strong>Correction.</strong></div>${formules}${table}`;
+    return s.outerHTML;
+  }
+
+  function reset(){
+    wrap.querySelectorAll('input[type=text]').forEach(i=>{i.value=''; i.style.borderColor='#ddd';});
+    const s1=$('#sol1'); s1.style.display='none'; s1.innerHTML='';
+  }
+
+  return {check, solution, reset,
+    pdf:{
+      gen(){ return {deg1,deg2,r1,r2}; },
+      render(st,isSol){
+        const cell = (v)=>`<td style="border:2px solid #111;padding:8px 10px;text-align:center">${v??''}</td>`;
+        const frac = (N,D)=>`<span class="frac"><span class="num">${N}</span><span class="bar"></span><span class="den">${D}</span></span>`;
+        const formules = `<div style="margin-bottom:6px">
+          On utilise la <b>proportionnalité</b> : 180° ↔ π,
+          donc x° = ${frac('x×π','180')} et y rad = ${frac('y×180','π')}°.
+        </div>`;
+        const T = `
+        <table style="border-collapse:collapse;width:100%">
+          <tbody>
+            <tr>
+              <th style="text-align:left;border:2px solid #111;padding:8px 10px">
+                <div>Mesures d’angles</div><div>en degrés</div>
+              </th>
+              ${cell('180')}${cell(st.deg1)}${cell(st.deg2)}${cell(isSol? Math.round(toDeg(st.r1))+'°' : '')}${cell(isSol? Math.round(toDeg(st.r2))+'°' : '')}
+            </tr>
+            <tr>
+              <th style="text-align:left;border:2px solid #111;padding:8px 10px">
+                <div>Mesures d’angles</div><div>en radians</div>
+              </th>
+              ${cell(isSol? 'π' : '')}
+              ${cell(isSol? degToPiHTML(st.deg1) : '')}
+ ${cell(isSol? degToPiHTML(st.deg2) : '')}
+ ${cell(fmtPiHTML(st.r1))}
+ ${cell(fmtPiHTML(st.r2))}
+            </tr>
+          </tbody>
+        </table>`;
+        if(isSol){ return `<div class="solution-box">${formules}${T}</div>`; }
+        return T;
+      }
+    }
+  };
+}
+
+/* ============ EXERCICE 2 — Points images & mesures d’angles ============ */
+function EXO_points_cercle(){
+  const host=$('#mount-here'); host.innerHTML='';
+  const grid=document.createElement('div'); grid.className='grid-two'; host.appendChild(grid);
+
+  // Visuel (à droite)
+  const visu=document.createElement('div'); visu.className='visu'; grid.appendChild(visu);
+  const svgbox=document.createElement('div'); svgbox.className='svgbox'; visu.appendChild(svgbox);
+  const {svg} = circleWithPointsSVG({R:110}); svgbox.appendChild(svg);
+
+  const statement=document.createElement('div'); statement.className='statement'; grid.appendChild(statement);
+
+  // Tirages
+  const ANG_SET=[0,PI/6,PI/4,PI/3,PI/2,2*PI/3,3*PI/4,5*PI/6,PI,-PI/6,-PI/4,-PI/3,-PI/2,-3*PI/4,-5*PI/6];
+  function pickAngles(n){
+    const arr=[...ANG_SET]; const out=[];
+    while(out.length<n && arr.length){ const i=(Math.random()*arr.length)|0; out.push(arr.splice(i,1)[0]); }
+    return out;
+  }
+  const AQS = pickAngles(6); // Q1 : 6 réels (tous distincts)
+  const targetPt = ALL_LABELS[(Math.random()*ALL_LABELS.length)|0]; // Q2 : un point
+
+  // Q3 : paires avec angles remarquables uniquement, et valeurs orientées DISTINCTES
+  function normTau(x){ x%=TAU; if(x<=-PI) x+=TAU; if(x>PI) x-=TAU; return x; }
+  function orientedQuick(a0,a1){ let d=((a1-a0+PI)%TAU+TAU)%TAU-PI; return d; }
+  const ALLOWED=[0, PI/6, PI/4, PI/3, PI/2, PI];
+  function isRemarkable(rad){
+    const ar = Math.abs(normTau(rad));
+    return ALLOWED.some(v => Math.abs(ar - v) < 1e-9);
+  }
+  function pickRemarkablePairs(k=3){
+    const all=[];
+    for(const L of ALL_LABELS){
+      for(const R of ALL_LABELS){
+        if(L===R) continue;
+        const rad = orientedQuick(POINTS_MAP[L], POINTS_MAP[R]);
+        if(isRemarkable(rad)) all.push([L,R,rad]);
+      }
+    }
+    // Shuffle puis filtre pour garder des angles orientés différents
+    for(let i=all.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [all[i],all[j]]=[all[j],all[i]]; }
+    const used=new Set(), out=[];
+    for(const [L,R,rad] of all){
+      const key = Math.round(rad*1e6); // discrétisation
+      if(!used.has(key)){ used.add(key); out.push([L,R]); }
+      if(out.length===k) break;
+    }
+    return out;
+  }
+  const PAIRS = pickRemarkablePairs(3);
+
+  // Rendu énoncé
+  statement.innerHTML = `
+    <div class="q">
+      <ol>
+        <li id="q1">Compléter le tableau :
+          <table class="radtab" id="q1tab" style="margin-top:6px">
+            <tbody>
+              <tr id="rowR"><th class="lab">Réels</th></tr>
+              <tr id="rowP"><th class="lab">Points images</th></tr>
+            </tbody>
+          </table>
+          <span id="m1" class="mark"></span>
+        </li>
+        <li id="q2" style="margin-top:8px">Donner <strong>trois réels différents</strong> (dont au moins un négatif) ayant pour image : <b>${prettyLbl(targetPt)}</b>.
+          <div class="input-line" style="margin-top:6px">
+            <input id="q2ans" type="text" placeholder="ex. π/3 ; 7π/3 ; −5π/3 (séparer par ; ou ,)">
+          </div>
+          <span id="m2" class="mark"></span>
+        </li>
+        <li id="q3" style="margin-top:8px">Donner une <strong>mesure en radians</strong> des angles :
+          <div id="q3list" style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px"></div>
+          <span id="m3" class="mark"></span>
+        </li>
+      </ol>
+    </div>
+    <div id="sol2"></div>
+  `;
+
+  // Q1 : tableau Réels / Points images
+  const rowR = $('#rowR', statement);
+  const rowP = $('#rowP', statement);
+  const q1Inputs = [];
+  for(const a of AQS){
+    const tdR = document.createElement('td');
+    tdR.innerHTML = `<div style="text-align:center"><span class="eq">${fmtPiHTML(a)}</span></div>`;
+    rowR.appendChild(tdR);
+
+    const tdP = document.createElement('td');
+    tdP.innerHTML = `<input type="text" placeholder="Nom du point (ex. K, C′)" style="text-align:center">`;
+    rowP.appendChild(tdP);
+    q1Inputs.push({a, inp: tdP.querySelector('input')});
+  }
+  function labelOf(a){
+    let t=((a%TAU)+TAU)%TAU;
+    for(const L of ALL_LABELS){
+      if (Math.abs(t-POINTS_MAP[L])<1e-9 || Math.abs(Math.abs(t-POINTS_MAP[L])-TAU)<1e-9) return L;
+      if (Math.abs(t-PI)<1e-9 && L==='K') return 'K';
+    }
+    return null;
+  }
+
+  // Q3 : paires
+  const q3list = $('#q3list', statement);
+  const q3Inputs=[];
+  function oriented(a0,a1){ let d=((a1-a0+PI)%TAU+TAU)%TAU-PI; return d; }
+  for(const [L,R] of PAIRS){
+    const a0=POINTS_MAP[L], a1=POINTS_MAP[R];
+    const row=document.createElement('div');
+    const vec=(t)=>`<span class="vec">${t}</span>`;
+    row.innerHTML = `<div class="input-line"><label>(${vec('O'+prettyLbl(L))} ; ${vec('O'+prettyLbl(R))}) = </label><input type="text" placeholder="radians (π, kπ/…)" style="flex:1"></div>`;
+    q3list.appendChild(row);
+    q3Inputs.push({L,R,a0,a1,inp:row.querySelector('input')});
+  }
+
+  function check(){
+    let ok=0,total=0;
+
+    // Q1 (validation progressive)
+    let attempted1=0, bad1=false;
+    for(const {a,inp} of q1Inputs){
+      const raw = inp.value.trim();
+      if(!raw){ inp.style.borderColor='#ddd'; continue; }
+      attempted1++;
+      const ans = raw.toUpperCase().replace(/\s+/g,'').replace(/’|′/g,"'"); // normalise la prime
+      const good = labelOf(a);
+      const pass = (ans===good);
+      inp.style.borderColor = pass? '#16a34a' : '#dc2626';
+      if(pass) ok++; else bad1=true;
+      total++;
+    }
+    $('#m1').textContent = attempted1===0 ? '' : (bad1? '✗':'✓');
+    $('#m1').className = 'mark ' + (attempted1===0 ? '' : (bad1?'ko':'ok'));
+
+    // Q2
+    const s=$('#q2ans').value;
+    let good2=false, attempted2=false;
+    if(s.trim().length){
+      attempted2=true;
+      const parts=s.split(/[;,]/).map(t=>t.trim()).filter(Boolean);
+      if(parts.length>=3){
+        const vals=parts.slice(0,3).map(parseAngleRad);
+        const allValid = vals.every(v=>isFinite(v));
+        const sameImg  = allValid && vals.every(v=> sameAngle(v, POINTS_MAP[targetPt], 0.1));
+        const distinct = allValid && (new Set(vals.map(v=>v.toFixed(6)))).size===3;
+        const hasNeg   = allValid && vals.some(v=>v<0);
+        good2 = allValid && sameImg && distinct && hasNeg;
+      }
+    }
+    $('#q2ans').style.borderColor = attempted2 ? (good2? '#16a34a' : '#dc2626') : '#ddd';
+    if(attempted2){ total++; if(good2) ok++; }
+    $('#m2').textContent = attempted2 ? (good2? '✓':'✗') : '';
+    $('#m2').className = 'mark ' + (attempted2 ? (good2?'ok':'ko') : '');
+
+    // Q3
+    let attempted3=0, bad3=false;
+    for(const o of q3Inputs){
+      const raw=o.inp.value.trim();
+      if(!raw){ o.inp.style.borderColor='#ddd'; continue; }
+      attempted3++;
+      const val=parseAngleRad(raw);
+      const good=oriented(o.a0,o.a1);
+      const pass=isFinite(val) && sameAngle(val, good, 0.5);
+      o.inp.style.borderColor = pass? '#16a34a' : '#dc2626';
+      if(!pass) bad3=true; else ok++;
+      total++;
+    }
+    $('#m3').textContent = attempted3===0 ? '' : (bad3? '✗':'✓');
+    $('#m3').className = 'mark ' + (attempted3===0 ? '' : (bad3?'ko':'ok'));
+
+    return {ok,total};
+  }
+
+  function solution(){
+    // Ne rien remplir dans les champs
+    const sol=$('#sol2'); sol.innerHTML='';
+    const bloc=document.createElement('div'); bloc.className='solution-box';
+
+    // Q1 : tableau Résultats
+    let rowR='<tr><th class="lab">Réels</th>';
+    let rowP='<tr><th class="lab">Points images</th>';
+    for(const a of AQS){
+      rowR += `<td style="text-align:center">${fmtPiHTML(a)}</td>`;
+      const lab = labelOf(a); 
+      rowP += `<td style="text-align:center"><b>${lab? prettyLbl(lab):''}</b></td>`;
+    }
+    rowR+='</tr>'; rowP+='</tr>';
+    const q1 = `<table class="radtab" style="margin-top:6px"><tbody>${rowR}${rowP}</tbody></table>`;
+
+    // Q2 : exemples
+    const θ = POINTS_MAP[targetPt];
+    const ex = [ θ, θ+2*PI, -(2*PI-θ) ];
+    const q2 = `Exemples : ${ex.map(fmtPiHTML).join(' ; ')}`;
+
+    // Q3 : avec flèches & primes visibles
+    const vec=(t)=>`<span class="vec">${t}</span>`;
+    const q3 = q3Inputs.map(o=>{
+      let d=((o.a1-o.a0+PI)%TAU+TAU)%TAU-PI;
+      return `<li>(${vec('O'+prettyLbl(o.L))} ; ${vec('O'+prettyLbl(o.R))}) = ${fmtPiHTML(d)}</li>`;
+    }).join('');
+
+    bloc.innerHTML = `
+      <div><strong>Correction.</strong></div>
+      <div>1) Points images :</div>
+      ${q1}
+      <div style="margin-top:6px">2) ${q2}</div>
+      <div style="margin-top:6px">3) Mesures en radians :</div>
+      <ul style="margin:.2em 0 0 1.2em">${q3}</ul>`;
+    sol.appendChild(bloc);
+    return bloc.outerHTML;
+  }
+
+  function reset(){
+    statement.querySelectorAll('input[type=text]').forEach(i=>{i.value=''; i.style.borderColor='#ddd';});
+    ['m1','m2','m3'].forEach(id=>{$('#'+id).textContent=''; $('#'+id).className='mark';});
+    $('#sol2').innerHTML='';
+  }
+
+  return {check, solution, reset,
+    pdf:{
+  gen(){ return { AQS, targetPt, PAIRS: q3Inputs.map(o=>[o.L,o.R]) }; },
+  render(st,isSol){
+    // SVG du cercle (labels avec primes gardés)
+    const {svg} = circleWithPointsSVG({R:110});
+    const circleHTML = svg.outerHTML;
+
+    // Q1 — même tableau que l’écran
+    const labelOf = (a)=>{
+      const t=((a%TAU)+TAU)%TAU;
+      for(const [k,v] of Object.entries(POINTS_MAP)){
+        if(Math.abs(t - v)<1e-9) return k;
+      }
+      return '';
+    };
+    let rowR='<tr><th class="lab">Réels</th>';
+    let rowP='<tr><th class="lab">Points images</th>';
+    for(const a of st.AQS){
+      rowR += `<td>${fmtPiHTML(a)}</td>`;
+      rowP += `<td>${isSol ? `<b>${labelOf(a) ? prettyLbl(labelOf(a)) : ''}</b>` : ''}</td>`;
+    }
+    rowR+='</tr>'; rowP+='</tr>';
+    const q1 = `<table class="radtab" style="margin-top:6px"><tbody>${rowR}${rowP}</tbody></table>`;
+
+    // Q2 — même consigne / mêmes exemples en solution
+    const θ = POINTS_MAP[st.targetPt];
+    const q2 = isSol
+      ? `Exemples : ${[θ, θ+2*Math.PI, -(2*Math.PI-θ)].map(fmtPiHTML).join(' ; ')}`
+      : `Donner <strong>trois réels différents</strong> (dont au moins un négatif) ayant pour image <b>${prettyLbl(st.targetPt)}</b>.`;
+
+    // Q3 — mêmes vecteurs (flèche au-dessus)
+    const vec = t => `<span class="vec">${t}</span>`;
+    const q3 = st.PAIRS.map(([L,R])=>{
+      const a0 = POINTS_MAP[L], a1 = POINTS_MAP[R];
+      const d = ((a1-a0+Math.PI)%(2*Math.PI)+2*Math.PI)% (2*Math.PI) - Math.PI;
+      return `<li>(${vec('O'+prettyLbl(L))} ; ${vec('O'+prettyLbl(R))}) = ${isSol ? fmtPiHTML(d) : ''}</li>`;
+    }).join('');
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr auto;column-gap:18mm;align-items:start">
+        <div>
+          <ol>
+            <li>Points images des réels remarquables :</li>
+          </ol>
+          ${q1}
+          <div style="margin-top:6px">2) ${q2}</div>
+          <div style="margin-top:6px">3) Mesures en radians :</div>
+          <ul style="margin:.2em 0 0 1.2em">${q3}</ul>
+        </div>
+        <div>${circleHTML}</div>
+      </div>`;
+  }
+}
+
+  };
+}
+
+/* =================== REGISTRY & UI =================== */
+const REGISTRY = [
+  { id:'rad_table',  title:'Radian — Conversions (tableau)', gen: EXO_rad_table },
+  { id:'rad_points', title:'Radian — Points images & angles', gen: EXO_points_cercle }
+];
+window.REGISTRY = REGISTRY;
+
+let API=null, scoreOK=0, scoreTOT=0;
+function populateSelect(){ const sel=$('#exo-select'); sel.innerHTML=''; for(const e of REGISTRY){ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); } }
+function renderActive(){ const sel=$('#exo-select'); const exo=REGISTRY.find(e=>e.id===sel.value); API=exo.gen(); }
+function buildOne(){ if($('#mount-here')) $('#mount-here').innerHTML=''; renderActive(); }
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTOT}`; }
+function check(){ if(!API) return; const r=API.check(); scoreOK+=r.ok; scoreTOT+=r.total; updateScore(); }
+function solution(){ if(!API) return; API.solution(); }
+function resetAll(){ scoreOK=0; scoreTOT=0; updateScore(); if(API) API.reset(); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  populateSelect(); renderActive();
+  $('#exo-select').addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  updateScore();
+  document.addEventListener('keydown',(ev)=>{
+    const a=document.activeElement;
+    if(a && a.tagName==='INPUT' && ev.key==='Enter'){ ev.preventDefault(); check(); }
+  });
+});
+</script>
+
+<!-- ======= Générateur PDF ======= -->
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.ExoPDF) return;
+  ExoPDF.init({
+    title: document.title || 'Fiche — Radian',
+    mountAfterSelector: '.wrap .card:first-child',
+    max: 50,
+    beforeGen(def, st, meta){
+      const sel=$('#exo-select'); const ex=REGISTRY.find(e=>e.id===sel.value);
+      if(!ex) return {};
+      return ex.gen().pdf.gen();
+    },
+    beforeRender(def, st, isSolution){
+      const sel=$('#exo-select'); const ex=REGISTRY.find(e=>e.id===sel.value);
+      if(!ex) return '';
+      return ex.gen().pdf.render(st, isSolution);
+    }
+  });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+</body>
+</html>

@@ -3,16 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Seconde – Cosinus & sinus d’un angle (LaTeX)</title>
+<title>Seconde – Cosinus & sinus d’un angle</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
 *{box-sizing:border-box}
-body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.55}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
 .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
 .wrap{max-width:1280px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
 .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -37,6 +36,11 @@ select{padding:6px 8px;border:1px solid #ddd;border-radius:10px;background:#fff}
 .mark.ok{color:#16a34a}.mark.ko{color:#dc2626}
 .solution-box{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-top:10px}
 
+/* Fractions jolies */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
+.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
+.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
+
 /* Tableau (bordures visibles) */
 .radtab{border-collapse:collapse;width:100%}
 .radtab th,.radtab td{border:2px solid #111;padding:8px 10px;text-align:center;vertical-align:middle}
@@ -53,29 +57,7 @@ input[type=text]{padding:6px 8px;border:1px solid #dcdcdc;border-radius:10px;tex
 /* Petit encart d’aide global */
 .help-list{margin:0;padding-left:18px}
 .help-list li{margin:.2em 0}
-
-/* LaTeX un peu plus grand dans la zone solution (confort) */
-.solution-box .mjx-container{font-size:115%}
 </style>
-
-<!-- ==== MathJax (comme dans “exercices - Latex.html”) ==== -->
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: {
-      // on n’ignore pas <code>/<pre> pour permettre \\( ... \\) partout
-      skipHtmlTags: ['script','noscript','style','textarea']
-    },
-    chtml: { matchFontHeight: false },
-    startup: { typeset: true }
-  };
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 
@@ -98,24 +80,23 @@ input[type=text]{padding:6px 8px;border:1px solid #dcdcdc;border-radius:10px;tex
   <!-- EXERCICES AU-DESSUS -->
   <div class="card" id="mount-here"></div>
 
-  <!--  Boîte d’aide globale (juste au-dessus du PDF) -->
+  <!--  Boîte d’aide globale (doit rester juste au-dessus du PDF) -->
   <div class="card" id="input-notes">
     <div><strong>Saisie & réponses acceptées :</strong></div>
     <ul class="help-list">
-      <li>Fractions : saisir <em>a/b</em>.</li>
-      <li>Racines : <code>√n</code>, <code>sqrt(n)</code> ou <code>rac(n)</code>.</li>
+      <li>Fractions : <i>a/b</i> (éviter les <code>/1</code>).</li>
+<li>Racines : <code>√n</code>, <code>sqrt(n)</code> ou <code>rac(n)</code>.</li>
       <li>Signes : <code>-</code> ou le signe moins unicode (les deux reconnus).</li>
       <li>Décimaux : point ou virgule.</li>
-      <li>Valeurs exactes admises : \(0\), \(1\), \(-1\), \(\frac{\sqrt{2}}{2}\), \(-\frac{\sqrt{3}}{2}\), etc.</li>
+      <li>Valeurs exactes admises : <code>0</code>, <code>1</code>, <code>-1</code>, <code>√2/2</code>, <code>-√3/2</code>, etc.</li>
       <li>Appuie sur <kbd>Entrée</kbd> ou “Vérifier” pour corriger.</li>
     </ul>
   </div>
   <!-- Clavier math, centré -->
-  <div class="card">
-    <div data-math-kbd style="display:flex; justify-content:center"></div>
-  </div>
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
 </div>
-
 <script src="../../../../js/math-kbd.js" defer></script>
 <script>
 /* ========= Utilitaires ========= */
@@ -124,64 +105,23 @@ const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const PI=Math.PI, TAU=2*Math.PI;
 const UMIN='−';
 
-/* ===== MathJax helper (même principe que “exercices - Latex.html”) ===== */
-function typesetAll(root){
-  const run = () => (window.MathJax && MathJax.typesetPromise) ? MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{}) : null;
-  if (window.MathJax && MathJax.startup && MathJax.startup.promise){
-    MathJax.startup.promise.then(run);
-  } else {
-    const t = setInterval(()=>{
-      if (window.MathJax && MathJax.typesetPromise){ clearInterval(t); run(); }
-    }, 60);
-  }
+/* Fractions jolies */
+function FRAC(N, D){ const d=String(D); if(d==='1' || d===1) return String(N);
+  return '<span class="frac"><span class="num">'+N+'</span><span class="bar"></span><span class="den">'+D+'</span></span>';
 }
-
-/* === Aide : wrapper LaTeX inline === */
-const L = (tex) => `\\(${tex}\\)`;
-
-/* ====== Conversions vers TeX ====== */
-function fracTex(N, D){
-  const d = String(D);
-  if (d==='1' || d===1) return String(N);
-  return `\\frac{${N}}{${D}}`;
-}
-function fmtPiTex(r){
+/* Affichage π (jamais “1π”) */
+function fmtPiHTML(r){
   if (Math.abs(r) < 1e-10) return '0';
-  const k = r/PI;
-  const sgn = k < 0 ? '-' : '';
+  const k = r/PI, sgn = k<0? UMIN : '';
   const an = Math.abs(k);
-  // approx sur 12 (angles remarquables)
   const P=Math.round(an*12), Q=12;
   const g=(a,b)=>b?g(b,a%b):a, gg=g(P,Q), p=P/gg, q=Q/gg;
-  if (p===q) return sgn+'\\pi';
-  if (q===1) return sgn + (p===1 ? '\\pi' : (p+'\\pi'));
-  if (p===1) return sgn + `\\frac{\\pi}{${q}}`;
-  return sgn + `\\frac{${p}\\pi}{${q}}`;
+  if (p===q) return sgn+'π';
+  if (q===1) return sgn + (p===1 ? 'π' : (p+'π'));
+  if (p===1) return sgn+FRAC('π',q);
+  return sgn+FRAC(p+'π',q);
 }
-function intervalLabelTex(I){ return `\\left[ ${fmtPiTex(I[0])} \\; ; \\; ${fmtPiTex(I[1])} \\right]`; }
-
-function valToNiceTex(x){
-  const ax=Math.abs(x);
-  const s = x<0 ? '-' : '';
-  const near=t=>Math.abs(ax-t)<1e-9;
-  if(near(0))   return '0';
-  if(near(1))   return s+'1';
-  if(near(0.5)) return s+`\\frac{1}{2}`;
-  const r2=Math.SQRT2/2, r3=Math.sqrt(3)/2;
-  if(near(r2))  return s+`\\frac{\\sqrt{2}}{2}`;
-  if(near(r3))  return s+`\\frac{\\sqrt{3}}{2}`;
-  // décimaux FR acceptés : on laisse le point (MathJax ne gère pas la virgule comme séparateur décimal)
-  return (x<0?'-':'')+(Math.round(ax*1000)/1000);
-}
-function cosSinExact(angle){
-  let t=((angle%TAU)+TAU)%TAU;
-  const c = Math.cos(t), s = Math.sin(t);
-  return { cosTex: valToNiceTex(c), sinTex: valToNiceTex(s), cos:c, sin:s };
-}
-function sqrtNumTex(n){
-  const r = Math.sqrt(n);
-  return Number.isInteger(r) ? String(r) : `\\sqrt{${n}}`;
-}
+function intervalLabelHTML(I){ return '[ '+fmtPiHTML(I[0])+' ; '+fmtPiHTML(I[1])+' ]'; }
 
 /* Parsing d’une saisie numérique (√, fractions, décimal) */
 function evalExprSafe(str){
@@ -196,28 +136,34 @@ function evalExprSafe(str){
     .replace(/[×·⋅]/g,'*')
     .replace(/[÷∕⁄]/g,'/');
 
-  // 2) Canonicaliser toute forme de racine vers √
+  // 2) Canonicaliser toute forme de racine vers un unique symbole √
+  //    (√ + éventuel sélecteur de variation FE0E/FE0F, ou "rac"/"sqrt")
   s = s
     .replace(/\u221A[\uFE0E\uFE0F]?/g, '√')
     .replace(/\b(?:rac|sqrt)\b/gi, '√');
 
-  // 3) Développer √ en Math.sqrt(...)
+  // 3) Développer √ en Math.sqrt(...) dans tous les cas usuels
   s = s
-    .replace(/√\s*\(\s*/g, 'Math.sqrt(')
-    .replace(/√\s*([0-9]+(?:\.[0-9]+)?(?:\/[0-9]+(?:\.[0-9]+)?)?)/g, 'Math.sqrt($1)')
-    .replace(/√/g, 'Math.sqrt');
-  s = s.replace(/\^/g,'**');
+    .replace(/√\s*\(\s*/g, 'Math.sqrt(')                               // √(x) → Math.sqrt(
+    .replace(/√\s*([0-9]+(?:\.[0-9]+)?(?:\/[0-9]+(?:\.[0-9]+)?)?)/g, 'Math.sqrt($1)') // √3, √9/4, √2.5 …
+    .replace(/√/g, 'Math.sqrt');                                       // filet
+  s = s.replace(/\^/g,'**');                                           // puissances
 
-  // 4) Garde-fou
+  // 4) Garde-fou (autorise Math.sqrt nu via sentinelle S)
   const t = s.replace(/Math\.sqrt\s*\(/g,'S(').replace(/Math\.sqrt\b/g,'S');
   if (!/^[0-9.+\-*/()S]*$/.test(t)) return NaN;
 
   try { return +Function('"use strict";return('+s+')')(); }
   catch { return NaN; }
 }
+
+
+
+
+
 function sameNum(a,b,tol=1e-3){ return isFinite(a)&&isFinite(b)&&Math.abs(a-b)<=tol; }
 
-/* ========= Cercle remarquable (SVG) ========= */
+/* ========= Cercle remarquable (points + pointillés + primes grosses) ========= */
 const SVGNS='http://www.w3.org/2000/svg';
 function setSVGTextWithBigPrimes(textEl, raw){
   const s = String(raw).replace(/’|′/g,"'");
@@ -282,6 +228,29 @@ const POINTS_MAP = {
 };
 const ALL_LABELS = Object.keys(POINTS_MAP);
 
+/* Helpers trig exacts */
+function valToNice(x){
+  const ax=Math.abs(x);
+  const s = x<0 ? UMIN : '';
+  const near=(t)=>Math.abs(ax-t)<1e-9;
+  if(near(0))   return '0';
+  if(near(1))   return s+'1';
+  if(near(0.5)) return s+FRAC('1','2');
+  const r2=Math.SQRT2/2, r3=Math.sqrt(3)/2;
+  if(near(r2))  return s+FRAC('√2','2');
+  if(near(r3))  return s+FRAC('√3','2');
+  return (x<0?UMIN:'')+(Math.round(ax*1000)/1000).toString().replace('.',',');
+}
+function cosSinExact(angle){
+  let t=((angle%TAU)+TAU)%TAU;
+  const c = Math.cos(t), s = Math.sin(t);
+  return { cosHTML: valToNice(c), sinHTML: valToNice(s), cos:c, sin:s };
+}
+function sqrtNumText(n){
+  const r = Math.sqrt(n);
+  return Number.isInteger(r) ? String(r) : '√'+n;
+}
+
 /* ========= EXO 1 — Coordonnées des points remarquables ========= */
 function EXO_point_coords(){
   const host=$('#mount-here'); host.innerHTML='';
@@ -297,13 +266,13 @@ function EXO_point_coords(){
   st.innerHTML = `
     <div class="q">
       <div><strong>Exercice 1 — Coordonnées des points remarquables</strong></div>
-      <div style="margin:6px 0">Compléter le tableau avec les valeurs exactes de \\(\\cos a\\) et \\(\\sin a\\), où \\(a\\) est tel que son image sur le cercle est le point indiqué.</div>
+      <div style="margin:6px 0">Compléter le tableau avec les valeurs exactes de <i>cos&nbsp;a</i> et <i>sin&nbsp;a</i>, où <i>a</i> est tel que son image sur le cercle est le point indiqué.</div>
       <table class="radtab" style="margin-top:6px">
-        <thead><tr><th class="lab">Point</th><th>\\(\\cos a\\)</th><th>\\(\\sin a\\)</th></tr></thead>
+        <thead><tr><th class="lab">Point</th><th>cos&nbsp;a</th><th>sin&nbsp;a</th></tr></thead>
         <tbody>
-          ${PTS.map((Lbl,i)=>`
+          ${PTS.map((L,i)=>`
             <tr>
-              <th class="lab">${Lbl.replace(/'/g,"<span class='prime'>′</span>")}</th>
+              <th class="lab">${L.replace(/'/g,"<span class='prime'>′</span>")}</th>
               <td><div class="input-line"><input type="text" data-i="${i}" data-kind="c"><span class="mark" data-i="${i}" data-kind="c"></span></div></td>
               <td><div class="input-line"><input type="text" data-i="${i}" data-kind="s"><span class="mark" data-i="${i}" data-kind="s"></span></div></td>
             </tr>`).join('')}
@@ -338,9 +307,8 @@ function EXO_point_coords(){
   }
   function solution(){
     const box=$('#solEx1'); box.style.display='';
- const rows = PTS.map((Lbl,i)=>`<tr><th class="lab">${Lbl.replace(/'/g,"<span class='prime'>′</span>")}</th><td>${L(EXPECT[i].cosTex)}</td><td>${L(EXPECT[i].sinTex)}</td></tr>`).join('');
-    box.innerHTML = `<div><strong>Correction.</strong></div><table class="radtab" style="margin-top:6px"><thead><tr><th class="lab">Point</th><th>\\(\\cos a\\)</th><th>\\(\\sin a\\)</th></tr></thead><tbody>${rows}</tbody></table>`;
-    typesetAll(box);
+    const rows = PTS.map((L,i)=>`<tr><th class="lab">${L.replace(/'/g,"<span class='prime'>′</span>")}</th><td>${EXPECT[i].cosHTML}</td><td>${EXPECT[i].sinHTML}</td></tr>`).join('');
+    box.innerHTML = `<div><strong>Correction.</strong></div><table class="radtab" style="margin-top:6px"><thead><tr><th class="lab">Point</th><th>cos&nbsp;a</th><th>sin&nbsp;a</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   function reset(){
     $$('#mount-here input[type="text"]').forEach(inp=>{ inp.value=''; inp.style.borderColor='#dcdcdc'; });
@@ -348,43 +316,19 @@ function EXO_point_coords(){
     $('#solEx1').style.display='none'; $('#solEx1').innerHTML='';
   }
 
-  // typeset initial (en-têtes)
-  typesetAll(st);
-
   return {check, solution, reset,
     pdf:{
       gen(){ return {PTS}; },
       render(st,isSol){
         const {svg}=circleWithPointsSVG({R:110});
-        const svgHTML = svg.outerHTML.replace('<svg','<svg style="width:70mm;height:70mm"');
-        const rows = st.PTS.map(Lbl=>{
-          const ex = cosSinExact(POINTS_MAP[Lbl]);
-          return `<tr><th class="lab">${Lbl.replace(/'/g,"<span class='prime'>′</span>")}</th><td>${isSol?L(ex.cosTex):''}</td><td>${isSol?L(ex.sinTex):''}</td></tr>`;
-       }).join('');
-       const css = `
-          .radtab{border-collapse:collapse;width:100%}
-          .radtab th,.radtab td{border:1.2pt solid #000;padding:6pt 8pt;text-align:center;vertical-align:middle}
-          .radtab .lab{text-align:left}
-        `;
-		 const title = `<b>Exercice 1 — Coordonnées des points remarquables</b>`;
- const enonce = `<div style="margin:4mm 0 3mm 0">
-   Compléter le tableau avec les valeurs exactes de \\(\\cos(a)\\) et \\(\\sin(a)\\),
-   où \\(a\\) est tel que son image sur le cercle est le point indiqué.
- </div>`;
-        return `<style>${css}</style>
-   <div style="width:180mm;font-size:12pt;line-height:1.45">
-     ${title}
-     ${enonce}
-     <div style="display:grid;grid-template-columns:70mm 1fr;column-gap:10mm;align-items:start">
-       <div style="display:flex;justify-content:center;align-items:center">${svgHTML}</div>
-       <div>
-         <table class="radtab">
-          <thead><tr><th class="lab">Point</th><th>\\(\\cos(a)\\)</th><th>\\(\\sin(a)\\)</th></tr></thead>
-           <tbody>${rows}</tbody>
-         </table>
-       </div>
-     </div>
-   </div>`;
+        const rows = st.PTS.map(L=>{
+          const ex = cosSinExact(POINTS_MAP[L]);
+          return `<tr><th class="lab">${L.replace(/'/g,"<span class='prime'>′</span>")}</th><td>${isSol?ex.cosHTML:''}</td><td>${isSol?ex.sinHTML:''}</td></tr>`;
+        }).join('');
+        return `<div style="display:grid;grid-template-columns:auto 1fr;column-gap:18mm;align-items:start">
+          <div>${svg.outerHTML}</div>
+          <div><table class="radtab"><thead><tr><th class="lab">Point</th><th>cos&nbsp;a</th><th>sin&nbsp;a</th></tr></thead><tbody>${rows}</tbody></table></div>
+        </div>`;
       }
     }
   };
@@ -416,7 +360,7 @@ function EXO_remarkable_values(){
         <tbody>
           ${TASKS.map((t,i)=>`
             <tr>
-              <th class="lab">${String.fromCharCode(97+i)}.&nbsp;${L(`${t.askCos?'\\cos':'\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`)}</th>
+              <th class="lab">${String.fromCharCode(97+i)}.&nbsp;${t.askCos?'cos':'sin'}&nbsp;( ${fmtPiHTML(t.a)} )</th>
               <td>
                 <div class="input-line">
                   <input type="text" data-i="${i}">
@@ -430,7 +374,6 @@ function EXO_remarkable_values(){
       <div class="solution-box" id="solEx2" style="display:none"></div>
     </div>
   `;
-  typesetAll(statement);
 
   const expect = TASKS.map(t=> (t.askCos ? cosSinExact(t.a).cos : cosSinExact(t.a).sin));
 
@@ -456,11 +399,10 @@ function EXO_remarkable_values(){
   function solution(){
     const box=$('#solEx2'); box.style.display='';
     const rows = TASKS.map((t,i)=>{
-      const exact = t.askCos ? cosSinExact(t.a).cosTex : cosSinExact(t.a).sinTex;
-      return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;${L(`${t.askCos?'\\cos':'\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`)}</th><td>${L(exact)}</td></tr>`;
+      const exact = t.askCos ? cosSinExact(t.a).cosHTML : cosSinExact(t.a).sinHTML;
+      return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;${t.askCos?'cos':'sin'}( ${fmtPiHTML(t.a)} )</th><td>${exact}</td></tr>`;
     }).join('');
     box.innerHTML = `<div><strong>Correction.</strong></div><table class="radtab" style="margin-top:6px"><tbody>${rows}</tbody></table>`;
-    typesetAll(box);
   }
   function reset(){
     $$('#mount-here input[type=text]').forEach(inp=>{ inp.value=''; inp.style.borderColor='#dcdcdc'; });
@@ -473,40 +415,15 @@ function EXO_remarkable_values(){
       gen(){ return {TASKS}; },
       render(st,isSol){
         const {svg}=circleWithPointsSVG({R:110});
-  const left = svg.outerHTML.replace('<svg','<svg style="width:70mm;height:70mm"');
-  const rows = st.TASKS.map((t,i)=>{
-    const lab = `${t.askCos?'\\\\cos':'\\\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`;
-    const exact = t.askCos ? cosSinExact(t.a).cosTex : cosSinExact(t.a).sinTex;
-    return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;\\(${lab}\\)</th><td>${isSol? L(exact) : ''}</td></tr>`;
-  }).join('');
-  const css = `
-    .radtab{border-collapse:collapse;width:100%}
-    .radtab th,.radtab td{border:1.2pt solid #000;padding:6pt 8pt;text-align:center;vertical-align:middle}
-    .radtab .lab{text-align:left}
-  `;
-const right = `
-         <table class="radtab" style="table-layout:fixed;width:100%">
-            <colgroup>
-              <col style="width:40mm">
-              <col style="width:auto">
-            </colgroup>
-            <tbody>${rows}</tbody>
-          </table>`;
- const title = `<b>Exercice 2 — Cosinus et sinus d’un angle</b>`;
- const enonce = `<div style="margin:4mm 0 3mm 0">
-   En utilisant le cercle trigonométrique et le tableau des valeurs remarquables,
-  déterminer la valeur exacte demandée.
- </div>`;
-
- return `<style>${css}</style>
-          <div style="width:180mm;display:grid;grid-template-columns:70mm 1fr;column-gap:10mm;align-items:start;font-size:12pt">
-     ${title}
-     ${enonce}
-            <div style="display:flex;justify-content:center;align-items:center">${left}</div>
-            <div>${right}</div>
-     </div>
-  </div>`;
-}
+        const left = svg.outerHTML;
+        const rows = st.TASKS.map((t,i)=>{
+          const lab = `${t.askCos?'cos':'sin'}( ${fmtPiHTML(t.a)} )`;
+          const exact = t.askCos ? cosSinExact(t.a).cosHTML : cosSinExact(t.a).sinHTML;
+          return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;${lab}</th><td>${isSol? exact : ''}</td></tr>`;
+        }).join('');
+        const right = `<table class="radtab"><tbody>${rows}</tbody></table>`;
+        return `<div style="display:grid;grid-template-columns:auto 1fr;column-gap:18mm;align-items:start"><div>${left}</div><div>${right}</div></div>`;
+      }
     }
   };
 }
@@ -540,39 +457,41 @@ function EXO_sin_cos_from_other(){
   const sCos = (a>=0 && a<PI/2) || (a>=3*PI/2 && a<TAU) ? 1 : ((a>=PI/2 && a<3*PI/2) ? -1 : 1);
   const sSin = (a>=0 && a<PI) ? 1 : -1;
   const cosv = sCos * (askSin ? knownAbs : Math.sqrt(1-knownAbs*knownAbs));
-  const sinv = sSin * (askSin ? Math.sqrt(1-knownAbs*knownAbs) : knownAbs);
+const sinv = sSin * (askSin ? Math.sqrt(1-knownAbs*knownAbs) : knownAbs);
 
-  const carTex = '\\text{car}';
+  const carSpan = `<span style="text-decoration:underline;color:#1d4ed8;font-weight:600">car</span>`;
 
-  function derivationTeX(){
+  function derivationHTML(){
     const q2 = q*q, p2 = p*p;
+    const eq1 = `cos²(a) + sin²(a) = 1`;
     if(askSin){
-      const L1 = `\\cos^2(a) + \\sin^2(a) = 1`;
-      const L2 = `\\left(${fracTex(p,q)}\\right)^2 + \\sin^2(a) = 1`;
-      const L3 = `${fracTex(p2,q2)} + \\sin^2(a) = 1`;
-      const L4 = `\\sin^2(a) = 1 - ${fracTex(p2,q2)}`;
-      const L5 = `\\sin^2(a) = ${fracTex(q2,q2)} - ${fracTex(p2,q2)} = ${fracTex(q2-p2,q2)}`;
-      const rad = q2 - p2;
-      const num = sqrtNumTex(rad);
-      const L6 = `\\sin(a) = ${sSin<0?'-':''}\\, ${fracTex(num, q)} \\; ${carTex}\\; a \\in ${intervalLabelTex(it.I)}.`;
-      return [L1,L2,L3,L4,L5,L6];
+      const L1 = `( ${FRAC(p,q)} )² + sin²(a) = 1`;
+      const L2 = `${FRAC(p2,q2)} + sin²(a) = 1`;
+      const L3 = `sin²(a) = 1 − ${FRAC(p2,q2)}`;
+      const L4 = `sin²(a) = ${FRAC(q2,q2)} − ${FRAC(p2,q2)}`;
+      const L5 = `sin²(a) = ${FRAC(q2-p2,q2)}`;
+const rad = q2 - p2;
+const num = sqrtNumText(rad);
+const L6 = `sin(a) = ${(sSin<0?UMIN:'')} ${FRAC(num, q)} ${carSpan} a ∈ ${intervalLabelHTML(it.I)}.`;
+      return [eq1,L1,L2,L3,L4,L5,L6];
     }else{
-      const L1 = `\\sin^2(a) + \\cos^2(a) = 1`;
-      const L2 = `\\left(${fracTex(p,q)}\\right)^2 + \\cos^2(a) = 1`;
-      const L3 = `${fracTex(p2,q2)} + \\cos^2(a) = 1`;
-      const L4 = `\\cos^2(a) = 1 - ${fracTex(p2,q2)}`;
-      const L5 = `\\cos^2(a) = ${fracTex(q2,q2)} - ${fracTex(p2,q2)} = ${fracTex(q2-p2,q2)}`;
-      const rad = q2 - p2;
-      const num = sqrtNumTex(rad);
-      const L6 = `\\cos(a) = ${sCos<0?'-':''}\\, ${fracTex(num, q)} \\; ${carTex}\\; a \\in ${intervalLabelTex(it.I)}.`;
-      return [L1,L2,L3,L4,L5,L6];
+      const L1 = `sin²(a) + cos²(a) = 1`;
+      const L2 = `( ${FRAC(p,q)} )² + cos²(a) = 1`;
+      const L3 = `${FRAC(p2,q2)} + cos²(a) = 1`;
+      const L4 = `cos²(a) = 1 − ${FRAC(p2,q2)}`;
+      const L5 = `cos²(a) = ${FRAC(q2,q2)} − ${FRAC(p2,q2)}`;
+      const L6 = `cos²(a) = ${FRAC(q2-p2,q2)}`;
+const rad = q2 - p2;
+const num = sqrtNumText(rad);
+const L7 = `cos(a) = ${(sCos<0?UMIN:'')} ${FRAC(num, q)} ${carSpan} a ∈ ${intervalLabelHTML(it.I)}.`;
+      return [L1,L2,L3,L4,L5,L6,L7];
     }
   }
-  const steps = derivationTeX();
+  const steps = derivationHTML();
 
   const questionHTML = askSin
-    ? `Soit \\(a \\in ${intervalLabelTex(it.I)}\\) et \\(\\cos(a) = ${fracTex(p,q)}\\).<br>Calculer <strong>\\(\\sin(a)\\)</strong>.`
-    : `Soit \\(a \\in ${intervalLabelTex(it.I)}\\) et \\(\\sin(a) = ${fracTex(p,q)}\\).<br>Calculer <strong>\\(\\cos(a)\\)</strong>.`;
+    ? `Soit <i>a</i> un réel tel que <i>a</i> ∈ ${intervalLabelHTML(it.I)} et cos&nbsp;a = ${FRAC(p,q)}.<br>Calculer <strong>sin&nbsp;a</strong>.`
+    : `Soit <i>a</i> un réel tel que <i>a</i> ∈ ${intervalLabelHTML(it.I)} et sin&nbsp;a = ${FRAC(p,q)}.<br>Calculer <strong>cos&nbsp;a</strong>.`;
 
   box.innerHTML = `
     <div class="q">
@@ -580,7 +499,7 @@ function EXO_sin_cos_from_other(){
       <div class="row">
         <div>${questionHTML}</div>
         <div class="input-line" style="margin-top:6px">
-          <label>${askSin? L('\\\\sin\\, a =') : L('\\\\cos\\, a =')}</label>
+          <label>${askSin? 'sin' : 'cos'}&nbsp;a =</label>
           <input id="ex3" type="text">
           <span id="m3" class="mark"></span>
         </div>
@@ -588,7 +507,6 @@ function EXO_sin_cos_from_other(){
       </div>
     </div>
   `;
-  typesetAll(box);
 
   function check(){
     let solved=false;
@@ -610,8 +528,7 @@ function EXO_sin_cos_from_other(){
   }
   function solution(){
     const box=$('#sol3'); box.style.display='';
-    box.innerHTML = `<div><strong>Correction.</strong></div>` + steps.map(s=>`<div>${L(s)}</div>`).join('');
-    typesetAll(box);
+    box.innerHTML = `<div><strong>Correction.</strong></div>` + steps.map(s=>`<div>${s}</div>`).join('');
   }
   function reset(){
     const el=$('#ex3'); el.value=''; el.style.borderColor='#dcdcdc';
@@ -624,9 +541,9 @@ function EXO_sin_cos_from_other(){
       gen(){ return {askSin, it, p, q, steps}; },
       render(st,isSol){
         const qtxt = st.askSin
-          ? `Soit \\(a \\in ${intervalLabelTex(st.it.I)}\\) et \\(\\cos(a) = ${fracTex(st.p,st.q)}\\). Calculer \\(\\sin(a)\\).`
-          : `Soit \\(a \\in ${intervalLabelTex(st.it.I)}\\) et \\(\\sin(a) = ${fracTex(st.p,st.q)}\\). Calculer \\(\\cos(a)\\).`;
-        const solHTML = `<div class="solution-box"><b>Correction.</b>${st.steps.map(s=>`<div>\\(${s}\\)</div>`).join('')}</div>`;
+          ? `Soit <i>a</i> un réel tel que <i>a</i> ∈ ${intervalLabelHTML(st.it.I)} et cos&nbsp;a = ${FRAC(st.p,st.q)}. Calculer <b>sin&nbsp;a</b>.`
+          : `Soit <i>a</i> un réel tel que <i>a</i> ∈ ${intervalLabelHTML(st.it.I)} et sin&nbsp;a = ${FRAC(st.p,st.q)}. Calculer <b>cos&nbsp;a</b>.`;
+        const solHTML = `<div class="solution-box"><b>Correction.</b>${st.steps.map(s=>`<div>${s}</div>`).join('')}</div>`;
         return `<div><b>Exercice 3 — Sinus et cosinus d’un nombre réel.</b><br>${qtxt}${isSol?solHTML:''}</div>`;
       }
     }
@@ -666,13 +583,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ======= Générateur PDF ======= -->
-<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.ExoPDF) return;
   ExoPDF.init({
     title: document.title || 'Fiche — Cosinus & sinus',
-    mountAfterSelector: '#input-notes',
+    mountAfterSelector: '#input-notes', // le PDF se place juste après la boîte “Saisie & réponses acceptées”
     max: 50,
     beforeGen(def, st, meta){
       const sel=$('#exo-select'); const ex=REGISTRY.find(e=>e.id===sel.value);

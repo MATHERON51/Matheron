@@ -59,3 +59,64 @@
   .wrap mjx-container:first-child, .equ:first-child{ margin-left:0 }
   .wrap mjx-container:last-child,  .equ:last-child{  margin-right:0 }
   
+/* ——— PATCH primes MathJax ——— */
+.statement mjx-container:not([display="true"]),
+.steps     mjx-container:not([display="true"]),
+.step      mjx-container:not([display="block"]),
+.wrap      mjx-container,
+.qa        mjx-container{
+  /* on garde la marge, mais on enlève tout ce qui altère la boîte interne */
+  margin: 0 .3ch !important;
+  padding: 0 !important;                 /* retire le rembourrage qui casse le serrage */
+  vertical-align: initial !important;    /* rend la main à MathJax pour l’alignement */
+  white-space: normal !important;        /* pas de contrainte de non-retour */
+}
+
+/* supprime les espaces injectés autour des formules (peuvent décaler le prime) */
+.statement mjx-container:not([display="true"])::before,
+.statement mjx-container:not([display="true"])::after,
+.steps     mjx-container:not([display="true"])::before,
+.steps     mjx-container:not([display="true"])::after{
+  content: "" !important;
+}
+/* ====== Corrigé (.steps) : abaisse le prime MathJax ====== */
+
+/* 0) On évite toute fantaisie de boîte inline autour des formules,
+      ça garde des métriques stables pour le calcul du script. */
+.steps mjx-container:not([display="true"]) {
+  display: inline !important;         /* pas inline-block */
+  padding: 0 !important;
+  white-space: normal !important;
+  margin: 0 .3ch !important;          /* tu gardes ta marge externe */
+  vertical-align: baseline !important;
+  line-height: normal !important;
+}
+
+/* 1) MATHJAX **SVG** : le prime est un <use class="mjx-c2032"> dans un msup.
+      On lui ajoute une translation *vers le bas* de ~0.08em. */
+.steps mjx-container[jax="SVG"] g[data-mml-node="msup"]
+       > g[data-mml-node="mo"] use.mjx-c2032,
+.steps mjx-container[jax="SVG"] g[data-mml-node="msup"]
+       > g[data-mml-node="mo"] use.mjx-c2033,
+.steps mjx-container[jax="SVG"] g[data-mml-node="msup"]
+       > g[data-mml-node="mo"] use.mjx-c2034 {
+  transform: translateY(0.08em) !important;
+}
+
+/* 2) MATHJAX **CHTML** (au cas où tu repasses en CHTML un jour) :
+      même idée, mais on cible l’élément du script dans mjx-msup. */
+.steps mjx-msup > mjx-script > mjx-mo .mjx-c2032,
+.steps mjx-msup > mjx-script > mjx-mo .mjx-c2033,
+.steps mjx-msup > mjx-script > mjx-mo .mjx-c2034 {
+  position: relative !important;
+  top: .08em !important;   /* abaissement identique à l’offset SVG */
+}
+/* ——— Boîte grisée neutre pour la solution (n'altère pas MathJax) ——— */
+.solbox{
+  background:#f6f6f6;
+  border:1px dashed #e3e3e3;
+  border-radius:8px;
+  padding:.6rem .7rem;
+  margin:.45rem 0 0 .15rem;
+}
+.solbox p{ margin:.25rem 0; }

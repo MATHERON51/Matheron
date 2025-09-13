@@ -7,7 +7,6 @@
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -46,7 +45,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 
 #host .steps .step{white-space:nowrap}
 
-/* (anciens styles fraction HTML conservés mais non utilisés) */
 .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
 .frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
 .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
@@ -61,7 +59,7 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 }
 .tbl input[type=text]{width:90px;text-align:center}
 
-/* petit espace garanti autour des lettres en italique dans les équations (hérité) */
+/* petit espace garanti autour des lettres en italique (A, E, p) dans les équations */
 .eq em { margin: 0 .28em; }
 
 /* variante si tu préfères encapsuler (voir JS plus bas) */
@@ -124,20 +122,6 @@ sub { font-size: .8em; vertical-align: -0.25em; }
 .tick.ok{color:#059669}   /* V vert */
 .tick.ko{color:#dc2626}   /* X rouge */
 </style>
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      packages: {'[+]': ['bbox']},
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    chtml: { matchFontHeight:false },
-    startup: { typeset: true }
-  };
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
@@ -155,7 +139,7 @@ sub { font-size: .8em; vertical-align: -0.25em; }
   </div>
 
   <div class="wrap">
-    <div class="card">
+<div class="card">
       <div id="host"></div>
     </div>
 	
@@ -169,6 +153,8 @@ sub { font-size: .8em; vertical-align: -0.25em; }
         <li>Entrée ⏎ déclenche « Vérifier » depuis une barre de saisie de l’énoncé.</li>
       </ul>
     </div>
+
+    
 
     <div class="card">
       <div data-math-kbd style="display:flex; justify-content:center"></div>
@@ -193,12 +179,6 @@ const fmtDecFR = (x, digits=3) => {
   return s.replace('.',',');
 };
 const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
-function retypeset(root=document){
-  try {
-    if (window.MathJax?.typesetPromise) return MathJax.typesetPromise([root]);
-    if (window.MathJax?.typeset) MathJax.typeset([root]);
-  } catch(_) {}
-}
 
 function parseNumberFR(s){
   s = stripSignUnicode(String(s||'').trim()).replace(/\s+/g,' ');
@@ -248,30 +228,11 @@ function minTerminatingDecimals(n,d){
 function eqOrApproxSymbol(n,d,digits){ return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈'; }
 function eqOrApproxPercentSymbol(n,d,digits){ return eqOrApproxSymbol(n*100, d, digits); }
 
-/* ================== === LaTeX helpers (nouveau) ================== */
-const L = s => `\\(${s}\\)`;                  // inline math wrapper
-const texFrac = (num, den) => `\\dfrac{${num}}{${den}}`;
-const texNum = (v, digits=3) => {
-  // Nombres FR dans le LaTeX inline
-  const s = fmtDecFR(v, digits);
-  return s;
-};
-const texPct = (v, digits=2) => `${texNum(v, digits)}\\,\\%`;
-// ✅ approx correct (un seul antislash)
-const symTex = s => (s==='=' ? '=' : '\\approx');
-
-// ✅ nombres & % en LaTeX partout
-const NI = v => L(String(v));                               // entier → \(12\)
-const N  = (v, d=3) => L(tidyDecFR(v, d));                  // réel fr → \(0,375\)
-const PCT = (v, d=2) => L(`${tidyDecFR(v, d)}\\,\\%`);      // pourcentage → \(37,5\,\%\)
-
 /* ================== Rendu utils ================== */
 function fracHTML(n, d){
-  // remplacé par LaTeX inline
-  return L(texFrac(String(n).replace('.',','), String(d)));
+  return `<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
 }
-const EMX = s => L(String(s)); // ex: A,E,p → \(A\) etc.
-
+const EMX = s => `<span class="mx"><em>${s}</em></span>`;
 function tidyDecFR(v, digits=3){
   let s = fmtDecFR(v, digits);
   if (s.includes(',')) s = s.replace(/0+$/,'').replace(/[,]$/,'');
@@ -288,18 +249,18 @@ function Q(n, sub){
   return `<span class="qno">${s})</span>`;
 }
 
-/* ====== Chaînes "fraction = décimal = pourcentage" (LaTeX) ====== */
+/* ====== Chaînes "fraction = décimal = pourcentage" (sans ×100) ====== */
 function chainFracDecPct(numDisplay, denDisplay, digitsPct){
   const decDigits = digitsPct + 2;
   const numVal = parseFloat(String(numDisplay).replace(',', '.'));
   const denVal = parseFloat(String(denDisplay).replace(',', '.'));
   const {n,d} = intRat(numDisplay, denVal);
-  const sDec = symTex(eqOrApproxSymbol(n, d, decDigits));
-  const sPct = symTex(eqOrApproxPercentSymbol(n, d, digitsPct));
-  const frac = texFrac(String(numDisplay).replace('.',','), String(denDisplay));
-  const dec  = texNum(numVal/denVal, decDigits);
-  const pct  = texPct(100*numVal/denVal, digitsPct);
-  return L(`${frac} ${sDec} ${dec} ${sPct} ${pct}`);
+  const sDec = eqOrApproxSymbol(n, d, decDigits);
+  const sPct = eqOrApproxPercentSymbol(n, d, digitsPct);
+  const frac = fracHTML(String(numDisplay).replace('.',','), String(denDisplay));
+  const dec  = fmtDecFR(numVal/denVal, decDigits);
+  const pct  = fmtDecFR(100*numVal/denVal, digitsPct)+' %';
+  return `${frac} ${sDec} ${dec} ${sPct} ${pct}`;
 }
 
 /* ================== Rendu des rangées ================== */
@@ -310,11 +271,11 @@ function renderRow(host, consigneText, labelHTML, hasInput=true, placeholder='')
   root.appendChild(hint);
 
   const off=document.createElement('div'); off.className='equ-offscreen';
-  off.innerHTML='<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div><div class="equation">'+stripHints(labelHTML)+'</div>';
+off.innerHTML='<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div><div class="equation">'+stripHints(labelHTML)+'</div>';
   root.appendChild(off);
 
   const row=document.createElement('div'); row.className='row';
-  const lab=document.createElement('div'); lab.className='col-label'; lab.innerHTML=labelHTML; row.appendChild(lab);
+  const lab=document.createElement('div'); lab.className='col-label equ'; lab.innerHTML=labelHTML; row.appendChild(lab);
   const incol=document.createElement('div'); incol.className='input-line';
   if(hasInput){
     incol.innerHTML='<input id="reponse" type="text" placeholder="'+placeholder+'">';
@@ -324,8 +285,6 @@ function renderRow(host, consigneText, labelHTML, hasInput=true, placeholder='')
   row.appendChild(incol);
   row.appendChild(Object.assign(document.createElement('div'),{className:'res', id:'res'}));
   root.appendChild(row);
-    retypeset(root);   // <<< NEW
-
 }
 
 function renderRowsUnderQuestions(host, consigneText, blocks){
@@ -339,13 +298,13 @@ function renderRowsUnderQuestions(host, consigneText, blocks){
   const off = document.createElement('div');
   off.className = 'equ-offscreen';
   off.innerHTML =
-    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
-  + blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
-  root.appendChild(off);
+'<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+ + blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+ root.appendChild(off);
 
   blocks.forEach(b => {
     const row = document.createElement('div'); row.className = 'row';
-    const lab = document.createElement('div'); lab.className = 'col-label';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
     lab.innerHTML = b.labelHTML||'';
     row.appendChild(lab);
 
@@ -354,12 +313,9 @@ function renderRowsUnderQuestions(host, consigneText, blocks){
     row.appendChild(incol);
 
     root.appendChild(row);
-
   });
 
   root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
-  	  retypeset(root);   // <<< NEW
-
 }
 
 function renderRowsInputRight(host, consigneText, blocks){
@@ -373,13 +329,13 @@ function renderRowsInputRight(host, consigneText, blocks){
   const off = document.createElement('div');
   off.className = 'equ-offscreen';
   off.innerHTML =
-    '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
-    + blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+'<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
++ blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
   root.appendChild(off);
 
   blocks.forEach(b => {
     const row = document.createElement('div'); row.className = 'row right';
-    const lab = document.createElement('div'); lab.className = 'col-label';
+    const lab = document.createElement('div'); lab.className = 'col-label equ';
     lab.innerHTML = b.labelHTML || '';
     row.appendChild(lab);
 
@@ -395,17 +351,14 @@ function renderRowsInputRight(host, consigneText, blocks){
   });
 
   root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
-  	  retypeset(root);   // <<< NEW
-
 }
-
 // Retire les aides de saisie (<small>…</small>) pour le rendu PDF / offscreen
 // Retire aides + INPUTS pour le rendu PDF/offscreen
 function stripHints(html){
   if(!html) return '';
   let s = String(html);
 
-  // <br><small>…</small>
+  // <small>…</small> (et <br> juste avant)
   s = s.replace(/<br\s*\/?>\s*<small[\s\S]*?<\/small>/gi, '');
   s = s.replace(/<small[\s\S]*?<\/small>/gi, '');
 
@@ -416,7 +369,7 @@ function stripHints(html){
   let prev; do { prev = s; s = s.replace(reParenHints, ' '); } while (s !== prev);
 
   // 🔑 remplace tout <input …> par un espace visuel pour garder la hauteur des cases
-  s = s.replace(/<input\b[^>]*>/gi, '<span class="pdf-blank">&nbsp;</span>');
+ s = s.replace(/<input\b[^>]*>/gi, '<span class="pdf-blank">&nbsp;</span>');
 
   return s;
 }
@@ -461,9 +414,9 @@ function validateOneInput(inp, st, exId){
       if(ident.startsWith('p')){ expected = (JSON.parse($("#host").dataset.state).P)[+ident.slice(1)].sol; }
       else{                      expected = (JSON.parse($("#host").dataset.state).Q)[+ident.slice(1)].sol; }
       if(kind==='dec'){
-        const v = parseNumberFR_noPct(valRaw);
-        return isFinite(v) && sameFloat(v, expected, 1e-3);
-      } else {
+   const v = parseNumberFR_noPct(valRaw);     // 👈 refuse "22%" ici
+   return isFinite(v) && sameFloat(v, expected, 1e-3);
+ } else {
         const v=parsePercentStrict(valRaw); return isFinite(v)&&sameFloat(v, expected, 1e-3);
       }
     }
@@ -600,23 +553,23 @@ const ex1={
     while(P.length<cols){
       const useDecPct = Math.random()<0.4;
       if(useDecPct){
-  const v = choice(percDecs);
-  if(!P.some(x=>x.type==='pct' && x.v===v)){
-    P.push({type:'pct', v:v, label:PCT(v, (v%1)?1:0), want:'dec', sol: v/100});
-  }
-}else{
-  const v = choice(percInts);
-  if(!P.some(x=>x.type==='pct' && x.v===v)){
-    P.push({type:'pct', v:v, label:PCT(v,0), want:'dec', sol: v/100});
-  }
-}
+        const v = choice(percDecs);
+        if(!P.some(x=>x.type==='pct' && x.v===v)){
+          P.push({type:'pct', v:v, label:(String(v).replace('.',','))+' %', want:'dec', sol: v/100});
+        }
+      } else {
+        const v = choice(percInts);
+        if(!P.some(x=>x.type==='pct' && x.v===v)){
+          P.push({type:'pct', v:v, label:v+' %', want:'dec', sol: v/100});
+        }
+      }
     }
     const Q = [];
     while(Q.length<cols){
       const v = choice(decs);
-if(!Q.some(x=>x.v===v)){
-  Q.push({type:'dec', v:v, label:N(v,3), want:'pct', sol: v*100});
-}
+      if(!Q.some(x=>x.v===v)){
+        Q.push({type:'dec', v:v, label:String(v).replace('.',','), want:'pct', sol: v*100});
+      }
     }
     return {P,Q};
   },
@@ -644,9 +597,9 @@ if(!Q.some(x=>x.v===v)){
       const raw = (inp.value||'').trim();
       let good=false;
       if(kind==='dec'){
-        const v = parseNumberFR_noPct(raw);
-        good = isFinite(v) && sameFloat(v, expected, 1e-3);
-      }else{
+const v = parseNumberFR_noPct(raw);        // 👈 refuse "22%" ici
+good = isFinite(v) && sameFloat(v, expected, 1e-3);
+}else{
         const v=parsePercentStrict(raw);
         good = isFinite(v) && sameFloat(v, expected, 1e-3);
       }
@@ -657,17 +610,16 @@ if(!Q.some(x=>x.v===v)){
     return {ok,total:1};
   },
   solution(host, st){
+    // affiche seulement la solution (ne pas se fier au remplissage, qui sera restauré par solution())
     const tidy = (v,d=3)=>{ let s=fmtDecFR(v,d); s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; };
-   const t1_top = st.P.map(c=>`<td>${c.label}</td>`).join('');
-const t1_bot = st.P.map(c=>`<td>${N(c.sol,3)}</td>`).join('');
-const tbl1 = `<table class="tbl"><tbody><tr>${t1_top}</tr><tr>${t1_bot}</tr></tbody></table>`;
-
-const t2_top = st.Q.map(c=>`<td>${PCT(c.sol,3)}</td>`).join('');
-const t2_bot = st.Q.map(c=>`<td>${c.label}</td>`).join('');
-const tbl2 = `<table class="tbl" style="margin-top:8px"><tbody><tr>${t2_top}</tr><tr>${t2_bot}</tr></tbody></table>`;
- $("#res",host).innerHTML = `<div style="margin-bottom:6px"><strong>Tableaux complétés :</strong></div>${tbl1}${tbl2}`;
+    const t1_top = st.P.map(c=>`<td>${c.label}</td>`).join('');
+    const t1_bot = st.P.map(c=>`<td>${tidy(c.sol,3)}</td>`).join('');
+    const tbl1 = `<table class="tbl"><tbody><tr>${t1_top}</tr><tr>${t1_bot}</tr></tbody></table>`;
+    const t2_top = st.Q.map(c=>`<td>${tidy(c.sol*100,3)} %</td>`).join('');
+    const t2_bot = st.Q.map(c=>`<td>${c.label}</td>`).join('');
+    const tbl2 = `<table class="tbl" style="margin-top:8px"><tbody><tr>${t2_top}</tr><tr>${t2_bot}</tr></tbody></table>`;
+    $("#res",host).innerHTML = `<div style="margin-bottom:6px"><strong>Tableaux complétés :</strong></div>${tbl1}${tbl2}`;
     $("#res",host).className = "res-ok";
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -708,18 +660,16 @@ const ex2={
     return {A:makeCase(), B:makeCase(), ctxA, ctxB};
   },
   text(st){
-    const fA = L(`${texFrac(st.A.num, st.A.den)}`);
-    const fB = L(`${texFrac(st.B.num, st.B.den)}`);
-    return '<div>1) '+st.ctxA.who+' représentent '+fA+' '+st.ctxA.where+'. Donner le pourcentage correspondant.</div>'+
-           '<div style="margin-top:6px">2) '+st.ctxB.who+' représentent '+fB+' '+st.ctxB.where+'. Donner le pourcentage correspondant.</div>';
+    return '<div>1) '+st.ctxA.who+' représentent les '+st.A.num+'/'+st.A.den+' '+st.ctxA.where+'. Donner le pourcentage correspondant.</div>'+
+           '<div style="margin-top:6px">2) '+st.ctxB.who+' représentent les '+st.B.num+'/'+st.B.den+' '+st.ctxB.where+'. Donner le pourcentage correspondant.</div>';
   },
   render(host, st){
     renderRowsUnderQuestions(host,
       'Convertir une proportion en pourcentage (écrire éventuellement avec une virgule) :',
       [
-        { labelHTML: '1) '+st.ctxA.who+' représentent '+L(`${texFrac(st.A.num, st.A.den)}`)+' '+st.ctxA.where+'. Donner le pourcentage correspondant.',
+        { labelHTML: '1) '+st.ctxA.who+' représentent les '+st.A.num+'/'+st.A.den+' '+st.ctxA.where+'. Donner le pourcentage correspondant.',
           id:'q1', placeholder:'ex. 68,75 %' },
-        { labelHTML: '2) '+st.ctxB.who+' représentent '+L(`${texFrac(st.B.num, st.B.den)}`)+' '+st.ctxB.where+'. Donner le pourcentage correspondant.',
+        { labelHTML: '2) '+st.ctxB.who+' représentent les '+st.B.num+'/'+st.B.den+' '+st.ctxB.where+'. Donner le pourcentage correspondant.',
           id:'q2', placeholder:'ex. 85 %' }
       ]
     );
@@ -735,9 +685,8 @@ const ex2={
   solution(host, st){
     const L1 = `${Q(1)} ${chainFracDecPct(st.A.num, st.A.den, 2)}`;
     const L2 = `${Q(2)} ${chainFracDecPct(st.B.num, st.B.den, 2)}`;
-$('#res',host).innerHTML = `<p>${L1}</p><p>${L2}</p>`;
+    $('#res',host).innerHTML = `${L1}<br>${L2}`;
     $('#res',host).className='res-ok';
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -762,21 +711,18 @@ const ex3={
     return { N, have, usbPct, usbCount, who, own, use };
   },
   render(host, st){
-  renderRowsUnderQuestions(host,
-    'Répondre en proportion (ex. 31/40 ou 0,775 ou 77,5%) puis en entier :',
-    [
-      { labelHTML:
-        'Un sondage portant sur '+NI(st.N)+' '+st.who+' indique que '+NI(st.have)+' possèdent '+st.own
-        +' et que '+PCT(st.usbPct,1)+' utilisent régulièrement '+st.use+'.<br>'
-        +'1) Quelle est la proportion des '+st.who+' possédant '+st.own+' ?',
-        id:'p1', placeholder:'ex. 31/40 ou 0,775 ou 77,5 %' },
-      { labelHTML:
-        '2) Combien de '+st.who+' utilisent régulièrement '+st.use+' ?',
-        id:'p2', placeholder:'entier' }
-    ]
-  );
-},
-
+    renderRowsUnderQuestions(host,
+      'Répondre en proportion (ex. 31/40 ou 0,775 ou 77,5%) puis en entier :',
+      [
+        { labelHTML: 'Un sondage portant sur '+st.N+' '+st.who+' indique que '+st.have+' possèdent '+st.own
+          +' et que '+fmtDecFR(st.usbPct,1)+' % utilisent régulièrement '+st.use+'.<br>'
+          +'1) Quelle est la proportion des '+st.who+' possédant '+st.own+' ?',
+          id:'p1', placeholder:'ex. 31/40 ou 0,775 ou 77,5 %' },
+        { labelHTML: '2) Combien de '+st.who+' utilisent régulièrement '+st.use+' ?',
+          id:'p2', placeholder:'entier' }
+      ]
+    );
+  },
   correct(host, st){
     const r1 = ($('#p1',host).value||'').trim();
     let val1 = NaN;
@@ -797,13 +743,12 @@ const ex3={
     return {ok,total:1};
   },
   solution(host, st){
-    const line1 = `${Q(1)} ${chainFracDecPct(st.have, st.N, 1)}`;
-    const fracPct = texFrac(fmtDecFR(st.usbPct,1), 100);
-    const line2 = `${Q(2)} ${L(`${fracPct} \\times ${st.N} = ${st.usbCount}`)}`;
+    const line1 = `<em>p</em> = ${chainFracDecPct(st.have, st.N, 1)}`;
+    const fracPct = fracHTML(fmtDecFR(st.usbPct,1), 100);
+    const line2 = `<em>n</em> = ${fracPct} × ${st.N} = ${st.usbCount}`;
     const line3 = `Il y a ${st.usbCount} ${st.who} qui utilisent régulièrement ${st.use}.`;
-$('#res',host).innerHTML = `<p>${line1}</p><p>${line2}</p><p>${line3}</p>`;
+    $('#res',host).innerHTML = `${Q(1)} ${line1}<br>${Q(2)} ${line2}<br>&nbsp;&nbsp;${line3}`;
     $('#res',host).className = 'res-ok';
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -821,31 +766,21 @@ const ex4={
   },
   render(host, st){
     const intro =
-  `\\(A\\) est une partie de \\(E\\), \\(n_A\\) est l’effectif de \\(A\\), `
-+ `\\(n_E\\) celui de \\(E\\) et \\(p\\) la proportion de \\(A\\) dans \\(E\\).`;
-
-renderRowsUnderQuestions(host,
-  'Répondre : p en proportion (fraction / décimal / %), et n en entier :',
-  [
-    { labelHTML:intro },
-
-    { labelHTML:
-        `${Q(1)}On donne ${L(`n_A = ${st.nA1}`)} et ${L(`n_E = ${st.nE1}`)}. `
-      + `Calculer ${L('p')} (arrondir à ${L('0{,}001')} près).`,
-      id:'r1', placeholder:'ex. 3/8 ou 0,375 ou 37,5 %' },
-
-    { labelHTML:
-        `${Q(2)}On donne ${L(`p = ${fmtDecFR(st.p2,3)}`)} et ${L(`n_E = ${st.nE2}`)}. `
-      + `Calculer ${L('n_A')}.`,
-      id:'r2', placeholder:'entier' },
-
-    { labelHTML:
-        `${Q(3)}On donne ${L(`n_A = ${st.nA3}`)} et ${L(`p = ${fmtDecFR(st.p3,3)}`)}. `
-      + `Calculer ${L('n_E')}.`,
-      id:'r3', placeholder:'entier' }
-  ]
-);
-
+      `<span class="eq">${EMX('A')} est une partie de ${EMX('E')}, ` +
+      `n<sub>A</sub> est l’effectif de ${EMX('A')}, ` +
+      `n<sub>E</sub> celui de ${EMX('E')} et ${EMX('p')} la proportion de ${EMX('A')} dans ${EMX('E')}.</span>`;
+    renderRowsUnderQuestions(host,
+      'Répondre : p en proportion (fraction / décimal / %), et n en entier :',
+      [
+        { labelHTML:intro },
+        { labelHTML:`${Q(1)}On donne n<sub>A</sub> = ${st.nA1} et n<sub>E</sub> = ${st.nE1}. Calculer ${EMX('p')} (arrondir à 0,001 près).`,
+          id:'r1', placeholder:'ex. 3/8 ou 0,375 ou 37,5 %' },
+        { labelHTML:`${Q(2)}On donne ${EMX('p')} = ${fmtDecFR(st.p2,3).replace('.',',')} et n<sub>E</sub> = ${st.nE2}. Calculer n<sub>A</sub>.`,
+          id:'r2', placeholder:'entier' },
+        { labelHTML:`${Q(3)}On donne n<sub>A</sub> = ${st.nA3} et ${EMX('p')} = ${fmtDecFR(st.p3,3).replace('.',',')}. Calculer n<sub>E</sub>.`,
+          id:'r3', placeholder:'entier' }
+      ]
+    );
   },
   correct(host, st){
     const s1 = ($('#r1',host).value||'').trim();
@@ -863,27 +798,24 @@ renderRowsUnderQuestions(host,
     const ok3 = Number.isInteger(r3) && r3===st.nE3;
     const ok = ok1 && ok2 && ok3;
     $('#res',host).innerHTML = ok? '✔' :
-    '✘ Attendu : '
-  + L(`p = ${tidyDecFR(st.nA1/st.nE1,3)}`)
-  + ' (ou '
-  + L(`\\dfrac{n_A}{n_E} = \\dfrac{${st.nA1}}{${st.nE1}}`)
-  + ' ou ' + PCT(100*st.nA1/st.nE1,2) + ')'
-  + ' ; ' + L(`n_A = ${st.nA2}`) + ' ; ' + L(`n_E = ${st.nE3}`) + '.';
+    '✘ Attendu : p = '+fmtDecFR(st.nA1/st.nE1,3)+
+    ' (ou n<sub>A</sub>/n<sub>E</sub> = '+st.nA1+'/'+st.nE1+' ou '+fmtDecFR(100*st.nA1/st.nE1,2)+' %)'
+    +' ; n<sub>A</sub> = '+st.nA2+' ; n<sub>E</sub> = '+st.nE3+'.';
     $('#res',host).className= ok? 'res-ok':'res-ko';
     return {ok,total:1};
   },
   solution(host, st){
+    const symFrac = fracHTML('n<sub>A</sub>', 'n<sub>E</sub>');
     const r1 = intRat(st.nA1, st.nE1);
-    const sDec = symTex(eqOrApproxSymbol(r1.n, r1.d, 3));
-    const sPct = symTex(eqOrApproxPercentSymbol(r1.n, r1.d, 1));
+    const sDec = eqOrApproxSymbol(r1.n, r1.d, 3);
+    const sPct = eqOrApproxPercentSymbol(r1.n, r1.d, 1);
 
-    const line1 = `${Q(1)} ${L(`p = ${texFrac('n_A','n_E')} = ${texFrac(st.nA1, st.nE1)} ${sDec} ${fmtDecFR(st.nA1/st.nE1,3)} ${sPct} ${fmtDecFR(100*st.nA1/st.nE1,1)}\\,\\%`)}`;
-    const line2 = `${Q(2)} ${L(`p = ${texFrac('n_A','n_E')}`)} <span class="ainsi">ainsi</span> ${L(`n_A = n_E \\times p = ${st.nE2} \\times ${fmtDecFR(st.p2,3)} = ${fmtIntOrDec(st.nA2)}`)}`;
-    const line3 = `${Q(3)} ${L(`p = ${texFrac('n_A','n_E')}`)} <span class="ainsi">ainsi</span> ${L(`n_E = ${texFrac('n_A','p')} = ${texFrac(st.nA3, fmtDecFR(st.p3,3))} = ${fmtIntOrDec(st.nE3)}`)}`;
+    const line1 = `${Q(1)}<span class="eq">${EMX('p')} = ${symFrac} = ${fracHTML(st.nA1, st.nE1)} ${sDec} ${fmtDecFR(st.nA1/st.nE1,3)} ${sPct} ${fmtDecFR(100*st.nA1/st.nE1,1)} %</span>`;
+    const line2 = `${Q(2)}<span class="eq">${EMX('p')} = ${symFrac}</span> <span class="ainsi">ainsi</span> <span class="eq">n<sub>A</sub> = n<sub>E</sub> × ${EMX('p')} = ${st.nE2} × ${fmtDecFR(st.p2,3)} = ${fmtIntOrDec(st.nA2)}</span>`;
+    const line3 = `${Q(3)}<span class="eq">${EMX('p')} = ${symFrac}</span> <span class="ainsi">ainsi</span> <span class="eq">n<sub>E</sub> = ${fracHTML('n<sub>A</sub>', EMX('p'))} = ${fracHTML(st.nA3, fmtDecFR(st.p3,3))} = ${fmtIntOrDec(st.nE3)}</span>`;
 
     $('#res',host).innerHTML = `<div class="sol"><p>${line1}</p><p>${line2}</p><p>${line3}</p></div>`;
     $('#res',host).className = 'res-ok';
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -913,21 +845,15 @@ const ex5 = {
     return {ctx, M, c1, p2, q2};
   },
   render(host, st){
-const intro = `On considère des ${st.ctx.thing} de ${NI(st.M)} ${st.ctx.unit}. `;
+    const intro = `On considère des ${st.ctx.thing} de ${st.M} ${st.ctx.unit}. `;
     renderRowsUnderQuestions(host,
       'Répondre : Q1 → pourcentage <em>(arrondir à 0,01&nbsp;% près si besoin)</em> ; Q2 → quantité <em>(arrondir à l’unité)</em> :',
       [
         { labelHTML: intro },
-        { labelHTML:
-  '1) Il y a '+N(st.c1,1)+' '+st.ctx.unit+' de '+st.ctx.c1+'. '
-+ 'Quel est le pourcentage correspondant&nbsp;?<br><small>(arrondir à 0,01&nbsp;% près)</small>',
-  id:'m1', placeholder:'ex. 15,26 %' },
-
-{ labelHTML:
-  '2) Il y a '+PCT(st.p2,1)+' de '+st.ctx.c2+'. '
-+ 'Quelle est la quantité (en '+st.ctx.unit+') de '+st.ctx.c2+' ?<br><small>(arrondir à l’unité)</small>',
-  id:'m2', placeholder:'entier (arrondi)' }
-
+        { labelHTML: '1) Il y a '+fmtDecFR(st.c1,1)+' '+st.ctx.unit+' de '+st.ctx.c1+'. Quel est le pourcentage correspondant&nbsp;?<br><small>(arrondir à 0,01&nbsp;% près)</small>',
+          id:'m1', placeholder:'ex. 15,26 %' },
+        { labelHTML: '2) Il y a '+fmtDecFR(st.p2,1)+' % de '+st.ctx.c2+'. Quelle est la quantité (en '+st.ctx.unit+') de '+st.ctx.c2+' ?<br><small>(arrondir à l’unité)</small>',
+          id:'m2', placeholder:'entier (arrondi)' }
       ]
     );
   },
@@ -946,21 +872,16 @@ const intro = `On considère des ${st.ctx.thing} de ${NI(st.M)} ${st.ctx.unit}. 
     return {ok,total:1};
   },
   solution(host, st){
-    const L1 = `${Q(1)} ${chainFracDecPct(fmtDecFR(st.c1,1), st.M, 2)}`;
-const qExact = st.q2, qRound = Math.round(qExact);
-const unitTX = st.ctx.unit; // "g", "mL", ...
-const exactTX = `${tidyDecFR(qExact,3)}\\,\\mathrm{${unitTX}}`;
-const roundTX = `${qRound}\\,\\mathrm{${unitTX}}`;
+    const fmtIOD = (v,d=3)=> Number.isInteger(v) ? String(v) : tidyDecFR(v,d);
+    const L1 = `${Q(1)}<span class="eq">${chainFracDecPct(fmtDecFR(st.c1,1), st.M, 2)}</span>`;
+    const S1 = `Il y a ${fmtDecFR(100*st.c1/st.M,2)} % de ${st.ctx.c1} dans les ${st.ctx.thing}.`;
+    const qExact = st.q2, qRound = Math.round(qExact);
+    const exactTxt = `${fmtIOD(qExact,3)} ${st.ctx.unit}`, roundTxt = `${qRound} ${st.ctx.unit}`;
     const showApprox = !Number.isInteger(qExact);
-const L2 = `${Q(2)} ${L(
-  `${texFrac(fmtDecFR(st.p2,1),100)} \\times ${st.M} = ` +
-  (showApprox ? `${exactTX} \\approx ${roundTX}` : `${roundTX}`)
-)}`;
-const S1 = `Il y a ${PCT(100*st.c1/st.M,2)} de ${st.ctx.c1} dans les ${st.ctx.thing}.`;
-const S2 = `Il y a ${NI(qRound)} ${unitTX} de ${st.ctx.c2} dans les ${st.ctx.thing}.`;
-$('#res',host).innerHTML = `<p>${L1}</p><p>${S1}</p><p>${L2}</p><p>${S2}</p>`;
+    const L2 = `${Q(2)}<span class="eq">${fracHTML(fmtDecFR(st.p2,1),100)} × ${st.M} = ${showApprox ? `${exactTxt} ≈ ${roundTxt}` : roundTxt}</span>`;
+    const S2 = `Il y a ${roundTxt} de ${st.ctx.c2} dans les ${st.ctx.thing}.`;
+    $('#res',host).innerHTML = `${L1}<br>${S1}<br><br>${L2}<br>${S2}`;
     $('#res',host).className = 'res-ok';
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -975,7 +896,7 @@ const ex6 = {
       { r1:'Enseignants',   r2:"Assistants d’éducation",  where:'dans un lycée' },
       { r1:'Médecins',      r2:'Infirmiers',              where:'dans un hôpital' },
       { r1:'Chercheurs',    r2:'Ingénieurs',              where:'dans un centre de recherche' },
-      { r1:'Bénévoles',      r2:'Organisateurs',           where:'dans une association' },
+      { r1:'Bénévoles',     r2:'Organisateurs',           where:'dans une association' },
       { r1:'Développeurs',  r2:'Designers',               where:'dans une agence web' },
       { r1:'Pilotes',       r2:'Mécaniciens',             where:'dans un aéroport' },
       { r1:'Vendeurs',      r2:'Magasiniers',             where:'dans un magasin' },
@@ -1005,14 +926,13 @@ const ex6 = {
   render(host, st){
     const who = `${st.ctx.r1.toLowerCase()} et ${st.ctx.r2.toLowerCase()}`;
     const tableHTML =
-  '<div>Le tableau ci-dessous indique la répartition des '+who+' '+st.ctx.where+'.</div>'+
-  '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>'+
-  '<tbody>'+
-  '<tr><td>'+st.ctx.r1+'</td><td>'+NI(st.CH)+'</td><td>'+NI(st.CF)+'</td><td><input class="c-ans" data-k="CT" type="text" placeholder="?"></td></tr>'+
-  '<tr><td>'+st.ctx.r2+'</td><td><input class="c-ans" data-k="TH" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TF" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TT" type="text" placeholder="?"></td></tr>'+
-  '<tr><td>Total</td><td>'+NI(st.TOT_H)+'</td><td><input class="c-ans" data-k="TOT_F" type="text" placeholder="?"></td><td>'+NI(st.TOT)+'</td></tr>'+
-  '</tbody></table>';
-
+      '<div>Le tableau ci-dessous indique la répartition des '+who+' '+st.ctx.where+'.</div>'+
+      '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>'+
+      '<tbody>'+
+      '<tr><td>'+st.ctx.r1+'</td><td>'+st.CH+'</td><td>'+st.CF+'</td><td><input class="c-ans" data-k="CT" type="text" placeholder="?"></td></tr>'+
+      '<tr><td>'+st.ctx.r2+'</td><td><input class="c-ans" data-k="TH" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TF" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TT" type="text" placeholder="?"></td></tr>'+
+      '<tr><td>Total</td><td>'+st.TOT_H+'</td><td><input class="c-ans" data-k="TOT_F" type="text" placeholder="?"></td><td>'+st.TOT+'</td></tr>'+
+      '</tbody></table>';
 
     const libG    = (st.gAsk==='H') ? 'hommes' : 'femmes';
     const LibGCap = (st.gAsk==='H') ? 'Hommes' : 'Femmes';
@@ -1073,36 +993,33 @@ const ex6 = {
   },
   solution(host, st){
     const solTable =
-  `<table class="tbl"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>
-    <tbody>
-      <tr><td>${st.ctx.r1}</td><td>${NI(st.CH)}</td><td>${NI(st.CF)}</td><td>${NI(st.CT)}</td></tr>
-      <tr><td>${st.ctx.r2}</td><td>${NI(st.TH)}</td><td>${NI(st.TF)}</td><td>${NI(st.TT)}</td></tr>
-      <tr><td>Total</td><td>${NI(st.TOT_H)}</td><td>${NI(st.TOT_F)}</td><td>${NI(st.TOT)}</td></tr>
-    </tbody></table>`;
-
+      `<table class="tbl"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>${st.ctx.r1}</td><td>${st.CH}</td><td>${st.CF}</td><td>${st.CT}</td></tr>
+          <tr><td>${st.ctx.r2}</td><td>${st.TH}</td><td>${st.TF}</td><td>${st.TT}</td></tr>
+          <tr><td>Total</td><td>${st.TOT_H}</td><td>${st.TOT_F}</td><td>${st.TOT}</td></tr>
+        </tbody></table>`;
 
     const r1low = st.ctx.r1.toLowerCase();
     const libG  = (st.gAsk==='H') ? 'hommes' : 'femmes';
     const propG = (st.gAsk==='H') ? 'des hommes' : 'des femmes';
     const totG  = (st.gAsk==='H') ? st.TOT_H : st.TOT_F;
 
-const chain = (a,b) => L(`${texFrac(a,b)} = ${fmtDecFR(a/b,2)} = ${Math.round(100*a/b)}\\,\\%`);
+    const chain = (a,b)=>`${fracHTML(a,b)} = ${fmtDecFR(a/b,2)} = ${fmtDecFR(Math.round(100*a/b),0)} %`;
 
+    const L2b = `${Q(2,'b')} <span class="eq">${st.CH} + ${st.CF} = ${st.CT}</span>`;
+    const S2b = `Il y a ${st.CT} ${r1low}.`;
+    const S2a = `${Q(2,'a')} D’après le tableau, il y a ${totG} ${libG}.`;
+    const S2c = `${Q(2,'c')} D’après le tableau, il y a ${st.CH} ${r1low} hommes.`;
 
-
-const L2b = `${Q(2,'b')} ${L(`${st.CH} + ${st.CF} = ${st.CT}`)}`;
-const S2a = `${Q(2,'a')} D’après le tableau, il y a ${NI(totG)} ${libG}.`;
-const S2b = `Il y a ${NI(st.CT)} ${r1low}.`;
-const S2c = `${Q(2,'c')}D’après le tableau, il y a ${NI(st.CH)} ${r1low} hommes.`;
-
-const L3a = `${Q(3,'a')} ${chain(totG, st.TOT)}`;
-const S3a = `La proportion ${propG} est ${PCT(Math.round(100*totG/st.TOT),0)}.`;
-const L3b = `${Q(3,'b')} ${chain(st.CT, st.TOT)}`;
-const S3b = `La proportion des ${r1low} est ${PCT(Math.round(100*st.CT/st.TOT),0)}.`;
-const L4a = `${Q(4,'a')} ${chain(st.CH, st.TOT_H)}`;
-const S4a = `Parmi les hommes, le pourcentage de ${r1low} est ${PCT(Math.round(100*st.CH/st.TOT_H),0)}.`;
-const L4b = `${Q(4,'b')} ${chain(st.CF, st.TOT_F)}`;
-const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${PCT(Math.round(100*st.CF/st.TOT_F),0)}.`;
+    const L3a = `${Q(3,'a')} <span class="eq">${chain(totG, st.TOT)}</span>`;
+    const S3a = `La proportion ${propG} est ${fmtDecFR(Math.round(100*totG/st.TOT),0)} %`;
+    const L3b = `${Q(3,'b')} <span class="eq">${chain(st.CT, st.TOT)}</span>`;
+    const S3b = `La proportion des ${r1low} est ${fmtDecFR(Math.round(100*st.CT/st.TOT),0)} %`;
+    const L4a = `${Q(4,'a')} <span class="eq">${chain(st.CH, st.TOT_H)}</span>`;
+    const S4a = `Parmi les hommes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CH/st.TOT_H),0)} %`;
+    const L4b = `${Q(4,'b')} <span class="eq">${chain(st.CF, st.TOT_F)}</span>`;
+    const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${fmtDecFR(Math.round(100*st.CF/st.TOT_F),0)} %`;
 
     $('#res',host).innerHTML = `
       <div style="margin-bottom:6px"><strong>Tableau complété :</strong></div>
@@ -1114,7 +1031,6 @@ const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${PCT(Math.round(1
       <p>${L4a}</p><p>${S4a}</p>
       <p>${L4b}</p><p>${S4b}</p>`;
     $('#res',host).className='res-ok';
-	retypeset(host);   // <<< NEW
   },
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
@@ -1138,8 +1054,8 @@ const ex7 = {
   },
   render(host, st){
     const intro =
-  '<div>Un '+st.group+' compte '+NI(st.N)+' élèves, dont '+NI(st.G)+' filles. '
-+ 'Parmi les '+NI(st.N17)+' élèves de 17 ans, on dénombre '+NI(st.G17)+' filles.</div>';
+      '<div>Un '+st.group+' compte '+st.N+' élèves, dont '+st.G+' filles. '+
+      'Parmi les '+st.N17+' élèves de 17 ans, on dénombre '+st.G17+' filles.</div>';
 
     renderRowsInputRight(host,
       'Répondre : proportions (fraction/décimal/%) et entiers quand demandé. '+
@@ -1204,41 +1120,52 @@ const ex7 = {
     return {ok,total:1};
   },
   solution(host, st){
-    const sDec4 = x => fmtDecFR(x, 4);
+  // même affichage que l'ancienne version
+  const sDec4 = x => fmtDecFR(x, 4);
 
-    const L1a = `${Q(1,'a')} ${L(`${texFrac(st.G, st.N)} = ${sDec4(st.G/st.N)}`)}`;
-    const S1a = `La proportion de filles dans le ${st.group} est ${sDec4(st.G/st.N)}.`;
+  // 1a (décimal à 4 déc.)
+  const L1a = `${Q(1,'a')} <span class="eq">${fracHTML(st.G, st.N)} = ${sDec4(st.G/st.N)}</span>`;
+  const S1a = `La proportion de filles dans le ${st.group} est ${sDec4(st.G/st.N)}.`;
 
-    const L1b = `${Q(1,'b')} ${chainFracDecPct(st.G, st.N, 2)}`;
-const S1b = `Le pourcentage de filles dans le ${st.group} est ${PCT(100*st.G/st.N,2)}.`;
+  // 1b (chaîne sans ×100, % à 0,01 %)
+  const L1b = `${Q(1,'b')} <span class="eq">${chainFracDecPct(st.G, st.N, 2)}</span>`;
+  const S1b = `Le pourcentage de filles dans le ${st.group} est ${fmtDecFR(100*st.G/st.N,2)} %.`;
 
-    const L2a = `${Q(2,'a')} ${L(`${texFrac(st.G17, st.G)} = ${sDec4(st.G17/st.G)}`)}`;
-    const S2a = `La proportion de filles de 17 ans parmi les filles est ${sDec4(st.G17/st.G)}.`;
+  // 2a / 2b
+  const L2a = `${Q(2,'a')} <span class="eq">${fracHTML(st.G17, st.G)} = ${sDec4(st.G17/st.G)}</span>`;
+  const S2a = `La proportion de filles de 17 ans parmi les filles est ${sDec4(st.G17/st.G)}.`;
 
-    const L2b = `${Q(2,'b')} ${chainFracDecPct(st.G17, st.G, 2)}`;
-const S2b = `Le pourcentage de filles de 17 ans parmi les filles est ${PCT(100*st.G17/st.G,2)}.`;
+  const L2b = `${Q(2,'b')} <span class="eq">${chainFracDecPct(st.G17, st.G, 2)}</span>`;
+  const S2b = `Le pourcentage de filles de 17 ans parmi les filles est ${fmtDecFR(100*st.G17/st.G,2)} %.`;
 
-    const S3  = `${Q(3)} D’après le tableau (et l’énoncé), les populations sont « ${st.group} » et « filles ».`;
+  // 3) lecture
+  const S3  = `${Q(3)} D’après le tableau (et l’énoncé), les populations sont « ${st.group} » et « filles ».`;
 
-    const L4a = `${Q(4,'a')} ${L(`${texFrac(fmtDecFR(st.U18,1),100)} \\times ${st.N} = ${st.n18}`)}`;
-    const S4a = `Il y a ${st.n18} élèves de 18 ans.`;
+  // 4a effectif 18 ans
+  const L4a = `${Q(4,'a')} <span class="eq">${fracHTML(fmtDecFR(st.U18,1),100)} × ${st.N} = ${st.n18}</span>`;
+  const S4a = `Il y a ${st.n18} élèves de 18 ans.`;
 
-    const p17_pct_exact = 100*st.N17/st.N;
-    const p17_pct_round = Math.round(p17_pct_exact);
-    const nonePct = 100 - p17_pct_round - st.U18;
-    const L4b = `${Q(4,'b')} ${L(`${chainFracDecPct(st.N17, st.N, 2).slice(2,-2)} ; \\text{arrondi au % : } ${p17_pct_round}\\,\\% ; \\text{ donc } 100\\,\\% - ${p17_pct_round}\\,\\% - ${fmtDecFR(st.U18,1)}\\,\\% = ${fmtDecFR(nonePct,2)}\\,\\%`)}`;
-const S4b = `Le pourcentage d’élèves n’ayant ni 17 ans ni 18 ans est ${PCT(nonePct,2)}.`;
+  // 4b : arrondir d’abord p17 au % près, puis soustraction ; affichage à 0,01 %
+  const p17_pct_exact = 100*st.N17/st.N;
+  const p17_pct_round = Math.round(p17_pct_exact);      // % près
+  const nonePct = 100 - p17_pct_round - st.U18;         // %
+  const L4b = `${Q(4,'b')} <span class="eq">`
+            + `${chainFracDecPct(st.N17, st.N, 2)} ; `
+            + `arrondi au % près : ${p17_pct_round} % ; `
+            + `donc 100 % − ${p17_pct_round} % − ${fmtDecFR(st.U18,1)} % = ${fmtDecFR(nonePct,2)} %</span>`;
+  const S4b = `Le pourcentage d’élèves n’ayant ni 17 ans ni 18 ans est ${fmtDecFR(nonePct,2)} %.`;
 
-    $('#res',host).innerHTML = [
-      L1a, S1a, L1b, S1b,
-      L2a, S2a, L2b, S2b,
-      S3,
-      L4a, S4a,
-      L4b, S4b
-    ].map(x=>`<p>${x}</p>`).join('');
-    $('#res',host).className='res-ok';
-	retypeset(host);   // <<< NEW
-  },
+  $('#res',host).innerHTML = [
+    L1a, S1a, L1b, S1b,
+    L2a, S2a, L2b, S2b,
+    S3,
+    L4a, S4a,
+    L4b, S4b
+  ].map(x=>`<p>${x}</p>`).join('');
+  $('#res',host).className='res-ok';
+},
+
+
   reset(host){ const root=innerHost(host); root.innerHTML=''; }
 };
 
@@ -1257,8 +1184,6 @@ function buildOne(){
   host.dataset.active = def.id;
   host.dataset.state = JSON.stringify(st);
   def.render(host, st);
-    retypeset(host);   // <<< NEW
-
   const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
   addTicks(host);
   progressiveValidate(host); // ne montre rien tant que vide
@@ -1340,39 +1265,43 @@ document.addEventListener('DOMContentLoaded', function(){
       max:50,
       mountAfterSelector:'.card.small',
       beforeRender(def, st, withSolutions){
-        const tmp = document.createElement('div');
-        tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
-        def.render(tmp, st);
+  const tmp = document.createElement('div');
+  tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+  def.render(tmp, st);
 
-        if(!withSolutions){
-          const off = tmp.querySelector('.equ-offscreen');
-          let html = off ? off.innerHTML : (tmp.querySelector('.row .col-label')?.innerHTML || '');
-          // 1) enlever les aides
-          html = html.replace(/<br\s*\/?>\s*<small[\s\S]*?<\/small>/gi,'')
-                     .replace(/<small[\s\S]*?<\/small>/gi,'');
-          // 2) bordures tableaux (style local au PDF de CETTE fiche)
-          const css = `<style>
-            .tbl{border-collapse:collapse;border:1px solid #000}
-            .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
-            /* carrés vides à la place des inputs (garde la hauteur) */
-            .pdf-blank{display:inline-block; width:90px; height:30px;}
-            /* au cas où une cellule reste vraiment vide */
-            .tbl td:empty::before{content:"\\00a0";}
-          </style>`;
-          return css + html;
-        } else {
-          if(def.solution){
-            def.solution(tmp, st);
-            let html = tmp.querySelector('#res')?.innerHTML || '';
-            const css = `<style>
-              .tbl{border-collapse:collapse;border:1px solid #000}
-              .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
-            </style>`;
-            return css + html;
-          }
-        }
-        return '';
-      }
+  if(!withSolutions){
+    const off = tmp.querySelector('.equ-offscreen');
+    let html = off ? off.innerHTML : (tmp.querySelector('.row .col-label')?.innerHTML || '');
+    // 1) enlever les aides
+    html = html.replace(/<br\s*\/?>\s*<small[\s\S]*?<\/small>/gi,'')
+               .replace(/<small[\s\S]*?<\/small>/gi,'');
+    // 2) bordures tableaux (style local au PDF de CETTE fiche)
+    const css = `<style>
+      .tbl{border-collapse:collapse;border:1px solid #000}
+      .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
+ /* carrés vides à la place des inputs (garde la hauteur) */
+ .pdf-blank{display:inline-block; width:90px; height:30px;}
+ /* au cas où une cellule reste vraiment vide */
+ .tbl td:empty::before{content:"\\00a0";}
+    </style>`;
+    return css + html;
+  } else {
+    if(def.solution){
+      def.solution(tmp, st);
+      let html = tmp.querySelector('#res')?.innerHTML || '';
+      // idem : optionnel, on ré-injecte le style pour la page corrigée
+      const css = `<style>
+        .tbl{border-collapse:collapse;border:1px solid #000}
+        .tbl td,.tbl th{border:1px solid #000;padding:3px 6px;text-align:center}
+      </style>`;
+      return css + html;
+    }
+  }
+  return '';
+}
+
+
+
     });
   }
 });
@@ -1395,25 +1324,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux
-      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-        const src = document.querySelector(sel);
-        if (src) {
-          const clone = src.cloneNode(true);
-          clone.classList.add('btn');
-          clone.type = 'button';
-          clone.removeAttribute('id');
-          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-          bar.appendChild(clone);
-        } else {
-          const fallback = document.createElement('button');
-          fallback.className = 'btn';
-          fallback.type = 'button';
-          fallback.textContent = label;
-          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-          bar.appendChild(fallback);
-        }
-      });
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
       document.body.appendChild(bar);
     }
   }
@@ -1435,6 +1365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 

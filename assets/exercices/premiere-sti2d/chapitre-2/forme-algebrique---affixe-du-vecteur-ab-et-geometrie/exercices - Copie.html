@@ -1,0 +1,1234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde — Forme algébrique • Affixes & géométrie complexes</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+:root{ --ink:#111; --bg:#fafafa; --card:#fff; --line:#e6e6e6; --muted:#666; --ok:#0e7c3a; --ko:#b00020; }
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:hover{border-color:#bbb}
+.small{color:var(--muted);font-size:.95rem}
+.eq{font-size:17px}
+.ok{color:var(--ok);font-weight:700}
+.ko{color:var(--ko);font-weight:700}
+hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
+.steps p{margin:.25rem 0}
+
+/* Mises en forme des solutions */
+.grid{display:grid;gap:10px;align-items:start}
+.cols-2{grid-template-columns:1fr 1fr}
+.cols-3{grid-template-columns:auto auto 1fr}
+.box{border:1px dashed #bbb;border-radius:8px;padding:8px 10px}
+.box p{margin:.25rem 0}
+.eqcol{display:flex;flex-direction:column;gap:.25rem}
+.eqcol p{margin:0}
+.eqonly{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.center{text-align:center}
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax = { tex: {inlineMath: [['\\(','\\)']], processEscapes: true}, options:{skipHtmlTags: ['script','noscript','style','textarea']} };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+</head>
+<body>
+  <div class="header"><h1 style="margin:0;font-size:1.1rem"><strong>Seconde — Affixes & géométrie complexes</strong></h1></div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score" style="margin-left:auto;font-weight:700">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Affixes au format \(a+bi\) (fractions/virgules décimales OK), ex. <code>3/2 - i</code>.</li>
+        <li>Jamais <em>0+bi</em>, <em>a+0i</em> ni <em>1i</em> dans les affichages.</li>
+        <li>Tous les calculs de fractions restent en fractions.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ====== Helpers UI ====== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const HOST = $('#host');
+function retypeset(host){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]); }
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t;} return a||1; }
+
+/* ====== Rationnels exacts ====== */
+function R(p,q=1){ if(q<0){p=-p;q=-q;} const g=gcd(p,q); return {p:p/g,q:q/g}; }
+function addR(x,y){ return R(x.p*y.q + y.p*x.q, x.q*y.q); }
+function subR(x,y){ return R(x.p*y.q - y.p*x.q, x.q*y.q); }
+function mulR(x,y){ return R(x.p*y.p, x.q*y.q); }
+function negR(x){ return R(-x.p, x.q); }
+function absR(x){ return R(Math.abs(x.p), x.q); }
+function isZeroR(x){ return x.p===0; }
+function isOneAbsR(x){ return Math.abs(x.p)===x.q; }
+function numR(x){ return x.p/x.q; }
+function latexR(r){ if(r.q===1) return String(r.p); const s=r.p<0?'−':''; const P=Math.abs(r.p); return s+'\\dfrac{'+P+'}{'+r.q+'}'; }
+function textR(r){ return r.q===1 ? String(r.p) : `${r.p}/${r.q}`; }
+
+/* ====== Formats (jamais 0+bi, a+0i, 1i) ====== */
+function fmtILaR(k){ const a=absR(k); return isOneAbsR(a) ? 'i' : latexR(a)+'i'; }
+function fmtZLaR(ax,by){
+  if(isZeroR(by)) return latexR(ax);
+  if(isZeroR(ax)) return (by.p<0?'−':'')+fmtILaR(by);
+  return latexR(ax)+(by.p>=0?' + ':' − ')+fmtILaR(by);
+}
+function fmtITextR(k){ const a=absR(k); return isOneAbsR(a) ? 'i' : textR(a)+'i'; }
+function fmtZTextR(ax,by){
+  if(isZeroR(by)) return textR(ax);
+  if(isZeroR(ax)) return (by.p<0?'-':'')+fmtITextR(by);
+  return textR(ax)+(by.p>=0?' + ':' - ')+fmtITextR(by);
+}
+
+/* (entiers) */
+function fmtNum(n){ return Number.isInteger(n)?String(n):String(n).replace('.',','); }
+function fmtILaNum(k){ const a=Math.abs(k); return Math.abs(a-1)<1e-12?'i':fmtNum(a)+'i'; }
+function fmtZLaNum(a,b){
+  if(Math.abs(b)<1e-12) return fmtNum(a);
+  if(Math.abs(a)<1e-12) return (b<0?'−':'')+fmtILaNum(b);
+  return fmtNum(a)+(b>=0?' + ':' − ')+fmtILaNum(b);
+}
+
+/* Substitution ligne 2 sans parenthèses autour de z_B */
+// --- SUBSTITUTION : pas de parenthèses si z_A = bi avec b>0 (ou z_D idem) ---
+function subLine_BminusA(B,A){
+  const left  = fmtZLaR(B.a,B.b);
+  const right = fmtZLaR(A.a,A.b);
+  // A = bi avec b > 0  → pas de parenthèses
+  if (isZeroR(A.a) && A.b.p > 0) return `z_{\\overrightarrow{AB}} = ${left} − ${right}`;
+  // cas général
+  return `z_{\\overrightarrow{AB}} = ${left} − (${right})`;
+}
+function subLine_CminusD(C,D){
+  const left  = fmtZLaR(C.a,C.b);
+  const right = fmtZLaR(D.a,D.b);
+  // D = bi avec b > 0  → pas de parenthèses
+  if (isZeroR(D.a) && D.b.p > 0) return `z_{\\overrightarrow{DC}} = ${left} − ${right}`;
+  // cas général
+  return `z_{\\overrightarrow{DC}} = ${left} − (${right})`;
+}
+// k de colinéarité (V = k U) sous forme de rationnel réduit
+function coefK_R(U, V){ // U={a,b}, V={a,b}
+  if (U.a !== 0) return R(V.a, U.a);
+  if (U.b !== 0) return R(V.b, U.b);
+  return R(0,1); // cas dégénéré (évité en pratique)
+}
+
+// Substitution sans parenthèses si le 2e terme est un pur +bi
+function subLine_BminusA_num(B,A){
+  const left  = fmtZLaNum(B.a,B.b);
+  const right = fmtZLaNum(A.a,A.b);
+  if (A.a===0 && A.b>0) return `z_{\\overrightarrow{AB}} = ${left} − ${right}`;
+  return `z_{\\overrightarrow{AB}} = ${left} − (${right})`;
+}
+function subLine_DminusC_num(D,C){
+  const left  = fmtZLaNum(D.a,D.b);
+  const right = fmtZLaNum(C.a,C.b);
+  if (C.a===0 && C.b>0) return `z_{\\overrightarrow{CD}} = ${left} − ${right}`;
+  return `z_{\\overrightarrow{CD}} = ${left} − (${right})`;
+}
+// Récupère le membre de droite "après le ="
+function rhsOf(eqLine){ const m = eqLine.match(/=(.*)$/); return m ? m[1].trim() : ''; }
+// Décide si on a besoin d'une ligne "développement" : seulement s'il reste des parenthèses
+function mustExpand(subLine){ return rhsOf(subLine).includes('('); }
+function subLine_num(label, L, R){
+  const left  = fmtZLaNum(L.a,L.b), right = fmtZLaNum(R.a,R.b);
+  // pas de parenthèses si R est un pur +bi
+  return (R.a===0 && R.b>0) ? `${label} = ${left} − ${right}` : `${label} = ${left} − (${right})`;
+}
+/* Développement de B−A et C−D (pas de parenthèses autour du 1er terme) */
+// --- DÉVELOPPEMENT (ligne 3) : jamais de "+" en tête ---
+function expandDiff(B,A){
+  const terms = [];
+  // + (B.a)
+  if (!isZeroR(B.a)) terms.push({sign: B.a.p<0?'-':'+', txt: latexR(absR(B.a))});
+  // + (B.b)i
+  if (!isZeroR(B.b)) terms.push({sign: B.b.p<0?'-':'+', txt: fmtILaR(absR(B.b))});
+  // + (−A.a)
+  const mAa = negR(A.a);
+  if (!isZeroR(mAa)) terms.push({sign: mAa.p<0?'-':'+', txt: latexR(absR(mAa))});
+  // + (−A.b)i
+  const mAb = negR(A.b);
+  if (!isZeroR(mAb)) terms.push({sign: mAb.p<0?'-':'+', txt: fmtILaR(absR(mAb))});
+
+  if (!terms.length) return '0';
+
+  // premier terme : seulement le "−" s'il est négatif (jamais de "+")
+  let out = (terms[0].sign==='-' ? '− ' : '') + terms[0].txt;
+  for (let i=1;i<terms.length;i++){
+    out += (terms[i].sign==='-' ? ' − ' : ' + ') + terms[i].txt;
+  }
+  return out;
+}
+// Join propre pour "A + B" en LaTeX : évite les "+ −"
+function plusJoinLatex(left, right){
+  const r = (right||'').trim();
+  // Si right commence par "−" (U+2212) ou "-", on transforme " + −X" en " − X"
+  if (/^[\u2212-]/.test(r)) {
+    const stripped = r.replace(/^[\u2212-]\s*/, '');
+    return `${left} − ${stripped}`;
+  }
+  return `${left} + ${r}`;
+}
+
+
+/* UI helpers */
+function normalizeMinus(s){ return s.replace(/\u2212/g,'-'); }
+function parseNumber(token){ token=token.replace(',','.'); if(/^[-+]?\d+\/\d+$/.test(token)){const [p,q]=token.split('/').map(Number);return p/q;} return token===''?0:Number(token); }
+function parseComplex(str){
+  let s=normalizeMinus(String(str)).replace(/·|×/g,'*').replace(/\s+/g,''); s=s.replace(/([+-])/g,' $1').trim();
+  const parts=s.split(' ').filter(Boolean); let a=0,b=0;
+  for(const t of parts){ if(t.includes('i')){ const c=t.replace('i',''); b+= (c===''||c==='+')?1:(c==='-'?-1:parseNumber(c)); } else a+=parseNumber(t); }
+  return {a,b};
+}
+function stripAccents(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function evalMaybeSqrt(s){
+  if(!s) return NaN; s=normalizeMinus(String(s)).replace(',', '.').trim();
+  s=s.replace(/√/g,'Math.sqrt').replace(/sqrt/gi,'Math.sqrt'); if(/[^0-9\.\+\-\*\/\(\)\sMatohrqSqrt]/i.test(s)) return NaN;
+  try{ return Function('return ('+s+')')(); }catch(e){ return NaN; }
+}
+function setFB(ok,msg=''){ const fb=$('#fb',HOST); fb.className = ok?'ok':'ko'; fb.textContent = (ok?'✔︎ Correct. ':'✗ Incorrect. ') + msg; }
+function mountHost(){
+  HOST.innerHTML = `
+    <div id="lead" class="small"></div>
+    <div id="equ" class="eq"></div>
+    <hr class="sep">
+    <div class="controls">
+      <label class="input">Réponse <input id="ans" class="answer" type="text" inputmode="text" autocomplete="off" placeholder="Ex. 3 - 2i, oui/non, parallélogramme, √5, ..."></label>
+      <div id="fb"></div>
+    </div>
+    <hr class="sep">
+    <div id="res" class="steps"></div>
+  `;
+}
+function setStepsHTML(html){ $('#res',HOST).innerHTML=html; retypeset(HOST); }
+function setSteps(lines){ setStepsHTML(lines.map(L=>`<p>${L}</p>`).join('')); }
+function isPerfectSquare(n){ if(n<0) return false; const r=Math.floor(Math.sqrt(n)); return r*r===n; }
+function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+// --- Helper manquant : affiche l'énoncé dans #equ puis retape LaTeX
+function setEqu(html){
+  const box = $('#equ', HOST);
+  if (box) box.innerHTML = html;
+  retypeset(HOST);
+}
+
+/* ====== Exercices ====== */
+const REGISTRY = {
+
+  /* e1 */
+  e1:{ name:"Affixe du vecteur \\(\\overrightarrow{AB}\\)", lead:"Repère orthonormé \\((O;\\,\\vec u,\\,\\vec v)\\).",
+    gen(){ const ax=R(randInt(-8,8)), ay=R(randInt(-8,8)), bx=R(randInt(-8,8)), by=R(randInt(-8,8));
+      const A={a:ax,b:ay,latex:`z_A=${fmtZLaR(ax,ay)}`};
+      const B={a:bx,b:by,latex:`z_B=${fmtZLaR(bx,by)}`};
+      this.state={A,B};
+      $('#equ',HOST).innerHTML = `On considère \\(A\\) et \\(B\\) d’affixes \\(${A.latex}\\) et \\(${B.latex}\\). Calculer l’affixe du vecteur \\(\\overrightarrow{AB}\\).`; retypeset(HOST);
+    },
+    verify(){ const {A,B}=this.state; const E={a:numR(subR(B.a,A.a)),b:numR(subR(B.b,A.b))};
+      const ans=parseComplex($('#ans',HOST).value); const ok=Math.abs(ans.a-E.a)<1e-9 && Math.abs(ans.b-E.b)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(${fmtZLaR(subR(B.a,A.a),subR(B.b,A.b))}\\).`); return ok;
+    },
+    solution(){
+  const {A,B}=this.state;
+  const aR=subR(B.a,A.a), bR=subR(B.b,A.b);
+
+  const L1 = `\\( z_{\\overrightarrow{AB}} = z_B − z_A \\)`;
+  const L2s = subLine_BminusA(B,A);                       // ligne 2 (substitution)
+  const L3s = `z_{\\overrightarrow{AB}} = ${expandDiff(B,A)}`; // ligne 3 (développement)
+
+  const lines = [`${L1}`, `\\( ${L2s} \\)`];
+  if (mustExpand(L2s)) lines.push(`\\( ${L3s} \\)`);
+  lines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaR(aR,bR)} \\)`);
+
+  setSteps(lines);
+  $('#ans',HOST).value = fmtZTextR(aR,bR);
+}
+
+  },
+
+  /* e2 */
+  e2:{ name:"Nature de \\(ABCD\\) (parallélogramme)", lead:"Repère orthonormé.",
+    gen(){ const ax=R(randInt(-6,6)),ay=R(randInt(-6,6)),bx=R(randInt(-6,6)),by=R(randInt(-6,6)),cx=R(randInt(-6,6)),cy=R(randInt(-6,6));
+      const A={a:ax,b:ay,latex:`z_A=${fmtZLaR(ax,ay)}`};
+      const B={a:bx,b:by,latex:`z_B=${fmtZLaR(bx,by)}`};
+      const C={a:cx,b:cy,latex:`z_C=${fmtZLaR(cx,cy)}`};
+      const D={a:addR(A.a,subR(C.a,B.a)), b:addR(A.b,subR(C.b,B.b))};
+      this.state={A,B,C,D};
+      $('#equ',HOST).innerHTML = `On considère \\(A,B,C,D\\) d’affixes \\(${A.latex}\\), \\(${B.latex}\\), \\(${C.latex}\\) et \\(z_D=${fmtZLaR(D.a,D.b)}\\). Quelle est la nature de \\(ABCD\\) ?`; retypeset(HOST);
+    },
+    verify(){ const rep=stripAccents($('#ans',HOST).value); const ok=/parallelogramme/.test(rep); setFB(ok, ok?``:`Répondre « parallélogramme ».`); return ok; },
+    // REGISTRY.e2.solution — PATCH
+solution(){
+  const {A,B,C,D}=this.state;
+  const abA=subR(B.a,A.a), abB=subR(B.b,A.b);
+  const dcA=subR(C.a,D.a), dcB=subR(C.b,D.b);
+
+  const subAB = subLine_BminusA(B,A);
+  const subDC = subLine_CminusD(C,D);
+
+  const leftLines = [
+    `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`,
+    `\\( ${subAB} \\)`
+  ];
+  if (mustExpand(subAB)) leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${expandDiff(B,A)} \\)`);
+  leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaR(abA,abB)} \\)`);
+
+  const rightLines = [
+    `\\( z_{\\overrightarrow{DC}} = z_C - z_D \\)`,
+    `\\( ${subDC} \\)`
+  ];
+  if (mustExpand(subDC)) rightLines.push(`\\( z_{\\overrightarrow{DC}} = ${expandDiff(C,D)} \\)`);
+  rightLines.push(`\\( z_{\\overrightarrow{DC}} = ${fmtZLaR(dcA,dcB)} \\)`);
+
+  const left  = leftLines.map(L => `<p>${L}</p>`).join('');
+  const right = rightLines.map(L => `<p>${L}</p>`).join('');
+
+  setStepsHTML(
+    `<div class="grid cols-2">
+       <div class="box">${left}</div>
+       <div class="box">${right}</div>
+     </div>
+     <p>Ainsi \\( z_{\\overrightarrow{AB}} = z_{\\overrightarrow{DC}} \\) donc \\(ABCD\\) est un parallélogramme.</p>`
+  );
+  $('#ans',HOST).value='parallélogramme';
+}
+
+
+  },
+
+
+  /* e3 */
+  e3:{ name:"Alignement de \\(A,B,C\\) ? (oui/non)", lead:"Répondre « oui » ou « non ». ",
+    gen(){
+  const aligned = Math.random() < 0.5;
+  let A={a:randInt(-4,4),b:randInt(-4,4)}, B, C, k=null;
+
+  if (aligned){
+    // Assure B ≠ A pour éviter AB=0
+    do{ B={a:randInt(-4,4),b:randInt(-4,4)}; }while(B.a===A.a && B.b===A.b);
+    k = randInt(-5,5); // coef éventuellement fractionnable après, mais ici entier
+    C = { a: A.a + k*(B.a-A.a), b: A.b + k*(B.b-A.b) };
+  }else{
+    B={a:randInt(-4,4),b:randInt(-4,4)};
+    do{
+      C={a:randInt(-4,4),b:randInt(-4,4)};
+    }while((B.a-A.a)*(C.b-A.b) - (B.b-A.b)*(C.a-A.a)===0);
+  }
+
+  this.state={A,B,C,aligned,k};
+  $('#equ',HOST).innerHTML =
+    `Affixes : \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), \\(z_C=${fmtZLaNum(C.a,C.b)}\\). `+
+    `Les points sont-ils alignés ?`;
+  retypeset(HOST);
+},
+
+    verify(){ const {aligned}=this.state; const r=stripAccents($('#ans',HOST).value); const ok=(aligned&&/^o(ui)?$/.test(r))||(!aligned&&/^n(on)?$/.test(r)); setFB(ok, ok?``:`Attendu : ${aligned?'oui':'non'}.`); return ok; },
+    solution(){
+  const {A,B,C,aligned,k} = this.state;
+
+  // Helpers locaux
+  function subLine(label, L, R){ // pas de parenthèses si R = +bi
+    const left  = fmtZLaNum(L.a, L.b);
+    const right = fmtZLaNum(R.a, R.b);
+    const noParens = (R.a===0 && R.b>0);
+    return { text: `${label} = ${left} − ${ noParens ? right : `(${right})` }`,
+             usedParens: !noParens };
+  }
+  function expandDiffNum(L, R){ // construit "x + yi − u − vi" sans "+" en tête
+    const parts = [];
+    const push = (sign, txt)=>{
+      if(parts.length===0){ parts.push(sign==='-' ? '− '+txt : txt); }
+      else{ parts.push((sign==='-'?' − ':' + ')+txt); }
+    };
+    if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : String(Math.abs(L.b))+'i');
+    const mAa = -R.a, mAb = -R.b;
+    if(mAa!==0) push(mAa<0?'-':'+', String(Math.abs(mAa)));
+    if(mAb!==0) push(mAb<0?'-':'+', Math.abs(mAb)===1 ? 'i' : String(Math.abs(mAb))+'i');
+    return parts.join('') || '0';
+  }
+  function coefK_R(U,V){ // V = k U  (fraction réduite)
+    if(U.a!==0) return R(V.a, U.a);
+    if(U.b!==0) return R(V.b, U.b);
+    return R(0,1);
+  }
+
+  const AB = {a:B.a-A.a, b:B.b-A.b};
+  const AC = {a:C.a-A.a, b:C.b-A.b};
+
+  const subAB = subLine('z_{\\overrightarrow{AB}}', B, A);
+  const subAC = subLine('z_{\\overrightarrow{AC}}', C, A);
+
+  const leftLines = [
+    `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`,
+    `\\( ${subAB.text} \\)`
+  ];
+  if(subAB.usedParens) leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${expandDiffNum(B,A)} \\)`);
+  leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaNum(AB.a,AB.b)} \\)`);
+
+  const rightLines = [
+    `\\( z_{\\overrightarrow{AC}} = z_C - z_A \\)`,
+    `\\( ${subAC.text} \\)`
+  ];
+  if(subAC.usedParens) rightLines.push(`\\( z_{\\overrightarrow{AC}} = ${expandDiffNum(C,A)} \\)`);
+  rightLines.push(`\\( z_{\\overrightarrow{AC}} = ${fmtZLaNum(AC.a,AC.b)} \\)`);
+
+  let tail;
+  if (aligned){
+    const kR = (k==null) ? coefK_R(AB,AC) : R(k,1);
+    tail = `<p>On remarque \\( z_{\\overrightarrow{AC}} = ${latexR(kR)}\\,z_{\\overrightarrow{AB}} \\). Ainsi \\(A,B,C\\) sont alignés.</p>`;
+  } else {
+    tail = `<p>Il n’y a pas de relation entre \\( z_{\\overrightarrow{AC}} \\) et \\( z_{\\overrightarrow{AB}} \\). Ainsi \\(A,B,C\\) ne sont pas alignés.</p>`;
+  }
+
+  const left  = leftLines.map(L=>`<p>${L}</p>`).join('');
+  const right = rightLines.map(L=>`<p>${L}</p>`).join('');
+  setStepsHTML(`<div class="grid cols-2"><div class="box">${left}</div><div class="box">${right}</div></div>${tail}`);
+
+  $('#ans',HOST).value = aligned ? 'oui' : 'non';
+}
+
+
+  },
+
+  /* e4 */
+  e4:{ name:"Parallélisme \\((AB)\\) et \\((CD)\\) ? (oui/non)", lead:"Répondre « oui » ou « non ». ",
+    gen(){
+  const parallel = Math.random() < 0.5;
+  const A={a:randInt(-4,4),b:randInt(-4,4)}, B={a:randInt(-4,4),b:randInt(-4,4)};
+  let C,D,k=null;
+
+  if (parallel){
+    const u={x:B.a-A.a,y:B.b-A.b};
+    k = (randInt(-4,4) || 2); // évite 0 → prend 2
+    C={a:randInt(-4,4),b:randInt(-4,4)};
+    D={a:C.a+k*u.x, b:C.b+k*u.y};
+  }else{
+    C={a:randInt(-4,4),b:randInt(-4,4)};
+    do{ D={a:randInt(-4,4),b:randInt(-4,4)}; }
+    while((B.a-A.a)*(D.b-C.b)-(B.b-A.b)*(D.a-C.a)===0);
+  }
+
+  this.state={A,B,C,D,parallel,k};
+  $('#equ',HOST).innerHTML =
+    `Affixes : \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), `+
+    `\\(z_C=${fmtZLaNum(C.a,C.b)}\\), \\(z_D=${fmtZLaNum(D.a,D.b)}\\). Les droites sont-elles parallèles ?`;
+  retypeset(HOST);
+},
+
+    verify(){ const rep=stripAccents($('#ans',HOST).value); const ok=/^(o|oui|n|non)$/.test(rep); if(!ok){ setFB(false,'Répondez « oui » ou « non ».'); return false; }
+      const expect=this.state.parallel?'oui':'non'; const ok2=(stripAccents($('#ans',HOST).value)[0]===expect[0]); setFB(ok2, ok2?``:`Attendu : ${expect}.`); return ok2; },
+    solution(){
+  const {A,B,C,D,parallel,k} = this.state;
+
+  // Helpers locaux (mêmes raisons que pour e3)
+  function subLine(label, L, R){ // pas de parenthèses si R = +bi
+    const left  = fmtZLaNum(L.a, L.b);
+    const right = fmtZLaNum(R.a, R.b);
+    const noParens = (R.a===0 && R.b>0);
+    return { text: `${label} = ${left} − ${ noParens ? right : `(${right})` }`,
+             usedParens: !noParens };
+  }
+  function expandDiffNum(L, R){
+    const parts = [];
+    const push = (sign, txt)=>{
+      if(parts.length===0){ parts.push(sign==='-' ? '− '+txt : txt); }
+      else{ parts.push((sign==='-'?' − ':' + ')+txt); }
+    };
+    if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : String(Math.abs(L.b))+'i');
+    const mAa = -R.a, mAb = -R.b;
+    if(mAa!==0) push(mAa<0?'-':'+', String(Math.abs(mAa)));
+    if(mAb!==0) push(mAb<0?'-':'+', Math.abs(mAb)===1 ? 'i' : String(Math.abs(mAb))+'i');
+    return parts.join('') || '0';
+  }
+  function coefK_R(U,V){
+    if(U.a!==0) return R(V.a, U.a);
+    if(U.b!==0) return R(V.b, U.b);
+    return R(0,1);
+  }
+
+  const AB = {a:B.a-A.a, b:B.b-A.b};
+  const CD = {a:D.a-C.a, b:D.b-C.b};
+
+  const subAB = subLine('z_{\\overrightarrow{AB}}', B, A);
+  const subCD = subLine('z_{\\overrightarrow{CD}}', D, C);
+
+  const leftLines = [
+    `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`,
+    `\\( ${subAB.text} \\)`
+  ];
+  if(subAB.usedParens) leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${expandDiffNum(B,A)} \\)`);
+  leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaNum(AB.a,AB.b)} \\)`);
+
+  const rightLines = [
+    `\\( z_{\\overrightarrow{CD}} = z_D - z_C \\)`,
+    `\\( ${subCD.text} \\)`
+  ];
+  if(subCD.usedParens) rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${expandDiffNum(D,C)} \\)`);
+  rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${fmtZLaNum(CD.a,CD.b)} \\)`);
+
+  let tail;
+  if (parallel){
+    const kR = (k==null) ? coefK_R(AB,CD) : R(k,1);
+    tail = `<p>On remarque \\( z_{\\overrightarrow{CD}} = ${latexR(kR)}\\,z_{\\overrightarrow{AB}} \\). Ainsi \\((AB)\\) et \\((CD)\\) sont parallèles.</p>`;
+  } else {
+    tail = `<p>Il n’y a aucune relation entre \\( z_{\\overrightarrow{CD}} \\) et \\( z_{\\overrightarrow{AB}} \\). Ainsi \\((AB)\\) et \\((CD)\\) ne sont pas parallèles.</p>`;
+  }
+
+  const left  = leftLines.map(L=>`<p>${L}</p>`).join('');
+  const right = rightLines.map(L=>`<p>${L}</p>`).join('');
+  setStepsHTML(`<div class="grid cols-2"><div class="box">${left}</div><div class="box">${right}</div></div>${tail}`);
+
+  $('#ans',HOST).value = parallel ? 'oui' : 'non';
+}
+
+
+  },
+
+  /* e5 */
+  e5:{ name:"Milieu de \\([AB]\\)", lead:"On considère \\(A\\) et \\(B\\) d’affixes \\(z_A\\) et \\(z_B\\).",
+    gen(){ const ax=R(randInt(-8,8)),ay=R(randInt(-8,8)),bx=R(randInt(-8,8)),by=R(randInt(-8,8));
+      const A={a:ax,b:ay,latex:`z_A=${fmtZLaR(ax,ay)}`};
+      const B={a:bx,b:by,latex:`z_B=${fmtZLaR(bx,by)}`};
+      this.state={A,B};
+      $('#equ',HOST).innerHTML = `Déterminer l’affixe du milieu \\(M\\) de \\([AB]\\) si \\(${A.latex}\\) et \\(${B.latex}\\).`; retypeset(HOST);
+    },
+    verify(){ const {A,B}=this.state; const E={a:numR(mulR(addR(A.a,B.a),R(1,2))), b:numR(mulR(addR(A.b,B.b),R(1,2)))};
+      const ans=parseComplex($('#ans',HOST).value); const ok=Math.abs(ans.a-E.a)<1e-9 && Math.abs(ans.b-E.b)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(${fmtZLaR(mulR(addR(A.a,B.a),R(1,2)), mulR(addR(A.b,B.b),R(1,2)))}\\).`); return ok;
+    },
+    solution(){
+  const {A,B}=this.state;
+  const Sx=addR(A.a,B.a), Sy=addR(A.b,B.b);
+  const Mx=mulR(Sx,R(1,2)), My=mulR(Sy,R(1,2));
+
+  // 2e ligne sans "+ −" :
+  const sumAB = plusJoinLatex(fmtZLaR(A.a,A.b), fmtZLaR(B.a,B.b));
+
+  setSteps([
+    `\\( z_M = \\dfrac{z_A+z_B}{2} \\)`,
+    `\\( z_M = \\dfrac{ ${sumAB} }{2} \\)`,
+    `\\( z_M = \\dfrac{ ${fmtZLaR(Sx,Sy)} }{2} \\)`,
+    `\\( z_M = ${fmtZLaR(Mx,My)} \\)`
+  ]);
+  $('#ans',HOST).value=fmtZTextR(Mx,My);
+}
+
+  },
+
+  /* e6 */
+  e6:{ name:"Symétrique de \\(A\\) par rapport à \\(B\\)", lead:"On considère \\(A\\) et \\(B\\).",
+    gen(){ const ax=R(randInt(-8,8)),ay=R(randInt(-8,8)),bx=R(randInt(-8,8)),by=R(randInt(-8,8));
+      const A={a:ax,b:ay,latex:`z_A=${fmtZLaR(ax,ay)}`};
+      const B={a:bx,b:by,latex:`z_B=${fmtZLaR(bx,by)}`};
+      this.state={A,B}; $('#equ',HOST).innerHTML = `Déterminer l’affixe de \\(C\\), symétrique de \\(A\\) par rapport à \\(B\\), si \\(${A.latex}\\) et \\(${B.latex}\\).`; retypeset(HOST);
+    },
+    verify(){
+  const {A,B} = this.state;
+
+  // Calculs exacts en rationnels (pas de décimaux)
+  const Ex = subR(mulR(B.a, R(2,1)), A.a);
+  const Ey = subR(mulR(B.b, R(2,1)), A.b);
+  const expected = { a: numR(Ex), b: numR(Ey) };
+
+  const ans = parseComplex($('#ans', HOST).value);
+  const ok = Math.abs(ans.a - expected.a) < 1e-9 && Math.abs(ans.b - expected.b) < 1e-9;
+
+  const msg = ok ? '' : `Attendu : \\(${fmtZLaR(Ex, Ey)}\\).`;
+  setFB(ok, msg);
+  retypeset(HOST);
+  return ok;
+},
+
+    // REGISTRY.e6.solution — PATCH (développement du "−" correct)
+solution(){
+  const {A,B}=this.state;
+
+  // 2z_B exact en rationnels
+  const twoB = { a: mulR(B.a, R(2,1)), b: mulR(B.b, R(2,1)) };
+  // Résultat final
+  const C = { a: subR(twoB.a, A.a), b: subR(twoB.b, A.b) };
+
+  const L1 = `Le \\(C\\) symétrique de \\(A\\) par rapport à \\(B\\) signifie que \\(B\\) est le milieu de \\([AC]\\).`;
+  const L2 = `\\( z_B = \\dfrac{z_A + z_C}{2} \\)`;
+  const L3 = `\\( 2z_B = z_A + z_C \\)`;
+  const L4 = `\\( z_C = 2z_B - z_A \\)`;
+  // ➜ on GARDE les parenthèses autour de z_A
+  const L5 = `\\( z_C = 2(${fmtZLaR(B.a,B.b)}) − (${fmtZLaR(A.a,A.b)}) \\)`;
+  // ➜ développement correct du "−" (pas de "+ 6i" pour "− (1+6i)")
+  const L6 = `\\( z_C = ${expandDiff(twoB, A)} \\)`;
+  const L7 = `\\( z_C = ${fmtZLaR(C.a, C.b)} \\)`;
+
+  setSteps([L1,L2,L3,L4,L5,L6,L7]);
+  $('#ans',HOST).value = fmtZTextR(C.a,C.b);
+}
+
+  },
+
+  /* e7 — 3 colonnes sans bordure */
+  e7:{ name:"Trouver \\(D\\) pour que \\(ABCD\\) soit un parallélogramme", lead:"Repère orthonormé.",
+    gen(){ const ax=R(randInt(-8,8)),ay=R(randInt(-8,8)),bx=R(randInt(-8,8)),by=R(randInt(-8,8)),cx=R(randInt(-8,8)),cy=R(randInt(-8,8));
+      const A={a:ax,b:ay},B={a:bx,b:by},C={a:cx,b:cy}; const D={a:addR(A.a,subR(C.a,B.a)), b:addR(A.b,subR(C.b,B.b))};
+      this.state={A,B,C,D};
+      $('#equ',HOST).innerHTML = `Affixes : \\(z_A=${fmtZLaR(A.a,A.b)}\\), \\(z_B=${fmtZLaR(B.a,B.b)}\\), \\(z_C=${fmtZLaR(C.a,C.b)}\\). Déterminer \\(z_D\\) tel que \\(ABCD\\) soit un parallélogramme.`; retypeset(HOST);
+    },
+    verify(){ const D=this.state.D; const ans=parseComplex($('#ans',HOST).value);
+      const ok=Math.abs(ans.a-numR(D.a))<1e-9 && Math.abs(ans.b-numR(D.b))<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(${fmtZLaR(D.a,D.b)}\\).`); return ok;
+    },
+    // REGISTRY.e7.solution — alignement 3 colonnes + développement du "−"
+solution(){
+  const {A,B,C,D} = this.state;
+
+  // Somme z_C + z_A sans "+ −"
+  const CA = plusJoinLatex(fmtZLaR(C.a,C.b), fmtZLaR(A.a,A.b));
+  // Opposé de z_B (pour développer le "−(z_B)")
+  const oppB = fmtZLaR(negR(B.a), negR(B.b));
+
+  // Les 7 étapes latex
+  const L1 = `\\( \\overrightarrow{AB} = \\overrightarrow{DC} \\)`;
+  const L2 = `\\( z_{\\overrightarrow{AB}} = z_{\\overrightarrow{DC}} \\)`;
+  const L3 = `\\( z_B - z_A = z_C - z_D \\)`;
+  const L4 = `\\( z_D = z_C + z_A - z_B \\)`;
+  // Substitution : pas de parenthèses autour de z_C ni z_A ; parenthèses autour de z_B pour préparer le "−"
+  const L5 = `\\( z_D = ${CA} - (${fmtZLaR(B.a,B.b)}) \\)`;
+  // Développement du "−" explicite
+  const L6 = `\\( z_D = ${plusJoinLatex(CA, oppB)} \\)`;
+  // Résultat final
+  const L7 = `\\( z_D = ${fmtZLaR(D.a,D.b)} \\)`;
+
+  // Rendu : 3 colonnes sans bordure, 1 ligne = 1 étape
+  const rows = [
+    [`<strong>ABCD est un parallélogramme</strong>`, '⇔', L1],
+    ['', '⇔', L2],
+    ['', '⇔', L3],
+    ['', '⇔', L4],
+    ['', '⇔', L5],
+    ['', '⇔', L6],
+    ['', '⇔', L7],
+  ];
+
+  const table = [
+    '<table class="eqchain" style="border-collapse:collapse;width:auto">',
+    '<tbody>',
+    ...rows.map(([c1,c2,c3]) =>
+      `<tr>
+         <td style="padding:0 10px 4px 0; white-space:nowrap;">${c1}</td>
+         <td style="padding:0 10px 4px 0; white-space:nowrap;">${c2}</td>
+         <td style="padding:0 0 4px 0;">${c3}</td>
+       </tr>`
+    ),
+    '</tbody></table>'
+  ].join('');
+
+  setStepsHTML(table);
+  $('#ans',HOST).value = fmtZTextR(D.a,D.b);
+}
+
+
+  },
+
+  /* e8 */
+  e8:{ name:"Distance \\(AB\\)", lead:"Répondre en décimal ou \(\\sqrt{\\cdot}\).",
+    gen(){
+  const wantPerfect = Math.random() < 0.60; // 60% entier
+
+  // pour respecter ~[-4;4]
+  const MIN=-4, MAX=4;
+  function tryPlace(dx,dy){
+    for(let t=0;t<50;t++){
+      const Ax=randInt(MIN,MAX), Ay=randInt(MIN,MAX);
+      const Bx=Ax+dx, By=Ay+dy;
+      if(Bx>=MIN && Bx<=MAX && By>=MIN && By<=MAX) return {A:{a:Ax,b:Ay}, B:{a:Bx,b:By}};
+    }
+    // repli
+    return {A:{a:randInt(MIN,MAX),b:randInt(MIN,MAX)}, B:{a:randInt(MIN,MAX),b:randInt(MIN,MAX)}};
+  }
+
+  let A,B,dx,dy,d2;
+
+  if(wantPerfect){
+    // pythagoriciens dans la fenêtre + cas "vertical/horizontal"
+    const base = randChoice([[3,4],[4,3],[0,1],[0,2],[0,3],[0,4],[1,0],[2,0],[3,0],[4,0]]);
+    dx = base[0]*(Math.random()<0.5?-1:1);
+    dy = base[1]*(Math.random()<0.5?-1:1);
+    const placed = tryPlace(dx,dy);
+    A=placed.A; B=placed.B;
+    d2 = dx*dx + dy*dy; // parfait par construction
+  }else{
+    do{
+      A={a:randInt(MIN,MAX),b:randInt(MIN,MAX)};
+      B={a:randInt(MIN,MAX),b:randInt(MIN,MAX)};
+      dx=B.a-A.a; dy=B.b-A.b; d2=dx*dx+dy*dy;
+    }while(d2===0 || isPerfectSquare(d2)); // forcer "racine pas calculable"
+  }
+
+  this.state={A,B};
+  setEqu(`Calculer \\(AB\\) si \\(z_A=${fmtZLaNum(A.a,A.b)}\\) et \\(z_B=${fmtZLaNum(B.a,B.b)}\\).`);
+},
+
+   verify(){
+  const {A,B}=this.state;
+  const dx=B.a-A.a, dy=B.b-A.b, d2=dx*dx+dy*dy, expect=Math.sqrt(d2);
+  const v=evalMaybeSqrt($('#ans',HOST).value);
+  const ok=isFinite(v)&&Math.abs(v-expect)<1e-6;
+
+  const msgBad = isPerfectSquare(d2)
+    ? `Attendu : ${Math.sqrt(d2)}.`
+    : `Attendu : \\(\\sqrt{${d2}}\\).`;
+  setFB(ok, ok?``:msgBad); retypeset(HOST);
+  return ok;
+},
+ // REGISTRY.e8.solution — avec développement du "−" et étape des carrés
+solution(){
+  const {A,B}=this.state;
+  const dx = B.a - A.a, dy = B.b - A.b;
+  const d2 = dx*dx + dy*dy;
+  const perfect = isPerfectSquare(d2);
+
+  // Substitution "propre" : pas de parenthèses si z_A est un pur +bi
+  function subLine_BminusA_num(B,A){
+    const left  = fmtZLaNum(B.a,B.b);
+    const right = fmtZLaNum(A.a,A.b);
+    const noParens = (A.a===0 && A.b>0);
+    return { text: `z_B - z_A = ${left} − ${ noParens ? right : `(${right})` }`,
+             usedParens: !noParens };
+  }
+
+  // Développement du "−" en version numérique (jamais de "+" en tête, jamais "1i")
+  function expandDiffNum(L,R){
+    const parts = [];
+    const push = (sign, txt)=>{
+      if(parts.length===0){ parts.push(sign==='-' ? '− '+txt : txt); }
+      else{ parts.push((sign==='-'?' − ':' + ')+txt); }
+    };
+    if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : `${Math.abs(L.b)}i`);
+    const mAa = -R.a, mAb = -R.b;
+    if(mAa!==0) push(mAa<0?'-':'+', String(Math.abs(mAa)));
+    if(mAb!==0) push(mAb<0?'-':'+', Math.abs(mAb)===1 ? 'i' : `${Math.abs(mAb)}i`);
+    return parts.join('') || '0';
+  }
+
+  const sub = subLine_BminusA_num(B,A);
+
+  // Dans la racine : parenthèses SEULEMENT si le nombre est négatif
+  const sqx = dx<0 ? `(${dx})^2` : `${dx}^2`;
+  const sqy = dy<0 ? `(${dy})^2` : `${dy}^2`;
+  const dx2 = dx*dx, dy2 = dy*dy;
+
+  const lines = [
+    `\\( z_B - z_A = z_B - z_A \\)`,
+    `\\( ${sub.text} \\)`,
+    ...(sub.usedParens ? [`\\( z_B - z_A = ${expandDiffNum(B,A)} \\)`] : []),
+    `\\( z_B - z_A = ${fmtZLaNum(dx,dy)} \\)`,
+    `\\( AB = |z_B - z_A| \\)`,
+    `\\( AB = \\sqrt{${sqx} + ${sqy}} \\)`,
+    `\\( AB = \\sqrt{${dx2} + ${dy2}} \\)`,
+    perfect ? `\\( AB = ${Math.sqrt(d2)} \\)` : `\\( AB = \\sqrt{${d2}} \\)`
+  ];
+
+  setSteps(lines);
+  $('#ans',HOST).value = perfect ? String(Math.sqrt(d2)) : `sqrt(${d2})`;
+},
+
+
+  },
+
+  /* e9 */
+    e9:{ name:"Nature d’un triangle", lead:"Répondre : « quelconque », « équilatéral », « isocèle », « rectangle », « isocèle rectangle ». ",
+  gen(){
+  // fenêtre plus large
+  const MIN=-6, MAX=6;
+  const rand = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+  // place A puis décale d’un vecteur (dx,dy) en restant dans la fenêtre
+  function placeFrom(dx,dy,margin=0){
+    for(let t=0;t<80;t++){
+      const Ax=rand(MIN+margin,MAX-margin), Ay=rand(MIN+margin,MAX-margin);
+      const Bx=Ax+dx, By=Ay+dy;
+      if(Bx>=MIN && Bx<=MAX && By>=MIN && By<=MAX) return {A:{a:Ax,b:Ay}, B:{a:Bx,b:By}};
+    }
+    // repli
+    return {A:{a:rand(MIN,MAX),b:rand(MIN,MAX)}, B:{a:rand(MIN,MAX),b:rand(MIN,MAX)}};
+  }
+
+  const r=Math.random(); let type,A,B,C,Clatex=null,eqScale=null;
+
+  if(r<.20){
+    // quelconque : 3 points au hasard non alignés, ni isocèles, ni rectangle
+    do{
+      A={a:rand(MIN,MAX),b:rand(MIN,MAX)};
+      B={a:rand(MIN,MAX),b:rand(MIN,MAX)};
+      C={a:rand(MIN,MAX),b:rand(MIN,MAX)};
+      // évite doublons et A,B,C distincts
+    }while(
+      (A.a===B.a&&A.b===B.b) || (A.a===C.a&&A.b===C.b) || (B.a===C.a&&B.b===C.b) ||
+      // alignés ?
+      ( (B.a-A.a)*(C.b-A.b) - (B.b-A.b)*(C.a-A.a) === 0 ) ||
+      // isocèle (carrés des longueurs)
+      ( (B.a-A.a)**2+(B.b-A.b)**2 === (C.a-A.a)**2+(C.b-A.b)**2 ) ||
+      ( (B.a-A.a)**2+(B.b-A.b)**2 === (C.a-B.a)**2+(C.b-B.b)**2 ) ||
+      ( (C.a-A.a)**2+(C.b-A.b)**2 === (C.a-B.a)**2+(C.b-B.b)**2 ) ||
+      // rectangle (Pythagore)
+      ( ((B.a-A.a)**2+(B.b-A.b)**2) + ((C.a-A.a)**2+(C.b-A.b)**2) === ((C.a-B.a)**2+(C.b-B.b)**2) ) ||
+      ( ((B.a-A.a)**2+(B.b-A.b)**2) + ((C.a-B.a)**2+(C.b-B.b)**2) === ((C.a-A.a)**2+(C.b-A.b)**2) ) ||
+      ( ((C.a-A.a)**2+(C.b-A.b)**2) + ((C.a-B.a)**2+(C.b-B.b)**2) === ((B.a-A.a)**2+(B.b-A.b)**2) )
+    );
+    type='quelconque';
+  }
+  else if(r<.45){
+    // équilatéral : côté = 2p ; A=(-p,0), B=(p,0), C=(0,p√3)
+    const p = rand(1,4); eqScale=p; type='equilateral';
+    A={a:-p,b:0}; B={a:p,b:0}; C={a:0,b:p*Math.sqrt(3)};
+    Clatex = (p===1? '\\sqrt{3}i' : `${p}\\sqrt{3}i`); // pas de décimaux
+  }
+  else if(r<.70){
+    // isocèle : A=(-p,0), B=(p,0), C=(0,q)
+    const p=rand(1,5), q=rand(1,6); type='isocele';
+    A={a:-p,b:0}; B={a:p,b:0}; C={a:0,b:q};
+  }
+  else if(r<.85){
+    // rectangle en A : B=A+(m,0), C=A+(0,n)
+    const m=rand(2,6), n=rand(2,6); type='rectangle';
+    const placed = placeFrom(m,0,Math.max(m,n));
+    A=placed.A; B=placed.B; C={a:A.a, b:A.b+n};
+  }
+  else{
+    // isocèle-rectangle en A : B=A+(p,0), C=A+(0,p)
+    const p=rand(2,6); type='isocele-rectangle';
+    const placed = placeFrom(p,0,p);
+    A=placed.A; B=placed.B; C={a:A.a, b:A.b+p};
+  }
+
+  this.state={A,B,C,type,Clatex,eqScale};
+  const zA = `z_A=${fmtZLaNum(A.a,A.b)}`;
+  const zB = `z_B=${fmtZLaNum(B.a,B.b)}`;
+  const zC = `z_C=${Clatex ? Clatex : fmtZLaNum(C.a,C.b)}`;
+  setEqu(`Affixes : \\(${zA}\\), \\(${zB}\\), \\(${zC}\\).<br>
+          1) Calculer \\(AB,AC,BC\\).<br>
+          2) Nature du triangle \\(ABC\\) ?`);
+},
+
+
+    verify(){
+  const rep=stripAccents($('#ans',HOST).value);
+  const {type}=this.state;
+  const ok=(type==='equilateral'        && /equilateral|equilat(eral)?/.test(rep))||
+           (type==='isocele-rectangle'  && /isoc(e|è)le\s*rectangle|rectangle\s*isoc(e|è)le/.test(rep))||
+           (type==='isocele'            && /isoc(e|è)le(?!.*rectangle)/.test(rep) && !/rectangle/.test(rep))||
+           (type==='rectangle'          && /rectangle(?!.*isoc)/.test(rep))||
+           (type==='quelconque'         && /quelconque/.test(rep));
+  setFB(ok, ok?``:`Attendu : ${ {'equilateral':'équilatéral','isocele':'isocèle','rectangle':'rectangle','isocele-rectangle':'isocèle rectangle','quelconque':'quelconque'}[type] }.`);
+  return ok;
+},
+// === REGISTRY.e9.solution — version finale demandée ===
+solution(){
+  const {A,B,C,Clatex,eqScale}=this.state;
+
+  /* ---------- Helpers d'affichage ---------- */
+  // Parenthèses inutiles si le terme est 0 ou "simple" positif
+  const needPar=(a,b)=>{
+    if(a===0 && b===0) return false;
+    if(a!==0 && b!==0) return true;         // a + bi non trivial
+    if(a<0 && b===0) return true;           // réel négatif
+    if(b<0 && a===0) return true;           // imaginaire négatif
+    return false;
+  };
+  // Lignes de substitution
+  const subLine=(lab,L,R)=>{
+    const l=fmtZLaNum(L.a,L.b), r=fmtZLaNum(R.a,R.b);
+    const noPar = !needPar(R.a,R.b);
+    return { text:`${lab} = ${l} − ${noPar?r:`(${r})`}`, usedParens:!noPar };
+  };
+  const subLineTexMinusNum=(lab,Ltex,R)=>{
+    const r=fmtZLaNum(R.a,R.b);
+    const noPar = !needPar(R.a,R.b);
+    return { text:`${lab} = ${Ltex} − ${noPar?r:`(${r})`}`, usedParens:!noPar };
+  };
+  // A ⊕ (±B) → A ± B (évite " + (-x) ")
+  const joinPlus=(left, rightLatex)=>{
+    const s=rightLatex.trim();
+    return s.startsWith('-') ? `${left} − ${s.replace(/^-/, '')}` : `${left} + ${s}`;
+  };
+  // Développement « propre » (supprime + artificiels, i sans 1)
+  const expand=(L,R)=>{
+    const t=[],push=(sg,tx)=>{t.push(t.length?(sg==='-'?' − ':' + ')+tx:(sg==='-'?'− '+tx:tx));};
+    if(L.a) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b) push(L.b<0?'-':'+', Math.abs(L.b)===1?'i':`${Math.abs(L.b)}i`);
+    const mA=-R.a,mB=-R.b;
+    if(mA) push(mA<0?'-':'+', String(Math.abs(mA)));
+    if(mB) push(mB<0?'-':'+', Math.abs(mB)===1?'i':`${Math.abs(mB)}i`);
+    return t.join('')||'0';
+  };
+  // n^2 : jamais de parenthèses autour de 0
+  const sqNum=(n)=>{
+    const v=(Object.is(n,-0)?0:n);
+    return v===0 ? '0^2' : (v<0 ? `(${v})^2` : `${v}^2`);
+  };
+  // (k√3)^2 : jamais "1√3", et 0^2 si k=0
+  const sqRoot3=(k)=>{
+    if(Object.is(k,-0)||k===0) return '0^2';
+    return k===1 ? `(\\sqrt{3})^2` : `(${k}\\sqrt{3})^2`;
+  };
+  const isPerfectSquare=(n)=>{ if(n<0) return false; const r=Math.floor(Math.sqrt(n)); return r*r===n; };
+
+  // Dédoublonnage robuste (y compris variantes d'espaces et "−" unicode)
+  const _norm = s => (s||'')
+    .replace(/\s+/g,' ')
+    .replace(/\u2212/g,'-')
+    .replace(/\(0\)/g,'0')
+    .trim();
+  const _push = (arr, line) => { if (!line) return; if (!arr.length || _norm(arr[arr.length-1])!==_norm(line)) arr.push(line); };
+
+  /* ---------- Données géométriques ---------- */
+  const AB={a:B.a-A.a,b:B.b-A.b}, ACn={a:C.a-A.a,b:C.b-A.b}, BCn={a:C.a-B.a,b:C.b-B.b};
+  let AB2=AB.a*AB.a+AB.b*AB.b, AC2=ACn.a*ACn.a+ACn.b*ACn.b, BC2=BCn.a*BCn.a+BCn.b*BCn.b;
+
+  /* ---------- Colonne AB ---------- */
+  const sAB=subLine('z_{\\overrightarrow{AB}}',B,A);
+  const colABLines=[];
+  _push(colABLines, `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`);
+  _push(colABLines, `\\( ${sAB.text} \\)`);
+  if (sAB.usedParens) _push(colABLines, `\\( z_{\\overrightarrow{AB}} = ${expand(B,A)} \\)`);
+  _push(colABLines, `\\( z_{\\overrightarrow{AB}} = ${fmtZLaNum(AB.a,AB.b)} \\)`);
+  _push(colABLines, `\\( AB = \\sqrt{${sqNum(AB.a)} + ${sqNum(AB.b)}} \\)`);
+  _push(colABLines, `\\( AB = \\sqrt{${AB2}} \\)`);
+  if (isPerfectSquare(AB2)) _push(colABLines, `\\( AB = ${Math.sqrt(AB2)} \\)`);
+  const colAB = colABLines.map(L=>`<p>${L}</p>`).join('');
+
+  /* ---------- Colonne AC ---------- */
+  const equi = !!Clatex;                         // repère le cas équilatéral (z_C = p√3 i)
+  const LtexC = Clatex ? Clatex : fmtZLaNum(C.a,C.b);
+  const sAC = equi ? subLineTexMinusNum('z_{\\overrightarrow{AC}}',LtexC,A) : subLine('z_{\\overrightarrow{AC}}',C,A);
+  const devAC = equi && sAC.usedParens ? joinPlus(LtexC, fmtZLaNum(-A.a,-A.b)) : expand(C,A);
+  const AC_dx = equi ? eqScale : ACn.a;
+
+  const colACLines=[];
+  _push(colACLines, `\\( z_{\\overrightarrow{AC}} = z_C - z_A \\)`);
+  _push(colACLines, `\\( ${sAC.text} \\)`);
+  if (sAC.usedParens) _push(colACLines, `\\( z_{\\overrightarrow{AC}} = ${devAC} \\)`);
+  _push(colACLines, `\\( z_{\\overrightarrow{AC}} = ${equi ? `${AC_dx} + ${eqScale===1?'\\sqrt{3}':eqScale+'\\sqrt{3}'}i` : fmtZLaNum(ACn.a,ACn.b)} \\)`);
+  if (equi){
+    _push(colACLines, `\\( AC = \\sqrt{${sqNum(AC_dx)} + ${sqRoot3(eqScale)} } \\)`);
+    _push(colACLines, `\\( AC = \\sqrt{${AC_dx*AC_dx} + ${3*eqScale*eqScale}} \\)`);
+    _push(colACLines, `\\( AC = \\sqrt{${4*eqScale*eqScale}} \\)`);
+    _push(colACLines, `\\( AC = ${2*eqScale} \\)`);
+  }else{
+    _push(colACLines, `\\( AC = \\sqrt{${sqNum(ACn.a)} + ${sqNum(ACn.b)}} \\)`);
+    _push(colACLines, `\\( AC = \\sqrt{${AC2}} \\)`);
+    if (isPerfectSquare(AC2)) _push(colACLines, `\\( AC = ${Math.sqrt(AC2)} \\)`);
+  }
+  const colAC = colACLines.map(L=>`<p>${L}</p>`).join('');
+
+  /* ---------- Colonne BC ---------- */
+  const sBC = equi ? subLineTexMinusNum('z_{\\overrightarrow{BC}}',LtexC,B) : subLine('z_{\\overrightarrow{BC}}',C,B);
+  const devBC = equi && sBC.usedParens ? joinPlus(LtexC, fmtZLaNum(-B.a,-B.b)) : expand(C,B);
+  const BC_dx = equi ? -eqScale : BCn.a;
+
+  const colBCLines=[];
+  _push(colBCLines, `\\( z_{\\overrightarrow{BC}} = z_C - z_B \\)`);
+  _push(colBCLines, `\\( ${sBC.text} \\)`);
+  if (sBC.usedParens) _push(colBCLines, `\\( z_{\\overrightarrow{BC}} = ${devBC} \\)`);
+  _push(colBCLines, `\\( z_{\\overrightarrow{BC}} = ${equi ? `${BC_dx} + ${eqScale===1?'\\sqrt{3}':eqScale+'\\sqrt{3}'}i` : fmtZLaNum(BCn.a,BCn.b)} \\)`);
+  if (equi){
+    _push(colBCLines, `\\( BC = \\sqrt{${sqNum(BC_dx)} + ${sqRoot3(eqScale)} } \\)`);
+    _push(colBCLines, `\\( BC = \\sqrt{${BC_dx*BC_dx} + ${3*eqScale*eqScale}} \\)`);
+    _push(colBCLines, `\\( BC = \\sqrt{${4*eqScale*eqScale}} \\)`);
+    _push(colBCLines, `\\( BC = ${2*eqScale} \\)`);
+  }else{
+    _push(colBCLines, `\\( BC = \\sqrt{${sqNum(BCn.a)} + ${sqNum(BCn.b)}} \\)`);
+    _push(colBCLines, `\\( BC = \\sqrt{${BC2}} \\)`);
+    if (isPerfectSquare(BC2)) _push(colBCLines, `\\( BC = ${Math.sqrt(BC2)} \\)`);
+  }
+  const colBC = colBCLines.map(L=>`<p>${L}</p>`).join('');
+
+  // ---- Rendu 3 colonnes égales
+  setStepsHTML(`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div class="box">${colAB}</div>
+      <div class="box">${colAC}</div>
+      <div class="box">${colBC}</div>
+    </div>
+  `);
+
+  /* ---------- Cas équilatéral : conclusion directe ---------- */
+  if (equi){
+    const p2=4*eqScale*eqScale; AB2=AC2=BC2=p2;
+    setStepsHTML($('#res',HOST).innerHTML +
+      `<p>On observe \\(AB=AC=BC\\).</p>`+
+      `<p><strong>Conclusion :</strong> le triangle \\(ABC\\) est <strong>équilatéral</strong>.</p>`
+    );
+    $('#ans',HOST).value='équilatéral';
+    return;
+  }
+
+  /* ---------- Isocélie avant Pythagore ---------- */
+  let isoAt=null, isoLine='';
+  if (AB2===AC2){ isoAt='A'; isoLine=`\\(AB=AC\\) : <strong>isocèle en \\(A\\)</strong>.`; }
+  else if (AC2===BC2){ isoAt='C'; isoLine=`\\(AC=BC\\) : <strong>isocèle en \\(C\\)</strong>.`; }
+  else if (AB2===BC2){ isoAt='B'; isoLine=`\\(AB=BC\\) : <strong>isocèle en \\(B\\)</strong>.`; }
+  else { isoLine=`Aucune égalité de longueurs : le triangle \\(ABC\\) n’est <strong>pas isocèle</strong>.`; }
+  setStepsHTML($('#res',HOST).innerHTML + `<p>${isoLine}</p>`);
+
+  /* ---------- Pythagore : plus grand côté, AB²/AC²/BC² ---------- */
+  const triples=[
+    {name:'AB',val:AB2,sum:AC2+BC2,sumNames:'AC^2 + BC^2',rectAt:'C',add1:AC2,add2:BC2},
+    {name:'AC',val:AC2,sum:AB2+BC2,sumNames:'AB^2 + BC^2',rectAt:'B',add1:AB2,add2:BC2},
+    {name:'BC',val:BC2,sum:AB2+AC2,sumNames:'AB^2 + AC^2',rectAt:'A',add1:AB2,add2:AC2},
+  ];
+  let idx=0; if(triples[1].val>triples[idx].val) idx=1; if(triples[2].val>triples[idx].val) idx=2;
+  const BIG=triples[idx];
+
+  const bigLine = `\\(${BIG.name}^2 = ${BIG.val}\\)`;
+  const sumLine = `\\(${BIG.sumNames} = ${BIG.add1} + ${BIG.add2} = ${BIG.sum}\\)`;
+  const eqPyth = (BIG.val===BIG.sum);
+  const pythText = eqPyth
+    ? `On remarque que \\(${BIG.name}^2 = ${BIG.sumNames}\\) donc d’après la <strong>réciproque</strong> du théorème de Pythagore, le triangle \\(ABC\\) est <strong>rectangle en \\(${BIG.rectAt}\\)</strong>.`
+    : `De plus on remarque que \\(${BIG.name}^2 \\ne ${BIG.sumNames}\\) donc d’après la <strong>contraposée</strong> du théorème de Pythagore, le triangle \\(ABC\\) n’est <strong>pas rectangle</strong>.`;
+
+  setStepsHTML($('#res',HOST).innerHTML + `<p>${bigLine}</p><p>${sumLine}</p><p>${pythText}</p>`);
+
+  /* ---------- Conclusion ---------- */
+  let nature;
+  if (eqPyth && isoAt){
+    // isocèle-rectangle : on cite un seul point (celui de l'angle droit)
+    nature = `isocèle et rectangle en \\(${BIG.rectAt}\\)`;
+  } else if (eqPyth){
+    nature = `rectangle en \\(${BIG.rectAt}\\)`;
+  } else if (isoAt){
+    nature = `isocèle en \\(${isoAt}\\)`;
+  } else {
+    nature = 'quelconque';
+  }
+  setStepsHTML($('#res',HOST).innerHTML + `<p><strong>Conclusion :</strong> le triangle \\(ABC\\) est <strong>${nature}</strong>.</p>`);
+  $('#ans',HOST).value = nature.replace(/<[^>]*>/g,'');
+}
+
+  },
+
+  /* e10 — PATCH : nombres aléatoires + solution dynamique */
+e10:{
+  name:"Cercle de centre \\(\\Omega\\) passant par \\(A\\) et \\(B\\)",
+  lead:"Repère orthonormé.",
+
+  gen(){
+    // Candidates de rayons (dx,dy) simples (inclut horizontaux/verticaux et pythagoriciens)
+    const BASE = [[1,0],[2,0],[3,0],[4,0],[0,1],[0,2],[0,3],[0,4],[3,4],[4,3],[2,1],[1,2]];
+    // Choisit un vecteur rayon non nul
+    const [vx,vy] = randChoice(BASE).map((t,i)=> t * (Math.random()<.5?-1:1));
+    const s2 = vx*vx + vy*vy; // rayon^2
+
+    // Construit un second vecteur de même norme (signes/swap), distinct du premier
+    const variants = [
+      [ vx, -vy],[ -vx, vy],[ -vx,-vy],
+      [ vy,  vx],[ vy,-vx],[ -vy, vx],[ -vy,-vx]
+    ].filter(([x,y])=> x!==vx || y!==vy);
+    const [wx,wy] = randChoice(variants);
+
+    // Place Ω pour que A=Ω+(vx,vy) et B=Ω+(wx,wy) restent dans [-6;6]
+    function tryPlace(){
+      for(let t=0;t<80;t++){
+        const ox = randInt(-4,4), oy = randInt(-4,4);
+        const A={a:ox+vx, b:oy+vy}, B={a:ox+wx, b:oy+wy};
+        if(Math.max(Math.abs(A.a),Math.abs(A.b),Math.abs(B.a),Math.abs(B.b))<=6)
+          return {O:{a:ox,b:oy}, A, B};
+      }
+      // repli
+      return {O:{a:0,b:0}, A:{a:vx,b:vy}, B:{a:wx,b:wy}};
+    }
+
+    const placed = tryPlace();
+    this.state = placed;
+
+    setEqu(
+      `On donne \\(z_A=${fmtZLaNum(placed.A.a,placed.A.b)}\\), `+
+      `\\(z_B=${fmtZLaNum(placed.B.a,placed.B.b)}\\) `+
+      `et \\(z_{\\Omega}=${fmtZLaNum(placed.O.a,placed.O.b)}\\). `+
+      `Démontrer que \\(A\\) et \\(B\\) sont sur un même cercle de centre \\(\\Omega\\) et déterminer son rayon.`
+    );
+  },
+
+  verify(){
+    const {A,B,O}=this.state;
+    const rA = Math.hypot(A.a-O.a, A.b-O.b);
+    const rB = Math.hypot(B.a-O.a, B.b-O.b);
+    const r  = (rA+rB)/2; // mêmes normes par construction
+
+    const v = evalMaybeSqrt($('#ans',HOST).value);
+    const ok = isFinite(v) && Math.abs(v-r) < 1e-6;
+
+    // Message exact comme e8 : entier si parfait, sinon racine
+    const dx = A.a-O.a, dy = A.b-O.b, d2 = dx*dx+dy*dy;
+    const msgBad = isPerfectSquare(d2) ? `Attendu : ${Math.sqrt(d2)}.` : `Attendu : \\(\\sqrt{${d2}}\\).`;
+    setFB(ok, ok?``:msgBad); retypeset(HOST);
+    return ok;
+  },
+
+  // === REGISTRY.e10.solution — pas de () autour de +bi, dev "−" conditionnel, pas de templates imbriquées ===
+// === REGISTRY.e10.solution — sans () autour de 0 / +bi, pas de doublons, chaîne finale ===
+solution(){
+  const {A,B,O}=this.state;
+
+  // Développement du "−" (jamais de "+" en tête, jamais "1i")
+  function expandDiffNum(L,R){
+    const out=[], push=(sg,tx)=>{
+      out.push(out.length?(sg==='-'?' − ':' + ')+tx:(sg==='-'?'− '+tx:tx));
+    };
+    if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : `${Math.abs(L.b)}i`);
+    const mA=-R.a, mB=-R.b;
+    if(mA!==0) push(mA<0?'-':'+', String(Math.abs(mA)));
+    if(mB!==0) push(mB<0?'-':'+', Math.abs(mB)===1 ? 'i' : `${Math.abs(mB)}i`);
+    return out.join('') || '0';
+  }
+  // Substitution : pas de parenthèses si R est un pur +bi OU si R = 0
+  function subLine(label, L, R){
+    const left  = fmtZLaNum(L.a,L.b);
+    const right = fmtZLaNum(R.a,R.b);
+    const noParens = (R.a===0 && R.b>0) || (R.a===0 && R.b===0); // ⇐ règle demandée
+    return { text: `${label} = ${left} - ${ noParens ? right : `(${right})` }`,
+             usedParens: !noParens };
+  }
+
+  // Détails des carrés : pas de parenthèses autour de 0
+  const sq = n => n===0 ? '0^2' : (n<0 ? `(${n})^2` : `${n}^2`);
+  // Anti-doublons (normalisation légère)
+  const _norm = s => (s||'').replace(/\s+/g,' ').replace(/\u2212/g,'-').replace(/\(0\)/g,'0').trim();
+  const _push = (arr, line) => { if(!line) return; if(!arr.length || _norm(arr[arr.length-1])!==_norm(line)) arr.push(line); };
+
+  // Vecteurs et norme (même d² des deux côtés)
+  const dxA=A.a-O.a, dyA=A.b-O.b;
+  const dxB=B.a-O.a, dyB=B.b-O.b;
+  const d2 = dxA*dxA + dyA*dyA;
+  const perfect = isPerfectSquare(d2);
+  const rTex  = perfect ? String(Math.sqrt(d2)) : `\\sqrt{${d2}}`;
+  const tail  = perfect ? ` = ${Math.sqrt(d2)}` : ''; // à chaîner à la dernière ligne uniquement
+
+  // Colonne ΩA
+  const left=[];
+  _push(left, `\\( z_{\\overrightarrow{\\Omega A}} = z_A - z_{\\Omega} \\)`);
+  const sOA = subLine('z_{\\overrightarrow{\\Omega A}}', A, O);
+  _push(left, `\\( ${sOA.text} \\)`);
+  if (sOA.usedParens) _push(left, `\\( z_{\\overrightarrow{\\Omega A}} = ${expandDiffNum(A,O)} \\)`);
+  _push(left, `\\( z_{\\overrightarrow{\\Omega A}} = ${fmtZLaNum(dxA,dyA)} \\)`);
+  _push(left, `\\( \\Omega A = \\sqrt{${sq(dxA)} + ${sq(dyA)}} \\)`);
+  _push(left, `\\( \\Omega A = \\sqrt{${dxA*dxA} + ${dyA*dyA}} \\)`);
+_push(left, `\\( \\Omega A = \\sqrt{${d2}} \\)`);
+if (perfect) _push(left, `\\( \\Omega A = ${Math.sqrt(d2)} \\)`);
+
+  // Colonne ΩB
+  const right=[];
+  _push(right, `\\( z_{\\overrightarrow{\\Omega B}} = z_B - z_{\\Omega} \\)`);
+  const sOB = subLine('z_{\\overrightarrow{\\Omega B}}', B, O);
+  _push(right, `\\( ${sOB.text} \\)`);
+  if (sOB.usedParens) _push(right, `\\( z_{\\overrightarrow{\\Omega B}} = ${expandDiffNum(B,O)} \\)`);
+  _push(right, `\\( z_{\\overrightarrow{\\Omega B}} = ${fmtZLaNum(dxB,dyB)} \\)`);
+  _push(right, `\\( \\Omega B = \\sqrt{${sq(dxB)} + ${sq(dyB)}} \\)`);
+  _push(right, `\\( \\Omega B = \\sqrt{${dxB*dxB} + ${dyB*dyB}} \\)`);
+_push(right, `\\( \\Omega B = \\sqrt{${d2}} \\)`);
+if (perfect) _push(right, `\\( \\Omega B = ${Math.sqrt(d2)} \\)`);
+
+
+  const leftHTML  = left.map(L=>`<p class="eqonly">${L}</p>`).join('');
+  const rightHTML = right.map(L=>`<p class="eqonly">${L}</p>`).join('');
+
+  setStepsHTML(
+    `<div class="grid cols-2">
+       <div class="box">${leftHTML}</div>
+       <div class="box">${rightHTML}</div>
+     </div>
+     <p>\\(\\Omega A = \\Omega B = ${rTex}\\) donc \\(A\\) et \\(B\\) appartiennent au cercle de centre \\(\\Omega\\) et de rayon \\(${rTex}\\).</p>`
+  );
+
+  $('#ans',HOST).value = perfect ? String(Math.sqrt(d2)) : `sqrt(${d2})`;
+}
+
+
+}
+
+
+};
+
+/* ====== App bootstrap ====== */
+const SELECT = $('#exo-select');
+Object.entries(REGISTRY).forEach(([k,v])=>{ const opt=document.createElement('option'); opt.value=k; opt.textContent=v.name.replace(/\\\\/g,'\\'); SELECT.appendChild(opt); });
+let ACTIVE='e1', SCORE=[0,0];
+
+function wireButtons(){
+  $('#btn-new').onclick = buildOne;
+  $('#btn-reset').onclick = ()=>{ $('#ans',HOST).value=''; $('#fb',HOST).textContent=''; $('#res',HOST).innerHTML=''; };
+  $('#btn-check').onclick = ()=>{ SCORE[1]++; const ok=REGISTRY[ACTIVE].verify.call(REGISTRY[ACTIVE])===true; if(ok) SCORE[0]++; $('#score').textContent=`${SCORE[0]} / ${SCORE[1]}`; };
+  $('#btn-solution').onclick = ()=>REGISTRY[ACTIVE].solution.call(REGISTRY[ACTIVE]);
+  SELECT.onchange = ()=>{ ACTIVE=SELECT.value; buildOne(); };
+}
+function buildOne(){
+  mountHost();
+  const cfg = REGISTRY[ACTIVE];
+  $('#lead',HOST).innerHTML = cfg.lead; retypeset(HOST);
+  $('#ans',HOST).value=''; $('#fb',HOST).textContent=''; $('#res',HOST).innerHTML='';
+  cfg.gen.call(cfg);
+  $('#ans',HOST).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btn-check').click(); } });
+  retypeset(HOST);
+}
+wireButtons(); buildOne();
+
+/* ====== PDF kit ====== */
+document.addEventListener('DOMContentLoaded', function(){
+  if(window.ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      mountAfterSelector: '.card.small',
+      title: 'Seconde – Affixes & géométrie complexes',
+      max: 50,
+      lead: 'Répondre dans la forme demandée.',
+      leadByDefId: {
+        e1:'Calculer l’affixe du vecteur \\(\\overrightarrow{AB}\\).',
+        e2:'Indiquer la nature du quadrilatère \\(ABCD\\).',
+        e3:'Dire si \\(A,B,C\\) sont alignés.',
+        e4:'Dire si \\((AB)\\) et \\((CD)\\) sont parallèles.',
+        e5:'Donner l’affixe du milieu \\(M\\) de \\([AB]\\).',
+        e6:'Donner l’affixe du symétrique de \\(A\\) par rapport à \\(B\\).',
+        e7:'Déterminer \\(z_D\\) tel que \\(ABCD\\) soit un parallélogramme.',
+        e8:'Calculer la distance \\(AB\\).',
+        e9:'Calculer les longueurs et déterminer la nature de \\(ABC\\).',
+        e10:'Montrer que \\(A\\) et \\(B\\) sont sur un cercle de centre \\(\\Omega\\) puis donner le rayon.'
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

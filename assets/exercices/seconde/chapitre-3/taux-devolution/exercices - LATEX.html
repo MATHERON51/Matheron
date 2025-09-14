@@ -1,14 +1,13 @@
-<!doctype html>
 <html lang='fr'>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seconde – Taux d’évolution</title>
 
-<link rel="stylesheet" href="../../../../css/math-kbd.css">
-<link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/mobile.css">
-
+<link rel="stylesheet" href='../../../../css/math-kbd.css'>
+<link rel="stylesheet" href='../../../../css/espace-gras.css'>
+<link rel="stylesheet" href='../../../../css/espace-latex.css'>
+<link rel="stylesheet" href='../../../../css/mobile.css'>
 
 <style>
 *{box-sizing:border-box}
@@ -48,6 +47,7 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 
 #host .steps .step{white-space:nowrap}
 
+/* (anciens styles fraction HTML conservés mais inutilisés) */
 .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
 .frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
 .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
@@ -74,9 +74,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .c-label strong { margin: 0 .28em; }
 /* PATCH: espacement autour des tokens math inline (Vi, Vf...) */
 .mx{ display:inline-block; margin:0 .25em; }
-
-/* variante si tu préfères encapsuler (voir JS plus bas) */
-.mx { display:inline-block; margin:0 .28em; }
 
 /* indices lisibles, même si un reset CSS les neutralise */
 sub { font-size: .8em; vertical-align: -0.25em; }
@@ -139,6 +136,20 @@ sub { font-size: .8em; vertical-align: -0.25em; }
 .tick.ok{color:#059669}   /* V vert */
 .tick.ko{color:#dc2626}   /* X rouge */
 </style>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 
 <body>
@@ -158,9 +169,6 @@ sub { font-size: .8em; vertical-align: -0.25em; }
     </div>
 </div>
  
- 
-
-  
 <div class="wrap">
   <div class="card">
     <div id="host"></div>
@@ -173,12 +181,11 @@ sub { font-size: .8em; vertical-align: -0.25em; }
       <li>Pourcentages : autorisé avec <code>%</code> (<code>12%</code>) ou en décimal (<code>0,12</code>).</li>
       <li>Arrondis : <em>t</em> à <strong>0,01</strong> près ; pourcentage au <strong>%</strong> près ; valeurs numériques à <strong>0,01</strong> près.</li>
     </ul>
-   
   </div>
   <!-- Clavier math, centré -->
-    <div class="card">
-      <div data-math-kbd style="display:flex; justify-content:center"></div>
-    </div>
+  <div class="card">
+    <div data-math-kbd style="display:flex; justify-content:center"></div>
+  </div>
 </div>
 
 <script>
@@ -202,6 +209,37 @@ function innerHost(host){
 /* ================== Formats & parse ================== */
 const fmtDecFR = (x, digits=3) => { const s = String(Math.round(x*10**digits)/10**digits); return s.replace('.',','); };
 const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+
+/* ==== MathJax re-typeset (NEW) ==== */
+function retypeset(root=document){
+  try{
+    if (window.MathJax?.typesetPromise) return MathJax.typesetPromise([root]);
+    if (window.MathJax?.typeset) MathJax.typeset([root]);
+  }catch(_){}
+}
+
+/* =========== Helpers LaTeX (NEW) =========== */
+const L = s => `<span class="mx">\\(${s}\\)</span>`;
+// espace insécable fin (fine NBSP) + formule inline
+const Ls = s => `&#8239;\\(${s}\\)&#8239;`;   // &#8239; = NNBSP (fine no-break)
+
+const texFrac = (num, den) => `\\dfrac{${num}}{${den}}`;
+const tidyDecFR = (v, digits=3) => {
+  let s = fmtDecFR(v, digits);
+  if (s.includes(',')) s = s.replace(/0+$/,'').replace(/[,]$/,'');
+  return s;
+};
+const fmtIntOrDec = (v, digits=2)=> Number.isInteger(v)? String(v) : tidyDecFR(v, digits);
+const NI = v => L(String(v));
+const N  = (v, d=3) => L(tidyDecFR(v,d));
+const PCT = (v,d=2) => L(`${tidyDecFR(v,d)}\\,\\%`);
+
+/* Converti ancienne fraction HTML en LaTeX inline */
+function fracHTML(n, d){
+  return L(texFrac(String(n).replace('.',','), String(d)));
+}
+
+/* Parsing */
 function parseNumberFR(s){
   s = stripSignUnicode(String(s||'').trim()).replace(/\s+/g,' ');
   if(!s) return NaN;
@@ -223,34 +261,23 @@ function parsePercentStrict(s){
   return v;
 }
 function sameFloat(a,b,eps=1e-6){ return Math.abs(a-b) <= eps; }
-// PATCH — déduplication robuste (insensible aux espaces/majuscules)
-function _canonCtx(s){
-  return String(s||'')
-    .replace(/\u00A0/g,' ')   // NBSP → espace
-    .replace(/\s+/g,' ')      // espaces multiples
-    .trim()
-    .toLowerCase();
-}
 // Arrondi au centième et test d'égalité sur l'affichage
 const eq02 = (a,b)=> Math.round(a*100) === Math.round(b*100);
 
-// Tirage d’un entier en excluant certaines valeurs (utile pour t%)
+/* Tirage d’un entier en excluant certaines valeurs (utile pour t%) */
 function rndExcept(min, max, except=[]) {
   const S = new Set(except.map(String));
   let v;
   do { v = rnd(min, max); } while (S.has(String(v)));
   return v;
 }
-
-/* ================== Rendu utils ================== */
-function fracHTML(n, d){ return `<span class="frac"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`; }
-function tidyDecFR(v, digits=3){
-  let s = fmtDecFR(v, digits);
-  if (s.includes(',')) s = s.replace(/0+$/,'').replace(/[,]$/,''); return s;
+function Q(n, sub){
+  let s;
+  if (typeof n === 'number') s = String(n) + (sub ? String(sub) : '');
+  else s = String(n || '');
+  s = s.trim().replace(/\)$/, '');
+  return `<span class="qno">${s})</span>`;
 }
-function fmtIntOrDec(v, digits=2){ return Number.isInteger(v)? String(v) : tidyDecFR(v, digits); }
-function Q(n){ return `<span class="qno">${n})</span>`; }
-
 /* ================== Ticks (✔/✘) pour inputs texte ================== */
 function addTicks(host){
   $$('#host input[type=text]').forEach(inp=>{
@@ -322,17 +349,19 @@ function validateOneInput(inp, st, exId){
 
 /* Valide tous les inputs texte visibles (sans score) */
 function progressiveValidate(host){
-  const exId = host.dataset.active;
-  const st = JSON.parse(host.dataset.state||'{}');
-  let blanks=0;
+  const root = document.getElementById('host') || host;
+  const exId = root?.dataset.active;
+  const st   = JSON.parse(root?.dataset.state || '{}');
+  let blanks = 0;
   $$('#host input[type=text]').forEach(inp=>{
-    if(inp.closest('.equ-offscreen')) return;
+    if (inp.closest('.equ-offscreen')) return;
     const state = validateOneInput(inp, st, exId);
     setTickForInput(inp, state);
-    if(state===null) blanks++;
+    if (state === null) blanks++;
   });
   return blanks;
 }
+
 function allInputsFilled(host){
   let ok=true;
   $$('#host input[type=text]').forEach(inp=>{
@@ -349,120 +378,112 @@ const ex1 = {
   id:'taux_prop_evo',
   title:'Proportion ou évolution ?',
   gen(){
-  // Banque originale (sans se soucier ici de moins/plus : on filtrera)
-  const T = [
-    // ——— Proportions “classiques” ———
-    ()=>({txt:`${rnd(5,95)}% des élèves de la classe ont un vélo.`, kind:'P'}),
-    ()=>({txt:`Dans ce panier, ${rnd(10,60)}% de fruits sont des pommes.`, kind:'P'}),
-    ()=>({txt:`${rnd(30,90)}% des spectateurs sont des abonnés.`, kind:'P'}),
-    ()=>({txt:`Un sondage indique que ${rnd(20,80)}% des personnes interrogées aiment la vanille.`, kind:'P'}),
-    ()=>({txt:`La part des produits bio est de ${rnd(5,40)}% dans ce magasin.`, kind:'P'}),
-    ()=>({txt:`Il y a ${rnd(1,30)}% d’impuretés dans ce minerai.`, kind:'P'}),
-    ()=>({txt:`Sur le plateau, ${rnd(10,90)}% des cartes sont rouges.`, kind:'P'}),
-    ()=>({txt:`${rnd(40,90)}% des élèves de la classe pratiquent un sport.`, kind:'P'}),
-    ()=>({txt:`${rnd(20,70)}% des habitants ont un animal de compagnie.`, kind:'P'}),
-    ()=>({txt:`${rnd(10,80)}% des livres de l’étagère sont des romans.`, kind:'P'}),
-    ()=>({txt:`${rnd(10,90)}% des billes de la boîte sont bleues.`, kind:'P'}),
-    ()=>({txt:`${rnd(20,80)}% des plateaux du self contiennent un dessert.`, kind:'P'}),
-    ()=>({txt:`${rnd(10,60)}% des stands du marché vendent des fruits.`, kind:'P'}),
-    ()=>({txt:`${rnd(5,50)}% des timbres de la collection viennent d’Europe.`, kind:'P'}),
-    ()=>({txt:`${rnd(1,30)}% des véhicules du parking sont électriques.`, kind:'P'}),
-    ()=>({txt:`${rnd(50,95)}% des joueurs de l’équipe sont droitiers.`, kind:'P'}),
-    ()=>({txt:`${rnd(40,90)}% des visiteurs du site utilisent un mobile.`, kind:'P'}),
+    const T = [
+  ()=>({txt:`${PCT(rnd(5,95))} des élèves de la classe ont un vélo.`, kind:'P'}),
+  ()=>({txt:`Dans ce panier, ${PCT(rnd(10,60))} de fruits sont des pommes.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(30,90))} des spectateurs sont des abonnés.`, kind:'P'}),
+  ()=>({txt:`Un sondage indique que ${PCT(rnd(20,80))} des personnes interrogées aiment la vanille.`, kind:'P'}),
+  ()=>({txt:`La part des produits bio est de ${PCT(rnd(5,40))} dans ce magasin.`, kind:'P'}),
+  ()=>({txt:`Il y a ${PCT(rnd(1,30))} d’impuretés dans ce minerai.`, kind:'P'}),
+  ()=>({txt:`Sur le plateau, ${PCT(rnd(10,90))} des cartes sont rouges.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(40,90))} des élèves de la classe pratiquent un sport.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(20,70))} des habitants ont un animal de compagnie.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(10,80))} des livres de l’étagère sont des romans.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(10,90))} des billes de la boîte sont bleues.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(20,80))} des plateaux du self contiennent un dessert.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(10,60))} des stands du marché vendent des fruits.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(5,50))} des timbres de la collection viennent d’Europe.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(1,30))} des véhicules du parking sont électriques.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(50,95))} des joueurs de l’équipe sont droitiers.`, kind:'P'}),
+  ()=>({txt:`${PCT(rnd(40,90))} des visiteurs du site utilisent un mobile.`, kind:'P'}),
 
-    // ——— Évolutions (A/D) ———
-    ()=>({txt:`Le prix d’un billet a augmenté de ${rnd(2,35)}%.`, kind:'A'}),
-    ()=>({txt:`La population de la ville a crû de ${rnd(1,20)}% en dix ans.`, kind:'A'}),
-    ()=>({txt:`Il y a une plus-value de ${rnd(3,25)}% à la revente.`, kind:'A'}),
-    ()=>({txt:`Le volume de production est en hausse de ${rnd(1,50)}%.`, kind:'A'}),
-    ()=>({txt:`Le nombre d’accidents a baissé de ${rnd(5,40)}%.`, kind:'D'}),
-    ()=>({txt:`Le stock a diminué de ${rnd(10,60)}%.`, kind:'D'}),
-    ()=>({txt:`Les émissions de CO₂ ont été réduites de ${rnd(5,30)}%.`, kind:'D'}),
-    ()=>({txt:`La consommation d’eau a reculé de ${rnd(2,25)}%.`, kind:'D'}),
-    ()=>({txt:`Une remise de ${rnd(5,40)}% est appliquée sur ce produit.`, kind:'D'}),
-    ()=>({txt:`La température moyenne a diminué de ${rnd(5,30)}%.`, kind:'D'}),
-    ()=>({txt:`La fréquentation du musée a augmenté de ${rnd(5,80)}%.`, kind:'A'}),
-    ()=>({txt:`Le prix d’un abonnement a diminué de ${rnd(5,40)}%.`, kind:'D'}),
-    ()=>({txt:`Le budget marketing a augmenté de ${rnd(5,60)}%.`, kind:'A'}),
-    ()=>({txt:`La consommation d’électricité a baissé de ${rnd(5,35)}%.`, kind:'D'}),
-    ()=>({txt:`La production de l’usine a augmenté de ${rnd(5,50)}%.`, kind:'A'}),
-    ()=>({txt:`Le temps de trajet a diminué de ${rnd(5,60)}%.`, kind:'D'}),
-    ()=>({txt:`Le taux de réussite a augmenté de ${rnd(5,40)}%.`, kind:'A'}),
-    ()=>({txt:`Le loyer a augmenté de ${rnd(2,20)}%.`, kind:'A'}),
-    ()=>({txt:`La quantité de déchets produits a diminué de ${rnd(5,50)}%.`, kind:'D'})
-  ];
+  ()=>({txt:`Le prix d’un billet a augmenté de ${PCT(rnd(2,35))}.`, kind:'A'}),
+  ()=>({txt:`La population de la ville a crû de ${PCT(rnd(1,20))} en dix ans.`, kind:'A'}),
+  ()=>({txt:`Il y a une plus-value de ${PCT(rnd(3,25))} à la revente.`, kind:'A'}),
+  ()=>({txt:`Le volume de production est en hausse de ${PCT(rnd(1,50))}.`, kind:'A'}),
 
-  // BANQUES dédiées pour imposer 1 "Moins de ..." et 1 "Plus de ..."
-  const P_MOINS = [
-    ()=>({txt:`Moins de ${rnd(5,49)}% des élèves viennent en bus.`, kind:'P'}),
-    ()=>({txt:`Moins de ${rnd(5,49)}% des habitants possèdent un chien.`, kind:'P'}),
-    ()=>({txt:`Moins de ${rnd(5,49)}% des livres de la bibliothèque sont des BD.`, kind:'P'}),
-    ()=>({txt:`Moins de ${rnd(5,49)}% des cartes du jeu sont noires.`, kind:'P'}),
-    ()=>({txt:`Moins de ${rnd(5,49)}% des commandes arrivent en retard.`, kind:'P'})
-  ];
-  const P_PLUS = [
-    ()=>({txt:`Plus de ${rnd(51,95)}% des élèves pratiquent un sport.`, kind:'P'}),
-    ()=>({txt:`Plus de ${rnd(51,95)}% des visiteurs utilisent un mobile.`, kind:'P'}),
-    ()=>({txt:`Plus de ${rnd(51,95)}% des stands du marché vendent des fruits.`, kind:'P'}),
-    ()=>({txt:`Plus de ${rnd(51,95)}% des véhicules du parking sont électriques.`, kind:'P'}),
-    ()=>({txt:`Plus de ${rnd(51,95)}% des plateaux du self contiennent un dessert.`, kind:'P'})
-  ];
+  ()=>({txt:`Le nombre d’accidents a baissé de ${PCT(rnd(5,40))}.`, kind:'D'}),
+  ()=>({txt:`Le stock a diminué de ${PCT(rnd(10,60))}.`, kind:'D'}),
+  ()=>({txt:`Les émissions de CO₂ ont été réduites de ${PCT(rnd(5,30))}.`, kind:'D'}),
+  ()=>({txt:`La consommation d’eau a reculé de ${PCT(rnd(2,25))}.`, kind:'D'}),
+  ()=>({txt:`Une remise de ${PCT(rnd(5,40))} est appliquée sur ce produit.`, kind:'D'}),
+  ()=>({txt:`La température moyenne a diminué de ${PCT(rnd(5,30))}.`, kind:'D'}),
+  ()=>({txt:`La fréquentation du musée a augmenté de ${PCT(rnd(5,80))}.`, kind:'A'}),
+  ()=>({txt:`Le prix d’un abonnement a diminué de ${PCT(rnd(5,40))}.`, kind:'D'}),
+  ()=>({txt:`Le budget marketing a augmenté de ${PCT(rnd(5,60))}.`, kind:'A'}),
+  ()=>({txt:`La consommation d’électricité a baissé de ${PCT(rnd(5,35))}.`, kind:'D'}),
+  ()=>({txt:`La production de l’usine a augmenté de ${PCT(rnd(5,50))}.`, kind:'A'}),
+  ()=>({txt:`Le temps de trajet a diminué de ${PCT(rnd(5,60))}.`, kind:'D'}),
+  ()=>({txt:`Le taux de réussite a augmenté de ${PCT(rnd(5,40))}.`, kind:'A'}),
+  ()=>({txt:`Le loyer a augmenté de ${PCT(rnd(2,20))}.`, kind:'A'}),
+  ()=>({txt:`La quantité de déchets produits a diminué de ${PCT(rnd(5,50))}.`, kind:'D'})
+];
 
-  const target = {P:4, E:5};
-  let count = {P:0, E:0};
-  const used = new Set();
-  const rows = [];
+const P_MOINS = [
+  ()=>({txt:`Moins de ${PCT(rnd(5,49))} des élèves viennent en bus.`, kind:'P'}),
+  ()=>({txt:`Moins de ${PCT(rnd(5,49))} des habitants possèdent un chien.`, kind:'P'}),
+  ()=>({txt:`Moins de ${PCT(rnd(5,49))} des livres de la bibliothèque sont des BD.`, kind:'P'}),
+  ()=>({txt:`Moins de ${PCT(rnd(5,49))} des cartes du jeu sont noires.`, kind:'P'}),
+  ()=>({txt:`Moins de ${PCT(rnd(5,49))} des commandes arrivent en retard.`, kind:'P'})
+];
 
-  function pushUnique(gen){
-    const r = gen();
-    const k = _canonCtx(r.txt);
-    if(used.has(k)) return false;
-    used.add(k);
-    rows.push(r);
-    if(r.kind==='A' || r.kind==='D') count.E++; else count.P++;
-    return true;
-  }
-
-  // 1) Imposer exactement 1 "Moins de ..." et 1 "Plus de ..."
-  let haveMoins=false, havePlus=false;
-  for(let tries=0; !haveMoins && tries<30; tries++) haveMoins = pushUnique(choice(P_MOINS));
-  for(let tries=0; !havePlus  && tries<30; tries++) havePlus  = pushUnique(choice(P_PLUS));
-
-  // 2) Compléter jusqu’à 9 lignes en respectant 4P/5E et éviter tout autre "Moins de"/"Plus de"
-  while(rows.length < 9){
-    const r = choice(T)();             // pioche générale
-    const key = _canonCtx(r.txt);
-    if(used.has(key)) continue;
-
-    const isEvo  = (r.kind==='A' || r.kind==='D');
-    const isMoins= /^Moins de\b/i.test(r.txt);
-    const isPlus = /^Plus de\b/i.test(r.txt);
-
-    // on refuse d'ajouter d'autres "Moins de"/"Plus de" (on en a déjà 1 de chaque)
-    if(isMoins || isPlus) continue;
-
-    if(isEvo && count.E >= target.E) continue;
-    if(!isEvo && count.P >= target.P) continue;
-
-    used.add(key);
-    rows.push(r);
-    if(isEvo) count.E++; else count.P++;
-  }
-
-  // 3) Mélanger l'ordre pour ne pas avoir toujours les 2 imposés en tête
-  rows.sort(()=>Math.random()-0.5);
-
-  return {rows};
-},
+const P_PLUS = [
+  ()=>({txt:`Plus de ${PCT(rnd(51,95))} des élèves pratiquent un sport.`, kind:'P'}),
+  ()=>({txt:`Plus de ${PCT(rnd(51,95))} des visiteurs utilisent un mobile.`, kind:'P'}),
+  ()=>({txt:`Plus de ${PCT(rnd(51,95))} des stands du marché vendent des fruits.`, kind:'P'}),
+  ()=>({txt:`Plus de ${PCT(rnd(51,95))} des véhicules du parking sont électriques.`, kind:'P'}),
+  ()=>({txt:`Plus de ${PCT(rnd(51,95))} des plateaux du self contiennent un dessert.`, kind:'P'})
+];
 
 
+    const target = {P:4, E:5};
+    let count = {P:0, E:0};
+    const used = new Set();
+    const rows = [];
+
+    function pushUnique(gen){
+      const r = gen();
+      const k = r.txt.toLowerCase().trim();
+      if(used.has(k)) return false;
+      used.add(k);
+      rows.push(r);
+      if(r.kind==='A' || r.kind==='D') count.E++; else count.P++;
+      return true;
+    }
+
+    let haveMoins=false, havePlus=false;
+    for(let tries=0; !haveMoins && tries<30; tries++) haveMoins = pushUnique(choice(P_MOINS));
+    for(let tries=0; !havePlus  && tries<30; tries++) havePlus  = pushUnique(choice(P_PLUS));
+
+    while(rows.length < 9){
+      const r = choice(T)();
+      const key = r.txt.toLowerCase().trim();
+      if(used.has(key)) continue;
+
+      const isEvo  = (r.kind==='A' || r.kind==='D');
+      const isMoins= /^Moins de\b/i.test(r.txt);
+      const isPlus = /^Plus de\b/i.test(r.txt);
+      if(isMoins || isPlus) continue;
+
+      if(isEvo && count.E >= target.E) continue;
+      if(!isEvo && count.P >= target.P) continue;
+
+      used.add(key);
+      rows.push(r);
+      if(isEvo) count.E++; else count.P++;
+    }
+
+    rows.sort(()=>Math.random()-0.5);
+
+    return {rows};
+  },
   render(host, st){
     const inner = innerHost(host);
     const optsYN = `<option value="">—</option><option value="oui">Oui</option><option value="non">Non</option>`;
     const optsDir = `<option value="">—</option><option value="A">Augmentation</option><option value="D">Diminution</option>`;
     const rows = st.rows.map((r,i)=>`
    <tr>
-     <td class="num">${i+1}.</td>
+<td class="num">${L(String(i+1))}</td>
      <td style="text-align:left">${r.txt}</td>
      <td><select id="p${i}">${optsYN}</select></td>
      <td><select id="e${i}">${optsDir}</select><span id="t${i}" class="tick"></span></td>
@@ -473,39 +494,45 @@ const ex1 = {
       <div>Pour <em>l’évolution</em> (colonne 3), préciser s'il s'agit d'une augmentation ou une diminution. Choisir « — » quand il s’agit d’une proportion.</div>
 	  </div>
       <table class="tbl center">
-<thead><tr><th style="width:44px">#</th><th>Situation</th><th>Proportion ?</th><th>Évolution ?</th></tr></thead>
+        <thead><tr><th style="width:44px">#</th><th>Situation</th><th>Proportion ?</th><th>Évolution ?</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div id="res" class="res"></div>
     `;
+    retypeset(inner);
   },
   correct(host, st){
     const inner = innerHost(host);
     let okAll=true, total=st.rows.length;
     st.rows.forEach((r,i)=>{
-      const p = $(`#p${i}`,inner).value, e = $(`#e${i}`,inner).value;
+      const p = document.querySelector(`#p${i}`).value, e = document.querySelector(`#e${i}`).value;
       let ok=false;
       if(r.kind==='P') ok = (p==='oui' && e==='');
       if(r.kind==='A') ok = (p==='non' && e==='A');
       if(r.kind==='D') ok = (p==='non' && e==='D');
-      const t = $(`#t${i}`,inner); if(t){ t.textContent = ok? '✔':'✘'; t.className='tick '+(ok?'ok':'ko'); }
+      const t = document.querySelector(`#t${i}`); if(t){ t.textContent = ok? '✔':'✘'; t.className='tick '+(ok?'ok':'ko'); }
       okAll = okAll && ok;
     });
-    const res = $('#res',inner);
-    if(okAll){ res.innerHTML = 'Tout est correct.'; res.className='res res-ok'; }
-    else     { res.innerHTML = 'Il y a des erreurs.'; res.className='res res-ko'; }
+    const res = document.querySelector('#res');
+    if(okAll){ res.textContent = 'Tout est correct.'; res.className='res res-ok'; }
+    else     { res.textContent = 'Il y a des erreurs.'; res.className='res res-ko'; }
     return {ok:okAll, total};
   },
   solution(host, st){
-    const inner = innerHost(host);
-    const lines = st.rows.map((r,i)=>{
-      const P = (r.kind==='P')? 'Oui' : 'Non';
-      const E = (r.kind==='A')? 'Augmentation' : (r.kind==='D'?'Diminution':'—');
-      return `<div>${i+1}. ${r.txt} — Proportion : <strong>${P}</strong> ; Évolution : <strong>${E}</strong>.</div>`;
-    });
-    $('#res',inner).innerHTML = lines.map(x=>`<p>${x}</p>`).join('');
-    $('#res',inner).className='res';
-  },
+  const inner = innerHost(host);
+  const lines = st.rows.map((r,i)=>{
+    const P = (r.kind==='P')? 'Oui' : 'Non';
+    const E = (r.kind==='A')? 'Augmentation' : (r.kind==='D'?'Diminution':'—');
+    return `<div>${L(String(i+1))}. ${r.txt} — Proportion : <strong>${P}</strong> ; Évolution : <strong>${E}</strong>.</div>`;
+  });
+  const res = $('#res', inner);
+  if(res){
+    res.innerHTML = lines.map(x=>`<p>${x}</p>`).join('');
+    res.className = 'res';
+  }
+  retypeset(inner);
+},
+
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
@@ -514,74 +541,70 @@ const ex2 = {
   id:'taux_calc_3cas',
   title:'Calculs d’application — trois cas',
   gen(){
-  // a) On donne Vi, Vf -> chercher t
-  const A = (() => {
-    let Vi, Vf, tInt;
-    do {
-      Vi   = rnd(80, 260)/100;                 // 0.80..2.60
-      tInt = rndExcept(-45, 75, [0]);          // exclut 0%
-      Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
-    } while (eq02(Vi, Vf));                     // évite Vi = Vf à 0,01 près
-    return { Vi, Vf };
-  })();
+    // a) On donne Vi, Vf -> chercher t
+    const A = (() => {
+      let Vi, Vf, tInt;
+      do {
+        Vi   = rnd(80, 260)/100;                 // 0.80..2.60
+        tInt = rndExcept(-45, 75, [0]);          // exclut 0%
+        Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
+      } while (eq02(Vi, Vf));
+      return { Vi, Vf };
+    })();
 
-  // b) On donne Vi, t -> chercher Vf  (on vérifie que l'affichage ne donne pas Vi = Vf)
-  const B = (() => {
-    let Vi, tInt, Vf;
-    do {
-      Vi   = rnd(80, 260)/100;
-      tInt = rndExcept(-40, 80, [0]);          // exclut 0%
-      Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
-    } while (eq02(Vi, Vf));
-    return { Vi, t: tInt/100 };
-  })();
+    // b) On donne Vi, t -> chercher Vf
+    const B = (() => {
+      let Vi, tInt, Vf;
+      do {
+        Vi   = rnd(80, 260)/100;
+        tInt = rndExcept(-40, 80, [0]);
+        Vf   = Math.round(Vi * (1 + tInt/100) * 100) / 100;
+      } while (eq02(Vi, Vf));
+      return { Vi, t: tInt/100 };
+    })();
 
-  // c) On donne Vf, t -> chercher Vi  (Vi = Vf n'arrive que si t = 0 → exclu)
-  const C = (() => {
-    const Vf   = rnd(80, 260)/100;
-    const tInt = rndExcept(-40, 80, [0]);      // exclut 0%
-    return { Vf, t: tInt/100 };
-  })();
+    // c) On donne Vf, t -> chercher Vi
+    const C = (() => {
+      const Vf   = rnd(80, 260)/100;
+      const tInt = rndExcept(-40, 80, [0]);
+      return { Vf, t: tInt/100 };
+    })();
 
-  return { A, B, C };
-},
+    return { A, B, C };
+  },
   render(host, st){
     const inner = innerHost(host);
     inner.innerHTML = `
   <div class="consigne">
     <div class="c-label">Consigne</div>
-    <div>
-      On utilisera la formule ${fracHTML('V<sub>f</sub> − V<sub>i</sub>','V<sub>i</sub>')} pour calculer <em>t</em>.
+<div>On utilisera la formule : ${Ls(`${texFrac('V_f - V_i','V_i')}`)}pour calculer${Ls('t')}.</div>
+  </div>
+
+  <div class="row">
+    <div class="col-label"><strong>a)</strong> Données : ${L(`V_i = ${fmtIntOrDec(st.A.Vi,2)}`)} ; ${L(`V_f = ${fmtIntOrDec(st.A.Vf,2)}`)}. Chercher ${L('t')}, à 0,01 près.
     </div>
+    <div class="input-line"><input id="tA" type="text" placeholder=""></div>
   </div>
 
   <div class="row">
-    <div class="col-label"><strong>a)</strong> Donnés : V<sub>i</sub>= ${fmtIntOrDec(st.A.Vi,2)} ; V<sub>f</sub>= ${fmtIntOrDec(st.A.Vf,2)}. Chercher <em>t</em> (à 0,01 près).</div>
-    <div class="input-line"><input id="tA" type="text" placeholder="t (ex. 0,12 ou 12%)"></div>
+    <div class="col-label"><strong>b)</strong> Données : ${L(`V_i = ${fmtIntOrDec(st.B.Vi,2)}`)} ; ${L(`t = ${fmtIntOrDec(st.B.t,2)}`)}. Chercher ${L('V_f')}, à 0,01 près.</div>
+    <div class="input-line"><input id="vfB" type="text" placeholder=""></div>
   </div>
 
   <div class="row">
-    <div class="col-label"><strong>b)</strong> Donnés : V<sub>i</sub>= ${fmtIntOrDec(st.B.Vi,2)} ; t = ${fmtIntOrDec(st.B.t,2)}. Chercher <em>V<sub>f</sub></em> (à 0,01 près).</div>
-    <div class="input-line"><input id="vfB" type="text" placeholder="Vf (ex. 1,92)"></div>
+    <div class="col-label"><strong>c)</strong> Données : ${L(`V_f = ${fmtIntOrDec(st.C.Vf,2)}`)} ; ${L(`t = ${fmtIntOrDec(st.C.t,2)}`)}. Chercher ${L('V_i')}, à 0,01 près.</div>
+    <div class="input-line"><input id="viC" type="text" placeholder=""></div>
   </div>
 
-  <div class="row">
-    <div class="col-label"><strong>c)</strong> Donnés : V<sub>f</sub>= ${fmtIntOrDec(st.C.Vf,2)} ; t = ${fmtIntOrDec(st.C.t,2)}. Chercher <em>V<sub>i</sub></em> (à 0,01 près).</div>
-    <div class="input-line"><input id="viC" type="text" placeholder="Vi (ex. 1,60)"></div>
-  </div>
-
-  <!-- Case grisée unique pour la correction -->
   <div id="res" class="res"></div>
 `;
-
-
+    retypeset(inner);
   },
   correct(host, st){
     const inner = innerHost(host);
-    addTicks(inner);
-    progressiveValidate(inner);
-    if(!allInputsFilled(inner)){
-      const res = $('#res',inner); if(res){ res.textContent=''; res.className='res'; }
+    addTicks(host);
+ progressiveValidate(host);
+ if(!allInputsFilled(host)){ const res=$('#res',host); if(res){ res.textContent=''; res.className='res'; }
       return;
     }
     const okA = validateOneInput($('#tA',inner), st, this.id);
@@ -596,148 +619,112 @@ const ex2 = {
     return {ok:okAll, total:3};
   },
   solution(host, st){
-  const inner = innerHost(host);
-  const fmt = (x)=>fmtIntOrDec(x,2);                   // arrondi 0,01 pour affichage
-  const sgn = (t)=> t>=0 ? 'Augmentation' : 'Diminution';
-  const pm  = (t)=> t>=0 ? `1 + ${fmt(t)}` : `1 − ${fmt(Math.abs(t))}`;
-  const pct = (t)=> Math.round(t*100);                 // au % près
-  const frac = (N,D)=>fracHTML(N,D);
+    const inner = innerHost(host);
+    const fmt = (x)=>fmtIntOrDec(x,2);
+    const sgn = (t)=> t>=0 ? 'Augmentation' : 'Diminution';
+    const pm  = (t)=> t>=0 ? `1 + ${fmt(t)}` : `1 - ${fmt(Math.abs(t))}`;
+    const pct = (t)=> Math.round(t*100);
 
-  // a) t
-  const ta   = st.A.Vf/st.A.Vi - 1;
-  const ta01 = Math.round(ta*100)/100;
+    const ta   = st.A.Vf/st.A.Vi - 1;
+    const ta01 = Math.round(ta*100)/100;
 
-  // b) Vf
-  const vfb  = st.B.Vi*(1+st.B.t);
-  const vfb01= Math.round(vfb*100)/100;
+    const vfb   = st.B.Vi*(1+st.B.t);
+    const vfb01 = Math.round(vfb*100)/100;
 
-  // c) Vi
-  const vic  = st.C.Vf/(1+st.C.t);
-  const vic01= Math.round(vic*100)/100;
+    const vic   = st.C.Vf/(1+st.C.t);
+    const vic01 = Math.round(vic*100)/100;
 
-  const rows = `
+    const cellED_a = `<div>${L(`V_i = ${fmt(st.A.Vi)}`)}</div><div>${L(`V_f = ${fmt(st.A.Vf)}`)}</div>`;
+    const cellED_b = `<div>${L(`V_i = ${fmt(st.B.Vi)}`)}</div><div>${L(`t = ${fmt(st.B.t)}`)}</div>`;
+    const cellED_c = `<div>${L(`V_f = ${fmt(st.C.Vf)}`)}</div><div>${L(`t = ${fmt(st.C.t)}`)}</div>`;
+
+    const rows = `
     <tr>
       <td class="num">a.</td>
-      <td style="text-align:left">
-        V<sub>i</sub> = ${fmt(st.A.Vi)}<br>
-        V<sub>f</sub> = ${fmt(st.A.Vf)}
-      </td>
-      <td><em>t</em> = ${fracHTML('V<sub>f</sub> − V<sub>i</sub>','V<sub>i</sub>')}</td>
+      <td style="text-align:left">${cellED_a}</td>
+      <td>${L('t = ' + texFrac('V_f - V_i','V_i'))}</td>
       <td>
-        <em>t</em> = ${frac(`${fmt(st.A.Vf)} − ${fmt(st.A.Vi)}`, `${fmt(st.A.Vi)}`)}
-        &nbsp;≈ <strong>${fmt(ta01)}</strong> ≈ <strong>${pct(ta01)}%</strong>
+        <div>${L(`t = ${texFrac(`${fmt(st.A.Vf)} - ${fmt(st.A.Vi)}`, `${fmt(st.A.Vi)}`)}`)}</div>
+        <div>${L(`t \\approx ${fmt(ta01)} \\approx ${pct(ta01)}\\,\\%`)}</div>
       </td>
       <td><strong>${sgn(ta)}</strong></td>
     </tr>
 
     <tr>
       <td class="num">b.</td>
-      <td style="text-align:left">
-        V<sub>i</sub> = ${fmt(st.B.Vi)}<br>
-        <em>t</em> = ${fmt(st.B.t)}
-      </td>
-      <td>V<sub>f</sub> = (1 + t)  V<sub>i</sub></td>
+      <td style="text-align:left">${cellED_b}</td>
+      <td>${L('V_f = (1 + t) \\times V_i')}</td>
       <td>
-        V<sub>f</sub> = (${pm(st.B.t)}) × ${fmt(st.B.Vi)}
-        &nbsp;≈ <strong>${fmt(vfb01)}</strong>
+        <div>${L(`V_f = (${pm(st.B.t)}) \\times ${fmt(st.B.Vi)}`)}</div>
+        <div>${L(`V_f \\approx ${fmt(vfb01)}`)}</div>
       </td>
       <td><strong>${sgn(st.B.t)}</strong></td>
     </tr>
 
     <tr>
       <td class="num">c.</td>
-      <td style="text-align:left">
-        V<sub>f</sub> = ${fmt(st.C.Vf)}<br>
-        <em>t</em> = ${fmt(st.C.t)}
-      </td>
-      <td>V<sub>i</sub> = ${frac('V<sub>f</sub>','1 + t')}</td>
+      <td style="text-align:left">${cellED_c}</td>
+      <td>${L('V_i = ' + texFrac('V_f','1 + t'))}</td>
       <td>
-        V<sub>i</sub> = ${frac(`${fmt(st.C.Vf)}`, `${pm(st.C.t)}`)}
-        &nbsp;≈ <strong>${fmt(vic01)}</strong>
+        <div>${L(`V_i = ${texFrac(`${fmt(st.C.Vf)}`, `${pm(st.C.t)}`)}`)}</div>
+        <div>${L(`V_i \\approx ${fmt(vic01)}`)}</div>
       </td>
       <td><strong>${sgn(st.C.t)}</strong></td>
-    </tr>
-  `;
+    </tr>`;
 
-  $('#res', inner).innerHTML = `
-    <table class="tbl center">
-      <thead>
-        <tr>
-          <th style="width:32px"></th>
-          <th>Éléments donnés</th>
-          <th>Formule</th>
-          <th>Réponse</th>
-          <th>Augmentation ou diminution</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-  $('#res', inner).className = 'res';
-},
-
+    $('#res', inner).innerHTML = `
+      <table class="tbl center">
+        <thead>
+          <tr>
+            <th style="width:32px"></th>
+            <th>Éléments Données</th>
+            <th>Formule</th>
+            <th>Réponse</th>
+            <th>Augmentation ou diminution</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    $('#res', inner).className = 'res';
+    retypeset(inner);
+  },
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
 
-/* === Ex. 3 : Banque de 20 contextes (entiers pour objets/personnes) === */
+/* === Ex. 3 : Banque de contextes === */
 const ex3 = {
   id:'taux_contextes',
   title:'Taux d’évolution — contextes variés',
-  
-
   gen(){
-  // Décimal : force Vi ≠ Vf à l'affichage (0,01 près), réajuste t si besoin
-function withT_ne(Vi, t) {
-  // (ré)échantillonne ou pousse t loin de 0 pour garantir un changement visible
-  let T = t;
-  let Vf = Math.round(Vi * (1 + T) * 100) / 100;
-  if (eq02(Vi, Vf)) {
-    // pousse de ±0,01 (puis ±0,02 si nécessaire)
-    T = (T >= 0 ? T + 0.01 : T - 0.01);
-    Vf = Math.round(Vi * (1 + T) * 100) / 100;
-    if (eq02(Vi, Vf)) {
-      T = (T >= 0 ? T + 0.02 : T - 0.02);
-      Vf = Math.round(Vi * (1 + T) * 100) / 100;
+    function withT_ne(Vi, t) {
+      let T = t;
+      let Vf = Math.round(Vi * (1 + T) * 100) / 100;
+      if (Math.round(Vi*100)===Math.round(Vf*100)) {
+        T = (T >= 0 ? T + 0.01 : T - 0.01);
+        Vf = Math.round(Vi * (1 + T) * 100) / 100;
+        if (Math.round(Vi*100)===Math.round(Vf*100)) {
+          T = (T >= 0 ? T + 0.02 : T - 0.02);
+          Vf = Math.round(Vi * (1 + T) * 100) / 100;
+        }
+      }
+      return { Vi, t: T, Vf };
     }
-  }
-  return { Vi, t: T, Vf };
-}
-
-// Comptages (objets/personnes) : Vi, Vf entiers et différents
-// Comptages (objets/personnes) : Vi, Vf entiers et différents
-function COUNT_ne(min, max, pctList){
-  // liste par défaut (pas de 0 %)
-  const LIST = (Array.isArray(pctList) && pctList.length
-                ? pctList
-                : [-60,-50,-40,-30,-25,-20,-15,-10,10,15,20,25,30,40,50,60]
-               ).filter(p => p !== 0);
-
-  let Vi, tPct, Vf, guard = 0;
-  do {
-    Vi   = rnd(min, max);
-    tPct = LIST[rnd(0, LIST.length - 1)];
-    Vf   = Math.round(Vi * (1 + tPct/100)); // entier
-    if (++guard > 1000) break;              // sécurité
-  } while (Vf === Vi);                       // garantit un changement
-
-  return { Vi, t: tPct/100, Vf, isCount: true };
-}
-
-    function withT(Vi, t){ return {Vi:Vi, t:t, Vf: Math.round(Vi*(1+t)*100)/100}; }
-    // counts: ensure integers Vi and Vf
-    function COUNT(min,max, pctList=[-60,-50,-40,-30,-25,-20,-10,10,20,25,30,40,50,60]){
-      const Vi = rnd(min,max);
-      const t  = choice(pctList)/100;
-      const Vf = Math.round(Vi*(1+t)); // entier
-      return {Vi, t, Vf, isCount:true};
+    function COUNT_ne(min, max, pctList){
+      const LIST = (Array.isArray(pctList) && pctList.length
+                    ? pctList
+                    : [-60,-50,-40,-30,-25,-20,-15,-10,10,15,20,25,30,40,50,60]
+                   ).filter(p => p !== 0);
+      let Vi, tPct, Vf, guard = 0;
+      do {
+        Vi   = rnd(min, max);
+        tPct = LIST[rnd(0, LIST.length - 1)];
+        Vf   = Math.round(Vi * (1 + tPct/100));
+        if (++guard > 1000) break;
+      } while (Vf === Vi);
+      return { Vi, t: tPct/100, Vf, isCount: true };
     }
-    const C = [
-      ()=>({label:'prix d’une baguette (€)', ...withT(rnd(60,120)/100, rnd(-20,35)/100)}),
-      ()=>({label:'salaire mensuel (€)', ...withT(rnd(1200,2900), rnd(-10,25)/100)}),
-      ()=>COUNT(50, 800, [-50,-40,-30,-20,-10,10,20,30,40,50]).__proto__={}, // placeholder, not used
-    ];
-    // Build 20 different generators
     const BANK = [
       ()=>({label:'prix d’un panier de courses <em>(en €)</em>', ...withT_ne(rnd(30,180), rnd(-25,35)/100)}),
       ()=>({label:'prix d’un smartphone <em>(en €)</em>', ...withT_ne(rnd(200,1400), rnd(-40,25)/100)}),
@@ -766,38 +753,37 @@ function COUNT_ne(min, max, pctList){
     const inner = innerHost(host);
     inner.innerHTML = `
   <div class="consigne"><div class="c-label">Énoncé</div>
-    <div>Le ${st.label} est passé de <strong>${fmtIntOrDec(st.Vi,2)}</strong> à <strong>${fmtIntOrDec(st.Vf,2)}</strong>.</div>
+    <div>Le ${st.label} est passé de <strong>${N(st.Vi,2)}</strong> à <strong>${N(st.Vf,2)}</strong>.</div>
   </div>
   <ol class="hint">
     <li>Calculer la variation absolue.</li>
-    <li>Calculer le taux d’évolution (à 0,01 près).</li>
-    <li>En déduire le pourcentage d’évolution (au % près).</li>
+    <li>Calculer le taux d’évolution ${L('t')}, à 0,01 près.</li>
+    <li>En déduire le pourcentage d’évolution, au % près.</li>
   </ol>
 
   <div class="row">
     <div class="col-label"><strong>1)</strong> Variation absolue</div>
-    <div class="input-line"><input id="vabs" type="text" placeholder="ex. 3,5"></div>
+    <div class="input-line"><input id="vabs" type="text" placeholder=""></div>
   </div>
 
   <div class="row">
-    <div class="col-label"><strong>2)</strong> Taux d’évolution t</div>
-    <div class="input-line"><input id="t" type="text" placeholder="ex. −0,12 ou −12%"></div>
+    <div class="col-label"><strong>2)</strong> Taux d’évolution ${L('t')} </div>
+    <div class="input-line"><input id="t" type="text" placeholder=""></div>
   </div>
 
   <div class="row">
     <div class="col-label"><strong>3)</strong> Pourcentage d’évolution</div>
-    <div class="input-line"><input id="pct" type="text" placeholder="ex. −12%"></div>
+    <div class="input-line"><input id="pct" type="text" placeholder=""></div>
   </div>
 
-  <!-- Une seule case grisée pour la correction -->
   <div id="res" class="res"></div>
 `;
-
+    retypeset(inner);
   },
   correct(host, st){
     const inner = innerHost(host);
     addTicks(inner);
-    progressiveValidate(inner);
+progressiveValidate(host);
     if(!allInputsFilled(inner)){ const res=$('#res',inner); if(res){ res.textContent=''; res.className='res'; } return; }
     const ok1 = validateOneInput($('#vabs',inner), st, this.id);
     const ok2 = validateOneInput($('#t',inner), st, this.id);
@@ -809,49 +795,26 @@ function COUNT_ne(min, max, pctList){
     return {ok:okAll, total:3};
   },
   solution(host, st){
-  const inner = innerHost(host);
-  const fmt2 = (x)=>fmtIntOrDec(x,2);
+    const inner = innerHost(host);
+    const fmt2 = (x)=>fmtIntOrDec(x,2);
 
-  // On arrondit Vi, Vf au centième comme dans l'énoncé attendu
-  const Vi = Math.round(st.Vi*100)/100;
-  const Vf = Math.round(st.Vf*100)/100;
+    const Vi = Math.round(st.Vi*100)/100;
+    const Vf = Math.round(st.Vf*100)/100;
 
-  const VA  = Vf - Vi;
-  const T   = Vf/Vi - 1;
-  const T01 = Math.round(T*100)/100;     // t à 0,01 près
-  const Pct = Math.round(T01*100);       // % au pourcentage près
+    const VA  = Vf - Vi;
+    const T   = Vf/Vi - 1;
+    const T01 = Math.round(T*100)/100;
+    const Pct = Math.round(T01*100);
 
-  $('#res', inner).innerHTML = `
-    <ol class="steps">
-		<div class="eq">
-	          <strong>V<sub>i</sub></strong> = ${fmt2(Vi)} et <strong>V<sub>f</sub></strong> = ${fmt2(Vf)}.<br>
+    const L1 = `${L(`V_i = ${fmt2(Vi)} \\text{ et } V_f = ${fmt2(Vf)}`)}`;
+    const L2 = `${Q(1)}${L(`V_a = V_f - V_i = ${fmt2(Vf)} - ${fmt2(Vi)} = ${fmt2(VA)}`)}`;
+    const L3 = `${Q(2)}${L(`t = ${texFrac('V_f - V_i','V_i')} = ${texFrac(`${fmt2(Vf)} - ${fmt2(Vi)}`, `${fmt2(Vi)}`)} \\approx ${fmt2(T01)}`)}`;
+    const L4 = `${Q(3)}${L(`t = ${fmt2(T01)} = ${Pct}\\,\\%`)}`;
 
-	</div>
-      <li>
-        <div class="eq">
-          <strong>V<sub>a</sub></strong> = V<sub>f</sub> − V<sub>i</sub> = ${fmt2(Vf)} − ${fmt2(Vi)} = <strong>${fmt2(VA)}</strong>
-        </div>
-      </li>
-
-      <li>
-        <div class="eq">
-          <em>t</em> = ${fracHTML('V<sub>f</sub> − V<sub>i</sub>', 'V<sub>i</sub>')}
-          = ${fracHTML(`${fmt2(Vf)} − ${fmt2(Vi)}`, `${fmt2(Vi)}`)}
-          ≈ <strong>${fmt2(T01)}</strong>
-        </div>
-      </li>
-
-      <li>
-        <div class="eq">
-          <em>t</em> = ${fmt2(T01)} = <strong>${Pct}%</strong>
-        </div>
-      </li>
-    </ol>
-  `;
-  $('#res', inner).className = 'res';
-},
-
-
+    $('#res', inner).innerHTML = [`<p>${L1}</p>`,`<p>${L2}</p>`,`<p>${L3}</p>`,`<p>${L4}</p>`].join('');
+    $('#res', inner).className = 'res';
+    retypeset(inner);
+  },
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
@@ -870,6 +833,7 @@ function buildOne(){
   host.dataset.active = def.id;
   host.dataset.state  = JSON.stringify(st);
   def.render(host, st);
+  retypeset(host); // NEW
   const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
   addTicks(host);
 }
@@ -884,13 +848,13 @@ function check(){
 }
 function solution(){
   const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
-  // snapshot visible inputs
   const visInputs = $$('#host input[type=text]').filter(inp=>!inp.closest('.equ-offscreen'));
   const snap = new Map(visInputs.map(inp=>[inp, inp.value]));
   const st=JSON.parse(host.dataset.state||'{}');
   def.solution(host, st);
   for(const [inp,val] of snap) inp.value = val;
   progressiveValidate(host);
+  retypeset(host); // NEW
 }
 function resetAll(){
   scoreOK=0; scoreTot=0; updateScore();
@@ -923,15 +887,13 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
 <script src='../../../../js/fraction-sign-clarity.dom.v3.js' defer></script>
-<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 <script>
   window.addEventListener('DOMContentLoaded', function () {
     if (!window.ExoPDF) { console.warn('ExoPDF non chargé'); return; }
 
     ExoPDF.init({
-      // Monte le générateur PDF sous la carte “Saisie & réponses acceptées :”
       mountAfterSelector: '.wrap .card.small',
-
       title: document.title.replace(/\s+–.+$/,'').trim(),
       max: 40,
       leadByDefId: {
@@ -939,58 +901,49 @@ document.addEventListener('DOMContentLoaded', function(){
         'taux_calc_3cas': 'Exercice 2 — Calculs d’application (t, Vf, Vi)',
         'taux_contextes': 'Exercice 3 — Taux d’évolution (contextes)'
       },
-
-      // === Point crucial : fournir ÉNONCÉ et SOLUTION au kit ===
-      // - isSolution=false : on fige l’énoncé et on REND TOUTES LES CASES VIDES
-      // - isSolution=true  : on appelle def.solution(...) et on renvoie le #res
       beforeRender(def, st, isSolution){
         const tmp = document.createElement('div');
-        // hors écran pour ne pas polluer la page
         Object.assign(tmp.style, {position:'fixed', left:'-10000px', top:'-10000px', width:'0', height:'0', overflow:'hidden'});
         document.body.appendChild(tmp);
-
         try{
-          // 1) rendu de base
           if (typeof def.render === 'function') def.render(tmp, st);
 
           if (isSolution) {
-            // 2) calcul de la solution (préférence .solution(), sinon .correct())
             if (typeof def.solution === 'function') { try{ def.solution(tmp, st); } catch(e){}; }
             else if (typeof def.correct === 'function'){ try{ def.correct(tmp, st); } catch(e){}; }
-
-            // 3) on récupère le bloc #res (ou .res en fallback)
             let node = tmp.querySelector('#res') || tmp.querySelector('.res') || tmp;
-            // on nettoie le style “ok/ko” éventuel
             node.classList?.remove('res-ok','res-ko');
             return { solution: node.outerHTML };
           }
 
-          // --- Ici : ÉNONCÉ (laisser les cases BLANCHES) ---
-          // a) retirer les ✓/✗
           tmp.querySelectorAll('.tick').forEach(t=>t.remove());
-          // b) remplacer tous les <select> par des <span> vides
           tmp.querySelectorAll('select').forEach(sel=>{
             const span = document.createElement('span');
             span.className = 'sol-sel';
-            span.textContent = '';           // case blanche
+            span.textContent = '';
             sel.replaceWith(span);
           });
-          // c) remplacer tous les inputs par des <span> vides
           tmp.querySelectorAll('input[type=text], input[type=number]').forEach(inp=>{
             const span = document.createElement('span');
             span.className = 'sol-text';
-            span.textContent = '';           // zone blanche
+            span.textContent = '';
             inp.replaceWith(span);
           });
-          return { statement: tmp.innerHTML };
+		  // Garder les questions dans l'exo 3, mais enlever la phrase d'énoncé
+if (!isSolution) {
+  const isEx3 = def && def.id === 'taux_contextes';
+  if (isEx3) {
+    tmp.querySelectorAll('.row').forEach(n => n.remove());
+  }
+}
 
+          return { statement: tmp.innerHTML };
         } finally {
           tmp.remove();
         }
       }
     });
 
-    // Forcer “avec corrigés” coché par défaut
     setTimeout(()=>{ const chk = document.querySelector('.pdf-controls #pdf-sol'); if (chk) chk.checked = true; }, 0);
   });
 </script>
@@ -999,37 +952,33 @@ document.addEventListener('DOMContentLoaded', function(){
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
-  // 1) Barre d’actions mobile (clones des boutons existants)
   if (window.innerWidth <= 760) {
     const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
-      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
-[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
-  const src = document.querySelector(sel);
-  if (src) {
-    const clone = src.cloneNode(true);
-    clone.classList.add('btn');
-    clone.type = 'button';
-    clone.removeAttribute('id');        // id doit rester unique
-    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
-    bar.appendChild(clone);
-  } else {
-    // fallback si jamais l’original est absent (rare)
-    const fallback = document.createElement('button');
-    fallback.className = 'btn';
-    fallback.type = 'button';
-    fallback.textContent = label;
-    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
-    bar.appendChild(fallback);
-  }
-});
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type = 'button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className = 'btn';
+          fallback.type = 'button';
+          fallback.textContent = label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
       document.body.appendChild(bar);
     }
   }
 
-  // 2) Clavier math repliable (si présent)
   const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
   if (kbdHost && window.innerWidth <= 760) {
     kbdHost.setAttribute('data-collapsible','');
@@ -1040,17 +989,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(tg);
   }
 
-  // 3) Confort de saisie
   document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
     el.setAttribute('autocomplete','off');
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
-    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 
-  // 4) Points à déplacer : rayon + touche
   if (coarse) {
     document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
       const r = parseFloat(c.getAttribute('r')||'5');
@@ -1061,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
 }, {passive:true});
 </script>
 
-
 </body>
-
 </html>
+

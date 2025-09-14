@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang='fr'>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Coefficient multiplicateur</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+.res{grid-area:res; padding:12px; border-radius:10px; background:#f7f7f7}
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{ display:grid; grid-template-columns:1fr; grid-template-areas:'lab' 'inp' 'res'; gap:10px; align-items:start; }
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.row .res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+/* tableaux (ex. 3) */
+.tbl{border-collapse:collapse; border:1px solid #bbb; width:100%}
+.tbl td,.tbl th{border:1px solid #bbb; padding:6px; text-align:left; vertical-align:top}
+.tbl .num{width:28px;text-align:center}
+.tbl .eq p{margin:.25rem 0}
+@media print{ .tbl{border:1px solid #000} .tbl td,.tbl th{border:1px solid #000} }
+
+/* Tick à droite de chaque champ */
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+
+/* Tableau à colonnes stables (PDF + écran) */
+.tbl-fixed{ table-layout: fixed; width:100%; }
+
+/* Largeurs de colonnes (1re colonne en px, le reste en %) */
+.tbl-fixed col.num     { width:32px; }
+.tbl-fixed col.given   { width:27%; }
+.tbl-fixed col.formula { width:26%; }
+.tbl-fixed col.answer  { width:27%; }
+.tbl-fixed col.kind    { width:20%; }
+
+/* Formules MathJax en bloc pour éviter les glissements horizontaux */
+.tbl .eq{ text-align:left; }
+.tbl .eq mjx-container{ display:block !important; max-width:100%; }
+.tbl .eq p{ margin:.25rem 0; }
+
+/* Sécurité : pas de débordement vertical */
+.tbl td,.tbl th{ vertical-align:top; }
+
+</style>
+
+<!-- MathJax (rendu LaTeX \( ... \) ) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: {
+        frac: ['\\dfrac{#1}{#2}', 2]
+      }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+
+<body>
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 3 – <strong>Coefficient multiplicateur</strong></h1>
+  <div class="wrap" style="padding:0 18px">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card"><div id="host"></div></div>
+
+  <div class="card small">
+    <div><strong>Saisie & réponses acceptées :</strong></div>
+    <ul class="tips">
+      <li>Décimaux : virgule <em>ou</em> point (ex. <code>1,25</code> ↔ <code>1.25</code>).</li>
+      <li>Pourcentages : autorisé avec <code>%</code> (<code>12%</code>) ou en décimal (<code>0,12</code>).</li>
+      <li>Arrondis : valeurs et taux au <strong>centième</strong> près.</li>
+    </ul>
+  </div>
+
+  <div class="card"><div data-math-kbd style="display:flex; justify-content:center"></div></div>
+</div>
+
+<script>
+/* ================== Outils ================== */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+function innerHost(host){ let inner=host.querySelector('.inner'); if(!inner){ host.innerHTML='<div class="inner"></div>'; inner=host.querySelector('.inner'); } return inner; }
+const fmtDecFR = (x, d=2)=> String(Math.round(x*10**d)/10**d).replace('.',',');
+function tidyDecFR(v,d=2){ let s=fmtDecFR(v,d); if(s.includes(',')) s=s.replace(/0+$/,'').replace(/[,]$/,''); return s; }
+function fmtIntOrDec(v,d=2){ return Number.isInteger(v)? String(v) : tidyDecFR(v,d); }
+const same02=(a,b)=> Math.round(a*100)===Math.round(b*100);
+const same0001=(a,b)=> Math.round(a*10000)===Math.round(b*10000);
+const stripU = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){ s=stripU(String(s||'').trim()); const m=s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/); if(m) return parseFloat(m[1].replace(',', '.'))/100; return parseFloat(s.replace(',', '.')); }
+function parseNumberFR_noPct(s){ s=stripU(String(s||'').trim()); if(/%/.test(s)) return NaN; return parseFloat(s.replace(',', '.')); }
+
+// Arrondi générique
+function rto(v, d=2){ return Math.round(v * 10**d) / 10**d; }
+
+// Signe "=" ou "\approx" pour LaTeX
+function eqSignTex(exact, shown){
+  return (Math.abs(exact - shown) < 1e-12) ? '=' : '\\approx';
+}
+
+// Re-typeset MathJax local au host
+function retypeset(host){
+  const root = host && host.querySelector ? host : document;
+  if (window.MathJax?.typesetPromise) { MathJax.typesetPromise([root]); }
+  else if (window.MathJax?.typeset)   { MathJax.typeset([root]); }
+}
+
+/* ================== Ticks ================== */
+function addTicks(host){
+  $$('#host input[type=text], #host select').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    const next = inp.nextElementSibling;
+    if(!next || !next.classList || !next.classList.contains('tick')){
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+    }
+  });
+}
+function setTickForInput(inp, state){
+  const tick = inp.nextElementSibling && inp.nextElementSibling.classList.contains('tick') ? inp.nextElementSibling : null;
+  if(!tick) return;
+  if(state===null){ tick.textContent=''; tick.classList.remove('ok','ko'); return; }
+  if(state===true){ tick.textContent='✔'; tick.classList.add('ok'); tick.classList.remove('ko'); }
+  else            { tick.textContent='✘'; tick.classList.add('ko'); tick.classList.remove('ok'); }
+}
+
+/* ================== Exercices ================== */
+
+/* === Ex. 1 — Coefficient multiplicateur pour une évolution donnée === */
+const ex1 = {
+  id:'cm_depuis_taux',
+  title:'Ex. 1 — Coefficient multiplicateur et évolution',
+  gen(){
+    const type = Math.random() < 0.5 ? 'hausse' : 'baisse';
+    // Tirages au centième de % (0,01 %)
+    const p = (type === 'baisse') ? (rnd(1, 10000) / 100) : (rnd(1, 12000) / 100);
+    const c = type === 'hausse' ? 1 + p/100 : 1 - p/100;
+    return { type, p, c };
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+Donner le coefficient multiplicateur correspondant à ${st.type==='hausse'?'une <strong>hausse</strong>':'une <strong>baisse</strong>'} de <strong>\\(${fmtIntOrDec(st.p,2)}\\%\\)</strong>.
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse attendue :</strong> le coefficient multiplicateur \\( c \\), à 0,0001 près.</div>
+        <div class="input-line"><input id="c1" type="text" placeholder=""></div>
+      </div>
+      <div id="res" class="res"></div>
+    `;
+    retypeset(inner);
+  },
+  correct(host, st){
+    const inner = innerHost(host); addTicks(inner);
+    const v = parseNumberFR_noPct($('#c1',inner).value);
+    if(!isFinite(v)){ setTickForInput($('#c1',inner), false); return {ok:false,total:1}; }
+    const ok = same0001(v, st.c); // tolérance 1e-4
+    setTickForInput($('#c1',inner), ok);
+    const res = $('#res',inner);
+    res.textContent = ok ? 'Correct.' : 'Incorrect.';
+    res.className = 'res ' + (ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const inner = innerHost(host);
+    const sign = st.type==='hausse' ? '+' : '-';
+    const pTxt = fmtIntOrDec(st.p,2);                          // en %
+    const tDec = tidyDecFR(st.p/100,4);                        // décimal
+    const cDec = tidyDecFR(Math.round(st.c*10000)/10000,4);    // c à 1e-4
+
+    $('#res',inner).innerHTML = [
+      `<p>\\( c = 1 + t \\)</p>`,
+      `<p>\\( c = 1 ${sign} \\frac{${pTxt}}{100} \\)</p>`,
+      `<p>\\( c = 1 ${sign} ${tDec} \\)</p>`,
+      `<p>\\( c = \\mathbf{${cDec}} \\)</p>`
+    ].join('');
+    $('#res',inner).className='res';
+    retypeset(inner);
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* === Ex. 2 — À partir de c, dire hausse/baisse et donner le pourcentage === */
+const ex2 = {
+  id:'type_et_taux_depuis_c',
+  title:'Ex. 2 — Coefficient multiplicateur et évolution',
+  gen(){
+    const r = Math.random();
+    const pick = (min, max)=> Math.round((min + Math.random()*(max-min)) * 10000) / 10000;
+    let c;
+    if (r < 0.40) c = pick(0.0500, 0.9999);
+    else if (r < 0.80) c = pick(1.0001, 2.0000);
+    else c = pick(2.0000, 3.0000);
+    const type = c > 1 ? 'hausse' : 'baisse';
+    const t = c - 1;
+    return { c, type, t };
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        Le coefficient multiplicateur est <strong>\\( c = ${fmtIntOrDec(st.c,4)} \\)</strong>.
+        Indiquer s’il s’agit d’une hausse ou d’une baisse, et donner le pourcentage d’évolution, à 0,01 près.
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>Type d’évolution :</strong></div>
+        <div class="input-line">
+          <select id="type2">
+            <option value="">—</option>
+            <option value="hausse">Hausse</option>
+            <option value="baisse">Baisse</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>Pourcentage d’évolution :</strong></div>
+        <div class="input-line"><input id="t2" type="text" placeholder=""></div>
+      </div>
+
+      <div id="res" class="res"></div>
+    `;
+    retypeset(inner);
+  },
+  correct(host, st){
+    const inner = innerHost(host); addTicks(inner);
+    const type = $('#type2',inner).value;
+    const t = parseNumberFR($('#t2',inner).value); // décimal
+    const okType = (type===st.type);
+    const okT   = isFinite(t) && same0001(t, st.t);
+    setTickForInput($('#type2',inner), okType);
+    setTickForInput($('#t2',inner), okT);
+    const ok = !!(okType && okT);
+    const res = $('#res',inner);
+    res.textContent = ok ? 'Correct.' : 'Incorrect.';
+    res.className = 'res ' + (ok?'res-ok':'res-ko');
+    return {ok, total:1};
+  },
+  solution(host, st){
+    const inner = innerHost(host);
+    const cTxt  = fmtIntOrDec(st.c, 4);
+    const tDec  = Math.round((st.c - 1) * 10000) / 10000;   // t au 1e-4
+    const tTxt  = tidyDecFR(tDec, 4);                       // ex: -0,3768 ou 0,0767
+    const pctSigned = Math.round(tDec * 10000) / 100;       // ex: -37,68
+    const pctAbs    = Math.abs(pctSigned);
+    const kind  = st.c >= 1 ? 'hausse' : 'baisse';
+
+    $('#res',inner).innerHTML = [
+      `<p>\\( t = c - 1 \\)</p>`,
+      `<p>\\( t = ${cTxt} - 1 \\)</p>`,
+      `<p>\\( t = ${tTxt} \\)</p>`,
+      `<p>\\( t = ${tidyDecFR(pctSigned, 2)}\\% \\)</p>`,
+`<p>On a donc une <strong>${kind}</strong> de <strong>\\(${tidyDecFR(pctAbs, 2)}\\%\\)</strong>.</p>`
+    ].join('');
+    $('#res',inner).className = 'res';
+    retypeset(inner);
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* === Ex. 3 — Trois cas (reprend l’exo 2, consigne adaptée) === */
+const ex3 = {
+  id:'taux_calc_3cas_bis',
+  title:"Ex. 3 — Coefficient multiplicateur & taux d’évolution — trois cas",
+  gen(){
+    function rndExcept(min, max, except=[]) {
+      const S = new Set(except.map(String)); let v;
+      do { v = rnd(min, max); } while (S.has(String(v))); return v;
+    }
+    const A = (() => {
+      let Vi, Vf, tInt;
+      do { Vi=rnd(80,260)/100; tInt=rndExcept(-45,75,[0]); Vf=Math.round(Vi*(1+tInt/100)*100)/100; } while (Math.round(Vi*100)===Math.round(Vf*100));
+      return { Vi, Vf };
+    })();
+    const B = (() => {
+      let Vi, tInt, Vf;
+      do { Vi=rnd(80,260)/100; tInt=rndExcept(-40,80,[0]); Vf=Math.round(Vi*(1+tInt/100)*100)/100; } while (Math.round(Vi*100)===Math.round(Vf*100));
+      return { Vi, t: tInt/100 };
+    })();
+    const C = (() => {
+      const Vf=rnd(80,260)/100; const tInt=rndExcept(-40,80,[0]); return { Vf, t: tInt/100 };
+    })();
+    return { A, B, C };
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <div class="c-label">Consigne</div>
+        <div>Dans cet exercice, \\( V_i \\) désigne la valeur initiale, \\( V_f \\) la valeur finale et \\( t \\) le taux d’évolution.</div>
+        <div>Calculer \\( V_i \\), \\( V_f \\) ou \\( t \\) en connaissant les deux autres. On utilisera le coefficient multiplicateur \\( c \\).</div>
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>a)</strong> Données : \\( V_i = ${fmtIntOrDec(st.A.Vi,2)} \\) ; \\( V_f = ${fmtIntOrDec(st.A.Vf,2)} \\). Chercher \\( t \\), à 0,01 près.</div>
+        <div class="input-line"><input id="tA" type="text" placeholder=""></div>
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>b)</strong> Données : \\( V_i = ${fmtIntOrDec(st.B.Vi,2)} \\) ; \\( t = ${fmtIntOrDec(st.B.t,2)} \\). Chercher \\( V_f \\), à 0,01 près.</div>
+        <div class="input-line"><input id="vfB" type="text" placeholder=""></div>
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>c)</strong> Données : \\( V_f = ${fmtIntOrDec(st.C.Vf,2)} \\) ; \\( t = ${fmtIntOrDec(st.C.t,2)} \\). Chercher \\( V_i \\), à 0,01 près.</div>
+        <div class="input-line"><input id="viC" type="text" placeholder=""></div>
+      </div>
+
+      <div id="res" class="res"></div>
+    `;
+    retypeset(inner);
+  },
+  correct(host, st){
+    const inner = innerHost(host);
+    addTicks(inner);
+    const vA = parseNumberFR($('#tA',inner).value);
+    const vB = parseNumberFR_noPct($('#vfB',inner).value);
+    const vC = parseNumberFR_noPct($('#viC',inner).value);
+    const okA = isFinite(vA)&& same02(vA, st.A.Vf/st.A.Vi - 1);
+    const okB = isFinite(vB)&& same02(vB, st.B.Vi*(1+st.B.t));
+    const okC = isFinite(vC)&& same02(vC, st.C.Vf/(1+st.C.t));
+    setTickForInput($('#tA',inner), okA);
+    setTickForInput($('#vfB',inner), okB);
+    setTickForInput($('#viC',inner), okC);
+    const ok = okA && okB && okC;
+    const res = $('#res',inner); res.textContent = ok?'Tout est correct.':'Il y a des erreurs.'; res.className='res '+(ok?'res-ok':'res-ko');
+    return {ok,total:3};
+  },
+  solution(host, st){
+    const inner = innerHost(host);
+    const fmt = (x,d=2)=>fmtIntOrDec(x,d);
+    const sgnTxt = (t)=> t>=0 ? 'Augmentation' : 'Diminution';
+
+    // a) Vi, Vf → t
+    const ca    = st.A.Vf / st.A.Vi;
+    const ca02  = rto(ca,2);
+    const ta    = ca - 1;
+    const ta02  = rto(ta,2);
+    const taPct = Math.round(ta02*100); // en %
+
+    // b) Vi, t → Vf
+    const cb    = 1 + st.B.t;
+    const cb02  = rto(cb,2);
+    const vfb   = st.B.Vi * cb;
+    const vfb02 = rto(vfb,2);
+
+    // c) Vf, t → Vi
+    const cc    = 1 + st.C.t;
+    const cc02  = rto(cc,2);
+    const vic   = st.C.Vf / cc;
+    const vic02 = rto(vic,2);
+
+    const rowA = `
+      <tr>
+        <td class="num">a.</td>
+        <td>
+          <p>\\( V_i = ${fmt(st.A.Vi)} \\)</p>
+          <p>\\( V_f = ${fmt(st.A.Vf)} \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = \\dfrac{V_f}{V_i} \\)</p>
+          <p>\\( t = c - 1 \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = \\dfrac{${fmt(st.A.Vf)}}{${fmt(st.A.Vi)}} \\; ${eqSignTex(ca,ca02)} \\; ${fmt(ca02)} \\)</p>
+          <p>\\( t \\; ${eqSignTex(ta, 1 - ca02)} \\; 1 - ${fmt(ca02)} \\; ${eqSignTex(ta,ta02)} \\; ${fmt(ta02)} \\; ${eqSignTex(ta, taPct/100)} \\; ${taPct}\\% \\)</p>
+        </td>
+        <td><strong>${sgnTxt(ta)}</strong></td>
+      </tr>`;
+
+    const rowB = `
+      <tr>
+        <td class="num">b.</td>
+        <td>
+          <p>\\( V_i = ${fmt(st.B.Vi)} \\)</p>
+          <p>\\( t = ${fmt(st.B.t)} \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = 1 + t \\)</p>
+          <p>\\( V_f = V_i \\times c \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = 1 ${st.B.t>=0?'+':'-'} ${fmt(Math.abs(st.B.t))} \\; ${eqSignTex(cb,cb02)} \\; ${fmt(cb02)} \\)</p>
+          <p>\\( V_f = ${fmt(st.B.Vi)} \\times ${fmt(cb02)} \\; ${eqSignTex(vfb,vfb02)} \\; ${fmt(vfb02)} \\)</p>
+        </td>
+        <td><strong>${sgnTxt(st.B.t)}</strong></td>
+      </tr>`;
+
+    const rowC = `
+      <tr>
+        <td class="num">c.</td>
+        <td>
+          <p>\\( V_f = ${fmt(st.C.Vf)} \\)</p>
+          <p>\\( t = ${fmt(st.C.t)} \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = 1 + t \\)</p>
+          <p>\\( V_i = \\dfrac{V_f}{c} \\)</p>
+        </td>
+        <td class="eq">
+          <p>\\( c = 1 ${st.C.t>=0?'+':'-'} ${fmt(Math.abs(st.C.t))} \\; ${eqSignTex(cc,cc02)} \\; ${fmt(cc02)} \\)</p>
+          <p>\\( V_i = \\dfrac{${fmt(st.C.Vf)}}{${fmt(cc02)}} \\; ${eqSignTex(vic,vic02)} \\; ${fmt(vic02)} \\)</p>
+        </td>
+        <td><strong>${sgnTxt(st.C.t)}</strong></td>
+      </tr>`;
+
+    $('#res', inner).innerHTML = `
+  <table class="tbl tbl-fixed">
+    <colgroup>
+      <col class="num"><col class="given"><col class="formula"><col class="answer"><col class="kind">
+    </colgroup>
+    <thead> 
+          <tr>
+            <th style="width:32px"></th>
+            <th>Éléments donnés</th>
+            <th>Formules</th>
+            <th>Réponse</th>
+            <th>Augmentation ou diminution</th>
+          </tr>
+        </thead>
+        <tbody>${rowA}${rowB}${rowC}</tbody>
+      </table>`;
+    $('#res', inner).className = 'res';
+    retypeset(inner);
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* === Ex. 4 — Contexte : calculer c à 10^-4 puis t en % === */
+const ex4 = {
+  id:'cm_taux_contextes',
+  title:"Ex. 4 — Coefficient multiplicateur & taux d’évolution — contexte",
+  gen(){
+    const BANK = [
+      {vi:14.1,   vf:17.4,   txt:(vi,vf)=>`Le chiffre d’affaires total des loisirs numériques, en France, est passé de ${fmtIntOrDec(vi,1)} milliards d’euros à ${fmtIntOrDec(vf,1)} milliards d’euros.`},
+      {vi:348300, vf:284140, txt:(vi,vf)=>`Le nombre de lits d’hospitalisation, en France, dans les établissements publics, est passé de ${fmtIntOrDec(vi,0)} en 1992 à ${fmtIntOrDec(vf,0)} en 2008.`},
+      {vi:8.86,   vf:9.00,   txt:(vi,vf)=>`Le SMIC horaire brut est passé, entre le 01/01/10 et le 01/01/11, de ${fmtIntOrDec(vi,2)} € à ${fmtIntOrDec(vf,2)} €.`},
+      {vi:140,    vf:75,     txt:(vi,vf)=>`Le prix du baril (159 L) de pétrole est passé, entre juillet 2008 et juillet 2009, de ${fmtIntOrDec(vi,0)} $ à ${fmtIntOrDec(vf,0)} $.`},
+      {vi:314000, vf:408000, txt:(vi,vf)=>`Le nombre de logements construits, en France, est passé de ${fmtIntOrDec(vi,0)} en 2003 à ${fmtIntOrDec(vf,0)} en 2008.`},
+      {vi:152000, vf:171500, txt:(vi,vf)=>`La population d’une ville est passée de ${fmtIntOrDec(vi,0)} à ${fmtIntOrDec(vf,0)} habitants.`},
+      {vi:9.20,   vf:10.10,  txt:(vi,vf)=>`Le prix d’un billet de cinéma est passé de ${fmtIntOrDec(vi,2)} € à ${fmtIntOrDec(vf,2)} €.`},
+      {vi:58,     vf:64.5,   txt:(vi,vf)=>`Le panier moyen en e-commerce est passé de ${fmtIntOrDec(vi,2)} € à ${fmtIntOrDec(vf,2)} €.`},
+      {vi:11.5,   vf:12.3,   txt:(vi,vf)=>`La vitesse moyenne d’un coureur est passée de ${fmtIntOrDec(vi,1)} km/h à ${fmtIntOrDec(vf,1)} km/h.`},
+      {vi:2.8,    vf:3.1,    txt:(vi,vf)=>`La production d’une usine est passée de ${fmtIntOrDec(vi,1)} millions d’unités à ${fmtIntOrDec(vf,1)} millions d’unités.`},
+      {vi:1.50,   vf:1.32,   txt:(vi,vf)=>`La masse d’un échantillon après séchage est passée de ${fmtIntOrDec(vi,2)} kg à ${fmtIntOrDec(vf,2)} kg.`},
+      {vi:0.78,   vf:0.82,   txt:(vi,vf)=>`Le taux de réussite à un examen est passé de ${fmtIntOrDec(vi*100,0)} % à ${fmtIntOrDec(vf*100,0)} %.`},
+      {vi:420,    vf:465,    txt:(vi,vf)=>`Le chiffre d’affaires d’une librairie est passé de ${fmtIntOrDec(vi,0)} k€ à ${fmtIntOrDec(vf,0)} k€.`},
+      {vi:4200,   vf:3850,   txt:(vi,vf)=>`La consommation électrique d’un foyer est passée de ${fmtIntOrDec(vi,0)} kWh à ${fmtIntOrDec(vf,0)} kWh.`},
+      {vi:138.7,  vf:137.2,  txt:(vi,vf)=>`Le niveau d’un lac est passé de ${fmtIntOrDec(vi,1)} m à ${fmtIntOrDec(vf,1)} m.`},
+      {vi:1.25,   vf:1.60,   txt:(vi,vf)=>`Le nombre d’abonnés d’une chaîne est passé de ${fmtIntOrDec(vi,2)} million à ${fmtIntOrDec(vf,2)} million.`},
+      {vi:12500,  vf:13200, txt:(vi,vf)=>`La surface forestière d’un parc est passée de ${fmtIntOrDec(vi,0)} ha à ${fmtIntOrDec(vf,0)} ha.`},
+      {vi:2.1,    vf:1.9,    txt:(vi,vf)=>`Le nombre de touristes d’une région est passé de ${fmtIntOrDec(vi,1)} million à ${fmtIntOrDec(vf,1)} million.`},
+      {vi:72.4,   vf:68.8,   txt:(vi,vf)=>`La masse d’une personne est passée de ${fmtIntOrDec(vi,1)} kg à ${fmtIntOrDec(vf,1)} kg.`},
+      {vi:10.2,   vf:10.35,  txt:(vi,vf)=>`La longueur d’une pièce est passée de ${fmtIntOrDec(vi,2)} cm à ${fmtIntOrDec(vf,2)} cm.`},
+      {vi:1.12,   vf:1.05,   txt:(vi,vf)=>`Le taux de change euro-dollar est passé de ${fmtIntOrDec(vi,2)} à ${fmtIntOrDec(vf,2)}.`},
+      {vi:5200,   vf:4680,   txt:(vi,vf)=>`Un indice boursier est passé de ${fmtIntOrDec(vi,0)} à ${fmtIntOrDec(vf,0)} points.`},
+      {vi:15.8,   vf:18.1,   txt:(vi,vf)=>`La température moyenne d’un mois est passée de ${fmtIntOrDec(vi,1)} °C à ${fmtIntOrDec(vf,1)} °C.`},
+      {vi:45,     vf:38,     txt:(vi,vf)=>`Le volume d’un réservoir est passé de ${fmtIntOrDec(vi,0)} L à ${fmtIntOrDec(vf,0)} L.`},
+      {vi:320,    vf:345,    txt:(vi,vf)=>`La densité de population est passée de ${fmtIntOrDec(vi,0)} à ${fmtIntOrDec(vf,0)} hab/km².`},
+      {vi:42,     vf:35,     txt:(vi,vf)=>`Le temps de trajet domicile-travail est passé de ${fmtIntOrDec(vi,0)} min à ${fmtIntOrDec(vf,0)} min.`},
+      {vi:1250,   vf:1930,   txt:(vi,vf)=>`Le nombre d’arbres plantés est passé de ${fmtIntOrDec(vi,0)} à ${fmtIntOrDec(vf,0)}.`},
+      {vi:85,     vf:102,    txt:(vi,vf)=>`La surface habitable d’un logement est passée de ${fmtIntOrDec(vi,0)} m² à ${fmtIntOrDec(vf,0)} m².`},
+      {vi:150,    vf:320,    txt:(vi,vf)=>`Le débit Internet est passé de ${fmtIntOrDec(vi,0)} Mbit/s à ${fmtIntOrDec(vf,0)} Mbit/s.`},
+      {vi:10.0,   vf:10.6,   txt:(vi,vf)=>`La distance parcourue lors d’un entraînement est passée de ${fmtIntOrDec(vi,1)} km à ${fmtIntOrDec(vf,1)} km.`},
+      {vi:2.35,   vf:1.90,   txt:(vi,vf)=>`Le prix d’un kilo de tomates est passé de ${fmtIntOrDec(vi,2)} € à ${fmtIntOrDec(vf,2)} €.`},
+      {vi:610,    vf:730,    txt:(vi,vf)=>`Le nombre d’élèves d’un lycée est passé de ${fmtIntOrDec(vi,0)} à ${fmtIntOrDec(vf,0)}.`},
+      {vi:68.0,   vf:74.5,   txt:(vi,vf)=>`La capacité d’une batterie est passée de ${fmtIntOrDec(vi,1)} kWh à ${fmtIntOrDec(vf,1)} kWh.`},
+      {vi:23.5,   vf:19.8,   txt:(vi,vf)=>`La consommation d’eau d’un jardin par semaine est passée de ${fmtIntOrDec(vi,1)} m³ à ${fmtIntOrDec(vf,1)} m³.`},
+      {vi:3.6,    vf:4.2,    txt:(vi,vf)=>`La durée d’un trajet en train est passée de ${fmtIntOrDec(vi,1)} h à ${fmtIntOrDec(vf,1)} h.`}
+    ];
+    const ctx = BANK[Math.floor(Math.random()*BANK.length)];
+    return { Vi: ctx.vi, Vf: ctx.vf, text: ctx.txt(ctx.vi, ctx.vf) };
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <div class="c-label">Énoncé</div>
+        <ol style="margin:.3rem 0 .6rem 1.2rem">
+          <li>Calculer le coefficient multiplicateur \\( c \\), arrondir à \\( 10^{-4} \\).</li>
+<li>En déduire le taux d’évolution \\( t \\) sous forme de pourcentage, à 0,01% près.</li>
+        </ol>
+        <div style="margin-top:.4rem">${st.text}</div>
+      </div>
+
+      <div class="row">
+        <div class="col-label"><strong>Réponses :</strong></div>
+        <div class="input-line">
+          <input id="c4" type="text" placeholder="">
+          <input id="t4" type="text" placeholder="" style="margin-left:8px">
+        </div>
+      </div>
+
+      <div id="res" class="res"></div>
+    `;
+    retypeset(inner);
+  },
+  correct(host, st){
+    const inner = innerHost(host); addTicks(inner);
+    const cUser = parseNumberFR_noPct($('#c4',inner).value);
+    const tUser = parseNumberFR($('#t4',inner).value);
+    const cExp  = st.Vf / st.Vi;
+    const tExp  = cExp - 1;
+
+    const okC = isFinite(cUser) && same0001(cUser, cExp); // c au 1e-4
+    const okT = isFinite(tUser) && same0001(tUser, tExp); // t au 1e-4
+    setTickForInput($('#c4',inner), okC);
+    setTickForInput($('#t4',inner), okT);
+
+    const ok = okC && okT;
+    const res = $('#res',inner);
+    res.textContent = ok ? 'Tout est correct.' : 'Il y a des erreurs.';
+    res.className = 'res ' + (ok?'res-ok':'res-ko');
+    return {ok,total:2};
+  },
+  solution(host, st){
+    const inner = innerHost(host);
+    const cExact = st.Vf / st.Vi;
+    const c4  = rto(cExact,4);
+    const tExact = cExact - 1;
+    const t4  = rto(tExact,4);
+    const pct = Math.round(t4*10000)/100; // 0,01 %
+    const kind = tExact>=0 ? 'hausse' : 'baisse';
+
+    $('#res',inner).innerHTML = [
+      `<p>\\( c = \\dfrac{V_f}{V_i} \\)</p>`,
+      `<p>\\( c = \\dfrac{${fmtIntOrDec(st.Vf, (String(st.Vf).includes('.')?2:0))}}{${fmtIntOrDec(st.Vi, (String(st.Vi).includes('.')?2:0))}} \\; ${eqSignTex(cExact,c4)} \\; ${fmtIntOrDec(c4,4)} \\)</p>`,
+      `<p>\\( t = c - 1 \\)</p>`,
+      `<p>\\( t = ${fmtIntOrDec(c4,4)} - 1  \\)</p>`,
+      `<p>\\( t ${eqSignTex(tExact,t4)} \\; ${fmtIntOrDec(t4,4)} \\)</p>`,
+	  `<p>\\( t ${eqSignTex(tExact,t4)} \\; ${fmtIntOrDec(pct,2)}\\% \\)</p>`,
+`<p>On a donc une <strong>${kind}</strong> de <strong>\\(${fmtIntOrDec(Math.abs(pct),2)}\\%\\)</strong>.</p>`
+    ].join('');
+    $('#res',inner).className='res';
+    retypeset(inner);
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ================== Registre & moteur ================== */
+const REGISTRY=[ex1,ex2,ex3,ex4];
+window.REGISTRY=REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value);
+  if(!def) return;
+  const st=def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host, st);
+  const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
+  addTicks(host);
+  retypeset(host);
+}
+function check(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  addTicks(host);
+  const r = def.correct(host, JSON.parse(host.dataset.state||'{}'));
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
+  const visInputs = $$('#host input[type=text], #host select').filter(inp=>!inp.closest('.equ-offscreen'));
+  const snap = new Map(visInputs.map(inp=>[inp, inp.value]));
+  const st=JSON.parse(host.dataset.state||'{}');
+  def.solution(host, st);
+  for(const [inp,val] of snap) inp.value = val;
+  retypeset(host);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  innerHost(document.getElementById('host'));
+  const sel=$('#exo-select');
+  REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  document.addEventListener('keydown', function(ev){
+    const a = document.activeElement;
+    if(a && a.closest('#host') && (a.tagName==='INPUT')){
+      if(ev.key==='Enter'){ ev.preventDefault(); check(); }
+    }
+  });
+});
+</script>
+
+<!-- JS fournis -->
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+<script src='../../../../js/fraction-sign-clarity.dom.v3.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    if (!window.ExoPDF) { console.warn('ExoPDF non chargé'); return; }
+
+// Bordures noires (déjà vu) + mise en page fixe + formules en bloc
+function forcePdfTableBorders(root){
+  const scope = root && root.querySelector ? root : document;
+  scope.querySelectorAll('table, .tbl').forEach(t=>{
+    t.style.borderCollapse = 'collapse';
+    t.style.border = '1px solid #000';
+    if(!t.style.width) t.style.width = '100%';
+  });
+  scope.querySelectorAll('th, td').forEach(cell=>{
+    cell.style.border = '1px solid #000';
+  });
+}
+
+function freezePdfLayout(root){
+  const scope = root && root.querySelector ? root : document;
+
+  // 1) Tables d’exo: largeur fixe + colonnes figées
+  scope.querySelectorAll('table.tbl').forEach(tbl=>{
+    tbl.style.tableLayout = 'fixed';
+    tbl.style.width = '100%';
+
+    // Si pas de colgroup, on en ajoute un pour figer les largeurs (5 colonnes)
+    if (!tbl.querySelector('colgroup') && tbl.querySelectorAll('thead th').length === 5){
+      const cg = document.createElement('colgroup');
+      [['32px'], ['27%'], ['26%'], ['27%'], ['20%']].forEach(w=>{
+        const col = document.createElement('col'); col.style.width = w[0]; cg.appendChild(col);
+      });
+      tbl.insertBefore(cg, tbl.firstChild);
+    }
+
+    // Sécurité : on impose les largeurs également sur les <th>/<td>
+    const widths = ['32px','27%','26%','27%','20%'];
+    const headCells = tbl.querySelectorAll('thead th');
+    headCells.forEach((th,i)=>{ if(widths[i]) th.style.width = widths[i]; });
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      const tds = tr.children; for(let i=0;i<tds.length;i++){ if(widths[i]) tds[i].style.width = widths[i]; }
+    });
+
+    // Alignement lisible des colonnes "formules"
+    tbl.querySelectorAll('td.eq, .eq').forEach(td=>{ td.style.textAlign = 'left'; });
+  });
+
+  // 2) MathJax en bloc (sinon ça "respire" et bouscule les colonnes)
+  scope.querySelectorAll('mjx-container').forEach(mjx=>{
+    mjx.style.display = 'block';
+    mjx.style.maxWidth = '100%';
+  });
+}
+
+    ExoPDF.init({
+      // Monte le générateur PDF sous la carte “Saisie & réponses acceptées :”
+      mountAfterSelector: '.wrap .card.small',
+      title: document.title.replace(/\s+–.+$/,'').trim(),
+      max: 40,
+      leadByDefId: {
+        'cm_depuis_taux' : 'Exercice 1 — Coefficient multiplicateur et évolution',
+        'type_et_taux_depuis_c': 'Exercice 2 — Coefficient multiplicateur et évolution',
+        'taux_calc_3cas_bis': 'Exercice 3 — Coefficient multiplicateur & taux d’évolution (3 cas)',
+        'cm_taux_contextes': 'Exercice 4 — Coefficient multiplicateur & taux d’évolution (contexte)',
+      },
+      // Énoncé: cases vides ; Correction: bloc #res
+      beforeRender(def, st, isSolution){
+        const tmp = document.createElement('div');
+        Object.assign(tmp.style, {position:'fixed', left:'-10000px', top:'-10000px', width:'0', height:'0', overflow:'hidden'});
+        document.body.appendChild(tmp);
+        try{
+          if (typeof def.render === 'function') def.render(tmp, st);
+
+          if (isSolution) {
+            if (typeof def.solution === 'function') { try{ def.solution(tmp, st); } catch(e){} }
+            else if (typeof def.correct === 'function'){ try{ def.correct(tmp, st); } catch(e){} }
+
+            let node = tmp.querySelector('#res') || tmp.querySelector('.res') || tmp;
+            node.classList?.remove('res-ok','res-ko');
+
+            // --- NEW: forcer les bordures noires dans le PDF ---
+            forcePdfTableBorders(node);
+            retypeset(node);
+
+            return { solution: node.outerHTML };
+          }
+
+          // Préparer la version énoncé (champs vides)
+          tmp.querySelectorAll('.tick').forEach(t=>t.remove());
+          tmp.querySelectorAll('select').forEach(sel=>{
+            const span = document.createElement('span');
+            span.className = 'sol-sel'; span.textContent = ''; sel.replaceWith(span);
+          });
+          tmp.querySelectorAll('input[type=text], input[type=number]').forEach(inp=>{
+            const span = document.createElement('span');
+            span.className = 'sol-text'; span.textContent = ''; inp.replaceWith(span);
+          });
+
+          // --- NEW: forcer les bordures noires dans le PDF ---
+          forcePdfTableBorders(tmp);
+          retypeset(tmp);
+
+          return { statement: tmp.innerHTML };
+        } finally { tmp.remove(); }
+      }
+    });
+
+    // avec corrigés par défaut
+    setTimeout(()=>{ const chk = document.querySelector('.pdf-controls #pdf-sol'); if (chk) chk.checked = true; }, 0);
+  });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type = 'button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className = 'btn';
+          fallback.type = 'button';
+          fallback.textContent = label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche (sécurité tactile)
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+</body>
+</html>

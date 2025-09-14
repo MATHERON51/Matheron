@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>1ère — Taux de variation d'une fonction</title>
+<title>1STI2D — Nombre dérivé d'une fonction</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
@@ -138,7 +138,7 @@ ul.steps > li.nomark::marker { content: ""; } /* pour les navigateurs qui gèren
 
 <body>
   <div class="header">
-    <h1 style="margin:0;font-size:1.1rem"><strong>1ère — Taux de variations d'une fonction</strong></h1>
+    <h1 style="margin:0;font-size:1.1rem"><strong>1STI2D — Nombre dérivé d'une fonction</strong></h1>
   </div>
 
   <div class="wrap">
@@ -312,19 +312,13 @@ const selectorHTML = `
     <input type="hidden" id="fn-select" value="${st._forced || 'auto'}">
   </div>`;
 
-const head = st.kind==='ex1'
-  ? [
-      `<p>\\(\\textbf{Exercice 1 :}\\)</p>`,
-      `<p>\\(\\text{Soit la fonction } f \\text{ définie sur } \\mathbb{R} \\text{ par :}\\)</p>`,
-      `<p>\\(f(x) = ${f}.\\)</p>`,
-      `<p>\\(\\text{Calculer le }\\textbf{taux de variation}\\text{ de } f \\text{ entre } ${st.n} \\text{ et } ${st.n}+${st.h} \\text{ avec } ${st.h} \\ne 0.\\)</p>`
-    ].join('')
-  : [
-      `<p>\\(\\textbf{Exercice 2 :}\\)</p>`,
-      `<p>\\(\\text{Soit la fonction } f \\text{ définie sur } \\mathbb{R} \\text{ par :}\\)</p>`,
-      `<p>\\(f(x) = ${f}.\\)</p>`,
-      `<p>\\(\\textbf{Généralité :}\\ \\text{Calculer le taux de variation de } f \\text{ entre } a \\text{ et } a+${st.h} \\text{ avec } ${st.h} \\ne 0.\\)</p>`
-    ].join('');
+  const head = st.kind==='ex1'
+    ? `<p><strong>Exercice 1 :</strong></p>
+       <p>Soit la fonction \\( f \\) définie sur \\(\\mathbb{R}\\) par \\( f(x)= ${f} \\).</p>
+       <p>Prouver l’existence du nombre dérivé au point d'abscisse ${wrap(fnArg(st.n))} de la fonction \\( f \\) indiquée, puis calculer sa valeur.</p>`
+    : `<p><strong>Exercice 2 :</strong></p>
+       <p>Soit la fonction \\( f \\) définie sur \\(\\mathbb{R}\\) par \\( f(x)= ${f} \\).</p>
+       <p>Prouver l’existence du nombre dérivé au point d'abscisse ${wrap('a')} de la fonction \\( f \\) indiquée, puis calculer sa valeur.</p>`;
 
   host.innerHTML = `
   ${selectorHTML}
@@ -391,7 +385,7 @@ function pushConclusionLines(L, st, rhsTex){
   if (st.type === 'affine') {
     const m = st?.params?.m ?? 0;
     const remark =
-      `Remarque : On savait que le taux de variations d'une fonction affine ` +
+      `Remarque : On savait que le taux de variation d'une fonction affine ` +
       `est son coefficient directeur. Ici ${wrap(`m = ${m}`)}, ` +
       `donc ${wrap(`f'(${P}) = ${m}`)}.`;
     L.push(`<li class="remark">${remark}</li>`);
@@ -419,6 +413,7 @@ function solEX1_n0_carre(){
   L.push(sub(`f(0+${h})-f(0) = ${h}^{2}`));
 L.push(`<li>${pourHne0(h)}</li>`);
   L.push(sub(`${Q(`f(0+${h})-f(0)`,`h`)} = ${Q(`${h}^{2}`,'h')} = ${h}`));
+  pushConclusionLines(L, {kind:'ex1',type:'carre',n:0,params:{}}, `${h}`);
   return wrapUL(L);
 }
 
@@ -431,6 +426,7 @@ function solEX1_n0_cube(){
   L.push(sub(`f(0+${h})-f(0) = ${h}^{3}`));
 L.push(`<li>${pourHne0(h)}</li>`);
   L.push(sub(`${Q(`f(0+${h})-f(0)`,`h`)} = ${Q(`${h}^{3}`,'h')} = ${h}^{2}`));
+  pushConclusionLines(L, {kind:'ex1',type:'cube',n:0,params:{}}, `${h}^{2}`);
   return wrapUL(L);
 }
 
@@ -448,11 +444,7 @@ L.push(sub(`f(0+${h}) = ${kTimesH(m,h)}${p? (p<0?` - ${Math.abs(p)}`:` + ${p}`):
 L.push(sub(`f(0+${h}) - f(0) = ${kTimesH(m,h)}`));
 L.push(`<li>${pourHne0(h)}</li>`);
 L.push(sub(`${Q(`f(0+${h})-f(0)`,'h')} = ${Q(kTimesH(m,h),'h')} = ${m}`));
-    const remark =
-      `Remarque : On savait que le taux de variation d'une fonction affine ` +
-      `est son coefficient directeur. Ici ${wrap(`m = ${m}`)}, ` +
-      `donc le taux de variation vaut ${wrap(`${m}`)}.`;
-    L.push(`<li class="remark">${remark}</li>`);
+  pushConclusionLines(L, st, `${m}`);
   return wrapUL(L);
 }
 
@@ -475,6 +467,7 @@ function solEX1_n0_quad(st){
   L.push(sub(`f(0+${h}) - f(0) = ${h}\\,( ${inside} )`));
 L.push(`<li>${pourHne0(h)}</li>`);
   L.push(sub(`${Q(`f(0+${h})-f(0)`,'h')} = ${Q(`${h}( ${inside} )`,'h')} = ${inside}`));
+  pushConclusionLines(L, st, `${inside}`);
   return wrapUL(L);
 }
 
@@ -567,11 +560,6 @@ L.push(`<li>${pourHne0(h)}</li>`);
   L.push(sub(`f(${u(n)}+${h}) - f(${u(n)}) = ${mh}`));                       // <-- FIX
   L.push(`<li>${pourHne0(h)}</li>`);
   L.push(sub(`${Q(`f(${u(n)}+${h}) - f(${u(n)})`,'h')} = ${Q(mh,'h')} = ${m}`)); // <-- FIX
-    const remark =
-      `Remarque : On savait que le taux de variation d'une fonction affine ` +
-      `est son coefficient directeur. Ici ${wrap(`m = ${m}`)}, ` +
-      `donc le taux de variation vaut ${wrap(`${m}`)}.`;
-    L.push(`<li class="remark">${remark}</li>`);
 limRHS = `${m}`;
       break;
     }
@@ -648,6 +636,7 @@ L.push(`<li>${pourHne0(h)}</li>`);
     }
   }
 
+  pushConclusionLines(L, st, limRHS);
   return wrapUL(L);
 }
 
@@ -709,11 +698,6 @@ L.push(`<li>${pourHne0(h)}</li>`);
       L.push(`<li>${wrap(`f(a+${h}) - f(a) = ${m}${h}`)}</li>`);
 L.push(`<li>${pourHne0(h)}</li>`);
       L.push(sub(`${Q(`f(a+${h})-f(a)`,'h')} = ${Q(`${m}${h}`,'h')} = ${m}`));
-    const remark =
-      `Remarque : On savait que le taux de variation d'une fonction affine ` +
-      `est son coefficient directeur. Ici ${wrap(`m = ${m}`)}, ` +
-      `donc le taux de variation vaut ${wrap(`${m}`)}.`;
-    L.push(`<li class="remark">${remark}</li>`);
       limRHS = `${m}`;
       break;
     }
@@ -742,6 +726,7 @@ L.push(`<li>${pourHne0(h)}</li>`);
     }
   }
 
+  pushConclusionLines(L, st, limRHS);
   return wrapUL(L);
 }
 

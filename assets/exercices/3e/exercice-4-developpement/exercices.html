@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Seconde – Chapitre 0 – Développement</title>
+<title>Seconde – Chapitre 0 – Développement (LaTeX)</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css"><!-- même fichier que ta page LaTeX -->
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
 <style>
   *{box-sizing:border-box}
   body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.55}
@@ -13,46 +16,110 @@
   .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
   .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .solution-mode{
+  display:flex; gap:8px; align-items:center;
+  flex-basis:100%;        /* force un retour à la ligne sous les boutons */
+  margin-top:4px;
+}
+.solution-mode label{ opacity:.8 }
+.solution-mode select{ padding:6px 10px }
+/* Aligner les éléments en haut pour que Réinitialiser soit à côté de la colonne solution */
+.controls{ align-items: flex-start; }
+
+/* Colonne solution : bouton + select empilés, même largeur */
+#sol-wrap{
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 260px;  /* même valeur que ton style inline, OK si doublon */
+  width: 260px;
+}
+
+/* Le bouton Solution et le select prennent 100% de la colonne */
+#sol-wrap #btn-solution,
+#sol-wrap select{
+  width: 100%;
+}
+
+/* Optionnel : pour caler Réinitialiser en haut de la colonne */
+#btn-reset{ align-self: flex-start; }
+
+/* Un peu de confort visuel */
+#sol-wrap select{ padding: 6px 10px; border-radius: 10px; }
+
   select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
   .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
   .btn:hover{background:#f6f6f6}
   .score{margin-left:auto}
   .row{display:grid;grid-template-columns:1fr;gap:10px}
-  .statement.equ{font-size:18px}
+  .statement{font-size:18px}
   .statement .consigne{opacity:.8;margin-bottom:6px}
-  .equ{font-variant-numeric:tabular-nums}
   #host .input-wrap{display:flex;align-items:center}
   #res.small{font-size:15px}
   .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
   .step{margin:.2rem 0}
+  .ans-row{display:flex;align-items:center;gap:6px}
+  .tick{margin-left:6px}
+  /* léger boost de taille MathJax dans la zone solution */
+  .steps .mjx-container{font-size:115%}
+#sol-wrap { min-width:260px; width:260px; }
+#sol-wrap select { width:100%; padding:6px 10px; border-radius:10px; }
+#sol-wrap label { font-size:12px; opacity:.8; }
+
+
 </style>
+
+<!-- MathJax (LaTeX) — même config que ta page LaTeX -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight: false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
     <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 0 – <strong>Développement</strong></h1>
   </div>
 
-  <div class="wrap">
+    <div class="wrap">
+    <!-- Barre principale -->
     <div class="controls card">
       <label for="exo-select"><strong>Type d’exercice :</strong></label>
       <select id="exo-select"></select>
-      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
-      <button id="btn-check" class="btn">✅ Vérifier</button>
-      <button id="btn-solution" class="btn">💡 Solution</button>
-      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <button id="btn-new" class="btn" title="Génère un nouvel énoncé">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn" title="Vérifie ta réponse">✅ Vérifier</button>
+
+      <!-- Le bouton Solution sera "enveloppé" avec le sélecteur (colonne) -->
+      <span id="sol-wrap" style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:260px;width:260px">
+        <button id="btn-solution" class="btn" title="Affiche une solution détaillée">💡 Solution</button>
+        <!-- le select est injecté ici via JS -->
+      </span>
+
+      <button id="btn-reset" class="btn" title="Réinitialise la saisie et le score">🧹 Réinitialiser</button>
       <span class="score">Score : <span id="score">0 / 0</span></span>
     </div>
 
+    <!-- ENONCÉ / SAISIE / CORRIGÉ -->
     <div class="card" id="host"></div>
 
     <div class="card small">
       <strong>Saisie & réponses acceptées :</strong>
       <p style="margin:.5rem 0 0 0">
-        Répondre avec l’expression <em>développée et réduite</em> (par exemple&nbsp;: <code>−12x^2 + 18x + 54</code>).<br>
-        Puissances en <code>x^n</code>.<br>
-        <code>x</code>&nbsp;pour&nbsp;<code>1x</code>,&nbsp;<code>−x</code>&nbsp;pour&nbsp;<code>−1x</code>. Le signe affiché est <strong>−</strong> (Unicode).
+        Répondre avec l’expression <em>développée et réduite</em> (ex.&nbsp;: <code>−12x^2 + 18x + 54</code>).<br>
+        Puissances en <code>x^n</code>. <code>x</code> pour <code>1x</code>, <code>−x</code> pour <code>−1x</code>. Le signe affiché est « − ».
       </p>
     </div>
+
     <!-- Clavier math, centré -->
     <div class="card">
       <div data-math-kbd style="display:flex; justify-content:center"></div>
@@ -60,13 +127,16 @@
   </div>
 
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
 <script src="../../../../js/math-kbd.js" defer></script>
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 
 <script>
 (function(){
 'use strict';
+
+
+
 
 /* Attendre DevRules + algebraicEqual */
 function whenReady(cb){
@@ -78,6 +148,18 @@ function whenReady(cb){
   },50);
 }
 
+/* ====== MathJax : (re)composition ciblée ====== */
+function typesetAll(root){
+  const run = () => MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise){
+    MathJax.startup.promise.then(run);
+  } else {
+    const t = setInterval(()=>{
+      if (window.MathJax && MathJax.startup && MathJax.typesetPromise){ clearInterval(t); run(); }
+    }, 60);
+  }
+}
+
 whenReady(function(){
 
 /* ==== Utils ==== */
@@ -85,26 +167,222 @@ function $(s,r){ return (r||document).querySelector(s); }
 function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function nz(a,b){ var v=0; while(v===0) v=rnd(a,b); return v; }
 function uniqConsec(arr){ var r=[]; for(var i=0;i<arr.length;i++){ if(!r.length || r[r.length-1]!==arr[i]) r.push(arr[i]); } return r; }
+// --- Normalisation des signes pour l'affichage LaTeX ---
 
-/* ==== Aliases DevRules ==== */
-var UMINUS = DevRules.consts.UMINUS;
-var polyHTMLDesc = DevRules.polyHTMLDesc, supPow = DevRules.supPow;
-var kStr=DevRules.kStr, kxStr=DevRules.kxStr;
+function fixSigns(s){
+  return String(s)
+    .replace(/\+\s*-\s*/g, ' - ')  // "+ -" -> " - "
+    .replace(/-\s*\+\s*/g, ' - ')  // "- +" -> " - "
+    .replace(/-\s*-\s*/g, ' + ')   // "- -" -> " + "
+    .replace(/\+\s*\+\s*/g, ' + ') // "+ +" -> " + "
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function monoLatexAbs(c,p){ return monoLatex(Math.abs(c), p, {omitOne:true}); }
+function kLatexAbs(k){ return String(Math.abs(k)); }         // on laisse "1" pour k=±1
+function kxLatexAbs(k){ const a=Math.abs(k); return a===1 ? 'x' : (a+'x'); }
+
+/* ==== Aliases DevRules (calculs) ==== */
 var polyMul=DevRules.polyMul, polyAdd=DevRules.polyAdd, scalarMul=DevRules.scalarMul;
 
+/* ========= Rendu LaTeX ========= */
+function powLatex(p){
+  if(p===1) return 'x';
+  return 'x^{'+p+'}';
+}
+function monoLatex(c,p,{omitOne=true}={}){
+  if(p===0) return String(Math.abs(c));
+  const a=Math.abs(c);
+  const coef = (a===1 && omitOne) ? '' : String(a);
+  return coef ? (coef+powLatex(p)) : powLatex(p);
+}
+function monoLatexFactor(c,p){
+  // Monôme utilisé comme facteur dans un produit (parenthèses si négatif)
+  const s = (c<0? '-':'');
+  const body = monoLatex(c,p,{omitOne:true});
+  return (c<0) ? '\\left('+s+body+'\\right)' : body;
+}
+function polyLatexDesc(P){
+  // P : [c0, c1, ..., cn]  ->  ax^n + ... + b
+  var parts=[], lead=true;
+  for(var p=P.length-1; p>=0; p--){
+    var c=P[p]; if(!c) continue;
+    var s = (c<0 ? (lead? '-' : ' - ') : (lead? '' : ' + '));
+    parts.push(s + monoLatex(c,p,{omitOne:true}));
+    lead=false;
+  }
+  return parts.length? parts.join('') : '0';
+}
+function kLatex(k){ return (k===-1? '-' : String(k)); }
+function kxLatex(k){ // kx (affichage LaTeX)
+  if(k===1) return 'x';
+  if(k===-1) return '-x';
+  return String(k)+'x';
+}
+function plusJoinSigned(n, render){ return (n<0 ? (' - '+render(Math.abs(n))) : (' + '+render(n))); }
+
+function joinSignedTerms(items){
+  // items: [{sign:+1|-1, body:"latex"}]
+  let out=[], first=true;
+  for(const it of items){
+    const seg = (first ? (it.sign<0? '-' : '') : (it.sign<0? ' - ' : ' + ')) + it.body;
+    out.push(seg); first=false;
+  }
+  return out.join('');
+}
+
+function dist_kP_latex(k, P){
+  // Cas spécial : - ( ... )  => inverse les signes à l’intérieur et affiche directement
+  if (k === -1){
+    const parts = [];
+    for (let p = P.length - 1; p >= 0; p--){
+      const c = P[p]; if (!c) continue;
+      parts.push({ c: -c, p });   // inverse le signe du terme
+    }
+    return sumTermsLatex(parts);  // ex.: "6x - 9"
+  }
+
+  // Cas général : k ≠ -1  -> distribution explicite k × (terme)
+  const terms = [];
+  for (let p = P.length - 1; p >= 0; p--){
+    const c = P[p]; if (!c) continue;
+    terms.push(`${kLatex(k)}\\times ${monoLatexFactor(c,p)}`);
+  }
+  return fixSigns(terms.join(' + ')); // nettoie "+ -" etc., sans toucher aux facteurs signés
+}
+
+
+function dist_kxP_latex(k, P){
+  const terms=[];
+  for(let p=P.length-1; p>=0; p--){
+    const c=P[p]; if(!c) continue;
+    const left  = kxLatex(k);               // "−x", "5x", …
+    const right = monoLatexFactor(c,p);     // ex: "\left(-3\right)"
+    terms.push(`${left}\\times ${right}`);
+  }
+  return fixSigns(terms.join(' + '));
+}
+
+function dist_PQ_latex(P, Q){
+  const a=P[1]||0, b=P[0]||0, c=Q[1]||0, d=Q[0]||0;
+  const t=[];
+  if(a&&c) t.push(`${monoLatexFactor(a,1)}\\times ${monoLatexFactor(c,1)}`); // (ax)×(cx)
+  if(a&&d) t.push(`${monoLatexFactor(a,1)}\\times ${monoLatexFactor(d,0)}`); // (ax)×d
+  if(b&&c) t.push(`${monoLatexFactor(b,0)}\\times ${monoLatexFactor(c,1)}`); // b×(cx)
+  if(b&&d) t.push(`${monoLatexFactor(b,0)}\\times ${monoLatexFactor(d,0)}`); // b×d
+
+  // jointure " + "
+  let s = t.join(' + ');
+
+  // 1) "+ (-…)" -> " - …" (avec \left(\right) ou "()")
+  s = s
+    .replace(/\+\s*\\left\(\s*-\s*([^)]+?)\s*\\right\)/g, ' - $1')
+    .replace(/\+\s*\(\s*-\s*([^)]+?)\s*\)/g,            ' - $1');
+
+  // 2) EN-TÊTE : "(-A)\times" -> "-A\times" (enlève les () juste pour le tout premier facteur)
+  s = s
+    .replace(/^\s*\\left\(\s*-\s*([^)]+?)\s*\\right\)\s*\\times/, '-$1\\times')
+    .replace(/^\s*\(\s*-\s*([^)]+?)\s*\)\s*\\times/,               '-$1\\times');
+
+  // 3) Parenthèses devenues inutiles autour d’un atome positif : "(6)" -> "6", "\left(3x\right)" -> "3x"
+  s = s
+    .replace(/\\left\(\s*([^\+\-\(\)]+?)\s*\\right\)/g, '$1')
+    .replace(/\(\s*([^\+\-\(\)]+?)\s*\)/g,             '$1');
+
+  // filet anti "+ -" etc.
+  return (typeof fixSigns==='function') ? fixSigns(s) : s;
+}
+function kxFactorRight(k){
+  // facteur "kx" affiché à DROITE : parenthèses si négatif
+  return (k < 0) ? '\\left(' + kxLatex(k) + '\\right)' : kxLatex(k);
+}
+function kFactorRight(k){
+  // facteur "k" affiché à DROITE : parenthèses si négatif (inclut -1)
+  return (k < 0) ? '\\left(' + String(k) + '\\right)' : String(k);
+}
+// Distribution "comme dist_PQ_latex", mais avec une 1re parenthèse à n termes.
+// On parcourt tous les termes de P (degré décroissant), puis tous ceux de Q (même ordre),
+// on joint avec " + ", puis on corrige uniquement les +(-...), l'entête et les () inutiles.
+function dist_PQ_any_latex(P, Q){
+  const t = [];
+  for (let p = P.length - 1; p >= 0; p--){
+    const a = P[p]; if (!a) continue;
+    for (let q = Q.length - 1; q >= 0; q--){
+      const b = Q[q]; if (!b) continue;
+      t.push(`${monoLatexFactor(a,p)}\\times ${monoLatexFactor(b,q)}`);
+    }
+  }
+
+  // jointure " + "
+  let s = t.join(' + ');
+
+  // 1) "+ (-…)" -> " - …" (avec \left(\right) ou "()")
+  s = s
+    .replace(/\+\s*\\left\(\s*-\s*([^)]+?)\s*\\right\)/g, ' - $1')
+    .replace(/\+\s*\(\s*-\s*([^)]+?)\s*\)/g,            ' - $1');
+
+  // 2) EN-TÊTE : "(-A)\times" -> "-A\times"
+  s = s
+    .replace(/^\s*\\left\(\s*-\s*([^)]+?)\s*\\right\)\s*\\times/, '-$1\\times')
+    .replace(/^\s*\(\s*-\s*([^)]+?)\s*\)\s*\\times/,               '-$1\\times');
+
+  // 3) Parenthèses devenues inutiles autour d’un atome positif : "(6)" -> "6", "\left(3x\right)" -> "3x"
+  s = s
+    .replace(/\\left\(\s*([^\+\-\(\)]+?)\s*\\right\)/g, '$1')
+    .replace(/\(\s*([^\+\-\(\)]+?)\s*\)/g,             '$1');
+
+  return (typeof fixSigns==='function') ? fixSigns(s) : s;
+}
+
+
+function sumTermsLatex(arr){
+  var out=[], lead=true;
+  for(var i=0;i<arr.length;i++){
+    var t=arr[i]; if(!t || !t.c) continue;
+    var s = (t.c<0 ? (lead? '-' : ' - ') : (lead? '' : ' + '));
+    out.push( s + monoLatex(t.c,t.p,{omitOne:true}) );
+    lead=false;
+  }
+  return fixSigns(out.length? out.join('') : '0');
+}
+function polyLatexDesc(P){
+  var parts=[], lead=true;
+  for(var p=P.length-1; p>=0; p--){
+    var c=P[p]; if(!c) continue;
+    var s = (c<0 ? (lead? '-' : ' - ') : (lead? '' : ' + '));
+    parts.push(s + monoLatex(c,p,{omitOne:true}));
+    lead=false;
+  }
+  return fixSigns(parts.length? parts.join('') : '0');
+}
+function polyLatexNoOne(poly){
+  var out=[], first=true;
+  for(var p=poly.length-1;p>=0;p--){
+    var c=poly[p]; if(!c) continue;
+    var seg = monoLatex(c,p,{omitOne:true});
+    out.push(first ? ((c<0? '-' : '')+seg) : ((c<0? ' - ' : ' + ')+seg));
+    first=false;
+  }
+  return fixSigns(out.length? out.join(''):'0');
+}
+
+
 /* ==== Rendu ==== */
-function mkRow(host, enonceHTML, consigneHTML){
+function mkRow(host, enonceTex, consigneHTML){
   host.innerHTML='';
   var wrap=document.createElement('div'); wrap.className='row';
-  var st=document.createElement('div'); st.className='statement equ';
+  var st=document.createElement('div'); st.className='statement';
   var cons = consigneHTML!=null ? consigneHTML : '<div class="consigne small">Développer et réduire :</div>';
-  st.innerHTML = cons + (enonceHTML ? '<div>'+enonceHTML+'</div>' : '');
+st.innerHTML = cons + (enonceTex ? '<div>\\( '+fixSigns(enonceTex)+' \\)</div>' : '');
   wrap.appendChild(st);
   var inpWrap=document.createElement('div'); inpWrap.className='input-wrap';
-  inpWrap.innerHTML = '<div class="ans-row" style="display:flex;align-items:center;gap:6px"><span class="equ" aria-hidden="true">F =</span><input type="text" id="reponse" placeholder="…" style="flex:1;min-width:0"></div>';
+  inpWrap.innerHTML = '<div class="ans-row"><span aria-hidden="true">\\( F = \\)</span><input type="text" id="reponse" placeholder="…" style="flex:1;min-width:0"></div>';
   wrap.appendChild(inpWrap);
   var res=document.createElement('div'); res.id='res'; wrap.appendChild(res);
   host.appendChild(wrap);
+  typesetAll(wrap);
+
   var inp=$('#reponse',host);
   if (inp){
     inp.addEventListener('keydown', function(e){
@@ -115,12 +393,61 @@ function mkRow(host, enonceHTML, consigneHTML){
 
 /* ====== Affichage steps & auto-remplissage (anti-doublon) ====== */
 function showSteps(host, steps, autofill){
-  var norm = function(s){ return DevRules.normalizeSigns ? DevRules.normalizeSigns(s) : s; };
-  steps = uniqConsec(steps.map(norm));   // supprime les lignes consécutives identiques
-  var inp=$('#reponse',host);
-  if(inp && autofill) inp.value=autofill;
-  $('#res',host).innerHTML = '<div class="steps">'+steps.map(function(t){return '<div class="step">'+t+'</div>';}).join('')+'</div>';
-  $('#res',host).className='small';
+  // Mémorise les étapes "brutes" et l'auto-remplissage pour re-render
+  host.__lastSolutionCache = { rawSteps: steps.slice(), autofill: !!autofill && String(autofill) };
+
+  // Mode d'affichage
+  const modeSel = document.getElementById('mode-steps');
+  const mode = modeSel ? modeSel.value : 'full';
+
+  // Filtre "Sans étape" : on masque les lignes de distributivité (celles avec \times ou ×)
+  let view = steps.slice();
+  if (mode === 'nodist') {
+    view = view.filter(t => !(/\\times|×/.test(String(t))));
+  }
+
+  // Anti-doublons consécutifs
+  view = uniqConsec(view);
+
+  // Auto-fill
+  const inp = $('#reponse',host);
+  if (inp && autofill) inp.value = autofill;
+
+  // Rendu
+  const box = $('#res',host);
+  box.innerHTML = '<div class="steps">' + view.map(t => '<div class="step">\\( '+fixSigns(t)+' \\)</div>').join('') + '</div>';
+  box.className = 'small';
+
+  // Typeset
+  typesetAll(box);
+}
+
+function initSolutionModeUI(){
+  const wrap = document.getElementById('sol-wrap');
+  if(!wrap) return;
+
+  // Eviter les doublons si on ré-initialise
+  const old = document.getElementById('mode-steps');
+  if (old) return;
+
+  // Crée le select et l'insère JUSTE sous le bouton Solution
+  const sel = document.createElement('select');
+  sel.id = 'mode-steps';
+  sel.innerHTML = `
+    <option value="full" selected>Avec étapes</option>
+    <option value="nodist">Sans étapes</option>
+  `;
+  sel.style.width = '100%';
+  wrap.appendChild(sel);
+
+  // Refiltrer en direct si on change de mode après affichage de la solution
+  sel.addEventListener('change', () => {
+    const host = document.getElementById('host');
+    const cache = host && host.__lastSolutionCache;
+    if (cache) {
+      showSteps(host, cache.rawSteps.slice(), cache.autofill);
+    }
+  });
 }
 
 /* ==== Évaluation & format pour la case de saisie ==== */
@@ -151,74 +478,57 @@ function normalizeExpr(s){
   return s;
 }
 
+function stripLeadingEq(s){ return String(s||'').replace(/^\s*(?:[Ff]\s*=\s*)?/, ''); }
 
-
-function stripLeadingEq(s){
-  // Tolère "F = ..." saisi par l'élève
-  return String(s||'').replace(/^\s*(?:[Ff]\s*=\s*)?/, '');
-}
-
-// N'accepte qu'un polynôme développé & réduit, sans parenthèses ni produits d'expressions
 function isExpandedReducedPolynomial(expr){
   let s = stripLeadingEq(normalizeExpr(expr));
   if (!s) return false;
 
-  // Règles d'exclusion "étapes de développement"
-  if (/[()]/.test(s)) return false;                 // pas de parenthèses
-  if (/[/:]/.test(s)) return false;                 // pas de divisions
-  if (/\bx\s*\*\s*x\b/i.test(s)) return false;      // pas de x*x (produit de variables)
-
-  // Caractères autorisés
+  if (/[()]/.test(s)) return false;
+  if (/[/:]/.test(s)) return false;
+  if (/\bx\s*\*\s*x\b/i.test(s)) return false;
   if (/[^0-9x\^\*\+\-.,\s−]/i.test(s)) return false;
 
-  // On découpe en "termes" séparés par +/-
   const terms = s.match(/([+\-]?\s*[^+\-]+)/g);
   if (!terms) return false;
-
   const seenExpo = new Set();
 
   for (let raw of terms){
     let t = String(raw||'').trim();
     if (!t) return false;
 
-    // signe en tête
     if (t[0]==='+' || t[0]==='-') t = t.slice(1).trim();
     if (!t) return false;
 
-    // aucun autre symbole parasite par terme
     if (/[()]/.test(t)) return false;
 
-    // Cas avec x (monôme)
     if (/x/i.test(t)){
-  let m, coeff = 1, expo = 1;
+      let m, coeff = 1, expo = 1;
 
-  // Coefficient d'abord : 2x^3 | 2 x^3 | 2*x^3 | 2x
-  if ((m = t.match(/^(\d+(?:[.,]\d+)?)(?:\s*\*\s*|\s*)x(?:\s*\^\s*(\d+))?$/i))){
-    coeff = parseFloat(m[1].replace(',','.'));
-    expo  = m[2] ? parseInt(m[2],10) : 1;
+      if ((m = t.match(/^(\d+(?:[.,]\d+)?)(?:\s*\*\s*|\s*)x(?:\s*\^\s*(\d+))?$/i))){
+        coeff = parseFloat(m[1].replace(',','.'));
+        expo  = m[2] ? parseInt(m[2],10) : 1;
 
-  // x d'abord (éventuellement "* coeff") : x^3*2 | x*2 | x^3 | x
-  } else if ((m = t.match(/^x(?:\s*\^\s*(\d+))?(?:\s*\*\s*(\d+(?:[.,]\d+)?))?$/i))){
-    expo  = m[1] ? parseInt(m[1],10) : 1;
-    coeff = m[2] ? parseFloat(m[2].replace(',','.')) : 1;
+      } else if ((m = t.match(/^x(?:\s*\^\s*(\d+))?(?:\s*\*\s*(\d+(?:[.,]\d+)?))?$/i))){
+        expo  = m[1] ? parseInt(m[1],10) : 1;
+        coeff = m[2] ? parseFloat(m[2].replace(',','.')) : 1;
 
-  } else {
-    return false; // forme non reconnue ⇒ étape/syntaxe interdite
-  }
+      } else {
+        return false;
+      }
 
-  if (!Number.isFinite(coeff)) return false;
-  if (!(Number.isInteger(expo) && expo >= 1)) return false;
-  if (seenExpo.has(expo)) return false; // pas de doublon d’exposant
-  seenExpo.add(expo);
+      if (!Number.isFinite(coeff)) return false;
+      if (!(Number.isInteger(expo) && expo >= 1)) return false;
+      if (seenExpo.has(expo)) return false;
+      seenExpo.add(expo);
 
     } else {
-      // Terme constant : nombre pur, sans produit résiduel
-      if (/\*/.test(t)) return false; // ex. "2*3" refusé (pas réduit)
+      if (/\*/.test(t)) return false;
       const v = parseFloat(t.replace(',','.'));
       if (!Number.isFinite(v)) return false;
-      if (seenExpo.has(0)) return false; // deux constantes séparées => pas "réduit"
+      if (seenExpo.has(0)) return false;
       seenExpo.add(0);
-      if (v === 0) return false; // on évite "0" colonne comme terme isolé
+      if (v === 0) return false;
     }
   }
   return true;
@@ -231,7 +541,7 @@ function polyToExpr(poly){
     var s = (c<0? (lead? '-' : ' - ') : (lead? '' : ' + '));
     if (p===0) parts.push(s+a);
     else if (p===1) parts.push(s+(a===1?'x':a+'x'));
-    else parts.push(s+(a===1?'x^'+p : (a+'x^'+p))); // la saisie élève accepte ^ ; l’affichage utilise Unicode ailleurs
+    else parts.push(s+(a===1?'x^'+p : (a+'x^'+p)));
     lead=false;
   }
   return parts.join('');
@@ -239,36 +549,12 @@ function polyToExpr(poly){
 function equalPolyVsExpr(poly, expr){
   try{
     const rhs = stripLeadingEq(normalizeExpr(expr));
-    // 1) filtre "développé & réduit"
     if (!isExpandedReducedPolynomial(rhs)) return false;
-    // 2) égalité algébrique (tolère *, ²/³, multiplications implicites… via algebraicEqual)
     const lhs = polyToExpr(poly);
     return algebraicEqual(lhs, rhs);
   }catch(_){ return false; }
 }
 
-/* ==== Étapes : distribution → calcul des produits → conclusion ==== */
-function termStr(c, p, lead){
-  var a=Math.abs(c), U=UMINUS;
-  var s=(c<0?(lead?U+' ':' '+U+' '):(lead?'':' + '));
-  if(p===0) return s+a;
-  if(p===1) return s+(a===1?'x':a+'x');
-  return s+(a===1?'x'+supPow(p):a+'x'+supPow(p)); // Unicode pour l’affichage
-}
-function sumTerms(terms){
-  var out=[], lead=true;
-  for(var i=0;i<terms.length;i++){
-    var t=terms[i]; if(!t) continue;
-    var c=t.c, p=t.p; if(!c) continue;
-    out.push(termStr(c,p,lead)); lead=false;
-  }
-  return out.length?out.join(''):'0';
-}
-
-/* pour éviter “+ − …” dans les énoncés composés */
-function plusJoinSigned(n, render){
-  return (n<0 ? (' '+UMINUS+' '+render(Math.abs(n))) : (' + '+render(n)));
-}
 
 /* ==== Exercices ==== */
 function genPolyLE4(){
@@ -282,10 +568,19 @@ function genPolyLE4(){
 /* 1) k(ax+b) */
 var ex1={ id:'dev1', title:'k(ax+b)',
   gen:function(){ var k=nz(-9,9), a=nz(-9,9), b=rnd(-12,12); var P=[b,a], poly=scalarMul(k,P);
-    var enonce='F = '+kStr(k)+' ('+polyHTMLDesc(P)+')'; return {k:k,P:P,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
-  solution:function(h,s){ showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P),'F = '+sumTerms([{c:s.k*s.P[1],p:1},{c:s.k*s.P[0],p:0}]),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly)); },
+    var enonceTex='F = '+kLatex(k)+'\\big('+polyLatexDesc(P)+'\\big)';
+    return {k:k,P:P,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var parts=[{c:s.k*s.P[1],p:1},{c:s.k*s.P[0],p:0}];
+    showSteps(h, [
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_kP_latex(s.k,s.P),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
+  },
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
 
@@ -293,13 +588,18 @@ var ex1={ id:'dev1', title:'k(ax+b)',
 var ex2={ id:'dev2', title:'k × (polynôme ≤ 4)',
   gen:function(){ var k=nz(-9,9); while(k===1) k=nz(-9,9); var P=genPolyLE4();
     var poly=scalarMul(k,P);
-    var enonce='F = '+(k===-1? (UMINUS+' ') : (kStr(k)+' '))+'('+polyHTMLDesc(P)+')';
-    return {k:k,P:P,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+    var enonceTex='F = '+(k===-1? '-' : kLatex(k))+'\\big('+polyLatexDesc(P)+'\\big)';
+    return {k:k,P:P,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
   solution:function(h,s){
     var parts=[]; for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p}); }
-    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+    showSteps(h, [
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_kP_latex(s.k,s.P),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
   },
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
@@ -308,14 +608,19 @@ var ex2={ id:'dev2', title:'k × (polynôme ≤ 4)',
 var ex3={ id:'dev3', title:'(ax+b)(cx+d)',
   gen:function(){ var a=nz(-9,9), b=nz(-10,10), c=nz(-9,9), d=nz(-10,10);
     var P=[b,a], Q=[d,c], poly=polyMul(P,Q);
-    var enonce='F = ( '+polyHTMLDesc(P)+' ) ( '+polyHTMLDesc(Q)+' )';
-    return {P:P,Q:Q,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+    var enonceTex='F = \\big('+polyLatexDesc(P)+'\\big)\\,\\big('+polyLatexDesc(Q)+'\\big)';
+    return {P:P,Q:Q,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
   solution:function(h,s){
     var a=s.P[1]||0,b=s.P[0]||0,c=s.Q[1]||0,d=s.Q[0]||0;
     var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
-    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_PQ(s.P,s.Q),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+    showSteps(h, [
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_PQ_latex(s.P,s.Q),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
   },
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
@@ -323,80 +628,84 @@ var ex3={ id:'dev3', title:'(ax+b)(cx+d)',
 /* 4) kx × (polynôme ≤ 4) */
 var ex4={ id:'dev4', title:'kx × (polynôme ≤ 4)',
   gen:function(){ var k=nz(-9,9), P=genPolyLE4(); var poly=scalarMul(k,[0].concat(P));
-    var enonce='F = '+kxStr(k)+' ('+polyHTMLDesc(P)+')';
-    return {k:k,P:P,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+    var enonceTex='F = '+kxLatex(k)+'\\,\\big('+polyLatexDesc(P)+'\\big)';
+    return {k:k,P:P,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
   solution:function(h,s){
     var parts=[]; for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p+1}); }
-    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kxP(s.k,s.P),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
-  },
-  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
-};
-
-/* 5) k(ax+b) + l(cx+d) — évite “+ − …” dans l’énoncé */
-var ex5={ id:'dev5', title:'k(ax+b) + l(cx+d)',
-  gen:function(){ var k=nz(-9,9), l=nz(-9,9), a=nz(-9,9), b=rnd(-10,10), c=nz(-9,9), d=rnd(-10,10);
-    var P=[b,a], Q=[d,c], poly=polyAdd(scalarMul(k,P), scalarMul(l,Q));
-    var part1 = kStr(k)+' ('+polyHTMLDesc(P)+')';
-    var part2 = plusJoinSigned(l, function(n){ return n; })+' ('+polyHTMLDesc(Q)+')';
-    var enonce='F = '+part1+part2;
-    return {k:k,l:l,P:P,Q:Q,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
-  solution:function(h,s){
-    var parts=[];
-    for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p}); }
-    for(var q=s.Q.length-1;q>=0;q--){ var d=s.Q[q]; if(d) parts.push({c:s.l*d,p:q}); }
-    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P)+' + '+DevRules.dist_kP(s.l,s.Q),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
-  },
-  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
-};
-
-/* 6) (ax+b)(cx+d) + k(ex+f) — distribution correcte (pas de produit par AB) */
-var ex6={ id:'dev6', title:'(ax+b)(cx+d) + k(ex+f)',
-  gen:function(){ var a=nz(-6,6), b=rnd(-10,10), c=nz(-6,6), d=rnd(-10,10), e=nz(-6,6), f=rnd(-10,10), k=nz(-6,6);
-    var P=[b,a], Q=[d,c], R=[f,e]; var prod=polyMul(P,Q), poly=polyAdd(prod, scalarMul(k,R));
-    var enonce='F = ( '+polyHTMLDesc(P)+' ) ( '+polyHTMLDesc(Q)+' )'
-             + plusJoinSigned(k, function(n){ return n; })+' ('+polyHTMLDesc(R)+')';
-    return {P:P,Q:Q,R:R,k:k,prod:prod,poly:poly,enonce:enonce}; },
-  render:function(h,s){
-    var cons = '<div class="consigne small"><strong>Développer, réduire et ordonner :</strong></div>';
-    mkRow(h, s.enonce, cons);
-  },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
-  solution:function(h,s){
-    var a=s.P[1]||0,b=s.P[0]||0,c=s.Q[1]||0,d=s.Q[0]||0,e=s.R[1]||0,f=s.R[0]||0;
-    var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
-    if(e) parts.push({c:s.k*e,p:1});   // + k*e × x     (PAS multiplié par AB)
-    if(f) parts.push({c:s.k*f,p:0});   // + k*f         (PAS multiplié par AB)
     showSteps(h, [
-      'F = '+s.enonce.slice(4),
-      'F = '+DevRules.dist_PQ(s.P,s.Q)+' + '+DevRules.dist_kP(s.k,s.R),
-      'F = '+sumTerms(parts),            // ← 3e ligne attendue (Unicode pour x²)
-      'F = '+polyHTMLDesc(s.poly)
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_kxP_latex(s.k,s.P),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
     ], polyToExpr(s.poly));
   },
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
 
-/* ======= 7) Vrai/Faux — “Affirmation : …” (Unicode xⁿ, jamais 1x) ======= */
-function unicodeTermNoOne(c,p){
-  var a=Math.abs(c);
-  if(p===0) return ''+a;
-  if(p===1) return (a===1?'x':a+'x');
-  return (a===1?'x'+supPow(p):a+'x'+supPow(p)); // Unicode
-}
-function unicodePolyNoOne(poly){
+/* 5) k(ax+b) + l(cx+d) */
+var ex5={ id:'dev5', title:'k(ax+b) + l(cx+d)',
+  gen:function(){ var k=nz(-9,9), l=nz(-9,9), a=nz(-9,9), b=rnd(-10,10), c=nz(-9,9), d=rnd(-10,10);
+    var P=[b,a], Q=[d,c], poly=polyAdd(scalarMul(k,P), scalarMul(l,Q));
+    var part1 = kLatex(k)+'\\big('+polyLatexDesc(P)+'\\big)';
+    var part2 = plusJoinSigned(l, function(n){ return n; })+'\\big('+polyLatexDesc(Q)+'\\big)';
+    var enonceTex='F = '+part1+part2;
+    return {k:k,l:l,P:P,Q:Q,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var parts=[];
+    for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p}); }
+    for(var q=s.Q.length-1;q>=0;q--){ var d=s.Q[q]; if(d) parts.push({c:s.l*d,p:q}); }
+    showSteps(h, [
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_kP_latex(s.k,s.P)+' + '+dist_kP_latex(s.l,s.Q),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 6) (ax+b)(cx+d) + k(ex+f) */
+var ex6={ id:'dev6', title:'(ax+b)(cx+d) + k(ex+f)',
+  gen:function(){ var a=nz(-6,6), b=rnd(-10,10), c=nz(-6,6), d=rnd(-10,10), e=nz(-6,6), f=rnd(-10,10), k=nz(-6,6);
+    var P=[b,a], Q=[d,c], R=[f,e]; var prod=polyMul(P,Q), poly=polyAdd(prod, scalarMul(k,R));
+    var enonceTex='F = \\big('+polyLatexDesc(P)+'\\big)\\,\\big('+polyLatexDesc(Q)+'\\big)'
+             + plusJoinSigned(k, function(n){ return n; })+'\\big('+polyLatexDesc(R)+'\\big)';
+    return {P:P,Q:Q,R:R,k:k,prod:prod,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){
+    var cons = '<div class="consigne small"><strong>Développer, réduire et ordonner :</strong></div>';
+    mkRow(h, s.enonceTex, cons);
+  },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var a=s.P[1]||0,b=s.P[0]||0,c=s.Q[1]||0,d=s.Q[0]||0,e=s.R[1]||0,f=s.R[0]||0;
+    var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
+    if(e) parts.push({c:s.k*e,p:1});
+    if(f) parts.push({c:s.k*f,p:0});
+    showSteps(h, [
+      'F = '+s.enonceTex.slice(4),
+      'F = '+dist_PQ_latex(s.P,s.Q)+' + '+dist_kP_latex(s.k,s.R),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 7) Vrai/Faux — “Affirmation : …” (jamais 1x) */
+function polyLatexNoOne(poly){
   var out=[], first=true;
   for(var p=poly.length-1;p>=0;p--){
     var c=poly[p]; if(!c) continue;
-    var seg = unicodeTermNoOne(c,p);
-    if(first){ out.push((c<0? UMINUS+' ':'') + seg); }
-    else     { out.push((c<0? ' '+UMINUS+' ':' + ') + seg); }
+    var seg = monoLatex(c,p,{omitOne:true});
+    if(first){ out.push((c<0? '-' : '') + seg); }
+    else     { out.push((c<0? ' - ' : ' + ') + seg); }
     first=false;
   }
-  return out.length?out.join(''):'0';
+  return out.length? out.join(''):'0';
 }
 var ex7={ id:'dev7', title:'Vérifier un développement (Vrai/Faux)',
   gen:function(){
@@ -410,76 +719,103 @@ var ex7={ id:'dev7', title:'Vérifier un développement (Vrai/Faux)',
     return {P:P,Q:Q,prod:prod,shown:shown,makeFalse:makeFalse};
   },
   render:function(host,st){
-    var affirm = '( '+unicodePolyNoOne(st.P)+' ) ( '+unicodePolyNoOne(st.Q)+' ) = '+unicodePolyNoOne(st.shown);
-    var cons = '<div class="small"><strong>Affirmation&nbsp;:</strong> '+affirm+'</div>';
-    mkRow(host, /*enonceHTML*/'', cons);   // seulement la ligne Affirmation
+    var affirm = '\\big('+polyLatexDesc(st.P)+'\\big)\\,\\big('+polyLatexDesc(st.Q)+'\\big) = '+polyLatexNoOne(st.shown);
+    var cons = '<div class="small"><strong>Affirmation&nbsp;:</strong> \\( '+affirm+' \\)</div>';
+    mkRow(host, /*enonceTex*/'', cons);
     var inp=$('#reponse',host); if(inp) inp.placeholder='… (taper Vrai ou Faux)';
   },
   correct:function(h,st){
     var v=(($('#reponse',h)||{}).value||'').trim().toLowerCase();
     var ok = (v==='vrai' && st.makeFalse===false) || (v==='faux' && st.makeFalse===true);
-    $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1};
+    $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1};
   },
   solution:function(h,st){
-    var steps=[
-      '7me exercice :',
-      'F = ( '+polyHTMLDesc(st.P)+' ) ( '+polyHTMLDesc(st.Q)+' )',
-      'F = '+DevRules.dist_PQ(st.P,st.Q),
-      (function(){
-        var a=st.P[1]||0,b=st.P[0]||0,c=st.Q[1]||0,d=st.Q[0]||0;
-        var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
-        return 'F = '+sumTerms(parts);
-      })(),
-      'F = '+polyHTMLDesc(st.prod),
-      'La proposition est '+(st.makeFalse?'fausse':'vraie')
-    ];
-    showSteps(h, steps, null);
-  },
+  var a=st.P[1]||0,b=st.P[0]||0,c=st.Q[1]||0,d=st.Q[0]||0;
+  var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
+
+  // Lignes en LaTeX (PAS la phrase finale)
+  var steps=[
+    'F = \\big('+polyLatexDesc(st.P)+'\\big)\\,\\big('+polyLatexDesc(st.Q)+'\\big)',
+    'F = '+dist_PQ_latex(st.P,st.Q),
+    'F = '+sumTermsLatex(parts),
+    'F = '+polyLatexDesc(st.prod)
+  ];
+
+  // Affiche les étapes en LaTeX
+  showSteps(h, steps, null);
+
+  // Ajoute une dernière ligne en texte "normal" (pas de LaTeX)
+  var host = h.querySelector('.steps') || h;
+  var line = document.createElement('div');
+  line.className = 'step';              // même style visuel que les autres lignes
+  line.textContent = 'La proposition est ' + (st.makeFalse ? 'fausse' : 'vraie');
+  host.appendChild(line);
+},
+
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
 
-/* 8) (ax+b)^2 — consigne unique demandée */
+/* 8) (ax+b)^2 — sans identité */
 var ex8={ id:'dev8', title:'(ax+b)^2 (sans identité)',
   gen:function(){ var a=nz(-9,9), b=rnd(-12,12); var P=[b,a], poly=polyMul(P,P);
-    var enonce='F = ( '+polyHTMLDesc(P)+' )'+supPow(2);
-    return {P:P,poly:poly,enonce:enonce}; },
+    var enonceTex='F = \\big('+polyLatexDesc(P)+'\\big)^{2}';
+    return {P:P,poly:poly,enonceTex:enonceTex}; },
   render:function(h,s){
     var cons = '<div class="consigne small"><strong>Développer sans utiliser d’identités remarquables :</strong></div>';
-    mkRow(h, s.enonce, cons);
+    mkRow(h, s.enonceTex, cons);
   },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
   solution:function(h,s){
     var a=s.P[1]||0, b=s.P[0]||0;
-    var step2 = 'F = ( '+polyHTMLDesc(s.P)+' ) ( '+polyHTMLDesc(s.P)+' )';
-    var step3 = 'F = '+DevRules.dist_PQ(s.P, s.P);
     var parts=[{c:a*a,p:2},{c:a*b,p:1},{c:b*a,p:1},{c:b*b,p:0}];
-    var step4 = 'F = '+sumTerms(parts);
-    var step5 = 'F = '+polyHTMLDesc(s.poly);
-    showSteps(h, ['F = ( '+polyHTMLDesc(s.P)+' )'+supPow(2), step2, step3, step4, step5], polyToExpr(s.poly));
+    showSteps(h, [
+      'F = \\big('+polyLatexDesc(s.P)+'\\big)^{2}',
+      'F = \\big('+polyLatexDesc(s.P)+'\\big)\\,\\big('+polyLatexDesc(s.P)+'\\big)',
+      'F = '+dist_PQ_latex(s.P, s.P),
+      'F = '+sumTermsLatex(parts),
+      'F = '+polyLatexDesc(s.poly)
+    ], polyToExpr(s.poly));
   },
   reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
 };
-
-/* 9) (ax+b)(cx+d)(ex+f) — inchangé */
+function step5_on_C(e, f, AB){
+  const chunks = [];
+  if (e) chunks.push(dist_kxP_latex(e, AB)); // x × (termes de AB)
+  if (f) chunks.push(dist_kP_latex(f, AB));  // géré par le cas k = -1 ci-dessus
+  // jointure propre (+) puis nettoyage en tête
+  return fixSigns(chunks.join(' + ').replace(/^\s*\+\s*/,''));
+}
+/* 9) (ax+b)(cx+d)(ex+f) */
 var ex9={ id:'dev9', title:'(ax+b)(cx+d)(ex+f)',
   gen:function(){ var a=nz(-9,9), b=rnd(-4,4), c=nz(-9,9), d=rnd(-4,4), e=nz(-9,9), f=rnd(-4,4);
     var A=[b,a], B=[d,c], C=[f,e], AB=polyMul(A,B), poly=polyMul(AB,C);
-    var enonce='F = ( '+polyHTMLDesc(A)+' ) ( '+polyHTMLDesc(B)+' ) ( '+polyHTMLDesc(C)+' )';
-    return {A:A,B:B,C:C,AB:AB,poly:poly,enonce:enonce}; },
-  render:function(h,s){ mkRow(h,s.enonce); },
-  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+    var enonceTex='F = \\big('+polyLatexDesc(A)+'\\big)\\,\\big('+polyLatexDesc(B)+'\\big)\\,\\big('+polyLatexDesc(C)+'\\big)';
+    return {A:A,B:B,C:C,AB:AB,poly:poly,enonceTex:enonceTex}; },
+  render:function(h,s){ mkRow(h,s.enonceTex); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).textContent=ok?'✔':'✘'; return {ok:ok,total:1}; },
   solution:function(h,s){ 
     var a=s.A[1]||0,b=s.A[0]||0,c=s.B[1]||0,d=s.B[0]||0;
     var partsAB=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(t=>!!t.c);
     var e=s.C[1]||0, f=s.C[0]||0;
     var steps=[
-      'F = ( '+polyHTMLDesc(s.A)+' ) ( '+polyHTMLDesc(s.B)+' ) ( '+polyHTMLDesc(s.C)+' )',
-      'F = ['+DevRules.dist_PQ(s.A,s.B)+'] ( '+polyHTMLDesc(s.C)+' )',
-	  'F = ['+sumTerms(partsAB)+'] ( '+polyHTMLDesc(s.C)+' )',
-      'F = ( '+polyHTMLDesc(s.AB)+' ) ( '+polyHTMLDesc(s.C)+' )',
-      'F = '+(e?DevRules.dist_kxP(e,s.AB):'') + (e&&f?' + ':'') + (f?DevRules.dist_kP(f,s.AB):''),
-      'F = '+(function(){ var arr=[]; for(var p2=s.AB.length-1;p2>=0;p2--){ var co=s.AB[p2]; if(!co) continue; if(e) arr.push({c:co*e,p:p2+1}); if(f) arr.push({c:co*f,p:p2}); } return sumTerms(arr); })(),
-      'F = '+polyHTMLDesc(s.poly)
+      'F = \\big('+polyLatexDesc(s.A)+'\\big)\\,\\big('+polyLatexDesc(s.B)+'\\big)\\,\\big('+polyLatexDesc(s.C)+'\\big)',
+      'F = \\Big['+dist_PQ_latex(s.A,s.B)+'\\Big]\\,\\big('+polyLatexDesc(s.C)+'\\big)',
+      'F = \\Big['+sumTermsLatex(partsAB)+'\\Big]\\,\\big('+polyLatexDesc(s.C)+'\\big)',
+      'F = \\big('+polyLatexDesc(s.AB)+'\\big)\\,\\big('+polyLatexDesc(s.C)+'\\big)',
+'F = ' + dist_PQ_any_latex(s.AB, s.C),
+(function(){
+  const acc = [];
+  for (let p2 = s.AB.length - 1; p2 >= 0; p2--){
+    const a = s.AB[p2]; if(!a) continue;
+    for (let q2 = s.C.length - 1; q2 >= 0; q2--){
+      const b = s.C[q2]; if(!b) continue;
+      acc.push({ c: a*b, p: p2+q2 });
+    }
+  }
+  return 'F = ' + sumTermsLatex(acc);
+})(),
+
+      'F = '+polyLatexDesc(s.poly)
     ];
     showSteps(h, steps, polyToExpr(s.poly));
   },
@@ -532,6 +868,9 @@ function resetAll(){
   $("#btn-check").addEventListener('click', check);
   $("#btn-solution").addEventListener('click', solution);
   $("#btn-reset").addEventListener('click', resetAll);
+
+  initSolutionModeUI();   // ⟵ AJOUT ICI
+
   buildOne();
 
   if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
@@ -548,5 +887,60 @@ function resetAll(){
 })(); // fin IIFE englobante
 </script>
 
+<!-- Confort / mobile (inchangé) -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        const clone = src ? src.cloneNode(true) : null;
+        if (clone) {
+          clone.classList.add('btn'); clone.type='button'; clone.removeAttribute('id');
+          clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className='btn'; fallback.type='button'; fallback.textContent=label;
+          fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -6,6 +5,9 @@
 <title>Seconde – Repère : Abscisse et ordonnée</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
@@ -34,16 +36,55 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #dd
 .chip.active{border-color:#111;box-shadow:inset 0 0 0 1px #111}
 .chip .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
 @media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
+.svgbox{ touch-action: manipulation; user-select: none; }
+:root{
+  --tick-ok: #11823b;   /* vert accessible */
+  --tick-ko: #b00020;   /* rouge accessible */
+}
+
+.ind{
+  display:inline-block;
+  min-width:1.2em;
+  margin-left:6px;
+  font-weight:700;
+  line-height:1;
+  vertical-align:middle;
+}
+
+.ind.ok{ color: var(--tick-ok) !important; }
+.ind.ko{ color: var(--tick-ko) !important; }
+
+/* Option mobile: tick sous le champ */
+@media (max-width: 640px){
+  .ind{ display:block; margin-left:0; margin-top:4px; }
+}
+
+
 </style>
 
   <!-- DevRules in inputs-only mode -->
   <script>window.DEVRULES_MODE='inputs-only';</script>
   <script src="../../../../js/dev-rules-clean.dedup.vB.inputs-only.js" defer></script>
   <script src="../../../../js/math-kbd.js" defer></script>
-  <script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
   <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
   <script src="../../../../js/repere_patch_0813.js" defer></script>
-
+<!-- MathJax -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
@@ -81,12 +122,12 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #dd
     <div class="card small">
       <strong>Saisie & réponses acceptées :</strong>
       <ul style="margin:8px 0 0 18px">
-        <li>Coordonnées au format <span class="code">(x;y)</span> (ex. <span class="code">(3;−2)</span>). Le <span class="code">-</span> ASCII est normalisé en « − » (U+2212).</li>
-        <li>Abscisse / ordonnée : entier ou fraction <span class="code">a/b</span>.</li>
+        <li>Coordonnées au format \\((x;y)\\) (ex. \\((3;−2)\\)). Le signe « - » tapé au clavier est normalisé en « − » (U+2212).</li>
+        <li>Abscisse / ordonnée : entier ou fraction \\(a/b\\).</li>
       </ul>
     </div>
 
-        <!-- Clavier math, centré -->
+    <!-- Clavier math, centré -->
     <div class="card">
       <div data-math-kbd style="display:flex; justify-content:center"></div>
     </div>
@@ -106,6 +147,56 @@ const clip12 = v => Math.max(-12, Math.min(12, v));
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const PALETTE = ['#2e7d32','#1565c0','#6a1b9a','#ef6c00','#00897b','#c62828','#6d4c41','#ad1457','#283593','#0277bd'];
 const colorOf = L => PALETTE[LETTERS.indexOf(L)%PALETTE.length];
+/* ===== Indicateur ✔/✘ à côté d'un input ===== */
+function markInput(input, state){ // state: 'ok' | 'ko' | '' (vide)
+  if(!input) return;
+  let sp = input.nextElementSibling;
+  if(!(sp && sp.classList && sp.classList.contains('ind'))){
+    sp = document.createElement('span');
+    sp.className = 'ind';
+    input.insertAdjacentElement('afterend', sp);
+  }
+  if(!state){ sp.remove(); return; }
+
+  // Applique exactement la bonne classe
+  sp.className = 'ind ' + (state==='ok' ? 'ok' : 'ko');
+
+  // Affiche le symbole (couleur vient du CSS)
+  sp.textContent = (state==='ok') ? '✔' : '✘';
+}
+
+
+/* Retirer tous les indicateurs du bloc courant */
+function clearMarks(host){
+  host.querySelectorAll('.ind').forEach(el=>el.remove());
+}
+
+/* Valider aussi avec Entrée (pas de live) */
+document.addEventListener('keydown', (ev)=>{
+  if(ev.key==='Enter'){
+    const a = document.activeElement;
+    if(a && a.tagName==='INPUT'){
+      ev.preventDefault();
+      document.querySelector('#btn-check')?.click();
+    }
+  }
+}, true);
+
+/* Helper LaTeX inline */
+const L = tex => '\\(' + tex + '\\)';
+/* Re-typeset MathJax pour le contenu ajouté dynamiquement */
+/* ===== LaTeX helpers ===== */
+function MJ(el){ // re-typeset MathJax après injection
+  try{
+    if (window.MathJax){
+      if (MathJax.typesetPromise) MathJax.typesetPromise([el||document.body]).catch(()=>{});
+      else if (typeof MathJax.typeset === 'function') MathJax.typeset([el||document.body]);
+    }
+  }catch(_){}
+}
+const pointLatex = (label,x,y) => L(label + coordToText(x,y));
+const labelsLatex = labels => labels.map(lbl => L(lbl)).join(', ');
+const textCoordListLatex = pts => pts.map(p => L(p.label + coordToText(p.x,p.y))).join(' ; ');
 
 function parseCoord(txt){
   txt=normalizeMinus(txt);
@@ -173,33 +264,81 @@ class Repere{
     this.points=[]; this.user=[]; this.clickable=false; this.onClick=null;
     this.el=this._makeSVG(); this.redraw();
   }
-  _makeSVG(){
-    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
-    const defs=document.createElementNS(s.namespaceURI,'defs');
-    const marker=document.createElementNS(s.namespaceURI,'marker');
-    marker.setAttribute('id','arrow'); marker.setAttribute('orient','auto');
-    marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8');
-    marker.setAttribute('refX','0'); marker.setAttribute('refY','3');
-    const path=document.createElementNS(s.namespaceURI,'path');
-    path.setAttribute('d','M0,0 L0,6 L8,3 z'); path.setAttribute('fill','#000');
-    marker.appendChild(path); defs.appendChild(marker); s.appendChild(defs);
-    this.gGrid=document.createElementNS(s.namespaceURI,'g');
-    this.gAxes=document.createElementNS(s.namespaceURI,'g');
-    this.gQ=document.createElementNS(s.namespaceURI,'g');
-    this.gPts=document.createElementNS(s.namespaceURI,'g');
-    this.gUser=document.createElementNS(s.namespaceURI,'g');
-    [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
-    s.addEventListener('click',ev=>{
-      if(!this.clickable||!this.onClick) return;
-      const r=s.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
-      const c=this.screenToCoord(x,y);
-      const lim=this.innerLimits(), xi=Math.round(c.x), yi=Math.round(c.y);
-      if(xi<lim.xmin||xi>lim.xmax||yi<lim.ymin||yi>lim.ymax) return;
-      this.onClick({x:xi,y:yi});
-    });
-    return s;
-  }
+_makeSVG(){
+  const ns = 'http://www.w3.org/2000/svg';
+  const s  = document.createElementNS(ns,'svg');
+  s.setAttribute('class','svgbox');
+  s.setAttribute('viewBox','0 0 420 420');
+  s.setAttribute('preserveAspectRatio','xMidYMid meet'); // important pour les conversions
+
+  // --- defs (flèche) ---
+  const defs   = document.createElementNS(ns,'defs');
+  const marker = document.createElementNS(ns,'marker');
+  marker.setAttribute('id','arrow');
+  marker.setAttribute('orient','auto');
+  marker.setAttribute('markerWidth','8');
+  marker.setAttribute('markerHeight','8');
+  marker.setAttribute('refX','0');
+  marker.setAttribute('refY','3');
+  const path = document.createElementNS(ns,'path');
+  path.setAttribute('d','M0,0 L0,6 L8,3 z');
+  path.setAttribute('fill','#000');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  s.appendChild(defs);
+
+  // --- calques ---
+  this.gGrid = document.createElementNS(ns,'g');
+  this.gAxes = document.createElementNS(ns,'g');
+  this.gQ    = document.createElementNS(ns,'g');
+  this.gPts  = document.createElementNS(ns,'g');
+  this.gUser = document.createElementNS(ns,'g');
+  [this.gGrid,this.gAxes,this.gQ,this.gPts,this.gUser].forEach(g=>s.appendChild(g));
+
+  // --- gestion du tap/clic : écran -> unités du viewBox ---
+  const handleTap = (ev) => {
+    if (!this.clickable || !this.onClick) return;
+
+    const ctm = s.getScreenCTM && s.getScreenCTM();
+    let x, y;
+
+    if (ctm && ctm.inverse) {
+      // Chemin “parfait” : utilise la matrice écran↔SVG
+      const pt = s.createSVGPoint();
+      pt.x = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      pt.y = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      const p = pt.matrixTransform(ctm.inverse());
+      x = p.x; y = p.y;
+    } else {
+      // Fallback (rare) : ratios rect/viewBox
+      const r  = s.getBoundingClientRect();
+      const vb = s.viewBox?.baseVal || {x:0,y:0,width:420,height:420};
+      const cx = ('clientX' in ev ? ev.clientX : ev.touches?.[0]?.clientX);
+      const cy = ('clientY' in ev ? ev.clientY : ev.touches?.[0]?.clientY);
+      x = (cx - r.left) * (vb.width  / r.width);
+      y = (cy - r.top)  * (vb.height / r.height);
+    }
+
+    const c   = this.screenToCoord(x, y);
+    const lim = this.innerLimits();
+    const xi  = Math.round(c.x), yi = Math.round(c.y);
+    if (xi < lim.xmin || xi > lim.xmax || yi < lim.ymin || yi > lim.ymax) return;
+
+    this.onClick({ x: xi, y: yi });
+  };
+
+  // Pointer events (meilleur sur mobile)
+  s.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'touch') ev.preventDefault(); // évite le scroll qui “mange” le tap
+    handleTap(ev);
+  }, { passive: false });
+
+  // Fallback desktop
+  s.addEventListener('click', handleTap, { passive: true });
+
+  return s;
+}
+
   innerLimits(){ return { xmin:this.R.xmin+1, xmax:this.R.xmax-1, ymin:this.R.ymin+1, ymax:this.R.ymax-1 }; }
   basis(){
     const w=420,h=420,m=20, X=this.R.xmax-this.R.xmin, Y=this.R.ymax-this.R.ymin;
@@ -343,43 +482,62 @@ function inputsForPoints(container, labels){
 }
 
 /* =============== Exercices =============== */
-function makeExos(){ const L=[];
+function makeExos(){ const LST=[];
 
 /* 1) Abscisse */
-L.push({ id:'abs_M', title:'Donner l’abscisse de M',
+LST.push({ id:'abs_M', title:'Donner l’abscisse de M',
   gen(){ const R={...AMP}; const M=innerRandomPoint(R); return {R,M}; },
   render(host,s){ const ui=renderNoRepere(host);
-    ui.equ.innerHTML=`<p>Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. Donner l’abscisse de <b>M</b>.</p>`;
+ui.equ.innerHTML = `<p>Soit ${pointLatex('M', s.M.x, s.M.y)}. Donner l’abscisse de ${L('M')}.</p>`;
+MJ(ui.equ);
     const input=document.createElement('input'); input.id='reponse'; input.type='text'; input.placeholder='abscisse de M (ex. 3/2)'; ui.actions.appendChild(input);
     host.dataset.state=JSON.stringify(s); host._ui=ui; },
   correct(host,s){ const want=s.M.x; const val=parseNumberLike($('#reponse',host).value);
     const ok=equalsInt(val,want); host._ui.res.textContent= ok?'✔':'✘ (attendu : '+uminusStr(want)+')'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
-  solution(host,s){ host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> x<sub>M</sub> = ${uminusStr(s.M.x)}</div></div>`; const inp=$('#reponse',host); if(inp) inp.value=uminusStr(s.M.x); },
+  solution(host,s){
+    host._ui.res.className='small';
+   host._ui.res.innerHTML = `<div class="steps"><div class="step"><strong>Solution.</strong> ${L('x_M = '+uminusStr(s.M.x))}</div></div>`;
+MJ(host._ui.res);
+ },
   reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ return `<div><div class="hint">Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. Donner l’abscisse de <b>M</b>.</div></div>`; },
-  pdfSolution(s){ return `<div><div class="hint">Soit M${coordToText(s.M.x,s.M.y)}.</div><div class="steps"><div class="step">x<sub>M</sub> = ${uminusStr(s.M.x)}</div></div></div>`; }
+  pdfStatement(s){
+  return `<div><div class="hint">Soit ${L('M' + coordToText(s.M.x,s.M.y))}. Donner l’abscisse de ${L('M')}.</div></div>`;
+},
+pdfSolution(s){
+  return `<div><div class="steps"><div class="step">${L('x_M = ' + uminusStr(s.M.x))}</div></div></div>`;
+}
+
 });
 
 /* 2) Ordonnée */
-L.push({ id:'ord_M', title:'Donner l’ordonnée de M',
+LST.push({ id:'ord_M', title:'Donner l’ordonnée de M',
   gen(){ const R={...AMP}; const M=innerRandomPoint(R); return {R,M}; },
   render(host,s){ const ui=renderNoRepere(host);
-    ui.equ.innerHTML=`<p>Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. Donner l’ordonnée de <b>M</b>.</p>`;
+ui.equ.innerHTML = `<p>Soit ${pointLatex('M', s.M.x, s.M.y)}. Donner l’ordonnée de ${L('M')}.</p>`;
+MJ(ui.equ);
     const input=document.createElement('input'); input.id='reponse'; input.type='text'; input.placeholder='ordonnée de M (ex. −4/3)'; ui.actions.appendChild(input);
     host.dataset.state=JSON.stringify(s); host._ui=ui; },
   correct(host,s){ const want=s.M.y; const val=parseNumberLike($('#reponse',host).value);
     const ok=equalsInt(val,want); host._ui.res.textContent= ok?'✔':'✘ (attendu : '+uminusStr(want)+')'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
-  solution(host,s){ host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> y<sub>M</sub> = ${uminusStr(s.M.y)}</div></div>`; const inp=$('#reponse',host); if(inp) inp.value=uminusStr(s.M.y); },
+  solution(host,s){
+    host._ui.res.className='small';
+  host._ui.res.innerHTML = `<div class="steps"><div class="step"><strong>Solution.</strong> ${L('y_M = '+uminusStr(s.M.y))}</div></div>`;
+MJ(host._ui.res);},
   reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ return `<div><div class="hint">Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. Donner l’ordonnée de <b>M</b>.</div></div>`; },
-  pdfSolution(s){ return `<div><div class="hint">Soit M${coordToText(s.M.x,s.M.y)}.</div><div class="steps"><div class="step">y<sub>M</sub> = ${uminusStr(s.M.y)}</div></div></div>`; }
+  pdfStatement(s){
+  return `<div><div class="hint">Soit ${L('M' + coordToText(s.M.x,s.M.y))}. Donner l’ordonnée de ${L('M')}.</div></div>`;
+},
+pdfSolution(s){
+  return `<div><div class="steps"><div class="step">${L('y_M = ' + uminusStr(s.M.y))}</div></div></div>`;
+}
+
+
 });
 
 /* 3) Symétrique (origine / axes) */
-L.push({ id:'sym_M', title:'Coordonnées du symétrique de M',
+LST.push({ id:'sym_M', title:'Coordonnées du symétrique de M',
   gen(){ const R={...AMP}; const M=innerRandomPoint(R); return {R,M,mode:'origine'}; },
   render(host,s){ const ui=renderNoRepere(host);
-    
     const modeSel = document.createElement('select');
     modeSel.id = 'mode-sym';
     modeSel.innerHTML = '<option value="origine">origine</option>' +
@@ -390,23 +548,24 @@ L.push({ id:'sym_M', title:'Coordonnées du symétrique de M',
     label.textContent = ' Symétrie par rapport à : ';
     ui.equ.append(label, modeSel);
     const p=document.createElement('p');
-    const modeTxt = (s.mode==='origine') 
-      ? "Coordonnées de <b>M'</b> par rapport à l'origine"
-      : (s.mode==='x' ? "Coordonnées de <b>M'</b> par rapport à l'axe des abscisses"
-                      : "Coordonnées de <b>M'</b> par rapport à l'axe des ordonnées");
-    p.innerHTML = `Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. On note <b>M'</b> son symétrique. ${modeTxt}.`;
-    ui.equ.append(p);
-    
-    
+   const modeTxt = (s.mode==='origine') 
+  ? "Coordonnées de " + L("M'") + " par rapport à l'origine"
+  : (s.mode==='x' ? "Coordonnées de " + L("M'") + " par rapport à l'axe des abscisses"
+                  : "Coordonnées de " + L("M'") + " par rapport à l'axe des ordonnées");
+p.innerHTML = `Soit ${pointLatex('M', s.M.x, s.M.y)}. On note ${L("M'")} son symétrique. ${modeTxt}.`;
+MJ(p);
+ui.equ.append(p);
+
     modeSel.addEventListener('change', () => {
       s.mode = modeSel.value;
       host.dataset.state = JSON.stringify(s);
-      const modeTxt = (s.mode==='origine') 
-        ? "Coordonnées de <b>M'</b> par rapport à l'origine"
-        : (s.mode==='x' ? "Coordonnées de <b>M'</b> par rapport à l'axe des abscisses"
-                        : "Coordonnées de <b>M'</b> par rapport à l'axe des ordonnées");
-      p.innerHTML = `Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. On note <b>M'</b> son symétrique. ${modeTxt}.`;
-    });
+      const modeTxt2 = (s.mode==='origine') 
+  ? "Coordonnées de " + L("M'") + " par rapport à l'origine"
+  : (s.mode==='x' ? "Coordonnées de " + L("M'") + " par rapport à l'axe des abscisses"
+                  : "Coordonnées de " + L("M'") + " par rapport à l'axe des ordonnées");
+p.innerHTML = `Soit ${pointLatex('M', s.M.x, s.M.y)}. On note ${L("M'")} son symétrique. ${modeTxt2}.`;
+MJ(p);
+ });
     const input=document.createElement('input'); input.id='reponse'; input.type='text'; input.placeholder='(x;y)'; ui.actions.appendChild(input);
     host.dataset.state=JSON.stringify(s); host._ui=ui;
     modeSel.addEventListener('change',()=>{ s.mode=modeSel.value; host.dataset.state=JSON.stringify(s); });
@@ -416,23 +575,25 @@ L.push({ id:'sym_M', title:'Coordonnées du symétrique de M',
     const modeTxt = s.mode==='origine'?'l’origine':(s.mode==='x'?'l’axe des abscisses':'l’axe des ordonnées');
     host._ui.res.textContent = ok ? '✔' : '✘ (attendu : '+coordToText(want.x,want.y)+' par rapport à '+modeTxt+')'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
   solution(host,s){ const want = (s.mode==='origine') ? {x:-s.M.x,y:-s.M.y} : (s.mode==='x'? {x:s.M.x,y:-s.M.y}:{x:-s.M.x,y:s.M.y});
-    host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> <b>M'</b> ${coordToText(want.x,want.y)}</div></div>`;
-    const inp=$('#reponse',host); if(inp) inp.value=coordToText(want.x,want.y); },
+    host._ui.res.className='small';
+    host._ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> ${L("M' "+coordToText(want.x,want.y))}</div></div>`;
+MJ(host._ui.res);},
   reset(host){ const i=$('#reponse',host); if(i) i.value=''; const r=$('#res',host); if(r) r.textContent=''; },
   pdfStatement(s){ const mode = s.mode || 'origine';
-    const txt = mode==='origine' ? 'à l’origine' : (mode==='x' ? 'à l’axe des abscisses' : 'à l’axe des ordonnées');
-    return `<div><div class="hint">Soit <b>M${coordToText(s.M.x,s.M.y)}</b>. Donner le symétrique de <b>M</b> par rapport ${txt}.</div></div>`; },
+const txt = mode==='origine' ? "à l’" + "origine" : (mode==='x' ? "à l’axe des abscisses" : "à l’axe des ordonnées");
+return `<div><div class="hint">Soit ${L('M' + coordToText(s.M.x,s.M.y))}. Donner le symétrique de ${L('M')} par rapport ${txt}.</div></div>`; },
   pdfSolution(s){ const mode = s.mode||'origine'; const want = (mode==='origine') ? {x:-s.M.x,y:-s.M.y} : (mode==='x'? {x:s.M.x,y:-s.M.y}:{x:-s.M.x,y:s.M.y});
-    return `<div><div class="hint">Symétrie par rapport à ${mode==='origine'?'l’origine':(mode==='x'?'l’axe des abscisses':'l’axe des ordonnées')}.</div><div class="steps"><div class="step"><b>M'</b> ${coordToText(want.x,want.y)}</div></div></div>`; }
+    return `<div><div class="hint">Symétrie par rapport à ${mode==='origine'?'l’origine':(mode==='x'?'l’axe des abscisses':'l’axe des ordonnées')}.</div><div class="steps"><div class="step">${L("M' "+coordToText(want.x,want.y))}</div></div></div>`; }
 });
 
 /* 4) Cadran / axe / origine */
-L.push({ id:'quadrant', title:'Indiquer le cadran / l’axe / l’origine',
+LST.push({ id:'quadrant', title:'Indiquer le cadran / l’axe / l’origine',
   gen(){ const R={...AMP}; const P=innerRandomPoint(R); const mode=rnd(0,4); if(mode===0){P.x=0;P.y=0;} else if(mode===1){P.y=0;} else if(mode===2){P.x=0;} return {R,P,where:quadrantOf(P)}; },
   render(host,s){
     const ui = renderWithRepere(host,{R:s.R,ticks:true,quadrants:true,orth:true,norm:true});
     ui.rep.setPoints([]);
-    ui.equ.innerHTML = `<p>Où se situe <b>M${coordToText(s.P.x,s.P.y)}</b> ? Réponses : <b>I</b>, <b>II</b>, <b>III</b>, <b>IV</b>, <b>axe des abscisses</b>, <b>axe des ordonnées</b> ou <b>origine</b>.</p>`;
+ui.equ.innerHTML = `<p>Où se situe ${pointLatex('M', s.P.x, s.P.y)} ? Réponses : <b>I</b>, <b>II</b>, <b>III</b>, <b>IV</b>, <b>axe des abscisses</b>, <b>axe des ordonnées</b> ou <b>origine</b>.</p>`;
+MJ(ui.equ);
     const input = document.createElement('input'); input.id='reponse'; input.type='text'; input.placeholder='ex. II ou axe des ordonnées';
     ui.actions.appendChild(input);
     host.dataset.state = JSON.stringify(s);
@@ -443,15 +604,24 @@ L.push({ id:'quadrant', title:'Indiquer le cadran / l’axe / l’origine',
     host._ui.res.textContent= ok?'✔':'✘ (attendu : '+s.where+')'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
   solution(host,s){ host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> ${s.where}</div></div>`; },
   reset(host){ const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ const r=new Repere(s.R,{ticks:true,quadrants:true}); const html=shrinkSVG(r.outerHTML(),300); const txt=`Où se situe M${coordToText(s.P.x,s.P.y)} ? (I, II, III, IV, axe des abscisses, axe des ordonnées, origine)`; return `<div><div class="hint">${txt}</div>${html}</div>`; },
-  pdfSolution(s){ const r=new Repere(s.R,{ticks:true,quadrants:true}); r.setPoints([{x:s.P.x,y:s.P.y,label:'M'}]); const html=shrinkSVG(r.outerHTML(),300); const txt=`Où se situe M${coordToText(s.P.x,s.P.y)} ?`; return `<div><div class="hint">${txt}</div>${html}<div class="steps"><div class="step">${s.where}</div></div></div>`; }
-});
+  pdfStatement(s){ const r=new Repere(s.R,{ticks:true,quadrants:true}); const html=shrinkSVG(r.outerHTML(),300);
+const txt=`Où se situe ${L('M' + coordToText(s.P.x,s.P.y))} ? (I, II, III, IV, axe des abscisses, axe des ordonnées, origine)`;
+return `<div><div class="hint">${txt}</div>${html}</div>`; },
+pdfSolution(s){
+  const r=new Repere(s.R,{ticks:true,quadrants:true});
+  r.setPoints([{x:s.P.x,y:s.P.y,label:'M'}]);
+  const html=shrinkSVG(r.outerHTML(),300);
+  const txt=`Où se situe ${L('M' + coordToText(s.P.x,s.P.y))} ?`;
+  return `<div><div class="hint">${txt}</div>${html}
+    <div class="steps"><div class="step">${s.where}</div></div></div>`;
+}});
 
 /* 5) Axe / origine — texte seul */
-L.push({ id:'axe_M', title:'Sur quel axe (ou à l’origine) se situe M ?',
+LST.push({ id:'axe_M', title:'Sur quel axe (ou à l’origine) se situe M ?',
   gen(){ const R={...AMP}; const M=genPointAxisOrOrigin(R); return {R,M}; },
   render(host,s){ const ui=renderNoRepere(host);
-    ui.equ.innerHTML=`<p>Déterminer la position de <b>M${coordToText(s.M.x,s.M.y)}</b> : <b>axe des abscisses</b>, <b>axe des ordonnées</b> ou <b>origine</b>.</p>`;
+ui.equ.innerHTML=`<p>Déterminer la position de ${pointLatex('M', s.M.x, s.M.y)} : <b>axe des abscisses</b>, <b>axe des ordonnées</b> ou <b>origine</b>.</p>`;
+MJ(ui.equ);
     const input=document.createElement('input'); input.id='reponse'; input.type='text'; input.placeholder='ex. axe des abscisses'; ui.actions.appendChild(input);
     host.dataset.state=JSON.stringify(s); host._ui=ui; },
   correct(host,s){ const v=normalizeWhere($('#reponse',host).value); const ok = v===s.M.place;
@@ -466,15 +636,17 @@ L.push({ id:'axe_M', title:'Sur quel axe (ou à l’origine) se situe M ?',
       return {ok:true,total:1};
     },
   reset(host){ const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ return `<div><div class="hint">Déterminer la position de M${coordToText(s.M.x,s.M.y)} : axe des abscisses, axe des ordonnées ou origine.</div></div>`; },
-  pdfSolution(s){ 
-      const M = s.M || {};
-      const loc = (M.x===0 && M.y===0) ? "à l'origine du repère" 
-                 : (M.x===0 ? "sur l'axe des ordonnées" 
-                 : (M.y===0 ? "sur l'axe des abscisses" : "hors des axes"));
-      return `<div class="ex"><div class="consigne"><div>Solution</div></div>
-        <div class="lead">Le point <b>M${coordToText(M.x,M.y)}</b> se situe ${loc}.</div></div>`;
-    }
+  pdfStatement(s){ 
+  return `<div><div class="hint">Déterminer la position de ${L('M' + coordToText(s.M.x,s.M.y))} : axe des abscisses, axe des ordonnées ou origine.</div></div>`; },
+  pdfSolution(s){
+  const M = s.M || {};
+  const loc = (M.x===0 && M.y===0) ? "à l'origine du repère"
+             : (M.x===0 ? "sur l'axe des ordonnées"
+             : (M.y===0 ? "sur l'axe des abscisses" : "hors des axes"));
+  return `<div><div class="steps"><div class="step">Le point ${L('M' + coordToText(M.x,M.y))} se situe ${loc}.</div></div></div>`;
+}
+
+
 });
 
 /* ======= Exercices 6–9 : nombre de points variable ======= */
@@ -485,12 +657,15 @@ function genPtsState(R, n){
 }
 
 /* 6) Placer points (orthonormé) */
-L.push({ id:'placer_ABC', title:'Placer A, B et C (orthogonal normé)',
+LST.push({ id:'placer_ABC', title:'Placer A, B et C (orthogonal normé)',
   gen(){ const R={...AMP}; const n=getNbPts(); return {R,PTS:genPtsState(R,n)}; },
   render(host,s){ const ui=renderWithRepere(host,{R:s.R,ticks:true,orth:true,norm:true});
-    ui.rep.setPoints([]); const labels=s.PTS.map(p=>p.label);
-    ui.equ.innerHTML=`<p>Placer sur le repère : ${textCoordList(s.PTS)}.<br><span class="small"><b>Astuce :</b> clique d’abord sur le bouton du point, puis clique sur le repère.</span></p>`;
-    const chips=document.createElement('div'); chips.className='chips'; chips.innerHTML='<span>À placer :</span>';
+   ui.rep.setPoints([]);
+const labels = s.PTS.map(p=>p.label);
+ui.equ.innerHTML = `<p>Placer sur le repère : ${textCoordListLatex(s.PTS)}.<br>
+<span class="small"><b>Astuce :</b> clique d’abord sur le bouton du point, puis clique sur le repère.</span></p>`;
+MJ(ui.equ);
+ const chips=document.createElement('div'); chips.className='chips'; chips.innerHTML='<span>À placer :</span>';
     ui.actions.appendChild(chips);
     let current=labels[0]; const chipEls=[];
     for(const L of labels){
@@ -506,34 +681,85 @@ L.push({ id:'placer_ABC', title:'Placer A, B et C (orthogonal normé)',
     ui.res.textContent=ok?'✔':'✘'; ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
   solution(host,s){ const ui=host._ui; ui.res.className='small'; ui.rep.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); },
   reset(host){ const r=$('#res',host); if(r) r.textContent=''; host._ui?.rep?.clearUser?.(); },
-  pdfStatement(s){ const r=new Repere(s.R,{ticks:true}); const html=shrinkSVG(r.outerHTML(),300); return `<div><div class="hint">Placer : ${textCoordList(s.PTS)}.</div>${html}</div>`; },
-  pdfSolution(s){ const r=new Repere(s.R,{ticks:true}); r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); const html=shrinkSVG(r.outerHTML(),300); return `<div><div class="hint">Placer : ${textCoordList(s.PTS)}.</div>${html}<div class="steps"><div class="step">Positions exactes ci-dessus.</div></div></div>`; }
+  pdfStatement(s){const r=new Repere(s.R,{ticks:true}); const html=shrinkSVG(r.outerHTML(),300);
+return `<div><div class="hint">Placer : ${textCoordListLatex(s.PTS)}</div>${html}</div>`; },
+pdfSolution(s){
+  const r=new Repere(s.R,{ticks:true});
+  r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
+  const html=shrinkSVG(r.outerHTML(),300);
+  return `<div><div class="hint">Placer : ${textCoordListLatex(s.PTS)}.</div>${html}
+    <div class="steps"><div class="step">Positions exactes ci-dessus.</div></div></div>`;
+}
 });
 
 /* 7) Lire points */
-L.push({ id:'lire_ABC', title:'Lire les coordonnées de A, B et C',
+LST.push({ id:'lire_ABC', title:'Lire les coordonnées de A, B et C',
   gen(){ const R={...AMP}; const n=getNbPts(); return {R,PTS:genPtsState(R,n)}; },
   render(host,s){ const ui=renderWithRepere(host,{R:s.R,ticks:true,orth:true,norm:true});
     ui.rep.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
-    ui.equ.innerHTML=`<p>Lire et écrire les coordonnées de <b>${s.PTS.map(p=>p.label).join(', ')}</b>.</p>`;
-    inputsForPoints(ui.actions, s.PTS.map(p=>p.label));
+ui.equ.innerHTML = `<p>Lire et écrire les coordonnées de ${labelsLatex(s.PTS.map(p=>p.label))}.</p>`;
+MJ(ui.equ);
+inputsForPoints(ui.actions, s.PTS.map(p=>p.label));
     host.dataset.state=JSON.stringify(s); host._ui=ui; },
-  correct(host,s){ let ok=true;
-    for(const p of s.PTS){ const A=parseCoord($('#ans_'+p.label,host).value); if(!(A && A.x===p.x && A.y===p.y)){ ok=false; break; } }
-    host._ui.res.textContent=ok?'✔':'✘'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
-  solution(host,s){ host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step">${s.PTS.map(p=>p.label+coordToText(p.x,p.y)).join(' ; ')}</div></div>`; },
-  reset(host){ for(const el of host.querySelectorAll('input[id^="ans_"]')) el.value=''; const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ const r=new Repere(s.R,{ticks:true}); r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); const html=shrinkSVG(r.outerHTML(),300); const names=s.PTS.map(p=>p.label).join(', '); return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>${html}</div>`; },
-  pdfSolution(s){ const names=s.PTS.map(p=>p.label).join(', '); const sol=s.PTS.map(p=>p.label+coordToText(p.x,p.y)).join(' ; '); return `<div><div class="hint">Lire les coordonnées des points ${names}.</div><div class="steps"><div class="step">${sol}</div></div></div>`; }
+  correct(host,s){
+  let okCount=0, totCount=0;
+
+  for(const p of s.PTS){
+    const el = $('#ans_'+p.label, host);
+    const raw = String(el.value||'').trim();
+
+    if (raw===''){ markInput(el,''); continue; } // ignoré
+    totCount++;
+
+    const A = parseCoord(raw);
+    const ok = !!(A && A.x===p.x && A.y===p.y);
+    markInput(el, ok?'ok':'ko');
+    if(ok) okCount++;
+  }
+
+  const allOK = (totCount>0 && okCount===totCount);
+  host._ui.res.textContent = totCount ? (`${okCount} / ${totCount}`) : '';
+  host._ui.res.className   = totCount ? (allOK?'res-ok':'res-ko') : '';
+  return { okCount, totCount };
+},
+  solution(host,s){
+    host._ui.res.className='small';
+    host._ui.res.innerHTML = `<div class="steps"><div class="step">${
+      s.PTS.map(p=>L(p.label+coordToText(p.x,p.y))).join(' ; ')
+    }</div></div>`;
+	MJ(host._ui.res);
+
+  },
+  reset(host){
+  for(const el of host.querySelectorAll('input[id^="ans_"]')) el.value='';
+  clearMarks(host);
+  const r=$('#res',host); if(r) r.textContent='';
+},
+pdfStatement(s){const r=new Repere(s.R,{ticks:true});
+r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
+const html=shrinkSVG(r.outerHTML(),300);
+const names = labelsLatex(s.PTS.map(p=>p.label));
+return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>${html}</div>`; },
+  pdfSolution(s){
+  const names = labelsLatex(s.PTS.map(p=>p.label));
+  const sol   = s.PTS.map(p=>L(p.label + coordToText(p.x,p.y))).join(' ; ');
+  return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>
+    <div class="steps"><div class="step">${sol}</div></div></div>`;
+}
+
 });
 
 /* 8) Placer points — modes */
-L.push({ id:'placer_ABC_mode', title:'Placer A, B et C (orthogonal/quelconque ; normé ou non)',
+LST.push({ id:'placer_ABC_mode', title:'Placer A, B et C (orthogonal/quelconque ; normé ou non)',
   gen(){ const R={...AMP}; const n=getNbPts(); return {R,PTS:genPtsState(R,n),orth:true,norm:false}; },
   render(host,s){ const ui=renderWithRepere(host,{R:s.R,ticks:true,orth:s.orth,norm:s.norm,enableOrth:true});
-    ui.rep.setPoints([]); const labels=s.PTS.map(p=>p.label);
-    ui.equ.innerHTML=`<p>Placer <b>${labels.join(', ')}</b> : ${textCoordList(s.PTS)}.<br><span class="small"><b>Astuce :</b> clique d’abord sur le bouton du point, puis clique sur le repère.</span><br><span class="small">Choisis le type de repère : <b>Orthogonal</b> / <b>Quelconque</b> et <b>Normé</b> (OI=OJ) ou non.</span></p>`;
-    const chips=document.createElement('div'); chips.className='chips'; chips.innerHTML='<span>À placer :</span>';
+    ui.rep.setPoints([]);
+const labels = s.PTS.map(p=>p.label);
+ui.equ.innerHTML = `<p>Placer ${labelsLatex(labels)} : ${textCoordListLatex(s.PTS)}.<br>
+<span class="small"><b>Astuce :</b> clique d’abord sur le bouton du point, puis clique sur le repère.</span><br>
+<span class="small">Choisis le type de repère : <b>Orthogonal</b> / <b>Quelconque</b> et <b>Normé</b> (OI=OJ) ou non.</span></p>`;
+MJ(ui.equ);
+ const chips=document.createElement('div'); chips.className='chips'; chips.innerHTML='<span>À placer :</span>';
     ui.actions.appendChild(chips);
     let current=labels[0]; const chipEls=[];
     for(const L of labels){
@@ -552,39 +778,103 @@ L.push({ id:'placer_ABC_mode', title:'Placer A, B et C (orthogonal/quelconque ; 
     ui.res.textContent=ok?'✔':'✘'; ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
   solution(host,s){ const ui=host._ui; ui.res.className='small'; ui.res.innerHTML=`<div class="steps"><div class="step"><strong>Solution.</strong> Repère ${(s.orth?'orthogonal':'quelconque')}, ${(s.norm?'normé (OI=OJ)':'non normé (OI≠OJ)')}.</div></div>`; ui.rep.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); },
   reset(host){ const r=$('#res',host); if(r) r.textContent=''; host._ui?.rep?.clearUser?.(); },
-  pdfStatement(s){ const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm}); const html=shrinkSVG(r.outerHTML(),300); return `<div><div class="hint">Placer : ${textCoordList(s.PTS)} (${s.orth?'orthogonal':'quelconque'} ; ${s.norm?'normé':'non normé'}).</div>${html}</div>`; },
-  pdfSolution(s){ const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm}); r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); const html=shrinkSVG(r.outerHTML(),300); return `<div><div class="hint">Placer : ${textCoordList(s.PTS)}.</div>${html}<div class="steps"><div class="step">Positions exactes ci-dessus.</div></div></div>`; }
+  pdfStatement(s){ const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm}); const html=shrinkSVG(r.outerHTML(),300);
+return `<div><div class="hint">Placer : ${textCoordListLatex(s.PTS)} (${s.orth?'orthogonal':'quelconque'} ; ${s.norm?'normé':'non normé'}).</div>${html}</div>`; },
+pdfSolution(s){
+  const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm});
+  r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
+  const html=shrinkSVG(r.outerHTML(),300);
+  return `<div><div class="hint">Placer : ${textCoordListLatex(s.PTS)}.</div>${html}
+    <div class="steps"><div class="step">Positions exactes ci-dessus.</div></div></div>`;
+}
 });
 
 /* 9) Lire points — modes */
-L.push({ id:'lire_ABC_mode', title:'Lire les coordonnées de A, B, C (orthogonal/quelconque ; normé ou non)',
+LST.push({ id:'lire_ABC_mode', title:'Lire les coordonnées de A, B, C (orthogonal/quelconque ; normé ou non)',
   gen(){ const R={...AMP}; const n=getNbPts(); return {R,PTS:genPtsState(R,n),orth:true,norm:false}; },
   render(host,s){ const ui=renderWithRepere(host,{R:s.R,ticks:true,orth:s.orth,norm:s.norm,enableOrth:true});
-    ui.rep.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
-    ui.equ.innerHTML=`<p>Dans un repère ${(s.orth?'orthogonal':'quelconque')}, ${(s.norm?'normé (OI=OJ)':'non normé (OI≠OJ)')}, lire les coordonnées de <b>${s.PTS.map(p=>p.label).join(', ')}</b>.</p>`;
-    inputsForPoints(ui.actions, s.PTS.map(p=>p.label));
+   ui.rep.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
+ui.equ.innerHTML = `<p>Dans un repère ${(s.orth?'orthogonal':'quelconque')}, ${(s.norm?'normé (OI=OJ)':'non normé (OI≠OJ)')}, lire les coordonnées de ${labelsLatex(s.PTS.map(p=>p.label))}.</p>`;
+MJ(ui.equ);
+ inputsForPoints(ui.actions, s.PTS.map(p=>p.label));
     host.dataset.state=JSON.stringify(s); host._ui=ui;
     ui.opt.cbOrth.addEventListener('change',()=>{ s.orth=ui.opt.cbOrth.checked; ui.rep.set({orth:s.orth}); });
     ui.opt.cbNorm.addEventListener('change',()=>{ s.norm=ui.opt.cbNorm.checked; ui.rep.set({norm:s.norm}); });
   },
-  correct(host,s){ let ok=true;
-    for(const p of s.PTS){ const A=parseCoord($('#ans_'+p.label,host).value); if(!(A && A.x===p.x && A.y===p.y)){ ok=false; break; } }
-    host._ui.res.textContent=ok?'✔':'✘'; host._ui.res.className= ok?'res-ok':'res-ko'; return {ok,total:1}; },
-  solution(host,s){ host._ui.res.className='small'; host._ui.res.innerHTML=`<div class="steps"><div class="step">${s.PTS.map(p=>p.label+coordToText(p.x,p.y)).join(' ; ')}</div></div>`; },
-  reset(host){ for(const el of host.querySelectorAll('input[id^="ans_"]')) el.value=''; const r=$('#res',host); if(r) r.textContent=''; },
-  pdfStatement(s){ const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm}); r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill}))); const html=shrinkSVG(r.outerHTML(),300); const names=s.PTS.map(p=>p.label).join(', '); return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>${html}</div>`; },
-  pdfSolution(s){ const names=s.PTS.map(p=>p.label).join(', '); const sol=s.PTS.map(p=>p.label+coordToText(p.x,p.y)).join(' ; '); return `<div><div class="hint">Lire les coordonnées des points ${names}.</div><div class="steps"><div class="step">${sol}</div></div></div>`; }
+  correct(host,s){
+  let okCount=0, totCount=0;
+
+  for(const p of s.PTS){
+    const el = $('#ans_'+p.label, host);
+    const raw = String(el.value||'').trim();
+
+    if (raw===''){ markInput(el,''); continue; } // ignoré
+    totCount++;
+
+    const A = parseCoord(raw);
+    const ok = !!(A && A.x===p.x && A.y===p.y);
+    markInput(el, ok?'ok':'ko');
+    if(ok) okCount++;
+  }
+
+  const allOK = (totCount>0 && okCount===totCount);
+  host._ui.res.textContent = totCount ? (`${okCount} / ${totCount}`) : '';
+  host._ui.res.className   = totCount ? (allOK?'res-ok':'res-ko') : '';
+  return { okCount, totCount };
+},
+solution(host,s){
+    host._ui.res.className='small';
+    host._ui.res.innerHTML = `<div class="steps"><div class="step">${
+      s.PTS.map(p=>L(p.label+coordToText(p.x,p.y))).join(' ; ')
+    }</div></div>`;
+	MJ(host._ui.res);
+
+  },  
+  reset(host){
+  for(const el of host.querySelectorAll('input[id^="ans_"]')) el.value='';
+  clearMarks(host);
+  const r=$('#res',host); if(r) r.textContent='';
+},pdfStatement(s){  const r=new Repere(s.R,{ticks:true,orth:s.orth,norm:s.norm});
+r.setPoints(s.PTS.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.fill})));
+const html=shrinkSVG(r.outerHTML(),300);
+const names = labelsLatex(s.PTS.map(p=>p.label));
+return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>${html}</div>`;
+ },
+pdfSolution(s){
+  const names = labelsLatex(s.PTS.map(p=>p.label));
+  const sol   = s.PTS.map(p=>L(p.label + coordToText(p.x,p.y))).join(' ; ');
+  return `<div><div class="hint">Lire les coordonnées des points ${names}.</div>
+    <div class="steps"><div class="step">${sol}</div></div></div>`;
+}
 });
 
-return L; }
+return LST; }
 
 /* =============== Score & init UI =============== */
 let scoreOK=0, scoreTot=0; const updateScore=()=>$('#score').textContent=`${scoreOK} / ${scoreTot}`;
 function buildOne(){ const sel=$('#exo-select'), host=$('#host'); const def=REGISTRY.find(e=>e.id===sel.value);
   if(!def){ host.textContent='(Aucun exercice)'; return; }
   const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st); def.render(host,st); }
-function check(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
-  const st=JSON.parse(host.dataset.state||'{}'); const r=def.correct(host,st); if(r){ scoreOK+=r.ok?1:0; scoreTot+=(r.total||1); updateScore(); }}
+function check(){
+  const host=$('#host');
+  const def=REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st);
+  if(!r) return;
+
+  // Nouveau protocole : okCount/totCount (sinon fallback ok/total)
+  if ('okCount' in r && 'totCount' in r){
+    if (r.totCount > 0){
+      scoreOK += (r.okCount||0);
+      scoreTot += (r.totCount||0);
+    }
+  } else {
+    scoreOK += r.ok ? 1 : 0;
+    scoreTot += (r.total||1);
+  }
+  updateScore();
+}
 function solution(){ const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return; const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
 function resetAll(){ scoreOK=0; scoreTot=0; updateScore(); const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def) def.reset(host); }
 
@@ -873,6 +1163,71 @@ const n = (chkNb && chkNb.checked)
     wrapExoPDFInit();
   }
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');        // id doit rester unique
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    // fallback si jamais l’original est absent (rare)
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
 </script>
 </body>
 </html>

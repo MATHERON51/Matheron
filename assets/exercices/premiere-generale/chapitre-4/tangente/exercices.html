@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Première — Nombres dérivés & tangentes</title>
+<title>1ère — Nombres dérivés & tangentes</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -201,59 +202,101 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
     return true;
   }
   function generate(opts={}){
-    const R = opts.R || RDEF;             // génération sur [-6,6]
-    const MAG  = opts.mag ?? 5;
-    const DENM = Math.max(2, opts.denMax ?? 4);
-    let tries=0;
-    while(tries++<1200){
-      let a = pickDistinctInt(R.xmin+1, R.xmax-1);
-      let b = pickDistinctInt(R.xmin+1, R.xmax-1, new Set([a]));
-      let c = pickDistinctInt(R.xmin+1, R.xmax-1, new Set([a,b]));
-      [a,b,c] = [a,b,c].sort((u,v)=>u-v);
-      let m = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1);
-      let k = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1);
-      let l = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1);
-      if(m===k && k===l) continue;
-      const spread = Math.max(Math.abs(m-k), Math.abs(k-l), Math.abs(l-m));
-      if(spread < 2) continue;
-      let n = rchoice([-3,-2,-1,1,2,3]);
-      let H = rchoice([2,3,4,5].filter(h=>h<=DENM));
-      let Vcands = [-5,-4,-3,-2,-1,1,2,3,4,5].filter(v=> (v%H)!==0 );
-      let V = rchoice(Vcands);
-      if(!(c+H<=R.xmax && l+V>=R.ymin && l+V<=R.ymax)) continue;
-      const P = buildPoly(a,b,c, m,k,l, n, V, H);
-      if(!okInView(P,R)) continue;
-      const dP = pDer(P);
-      const f  = x => evalPolyNum(P,x);
-      const df = x => evalPolyNum(dP,x);
-      const A = {x:a, y:m, m:0};
-      const B = {x:b, y:k, m:n};
-      const C = {x:c, y:l, m:V/H};
-      const xs=[];
-      const grid=[5,4,4,5];
-      const segments=[ [R.xmin, A.x], [A.x, B.x], [B.x, C.x], [C.x, R.xmax] ];
-      for(let s=0;s<4;s++){
-        const [x0,x1]=segments[s];
-        const npts=grid[s];
-        for(let i=0;i<npts;i++){
-          const t=(i+1)/(npts+1); const x = x0 + t*(x1-x0); const y=f(x);
-          xs.push([Math.round(x*1000)/1000, Math.round(y*1000)/1000]);
-        }
+  const R    = opts.R || RDEF;
+  const MAG  = opts.mag ?? 5;
+  const DENM = Math.max(2, opts.denMax ?? 4);
+
+  let tries = 0;
+  let GAP   = (typeof opts.gap === 'number') ? opts.gap : 2; // démarre à 2
+
+  while (tries++ < 6000){                       // ← plus large que 1200
+    let a = pickDistinctInt(R.xmin+1, R.xmax-1);
+    let b = pickDistinctInt(R.xmin+1, R.xmax-1, new Set([a]));
+    let c = pickDistinctInt(R.xmin+1, R.xmax-1, new Set([a,b]));
+    [a,b,c] = [a,b,c].sort((u,v)=>u-v);
+
+    let m = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1); // y_A
+    let k = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1); // y_B
+    let l = clamp(randInt(-MAG,MAG), R.ymin+1, R.ymax-1); // y_C
+
+    // A ne partage JAMAIS sa hauteur
+    if (k === m || l === m) continue;
+    if (Math.abs(k - m) < GAP || Math.abs(l - m) < GAP) continue;
+
+    // reste de tes tirages
+    let n = rchoice([-3,-2,-1,1,2,3]);
+    let H = rchoice([2,3,4,5].filter(h=>h<=DENM));
+    let Vcands = [-5,-4,-3,-2,-1,1,2,3,4,5].filter(v => (v%H)!==0);
+    let V = rchoice(Vcands);
+
+    if(!(c+H<=R.xmax && l+V>=R.ymin && l+V<=R.ymax)) continue;
+
+    const P  = buildPoly(a,b,c, m,k,l, n, V, H);
+    if(!okInView(P,R)) continue;
+
+    const dP = pDer(P);
+    const f  = x => evalPolyNum(P,x);
+    const df = x => evalPolyNum(dP,x);
+
+    const A  = {x:a, y:m,   m:0};
+    const B  = {x:b, y:k,   m:n};
+    const C  = {x:c, y:l,   m:V/H};
+
+    // re-check sécurité
+    if (A.y === B.y || A.y === C.y) continue;
+
+    // échantillonnage pour le tracé
+    const xs=[], grid=[5,4,4,5];
+    const segments=[[R.xmin,A.x],[A.x,B.x],[B.x,C.x],[C.x,R.xmax]];
+    for(let s=0;s<4;s++){
+      const [x0,x1]=segments[s], npts=grid[s];
+      for(let i=0;i<npts;i++){
+        const t=(i+1)/(npts+1), x=x0+t*(x1-x0), y=f(x);
+        xs.push([Math.round(x*1000)/1000, Math.round(y*1000)/1000]);
       }
-      return {R, f, df, A, B, C, VH:[V,H], pts20: xs};
     }
-    const f=x=>0, df=x=>0;
-    return {R:RDEF, f, df, A:{x:-2,y:1,m:0}, B:{x:0,y:0,m:1}, C:{x:3,y:1,m:0.5}, VH:[1,2], pts20:[]};
+    return {R, f, df, A, B, C, VH:[V,H], pts20: xs};
   }
+
+  // Phase 2 : si ça coince, on relâche un peu le GAP puis on retente
+  if (GAP > 0) return generate({...opts, gap:GAP-1});
+
+      // Fallback ultime (très rare) : on garantit y_C ≠ y_A
+  const f=x=>0, df=x=>0;
+  return {
+    R:RDEF,
+    f, df,
+    A:{x:-2,y:1,m:0},
+    B:{x:0, y:0,m:1},
+    C:{x:3, y:2,m:1/2},     // ← y différent de A
+    VH:[1,2],
+    pts20:[]
+  };
+}
+
   global.HERMITE5 = { generate, toVH, RDEF };
 })(window);
 </script>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
-<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 </head>
 <body>
   <div class="header">
-    <h1 style="margin:0;font-size:1.1rem">Première — <strong>Nombres dérivés & tangentes</strong></h1>
+    <h1 style="margin:0;font-size:1.1rem">1ère — <strong>Nombres dérivés & tangentes</strong></h1>
   </div>
 
   <div class="wrap">
@@ -314,6 +357,13 @@ function normalizeSignsStr(s){
     .replace(/([\(\[])\s+/g,'$1');
 
   return s;
+}
+/* === [AJOUT GLOBAL, une seule fois] : re-typeset MathJax après injection === */
+function retypeMath(scope){
+  if (!window.MathJax) return;
+  const node = scope || document;
+  if (MathJax.typesetPromise) { MathJax.typesetPromise([node]); }
+  else if (MathJax.typeset)   { MathJax.typeset([node]); }
 }
 
 /* 2) Forçage des multiplications explicites "×" là où nécessaire */
@@ -636,27 +686,65 @@ function lineOKStrict(expr, mVH, pVH){
 
 
 /* ====== Vérif “souple” (utile pour d’autres exos si tu veux la garder) ====== */
+/* ===== Vérif “souple” — accepte 4x, -1x, 2(x-3), x(x+1), etc. ===== */
 function parseUserLine(expr){
-  expr = normMinus(expr).replace(/\s+/g,'');
-  if(!expr) return null;
-  let rhs = expr.startsWith('y=') ? expr.slice(2) : expr;
-  rhs = rhs.replace(/\^/g,'**');
+  // normalisations de base
+  let rhs = normMinus(String(expr||'')).trim();   // remplace « − » par '-'
+  if(!rhs) return null;
+
+  // retirer un éventuel "y=" au début
+  rhs = rhs.replace(/\s+/g,'');
+  rhs = rhs.startsWith('y=') ? rhs.slice(2) : rhs;
+
+  // caret -> ** (au cas où), et signes exotiques
+  rhs = rhs.replace(/\^/g,'**')
+           .replace(/[×·•]/g,'*')
+           .replace(/,/g,'.');
+
+  // ---- Multiplications implicites ----
+  // 4x   -> 4*x
+  rhs = rhs.replace(/(\d)\s*x\b/g, '$1*x');
+  // )x   -> )*x
+  rhs = rhs.replace(/\)\s*x\b/g, ')*x');
+  // x(   -> x*( 
+  rhs = rhs.replace(/\bx\s*\(/g, 'x*(');
+  // 2(   -> 2*(
+  rhs = rhs.replace(/(\d)\s*\(/g, '$1*(');
+  // )(   -> )*(
+  rhs = rhs.replace(/\)\s*\(/g, ')*(');
+
+  // JS n’aime pas "-x**2" (pas utile ici, mais harmless)
+  rhs = rhs.replace(/(^|[^\w\)])-\s*(x\s*\*\*\s*\d+)/g, '$1-($2)');
+
   try{
     const f = new Function('x','return ('+rhs+');');
     return (x)=> f(x);
-  }catch(e){ return null; }
+  }catch(e){
+    return null;
+  }
 }
+
+// ===== Vérif "souple" mais OBLIGE 'y=' en tête =====
 function isSameLine(userExpr, m, p){
-  const f=parseUserLine(userExpr); if(!f) return false;
-  const xs=[-5,-3,-1,0,2,4];
+  const raw = String(userExpr || '');
+  const normalized = normMinus(raw).replace(/\s+/g, '');
+
+  // ⛔️ on n'accepte pas sans 'y='
+  if (!/^y=/.test(normalized)) return false;
+
+  const f = parseUserLine(raw);   // garde la tolérance 4x, 2(x-3), etc.
+  if(!f) return false;
+
+  const xs = [-5,-3,-1,0,2,4];
   try{
-    return xs.every(x=>{
-      const yu=f(x);
-      const y=m*x+p;
-      return isFinite(yu) && Math.abs(yu - y) <= 1e-3;
+    return xs.every(x => {
+      const yu = f(x);
+      const y  = m*x + p;
+      return Number.isFinite(yu) && Math.abs(yu - y) <= 1e-3;
     });
   }catch(e){ return false; }
 }
+
 
 /* =========== Repère (SVG) =========== */
 /* =========== Repère (SVG) =========== */
@@ -1118,31 +1206,37 @@ function makeExos(){
   return {R:RVIS, f:g.f, df:g.df, pts:[g.A,g.B,g.C], pts20:g.pts20};
 },
 
-    render(host, st){
-      const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
-      const ui=renderWithRepere(host, s.R);
-      ui.rep.drawCurve(s.f,'#e53935',2.5);
-      const labels=['A','B','C'];
-      s.pts.forEach((P,i)=>{
-        ui.rep.drawPoint(labels[i], P.x, P.y, '#1565c0');
-        ui.rep.drawLineThroughPointSlope(P.x, P.y, P.m, '#1565c0', true);
-      });
-      // ordre aléatoire des trois demandes
-const idx=[0,1,2]; idx.sort(()=>Math.random()-0.5);
-ui.equ.innerHTML = `
-  <p>La courbe de la fonction <b>f</b> est tracée en rouge.</p>
-  <p>Les droites bleues sont les tangentes en <b>A</b>, <b>B</b> et <b>C</b>.</p>
-  <p>f'(${fmtNum(s.pts[idx[0]].x)}) = ${mkInput('d1',80)} <span id="t1" class="tick">—</span></p>
-  <p>f'(${fmtNum(s.pts[idx[1]].x)}) = ${mkInput('d2',80)} <span id="t2" class="tick">—</span></p>
-  <p>f'(${fmtNum(s.pts[idx[2]].x)}) = ${mkInput('d3',80)} <span id="t3" class="tick">—</span></p>
-  <div class="steps" id="steps"></div>
-`;
-// stocke l'ordre pour la vérif
-s._order = idx;
+/* === Ex. 1 — render() : ÉNONCÉ 100% LaTeX + re-typeset === */
+render(host, st){
+  const s = st.params || this.gen();
+  host.dataset.state = JSON.stringify({params:s});
+  const ui = renderWithRepere(host, s.R);
 
-      ui.actions.innerHTML='';
-      host._state=s; host._ui=ui;
-    },
+  ui.rep.drawCurve(s.f,'#e53935',2.5);
+  const labels = ['A','B','C'];
+  s.pts.forEach((P,i)=>{
+    ui.rep.drawPoint(labels[i], P.x, P.y, '#1565c0');
+    ui.rep.drawLineThroughPointSlope(P.x, P.y, P.m, '#1565c0', true);
+  });
+
+  const idx = [0,1,2].sort(()=>Math.random()-0.5);
+  ui.equ.innerHTML = `
+    <p>La courbe de la fonction \\(f\\) est tracée en rouge.</p>
+    <p>Les droites bleues sont les tangentes en \\(A\\), \\(B\\) et \\(C\\).</p>
+    <p>\\(f'(${fmtNum(s.pts[idx[0]].x)})=\\) ${mkInput('d1',80)} <span id="t1" class="tick"></span></p>
+    <p>\\(f'(${fmtNum(s.pts[idx[1]].x)})=\\) ${mkInput('d2',80)} <span id="t2" class="tick"></span></p>
+    <p>\\(f'(${fmtNum(s.pts[idx[2]].x)})=\\) ${mkInput('d3',80)} <span id="t3" class="tick"></span></p>
+    <div class="steps" id="steps"></div>
+  `;
+  s._order = idx;
+
+  ui.actions.innerHTML = '';
+  host._state = s; host._ui = ui;
+
+  // → (nouveau) faire composer MathJax pour l’énoncé
+  retypeMath(host);
+},
+
 verify(host){
   const s=host._state;
   const idx = s._order || [0,1,2];
@@ -1157,29 +1251,44 @@ verify(host){
   return allFilled && (a1===true && a2===true && a3===true);
 },
 
-    solution(host){
-  const {pts} = host._state;                 // A,B,C
-  const steps = $('#steps', host);
+// === Ex. 1 — solution() en dehors de .steps, dans une boîte .solbox ===
+solution(host){
+  const {pts} = host._state;
   const order = (host._state._order && Array.isArray(host._state._order))
-                ? host._state._order : [0,1,2];    // même ordre que les questions
+               ? host._state._order : [0,1,2];
   const labs = ['A','B','C'];
-  const VHlabel = `<span class="frac"><span class="num">V</span><span class="den">H</span></span>`;
+  const fracTex = (N,D)=>`\\dfrac{${N}}{${D}}`;
+
+  // Zone solution : hors .steps, avec .solbox (fond grisé)
+  let zone = document.querySelector('#steps', host);
+  if (zone){
+    zone.classList.remove('steps');
+    zone.classList.add('solution','solbox'); // <— fond grisé neutre
+    zone.id = 'sol-ex1';
+  }else{
+    zone = document.createElement('div');
+    zone.className = 'solution solbox';
+    host._ui.right.appendChild(zone);
+  }
 
   const html = order.map(k=>{
     const P = pts[k];
-    const horiz = Math.abs(P.m) < 1e-12;
-    const xTxt = fmtNum(P.x);
-    const pente = horiz ? '0' : `${VHlabel} = ${vhHTML(P.m)}`;   // V/H en pile
-    const fp = horiz ? '0' : fprimeHTML(P.m);                    // entier si H=1
-
-    return `<div class="step">
-      <b>${labs[k]}(${xTxt}; f(${xTxt}))</b> et pente : ${pente}
-      donc f'(${xTxt}) = ${fp}${horiz ? ' (tangente horizontale)' : ''}
-    </div>`;
+    const x = fmtNum(P.x);
+    if (Math.abs(P.m) < 1e-12){
+      return `<p>\\( ${labs[k]}(${x}\\,;\\,f(${x})) \\) et pente : \\(0\\)
+              donc \\( f^{\\prime}(${x}) = 0 \\) (tangente horizontale)</p>`;
+    }
+    const [V,H] = slopeVH(P.m);
+    return `<p>\\( ${labs[k]}(${x}\\,;\\,f(${x})) \\) et pente :
+              \\( \\dfrac{V}{H} = ${fracTex(V,H)} \\)
+              donc \\( f^{\\prime}(${x}) = ${H===1 ? V : fracTex(V,H)} \\)</p>`;
   }).join('');
 
-  steps.innerHTML = html;
+  zone.innerHTML = html;
+  if (window.retypeMath) retypeMath(zone); // re-typeset MathJax
 }
+
+
 
 
 
@@ -1193,223 +1302,141 @@ verify(host){
     gen(){
   const RVIS={xmin:-8,xmax:8,ymin:-8,ymax:8};
   const g=HERMITE5.generate({mag:5, denMax:4, R:HERMITE5.RDEF});
-  const A=g.A, B=g.B, D=g.C;
+  const A=g.A, B=g.B, C=g.C;
+
   const T1={m:A.m, p:A.y - A.m*A.x};
   const T2={m:B.m, p:B.y - B.m*B.x};
-  const T3={m:D.m, p:D.y - D.m*D.x};
-  const vh = HERMITE5.toVH(D.m) || [Math.round(D.m),1];
-  let E = { x: D.x + vh[1], y: D.y + vh[0] };
-  if(E.x>RVIS.xmax || E.x<RVIS.xmin || E.y>RVIS.ymax || E.y<RVIS.ymin){ 
-    E = { x: D.x - vh[1], y: D.y - vh[0] }; 
+  const T3={m:C.m, p:C.y - C.m*C.x};
+
+  // Point auxiliaire D pour que (CD) soit la tangente en C
+  const vh = HERMITE5.toVH(C.m) || [Math.round(C.m),1];
+  let D = { x: C.x + vh[1], y: C.y + vh[0] };
+  if(D.x>RVIS.xmax || D.x<RVIS.xmin || D.y>RVIS.ymax || D.y<RVIS.ymin){ 
+    D = { x: C.x - vh[1], y: C.y - vh[0] }; 
   }
-  return {R:RVIS, f:g.f, A,B,D, T1,T2,T3, E, pts20:g.pts20};
+  return {R:RVIS, f:g.f, A,B,C, T1,T2,T3, D, pts20:g.pts20};
 },
-    render(host, st){
-  const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
+
+    /* ===== Ex. 2 — ÉNONCÉ 100% LaTeX ===== */
+render(host, st){
+  const s=st.params||this.gen(); 
+  host.dataset.state=JSON.stringify({params:s});
   const ui=renderWithRepere(host, s.R);
-  // Segment visible de la tangente dans [xmin,xmax]×[ymin,ymax]
-function segmentInBox_throughPointSlope(x0,y0,m,R){
-  const cand=[];
-  const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
-  const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
-  if (Math.abs(m)>1e-12){
-    const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
-    const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
-  } else { cand.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0}); }
-  const u=[]; for(const p of cand){ if(!u.some(q=>Math.abs(q.x-p.x)<1e-9&&Math.abs(q.y-p.y)<1e-9)) u.push(p); }
-  while(u.length<2) u.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0});
-  return u.slice(0,2);
-}
 
-// Duplique une tangente en "PDF-safe" (un simple <line> en PIXELS, dans un groupe dédié)
-function addPdfSafeLine(rep, Q1, Q2, color){
-  const NS = rep.el.namespaceURI;
-  let g = rep.el.querySelector('g.tangent-pdf-safe');
-  if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','tangent-pdf-safe'); rep.el.appendChild(g); }
-  // on dessine en coordonnées écran (pixels)
-  const A = rep.coordToScreen(Q1.x, Q1.y);
-  const B = rep.coordToScreen(Q2.x, Q2.y);
-  const L = document.createElementNS(NS,'line');
-  L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
-  L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
-  L.setAttribute('stroke', color);
-  L.setAttribute('stroke-width', '2.5');
-  L.setAttribute('stroke-dasharray', '6 6');     // pointillés
-  L.setAttribute('stroke-linecap', 'round');
-  // IMPORTANT: pas de "vector-effect", ça passe mieux en PDF
-  g.appendChild(L);
-}
+  // ---- dessin des courbes/tangentes + labels ----
+  function segmentInBox_throughPointSlope(x0,y0,m,R){
+    const cand=[];
+    const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
+    const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
+    if (Math.abs(m)>1e-12){
+      const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
+      const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
+    } else { cand.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0}); }
+    const u=[]; for(const p of cand){ if(!u.some(q=>Math.abs(q.x-p.x)<1e-9&&Math.abs(q.y-p.y)<1e-9)) u.push(p); }
+    while(u.length<2) u.push({x:ui.rep.R.xmin,y:y0},{x:ui.rep.R.xmax,y:y0});
+    return u.slice(0,2);
+  }
+  function addPdfSafeLine(rep, Q1, Q2, color){
+    const NS = rep.el.namespaceURI;
+    let g = rep.el.querySelector('g.tangent-pdf-safe');
+    if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','tangent-pdf-safe'); rep.el.appendChild(g); }
+    const A = rep.coordToScreen(Q1.x, Q1.y);
+    const B = rep.coordToScreen(Q2.x, Q2.y);
+    const L = document.createElementNS(NS,'line');
+    L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
+    L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
+    L.setAttribute('stroke', color);
+    L.setAttribute('stroke-width', '2.5');
+    L.setAttribute('stroke-dasharray', '6 6');
+    L.setAttribute('stroke-linecap', 'round');
+    g.appendChild(L);
+  }
+  function drawTangentWithLabel(P, color, labelText){
+    ui.rep.drawLineThroughPointSlope(P.x, P.y, P.m, color, true);
+    const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,(Math.abs(P.m)<1e-12?0:P.m), s.R);
+    addPdfSafeLine(ui.rep, Q1, Q2, color);
+    const NS = ui.rep.el.namespaceURI;
+    const T = document.createElementNS(NS,'text');
+    const mid = ui.rep.coordToScreen((Q1.x+Q2.x)/2,(Q1.y+Q2.y)/2);
+    T.textContent = labelText;
+    T.setAttribute('x', mid.x+6);
+    T.setAttribute('y', mid.y-6);
+    T.setAttribute('font-size', '12');
+    T.setAttribute('font-weight','700');
+    T.setAttribute('fill', color);
+    T.setAttribute('stroke','#fff');
+    T.setAttribute('stroke-width','3');
+    T.setAttribute('paint-order','stroke');
+    ui.rep.gUser.appendChild(T);
+    if (typeof ui.rep._placeLabel === 'function') ui.rep._placeLabel(T, mid.x+6, mid.y-6);
+  }
 
-// Supprime le cercle d’un point nommé (pour ne garder QUE le texte)
-function stripDotForLabel(rep, labelText){
-  const texts = Array.from(rep.el.querySelectorAll('text')).filter(t=>t.textContent===labelText);
-  texts.forEach(t=>{
-    const g = t.closest('g');
-    if(!g) return;
-    const c = g.querySelector('circle');
-    if(c) c.remove();
-  });
-}
-
-     // --- Tangentes colorées + labels visibles
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
+  const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
   const SUB    = ['₁','₂','₃'];
 
   ui.rep.drawCurve(s.f,'#e53935',2.5);
-  ui.rep.drawLineThroughPointSlope(s.A.x, s.A.y, s.A.m, COLORS[0], true);
-{ const m = Math.abs(s.A.m)<1e-12?0:s.A.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.A.x,s.A.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[0]);
-  // ton label écran (SVG) reste comme tu l’avais (pas nécessaire pour le PDF)
-}
-// B
-ui.rep.drawLineThroughPointSlope(s.B.x, s.B.y, s.B.m, COLORS[1], true);
-{ const m = Math.abs(s.B.m)<1e-12?0:s.B.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.B.x,s.B.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[1]);
-}
-// D
-ui.rep.drawLineThroughPointSlope(s.D.x, s.D.y, s.D.m, COLORS[2], true);
-{ const m = Math.abs(s.D.m)<1e-12?0:s.D.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(s.D.x,s.D.y,m,s.R);
-  addPdfSafeLine(ui.rep, Q1, Q2, COLORS[2]);
-}
-    drawTangentWithLabel(s.A, COLORS[0], 'T'+SUB[0]);
-drawTangentWithLabel(s.B, COLORS[1], 'T'+SUB[1]);
-drawTangentWithLabel(s.D, COLORS[2], 'T'+SUB[2]);
+  // --- montrer explicitement les points A, B, C et D ---
+ui.rep.drawPoint('A', s.A.x, s.A.y, '#1565c0');
+ui.rep.drawPoint('B', s.B.x, s.B.y, '#1565c0');
+ui.rep.drawPoint('C', s.C.x, s.C.y, '#1565c0');
+ui.rep.drawPoint('D', s.D.x, s.D.y, '#1565c0');  // (CD) est la tangente en C
 
-  ui.rep.drawPoint('E',s.E.x,s.E.y,'#1565c0');
- 
-  function segmentInBox_throughPointSlope(x0,y0,m,R){
-  const cand=[];
-  const yL = m*(R.xmin - x0) + y0; if (yL>=R.ymin && yL<=R.ymax) cand.push({x:R.xmin,y:yL});
-  const yR = m*(R.xmax - x0) + y0; if (yR>=R.ymin && yR<=R.ymax) cand.push({x:R.xmax,y:yR});
-  if (Math.abs(m)>1e-12){
-    const xB = x0 + (R.ymin - y0)/m; if (xB>=R.xmin && xB<=R.xmax) cand.push({x:xB,y:R.ymin});
-    const xT = x0 + (R.ymax - y0)/m; if (xT>=R.xmin && xT<=R.xmax) cand.push({x:xT,y:R.ymax});
-  } else { cand.push({x:s.R.xmin,y:y0}, {x:s.R.xmax,y:y0}); }
-  const uniq=[]; for(const p of cand){ if(!uniq.some(q=>Math.abs(q.x-p.x)<1e-9 && Math.abs(q.y-p.y)<1e-9)) uniq.push(p); }
-  while(uniq.length<2) uniq.push({x:s.R.xmin,y:y0},{x:s.R.xmax,y:y0});
-  return uniq.slice(0,2);
-}
-// Place le label près d'une extrémité visible du segment, en restant dans la vue.
-// Retourne des coordonnées ÉCRAN [sx, sy] avec décalage le long de la tangente et perpendiculaire.
-function placeLabelAtSegmentEnd(rep, Q1, Q2, anchor /* {x,y} */, opts = {}){
-  const insetPx = opts.insetPx ?? 22;   // recul depuis l'extrémité (px)
-  const normalPx = opts.normalPx ?? 9;  // décalage perpendiculaire (px)
+  drawTangentWithLabel(s.A, COLORS[0], 'T'+SUB[0]);
+  drawTangentWithLabel(s.B, COLORS[1], 'T'+SUB[1]);
+  drawTangentWithLabel(s.C, COLORS[2], 'T'+SUB[2]);
 
-  // Écran
-  const A = rep.coordToScreen(Q1.x, Q1.y);
-  const B = rep.coordToScreen(Q2.x, Q2.y);
-  const C = rep.coordToScreen(anchor.x, anchor.y);
+  // --- ordre COMMUN pour f(.) et f'(.) ---
+  const order = [0,1,2].sort(()=>Math.random()-0.5);
+  const P=[s.A,s.B,s.C], LAB=['A','B','C'];
 
-  // Choisir l'extrémité la PLUS ÉLOIGNÉE du point de tangence
-  const dA = Math.hypot(A.x - C.x, A.y - C.y);
-  const dB = Math.hypot(B.x - C.x, B.y - C.y);
-  const E  = (dA >= dB) ? A : B;              // extrémité cible
-  const O  = (E === A) ? B : A;               // l'autre point
+  // helpers TeX
+  const pt = (L,p)=>`\\( ${L}(${fmtNum(p.x)}\\,;\\,${fmtNum(p.y)}) \\)`;
+  const tex = (str)=>str;
 
-  // Vecteur unitaire le long du segment, orienté vers l'intérieur du segment
-  let ux = E.x - O.x, uy = E.y - O.y;
-  const len = Math.hypot(ux, uy) || 1;
-  ux /= len; uy /= len;
+  const valRow = order.map(k =>
+    `${tex(`\\( f(${fmtNum(P[k].x)}) = \\)`)} ${mkInput('f'+LAB[k], 80, '', 140)} <span id="tf${LAB[k]}" class="tick"></span>`
+  ).join(' ; ');
 
-  // Recul vers l'intérieur (on s'éloigne du bord)
-  let sx = E.x - insetPx * ux;
-  let sy = E.y - insetPx * uy;
+  const derRow = order.map(k =>
+    `${tex(`\\( f'(${fmtNum(P[k].x)}) = \\)`)} ${mkInput('df'+LAB[k], 80, '', 140)} <span id="tdf${LAB[k]}" class="tick"></span>`
+  ).join(' ; ');
 
-  // Décalage perpendiculaire (choisir le côté "vers le centre" pour la lisibilité)
-  // Perpendiculaire en écran : n = (-uy, ux)
-  let nx = -uy, ny = ux;
-  const center = { x: (rep.R.xmin + rep.R.xmax)/2, y: (rep.R.ymin + rep.R.ymax)/2 };
-  const Scoord = rep.screenToCoord(sx, sy);
-  // signe pour pousser le label vers le centre du repère
-  const toCenter = { x: center.x - Scoord.x, y: center.y - Scoord.y };
-  // passer toCenter en écran pour cohérence du signe
-  const TC = rep.coordToScreen(Scoord.x + toCenter.x, Scoord.y + toCenter.y);
-  const vCenter = { x: TC.x - sx, y: TC.y - sy };
-  const sign = (nx * vCenter.x + ny * vCenter.y) >= 0 ? 1 : -1;
-
-  sx += sign * normalPx * nx;
-  sy += sign * normalPx * ny;
-
-  return [sx, sy];
-}
-
-  function drawTangentWithLabel(P, color, labelText){
-  // 1) LIGNE → confiée au repère (compatible PDF, pointillés natifs)
-  ui.rep.drawLineThroughPointSlope(P.x, P.y, P.m, color, true);
-
-  // 2) LABEL → SVG, placé à l’extrémité visible
-  const NS = ui.rep.el.namespaceURI;
-  let g = ui.rep.gUser.querySelector('g.initial-tangent-labels');
-  if(!g){ g = document.createElementNS(NS,'g'); g.setAttribute('class','initial-tangent-labels'); ui.rep.gUser.appendChild(g); }
-
-  const m = (Math.abs(P.m)<1e-12)? 0 : P.m;
-  const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,m,s.R);
-
-  const [sx, sy] = placeLabelAtSegmentEnd(ui.rep, Q1, Q2, {x:P.x, y:P.y}, {insetPx:22, normalPx:9});
-  const T = document.createElementNS(NS,'text');
-  T.textContent = labelText;
-  T.setAttribute('x', sx); T.setAttribute('y', sy);
-  T.setAttribute('font-size','12'); T.setAttribute('font-weight','700');
-  T.setAttribute('fill', color);
-  T.setAttribute('stroke', '#fff'); T.setAttribute('stroke-width', '3');
-  T.setAttribute('paint-order', 'stroke'); T.setAttribute('pointer-events','none');
-  g.appendChild(T);
-  if (typeof ui.rep._placeLabel === 'function') ui.rep._placeLabel(T, sx, sy);
-}
-
-   
-  
-
-
-  // ordre aléatoire pour images & dérivées (A,B,D ~ 0,1,2)
-  const orderVals=[0,1,2].sort(()=>Math.random()-0.5);
-  const orderDer =[0,1,2].sort(()=>Math.random()-0.5);
-  const P=[s.A,s.B,s.D], LAB=['A','B','D'];
-  // valeurs : grands blancs ~140 px
-const valRow = orderVals.map(k =>
-  `f(${fmtNum(P[k].x)}) = ${mkInput('f'+LAB[k], 80, '', 140)} <span id="tf${LAB[k]}" class="tick"></span>`
-).join(' ; ');
-
-// dérivées : idem ~140 px
-const derRow = orderDer.map(k =>
-  `f'(${fmtNum(P[k].x)}) = ${mkInput('df'+LAB[k], 80, '', 140)} <span id="tdf${LAB[k]}" class="tick"></span>`
-).join(' ; ');
+  // — ÉNONCÉ LaTeX —
   ui.equ.innerHTML = `
-    <p>Soit une fonction <b>f</b>. Les droites
-      <b style="color:${COLORS[0]}">T${SUB[0]}</b>, <b style="color:${COLORS[1]}">T${SUB[1]}</b> et
-      <b style="color:${COLORS[2]}">T${SUB[2]}</b> sont les tangentes à <b>C<sub>f</sub></b> aux points <b>A</b>, <b>B</b> et <b>D</b>.
-    </p>
-    <p>Le point <b>E(${fmtNum(s.E.x)} ; ${fmtNum(s.E.y)})</b> est choisi de sorte que <b>(DE)</b> soit la tangente à <b>C<sub>f</sub></b> au point <b>D</b>.</p>
+    <p>Soit une fonction \\(f\\). Les droites
+      <b style="color:${COLORS[0]}">\\(T_{1}\\)</b>, <b style="color:${COLORS[1]}">\\(T_{2}\\)</b> et
+      <b style="color:${COLORS[2]}">\\(T_{3}\\)</b> sont les tangentes à \\(C_{f}\\) aux points
+      \\(A\\), \\(B\\) et \\(C\\).</p>
+    <p>Le point ${pt('D', s.D)} est choisi de sorte que \\((CD)\\) soit la tangente à \\(C_{f}\\) au point \\(C\\).</p>
     <ol>
       <li>Déterminer : ${valRow}.</li>
       <li>Déterminer : ${derRow}.</li>
-            <li>Donner une équation des tangentes :<br>
-        <span style="font-weight:700;color:${COLORS[0]}">T${SUB[0]}</span> :
+      <li>Donner une équation des tangentes :<br>
+        <span style="font-weight:700;color:${COLORS[0]}">\\(T_{1}\\)</span> :
         ${mkInput('t1', 220, 'y = ...', 320)} <span id="tt1" class="tick"></span><br>
-        <span style="font-weight:700;color:${COLORS[1]}">T${SUB[1]}</span> :
+        <span style="font-weight:700;color:${COLORS[1]}">\\(T_{2}\\)</span> :
         ${mkInput('t2', 220, 'y = ...', 320)} <span id="tt2" class="tick"></span><br>
-        <span style="font-weight:700;color:${COLORS[2]}">T${SUB[2]}</span> :
+        <span style="font-weight:700;color:${COLORS[2]}">\\(T_{3}\\)</span> :
         ${mkInput('t3', 220, 'y = ...', 320)} <span id="tt3" class="tick"></span>
       </li>
-
     </ol>
     <div class="steps" id="steps2"></div>
   `;
 
-  // mémorise l’ordre pour la solution
-  host._state = {...s, _orderVals:orderVals, _orderDer:orderDer};
+  // mémorise l’ordre commun
+  host._state = {...s, _order:order};
   host._ui=ui;
+
+  if (window.retypeMath) retypeMath(host);
 },
 
-    // --- Exercice 2 : remplace la méthode verify(host) par ceci
+
+
 verify(host){
   const s = host._state;
-  const P = { A: s.A, B: s.B, D: s.D };
+  const P = { A: s.A, B: s.B, C: s.C };
 
-  // helpers locaux : renvoient true / false / null (si vide)
+  // entiers stricts pour f(·)
   const checkInt = (id, expected, tickSel) => {
     const raw = getVal(host, id);
     if(raw.trim()===''){ setTick($(tickSel,host), null); return null; }
@@ -1417,185 +1444,116 @@ verify(host){
     const ok = (v !== null && v === expected);
     setTick($(tickSel,host), ok);
     return ok;
-    };
-
+  };
+  // pente (entier ou fraction réduite) pour f'(·)
   const checkSlope = (id, expected, tickSel) => {
     const raw = getVal(host, id);
     if(raw.trim()===''){ setTick($(tickSel,host), null); return null; }
-    const ok = slopeOKStrict(raw, expected);  // déjà strict + neutre géré dedans si besoin
+    const ok = slopeOKStrict(raw, expected);
     setTick($(tickSel,host), ok);
     return ok;
   };
-
+  // équation stricte y = mx + p
   const checkLine = (id, mVH, pVH, tickSel) => {
     const raw = getVal(host, id);
     if(raw.trim()===''){ setTick($(tickSel,host), null); return null; }
-    const ok = lineOKStrict(raw, mVH, pVH);   // strict : pas de décimales
+    const ok = lineOKStrict(raw, mVH, pVH);
     setTick($(tickSel,host), ok);
     return ok;
   };
 
-  // --- Valeurs (entiers stricts)
   const r = [];
+  // valeurs
   r.push( checkInt('fA', P.A.y, '#tfA') );
   r.push( checkInt('fB', P.B.y, '#tfB') );
-  r.push( checkInt('fD', P.D.y, '#tfD') );
+  r.push( checkInt('fC', P.C.y, '#tfC') );
 
-  // --- Dérivées (entier ou fraction pile réduite ; jamais de décimal)
+  // dérivées
   r.push( checkSlope('dfA', P.A.m, '#tdfA') );
   r.push( checkSlope('dfB', P.B.m, '#tdfB') );
-  r.push( checkSlope('dfD', P.D.m, '#tdfD') );
+  r.push( checkSlope('dfC', P.C.m, '#tdfC') );
 
-  // --- Équations (strictes, en forme exacte)
+  // équations T1/T2/T3 (en A/B/C)
   const mA = slopeVH(P.A.m), pA = pFromPoint(...mA, P.A.x, P.A.y);
   const mB = slopeVH(P.B.m), pB = pFromPoint(...mB, P.B.x, P.B.y);
-  const mD = slopeVH(P.D.m), pD = pFromPoint(...mD, P.D.x, P.D.y);
+  const mC = slopeVH(P.C.m), pC = pFromPoint(...mC, P.C.x, P.C.y);
 
   r.push( checkLine('t1', mA, pA, '#tt1') );
   r.push( checkLine('t2', mB, pB, '#tt2') );
-  r.push( checkLine('t3', mD, pD, '#tt3') );
+  r.push( checkLine('t3', mC, pC, '#tt3') );
 
-  // true seulement si TOUT est rempli et correct
   return r.every(v => v === true);
 },
 
 
-    solution(host){
-  const s=host._state, st=$('#steps2',host);
-  const P=[s.A,s.B,s.D], LAB=['A','B','D'];
 
-  // 1) Pré-remplissage des inputs (en forme exacte)
-  setVal(host,'fA',s.A.y); setVal(host,'fB',s.B.y); setVal(host,'fD',s.D.y);
+ solution(host){
+  const s=host._state, ui=host._ui;
+
+  // pré-remplissages
+  setVal(host,'fA', s.A.y); setVal(host,'fB', s.B.y); setVal(host,'fC', s.C.y);
   setVal(host,'dfA', fprimeHTML_strict(s.A.m));
   setVal(host,'dfB', fprimeHTML_strict(s.B.m));
-  setVal(host,'dfD', fprimeHTML_strict(s.D.m));
+  setVal(host,'dfC', fprimeHTML_strict(s.C.m));
 
   const mA=slopeVH(s.A.m), pA=pFromPoint(...mA, s.A.x, s.A.y);
-const mB=slopeVH(s.B.m), pB=pFromPoint(...mB, s.B.x, s.B.y);
-const mD=slopeVH(s.D.m), pD=pFromPoint(...mD, s.D.x, s.D.y);
+  const mB=slopeVH(s.B.m), pB=pFromPoint(...mB, s.B.x, s.B.y);
+  const mC=slopeVH(s.C.m), pC=pFromPoint(...mC, s.C.x, s.C.y);
 
-const eq1 = eqHTML(mA, pA);
-const eq2 = eqHTML(mB, pB);
-const eq3 = eqHTML(mD, pD);
+  setVal(host,'t1', eqHTML(mA,pA));
+  setVal(host,'t2', eqHTML(mB,pB));
+  setVal(host,'t3', eqHTML(mC,pC));
 
-setVal(host,'t1', eq1);
-setVal(host,'t2', eq2);
-setVal(host,'t3', eq3);
+  // helpers TeX
+  const frac   = (N,D)=>`\\dfrac{${N}}{${D}}`;
+  const ratTex = ([N,D]) => D===1 ? `${N}` : frac(N,D);
+  const mxTex  = ([N,D]) => D===1 ? `${N}x` : `${frac(N,D)}x`;
+  const eqTex  = (m,p) => {
+    if (m[0]===0) return `y = ${ratTex(p)}`;
+    const sign = (p[0]<0)? ' - ' : ' + ';
+    const pAbs = [Math.abs(p[0]), p[1]];
+    return `y = ${mxTex(m)}${(p[0]===0)? '' : sign + ratTex(pAbs)}`;
+  };
+  const fprimeTex = (m)=>{ const [V,H]=slopeVH(m); return H===1 ? `${V}` : frac(V,H); };
+  const value = (P)=>`\\( f(${fmtNum(P.x)}) = ${fmtNum(P.y)} \\)`;
+  const deriv = (P)=>`\\( f'(${fmtNum(P.x)}) = ${fprimeTex(P.m)} \\)`;
 
+  // supprime l’ancienne .steps
+  const old = ui.right.querySelector('#steps2'); if(old) old.remove();
 
-  // 2) Texte de correction qui respecte exactement l'ordre posé dans l'énoncé
-  const ordV = s._orderVals || [0,1,2];
-  const ordD = s._orderDer  || [0,1,2];
+  // boîte grisée .solbox
+  let sol = ui.right.querySelector('#sol-ex2');
+  if (!sol){
+    sol = document.createElement('div');
+    sol.id='sol-ex2';
+    sol.className='solution solbox';
+    ui.right.appendChild(sol);
+  } else { sol.classList.add('solution','solbox'); sol.innerHTML=''; }
 
-  const valeurs = ordV.map(k=>`f(${fmtNum(P[k].x)})=${P[k].y}`).join(', ');
-  const pentes  = ordD.map(k=>`f'(${fmtNum(P[k].x)})=${fprimeForSentence(P[k].m)}`).join(', ');
+  // ordre commun
+  const ord = s._order || [0,1,2];
+  const P = [s.A,s.B,s.C];
 
-  const L=[];
-  L.push(`<div class="step"><b>Valeurs</b> : ${valeurs}.</div>`);
-  L.push(`<div class="step"><b>Pentes</b> : ${pentes}.</div>`);
-  L.push(`<div class="step"><b>Équations</b> : <code>y = f'(a)(x−a) + f(a)</code> ou par lecture graphique</div>`);
-  L.push(`<div class="step">T₁ : ${eq1}</div>`);
-  L.push(`<div class="step">T₂ : ${eq2}</div>`);
-  L.push(`<div class="step">T₃ : ${eq3}</div>`);
+  const valTex = ord.map(k => value(P[k])).join(', ');
+  const derTex = ord.map(k => deriv(P[k])).join(', ');
 
-  st.innerHTML = L.join('');
-    // --- Colorer les lignes "T" dans le texte de correction
-  (function colorTextBadges(){
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
-  const SUB    = ['₁','₂','₃'];
-  const steps = $('#steps2', host);
-  if(!steps) return;
-  steps.innerHTML = steps.innerHTML
-    .replace(/T₁/g, `<span style="font-weight:700;color:${COLORS[0]}">T${SUB[0]}</span>`)
-    .replace(/T₂/g, `<span style="font-weight:700;color:${COLORS[1]}">T${SUB[1]}</span>`)
-    .replace(/T₃/g, `<span style="font-weight:700;color:${COLORS[2]}">T${SUB[2]}</span>`);
-})();
+  const eq1 = eqTex(mA,pA);
+  const eq2 = eqTex(mB,pB);
+  const eq3 = eqTex(mC,pC);
 
+  sol.innerHTML = [
+    `<p><b>Valeurs :</b> ${valTex}.</p>`,
+    `<p><b>Pentes :</b> ${derTex}.</p>`,
+    `<p>\\( y = f'(a)\\,(x-a) + f(a) \\) ou par lecture graphique : </p>`,
+    `<p><span style="font-weight:700;color:#1e40af">\\(T_{1}\\)</span> : \\( ${eq1} \\)</p>`,
+    `<p><span style="font-weight:700;color:#7c3aed">\\(T_{2}\\)</span> : \\( ${eq2} \\)</p>`,
+    `<p><span style="font-weight:700;color:#16a34a">\\(T_{3}\\)</span> : \\( ${eq3} \\)</p>`
+  ].join('');
 
-// === Helper coordonné : position "extrémité visible" en COORDONNÉES (robuste PDF) ===
-function placeLabelAtSegmentEndCoord(R, Q1, Q2, anchor /* {x,y} */, opts = {}){
-  const insetFrac  = opts.insetFrac  ?? 0.06; // recul depuis le bord (6% de la longueur visible)
-  const normalFrac = opts.normalFrac ?? 0.03; // décalage perpendiculaire (3% de l’échelle)
-
-  // choisir l’extrémité la plus éloignée du point de tangence
-  const d1 = Math.hypot(Q1.x - anchor.x, Q1.y - anchor.y);
-  const d2 = Math.hypot(Q2.x - anchor.x, Q2.y - anchor.y);
-  const E  = (d1 >= d2 ? Q1 : Q2);
-  const O  = (E === Q1 ? Q2 : Q1);
-
-  // vecteur le long du segment (coord)
-  let vx = E.x - O.x, vy = E.y - O.y;
-  const L = Math.hypot(vx, vy) || 1;
-  // reculer vers l’intérieur
-  let x = E.x - insetFrac * vx;
-  let y = E.y - insetFrac * vy;
-
-  // décalage perpendiculaire vers le centre du repère
-  let nx = -vy / L, ny = vx / L;                       // normal unitaire
-  const cx = (R.xmin + R.xmax)/2, cy = (R.ymin + R.ymax)/2;
-  const toCdot = nx*(cx - x) + ny*(cy - y);            // signe pour pousser vers le centre
-  if (toCdot < 0){ nx = -nx; ny = -ny; }
-  const scale = normalFrac * Math.min(R.xmax - R.xmin, R.ymax - R.ymin);
-  x += scale * nx; y += scale * ny;
-
-  return [x, y];
-}
-
-// === Tangentes "solution" 100% compatibles PDF : lignes via repère + labels via drawPoint ===
-(function drawSolutionTangents(){
-  const ui = host._ui, R = ui.rep.R;
-  const COLORS = ['#1e40af', '#7c3aed', '#16a34a'];
-  const SUB    = ['₁','₂','₃'];
-  const Ps     = [s.A, s.B, s.D];
-
-  // Nettoyage anti-doublons
-  ui.rep.gUser.querySelectorAll('g.initial-tangent-labels, g.solution-tangent-labels').forEach(n => n.remove());
-  const svgTexts = ui.rep.el.querySelectorAll('g.tangent-pdf-safe text');
-  svgTexts.forEach(n => n.remove());
-
-  // Groupe (facultatif) si tu veux des labels SVG d’écran en plus
-  const NS = ui.rep.el.namespaceURI;
-  let gLab = ui.rep.gUser.querySelector('g.solution-tangent-labels');
-  if(!gLab){ gLab = document.createElementNS(NS,'g'); gLab.setAttribute('class','solution-tangent-labels'); ui.rep.gUser.appendChild(gLab); }
-
-  Ps.forEach((P,i)=>{
-    const color = COLORS[i];
-    const m = (Math.abs(P.m)<1e-12)? 0 : P.m;
-
-    // 1) Lignes (écran) + copie PDF-safe
-    ui.rep.drawLineThroughPointSlope(P.x, P.y, m, color, true);
-    const [Q1,Q2] = segmentInBox_throughPointSlope(P.x,P.y,m,R);
-    addPdfSafeLine(ui.rep, Q1, Q2, color);
-
-    // 2) Nom en PDF : drawPoint + suppression du cercle ⇒ il ne reste que le texte
-    ui.rep.drawPoint('T'+SUB[i], ... (function(){  // position près d'une extrémité visible
-      // petit placement côté extrémité la plus éloignée de P, avec un léger recul
-      const d1 = Math.hypot(Q1.x - P.x, Q1.y - P.y);
-      const d2 = Math.hypot(Q2.x - P.x, Q2.y - P.y);
-      const E  = (d1>=d2)? Q1 : Q2;
-      // recul de 6% du segment + léger décalage perpendiculaire (coordonnées)
-      const O  = (E===Q1)? Q2 : Q1;
-      const vx = E.x - O.x, vy = E.y - O.y, L = Math.hypot(vx,vy)||1;
-      let x = E.x - 0.06*vx, y = E.y - 0.06*vy;   // recul
-      let nx = -vy/L, ny = vx/L;
-      const cx=(R.xmin+R.xmax)/2, cy=(R.ymin+R.ymax)/2;
-      if (nx*(cx-x)+ny*(cy-y) < 0){ nx=-nx; ny=-ny; }
-      const s=0.03*Math.min(R.xmax-R.xmin, R.ymax-R.ymin);
-      x += s*nx; y += s*ny;
-      return [x,y];
-    })(), color);
-
-    // supprimer le disque → label texte seul (capturé en PDF)
-    stripDotForLabel(ui.rep, 'T'+SUB[i]);
-  });
-})();
+  if (window.retypeMath) retypeMath(sol);
+},
 
 
-
-
-
-
-}
 
   });
 
@@ -1611,21 +1569,35 @@ L.push({
     return {a,b,n};
   },
   render(host, st){
-    const s = st.params || this.gen();
-    host.dataset.state = JSON.stringify({params:s});
-    const ui = renderNoRepere(host);
-    ui.equ.innerHTML = `
-      <p>On donne pour tout réel x : <b>f'(x) = ${s.a}x ${s.b>=0?'+':''}${s.b}</b>.</p>
-      <ol>
-        <li>Calculer f'(0) = ${mkInput('v1',80)} <span id="tv1" class="tick">—</span> et f'(${fmtNum(s.n)}) = ${mkInput('v2',80)} <span id="tv2" class="tick">—</span>.</li>
-        <li>En déduire les coefficients directeurs des tangentes à C<sub>f</sub> aux points A et B d’abscisses respéctives 0 et ${fmtNum(s.n)} :
-          m<sub>A</sub> = ${mkInput('mA',80)} <span id="tmA" class="tick">—</span>, m<sub>B</sub> = ${mkInput('mB',80)} <span id="tmB" class="tick">—</span>.
-        </li>
-      </ol>
-      <div class="steps" id="steps3"></div>
-    `;
-    host._state = s; host._ui = ui;
-  },
+  const s = st.params || this.gen();
+  host.dataset.state = JSON.stringify({params:s});
+  const ui = renderNoRepere(host);
+
+  // ÉNONCÉ 100% LaTeX (aucun <code class="equ"> ni <span class="equ">)
+  const nDisp = (s.n < 0) ? `(${fmtNum(s.n)})` : fmtNum(s.n);
+  ui.equ.innerHTML = `
+    <p>On donne, pour tout réel \\(x\\) : \\(\\;f'(x)= ${s.a}x ${s.b>=0?'+':''}${s.b}\\;\\).</p>
+    <p>On considère les points \\(A\\) et \\(B\\) de \\(C_f\\) d’abscisses respectives \\(0\\) et \\(${fmtNum(s.n)}\\).</p>
+    <ol>
+      <li>
+        Calculer : \\(f'(0)\\) = ${mkInput('v1',80)} <span id="tv1" class="tick">—</span>
+        et \\(f'(${fmtNum(s.n)})\\) = ${mkInput('v2',80)} <span id="tv2" class="tick">—</span>.
+      </li>
+      <li>
+        En déduire les coefficients directeurs des tangentes à \\(C_f\\) aux points \\(A\\) et \\(B\\) :
+        \\(m_A\\) = ${mkInput('mA',80)} <span id="tmA" class="tick">—</span>,
+        \\(m_B\\) = ${mkInput('mB',80)} <span id="tmB" class="tick">—</span>.
+      </li>
+    </ol>
+    <div class="steps" id="steps3"></div>
+  `;
+
+  host._state = s; host._ui = ui;
+
+  // Typeset MathJax local (si utilitaire présent)
+  if (window.retypeMath) retypeMath(host);
+},
+
   verify(host){
     const s = host._state;
     const A = s.a*0   + s.b;          // f'(0)
@@ -1645,22 +1617,50 @@ L.push({
     return ok1 && ok2 && okA && okB;
   },
   solution(host){
-    const s = host._state;
-    const A = s.a*0   + s.b;
-    const B = s.a*s.n + s.b;
-    setVal(host,'v1', A);
-    setVal(host,'v2', B);
-    setVal(host,'mA', A);
-    setVal(host,'mB', B);
-	const nDisp = (s.n < 0) ? `(${fmtNum(s.n)})` : fmtNum(s.n);
-    $('#steps3',host).innerHTML = `
-      <div class="step"><b>f'(0) = ${s.a}×0 ${s.b>=0?'+':''}${s.b} = ${A}</b>.</div>
-<div class="step"><b>f'(${fmtNum(s.n)}) = ${s.a}×${nDisp} ${s.b>=0?'+':''}${s.b} = ${B}</b>.</div>
-      <div class="step">Le coefficient directeur de la tangente en x=a vaut <code>f'(a)</code> :
-        m<sub>A</sub> = f'(0) = ${A}, m<sub>B</sub> = f'(${fmtNum(s.n)}) = ${B}.
-      </div>
-    `;
+  const s = host._state;
+  const ui = host._ui;
+
+  // Valeurs exactes
+  const A = s.a*0   + s.b;          // f'(0)
+  const B = s.a*s.n + s.b;          // f'(n)
+
+  // Pré-remplissage des inputs pour garder la logique de vérif
+  setVal(host,'v1', A);
+  setVal(host,'v2', B);
+  setVal(host,'mA', A);
+  setVal(host,'mB', B);
+
+  // Supprimer le bloc .steps pour éviter le bug d’alignement du prime
+  const old = $('#steps3', host);
+  if (old) old.remove();
+
+  // Boîte grisée .solbox (hors .steps), comme pour les exos 1 & 2
+  let sol = ui.right.querySelector('#sol-ex3');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex3';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.classList.add('solution','solbox');
+    sol.innerHTML = '';
   }
+
+  // Affichage LaTeX des trois étapes (même niveau de détail qu’avant)
+  const nDisp = (s.n < 0) ? `(${fmtNum(s.n)})` : fmtNum(s.n);
+  const plusB = s.b>=0 ? '+' : '';       // pour "a×0 + b"
+  const plusB2= s.b>=0 ? '+' : '';       // pour "a×n + b"
+
+  sol.innerHTML = [
+    `<p> \\(\\;f'(0) = ${s.a}\\times 0 ${plusB}${s.b} = ${A}\\;\\).</p>`,
+    `<p>\\(\\;f'(${fmtNum(s.n)}) = ${s.a}\\times ${nDisp} ${plusB2}${s.b} = ${B}\\;\\).</p>`,
+    `<p>Le coefficient directeur de la tangente en \\(x=a\\) vaut \\(f'(a)\\). 
+       Donc \\(m_A = f'(0) = ${A}\\) et \\(m_B = f'(${fmtNum(s.n)}) = ${B}\\).</p>`
+  ].join('');
+
+  // Typeset MathJax uniquement dans la boîte
+  if (window.retypeMath) retypeMath(sol);
+}
 });
 
 
@@ -1685,18 +1685,25 @@ L.push({
     return {A:{x:-3,y:1}, B:{x:2,y:-1}};
   },
   render(host, st){
-    const s = st.params || this.gen();
-    host.dataset.state = JSON.stringify({params:s});
-    const ui = renderNoRepere(host);
-    ui.equ.innerHTML = `
-      <p>Dans le plan muni du repère (O,I,J), la tangente à C<sub>f</sub> au point
-      <b>A(${fmtNum(s.A.x)}; ${fmtNum(s.A.y)})</b> passe par le point
-      <b>B(${fmtNum(s.B.x)}; ${fmtNum(s.B.y)})</b>.</p>
-      <p>Déterminer le nombre dérivé <b>f'(${fmtNum(s.A.x)})</b> :
+  const s = st.params || this.gen();
+  host.dataset.state = JSON.stringify({params:s});
+  const ui = renderNoRepere(host);
+
+  // ÉNONCÉ 100% LaTeX (aucun <code class="equ"> ni <span class="equ">)
+  ui.equ.innerHTML = `
+    <p>Dans le plan muni du repère \\((O,I,J)\\), la tangente à \\(C_{f}\\) au point
+    \\(A\\big(${fmtNum(s.A.x)}\\,;\\,${fmtNum(s.A.y)}\\big)\\) passe par le point
+    \\(B\\big(${fmtNum(s.B.x)}\\,;\\,${fmtNum(s.B.y)}\\big)\\).</p>
+    <p>Déterminer le nombre dérivé \\(\\;f'\\big(${fmtNum(s.A.x)}\\big)\\) :
       ${mkInput('m',100)} <span id="tm" class="tick">—</span></p>
-      <div class="steps" id="steps4"></div>`;
-    host._state = s; host._ui = ui;
-  },
+    <div class="steps" id="steps4"></div>
+  `;
+
+  host._state = s; host._ui = ui;
+
+  // Typeset MathJax local (si utilitaire dispo)
+  if (window.retypeMath) retypeMath(host);
+},
   verify(host){
     const s = host._state;
     const m = (s.B.y - s.A.y) / (s.B.x - s.A.x);              // pente (AB)
@@ -1706,43 +1713,58 @@ L.push({
   },
   solution(host){
   const s  = host._state;
-  const UMINUS = '−';
-  const u = t => String(t).replace(/-/g, UMINUS);   // affichage grand “−”
+  const ui = host._ui;
 
-  const dy = s.B.y - s.A.y;           // y_B − y_A
-  const dx = s.B.x - s.A.x;           // x_B − x_A
+  // Calculs exacts
+  const dy = s.B.y - s.A.y;   // y_B − y_A
+  const dx = s.B.x - s.A.x;   // x_B − x_A
 
-  // Écriture développée avec gestion des signes : -(-k) → +k ; +(-k) → −k
-  const numExpr = `${u(s.B.y)} ${s.A.y < 0 ? '+' : '−'} ${u(Math.abs(s.A.y))}`;
-  const denExpr = `${u(s.B.x)} ${s.A.x < 0 ? '+' : '−'} ${u(Math.abs(s.A.x))}`;
+  // Réduction pour l'affichage final
+  const [Nred, Dred] = reduce(Math.abs(dy), Math.abs(dx)); // >0
+  const isNeg = (dy < 0) !== (dx < 0);                     // signe global
 
-  // Fraction symbolique et numérique (en “pile”)
-  const fracHTMLsym  = `<span class="frac"><span class="num">y<sub>B</sub> − y<sub>A</sub></span><span class="den">x<sub>B</sub> − x<sub>A</sub></span></span>`;
-  const fracHTMLnums = `<span class="frac"><span class="num">${numExpr}</span><span class="den">${denExpr}</span></span>`;
-
-  // Réduction et signe global extrait devant la fraction
-  const [Nred, Dred] = reduce(Math.abs(dy), Math.abs(dx));   // >0
-  const isNeg = (dy < 0) !== (dx < 0);                       // signe global
-
-  // Affichage final “pile” avec signe devant (ou entier)
-  const finalPile = (Nred===0) ? '0'
-    : (Dred===1
-        ? (isNeg ? `${UMINUS} ${u(Nred)}` : `${u(Nred)}`)
-        : (isNeg ? `${UMINUS} <span class="frac"><span class="num">${Nred}</span><span class="den">${Dred}</span></span>`
-                  : `<span class="frac"><span class="num">${Nred}</span><span class="den">${Dred}</span></span>`));
-
-  // Valeur à pré-remplir dans l’input (ASCII pour le parseur : entier ou "a/b")
+  // Valeur pour l’input (ASCII pour le parseur : entier ou "a/b")
   const inputVal = (Dred===1) ? (isNeg ? -Nred : Nred) : `${isNeg?'-':''}${Nred}/${Dred}`;
   setVal(host,'m', inputVal);
 
-  // Rendu au format de ton exemple
-  const steps = host.querySelector('#steps4');
-  steps.innerHTML = `
-    <div class="step">
-      f'(${u(s.A.x)}) = m<sub>(AB)</sub> = ${fracHTMLsym}= ${fracHTMLnums} = <b>${finalPile}</b>
-    </div>
-  `;
+  // Supprimer le bloc .steps (on rend la correction dans une boîte grisée dédiée)
+  const old = $('#steps4', host);
+  if (old) old.remove();
+
+  // Boîte grisée .solbox (hors .steps)
+  let sol = ui.right.querySelector('#sol-ex4');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex4';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.classList.add('solution','solbox');
+    sol.innerHTML = '';
+  }
+
+  // Helpers TeX
+  const frac = (a,b)=>`\\dfrac{${a}}{${b}}`;
+  // b - a  →  "b - a" si a>=0,  sinon "b + |a|"
+  const diffPretty = (b,a) => (a<0 ? `${b} + ${Math.abs(a)}` : `${b} - ${a}`);
+
+  // Lignes LaTeX sans "--", "-+" ni "+-"
+  const line1 = `\\( f'\\big(${fmtNum(s.A.x)}\\big) \\)`;
+  const line2 = `\\( =m_{(AB)} = ${frac('y_B - y_A','x_B - x_A')} = ${frac(diffPretty(s.B.y, s.A.y), diffPretty(s.B.x, s.A.x))} \\)`;
+  const line3 = `\\( = ${isNeg?'-':''}${frac(Math.abs(dy), Math.abs(dx))} \\)`;
+  const line4 = (Dred===1)
+    ? `\\(= \\boxed{\\;${isNeg?'-':''}${Nred}\\;} \\)`
+    : `\\(= \\boxed{\\;${isNeg?'-':''}${frac(Nred,Dred)}\\;} \\)`;
+
+  // Rendu
+  sol.innerHTML = [
+    `<p>${line1}${line2}  ${line4}</p>`,
+      ].join('');
+
+  // Typeset MathJax uniquement dans la boîte
+  if (window.retypeMath) retypeMath(sol);
 }
+
 
 
 });
@@ -1766,65 +1788,110 @@ L.push({
     return {A,B};
   },
   render(host, st){
-    const s=st.params||this.gen(); host.dataset.state=JSON.stringify({params:s});
-    const ui=renderNoRepere(host);
-    ui.equ.innerHTML = `
-  <ol>
-    <li>
-      Déterminer une équation de la tangente <b>T</b> au point 
-      <b>A(${fmtNum(s.A.x)} ; ${fmtNum(s.A.y)})</b> à C<sub>f</sub> 
-      sachant que : <b>f'(${fmtNum(s.A.x)}) = ${fmtNum(s.A.m)}</b>.<br>
-      ${mkInput('eq1',260,'y = ...')} <span id="te1" class="tick">—</span>
-    </li>
-    <li>
-      Déterminer une équation de la tangente <b>T</b> au point 
-      <b>B(${fmtNum(s.B.x)} ; ${fmtNum(s.B.y)})</b> à C<sub>f</sub> 
-      sachant que <b>le coefficient directeur de T est ${fmtNum(s.B.m)}</b>.<br>
-      ${mkInput('eq2',260,'y = ...')} <span id="te2" class="tick">—</span>
-    </li>
-  </ol>
-  <div class="steps" id="steps5"></div>
-`;
-    host._state=s; host._ui=ui;
-  },
-  verify(host){
-    const s=host._state;
-    const pA = s.A.y - s.A.m*s.A.x;
-    const pB = s.B.y - s.B.m*s.B.x;
-    const ok1 = isSameLine(getVal(host,'eq1'), s.A.m, pA);
-    const ok2 = isSameLine(getVal(host,'eq2'), s.B.m, pB);
-    setTick($('#te1',host), ok1); setTick($('#te2',host), ok2);
-    return ok1 && ok2;
-  },
+  const s = st.params || this.gen();
+  host.dataset.state = JSON.stringify({params:s});
+  const ui = renderNoRepere(host);
+
+  // ÉNONCÉ 100% LaTeX (zéro <code class="equ"> / <span class="equ">)
+  ui.equ.innerHTML = `
+    <ol>
+      <li>
+        Déterminer une équation de la tangente \\(T\\) au point
+        \\(A\\big(${fmtNum(s.A.x)}\\,;\\,${fmtNum(s.A.y)}\\big)\\) à \\(C_f\\),
+        sachant que \\(f'(${fmtNum(s.A.x)})=${fmtNum(s.A.m)}\\).<br>
+        ${mkInput('eq1',260,'')} <span id="te1" class="tick">—</span>
+      </li>
+      <li>
+        Déterminer une équation de la tangente \\(T\\) au point
+        \\(B\\big(${fmtNum(s.B.x)}\\,;\\,${fmtNum(s.B.y)}\\big)\\) à \\(C_f\\),
+        sachant que le coefficient directeur de \\(T\\) est \\(${fmtNum(s.B.m)}\\).<br>
+        ${mkInput('eq2',260,'')} <span id="te2" class="tick">—</span>
+      </li>
+    </ol>
+    <div class="steps" id="steps5"></div>
+  `;
+
+  host._state = s; host._ui = ui;
+  if (window.retypeMath) retypeMath(host);   // typeset local
+},
+ verify(host){
+  const s = host._state;
+  const pA = s.A.y - s.A.m*s.A.x;
+  const pB = s.B.y - s.B.m*s.B.x;
+
+  // helper : ne sanctionne pas si vide → tick neutre
+  const checkLine = (id, m, p, tickSel) => {
+    const raw = String(getVal(host, id) || '').trim();
+    if (raw === '') { setTick($(tickSel, host), null); return null; } // NEUTRE
+    const ok = isSameLine(raw, m, p);
+    setTick($(tickSel, host), ok);
+    return ok; // true / false
+  };
+
+  const r1 = checkLine('eq1', s.A.m, pA, '#te1');
+  const r2 = checkLine('eq2', s.B.m, pB, '#te2');
+
+  // succès uniquement si les deux sont corrects (true)
+  return (r1 === true && r2 === true);
+},
+
   solution(host){
-    const s=host._state;
-    const UMINUS='−', u=t=>String(t).replace(/-/g,UMINUS);
-    const pm = k => k<0 ? ` ${UMINUS} ${u(Math.abs(k))}` : ` + ${u(k)}`;
-    const bracket = x => x===0 ? `(x)` : `(x ${x<0?'+':'−'} ${u(Math.abs(x))})`;
+  const s  = host._state;
+  const ui = host._ui;
 
-    function solveBlock(P, label){ // P = {x,y,m}
-      const p = P.y - P.m*P.x;           // y = m x + p
-      const lineFinal = `y = ${u(P.m)}x${p===0?'':pm(p)}`;
-      // Remplit l'input correspondant
-      setVal(host, label==='A'?'eq1':'eq2', lineFinal);
+  // on ne rend pas dans .steps (prime propre)
+  const old = $('#steps5', host);
+  if (old) old.remove();
 
-      // Étapes au format demandé
-      return `
-        <div class="step"><b>${label}(${u(P.x)} ; ${u(P.y)})</b> donc <b>f(${u(P.x)}) = ${u(P.y)}</b> et on sait que <b>f'(${u(P.x)}) = ${u(P.m)}</b> donc :</div>
-        <div class="step"><i>L’équation de la tangente</i> <b>T<sub>${label}</sub></b> est :</div>
-        <div class="step">y = f'(${u(P.x)})${bracket(P.x)} + f(${u(P.x)})</div>
-        <div class="step">y = ${u(P.m)}${bracket(P.x)} + ${u(P.y)}</div>
-        <div class="step">y = ${u(P.m)}x${(P.x===0)?'':pm(P.m*(-P.x))}${pm(P.y)}</div>
-        <div class="step"><b>${lineFinal}</b></div>
-      `;
-    }
-
-    $('#steps5',host).innerHTML = `
-      ${solveBlock(s.A,'A')}
-      <br>
-      ${solveBlock(s.B,'B')}
-    `;
+  // boîte grisée
+  let sol = ui.right.querySelector('#sol-ex5');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex5';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.classList.add('solution','solbox');
+    sol.innerHTML = '';
   }
+
+  // helpers (zéro '--', '+-', '-+' ; pas de "1x")
+  const pr = v => fmtNum(v);
+  const bracket = a => a < 0 ? `(x + ${pr(-a)})` : `(x - ${pr(a)})`;
+  const signAbs = k => (k >= 0 ? ` + ${pr(Math.abs(k))}` : ` - ${pr(Math.abs(k))}`);
+  const mx = m => (m === 1 ? 'x' : (m === -1 ? '−x' : `${pr(m)}x`));
+  const mParen = m => (m === 1 ? '' : (m === -1 ? '−' : pr(m))); // devant (x±a)
+
+  function block(P, label, inputId){
+    const m  = P.m, a = P.x, yA = P.y;
+    const p  = yA - m*a;
+    const t1 = m * (-a);                       // terme issu du développement m(x-a)
+
+    // 1 → 6 : même structure que la version HTML, en LaTeX
+    const L1 = `<p><b>\\(${label}\\big(${pr(a)} \\; ; \\; ${pr(yA)}\\big)\\)</b> donc <b>\\(f(${pr(a)})=${pr(yA)}\\)</b> et on sait que <b>\\(f'(${pr(a)})=${pr(m)}\\)</b> donc :</p>`;
+    const L2 = `<p>L’équation de la tangente <b>\\(T_{${label}}\\)</b> est :</p>`;
+    const L3 = `<p>\\(y = f'(${pr(a)})\\,${bracket(a)} + f(${pr(a)})\\)</p>`;
+    // Substitution : pas de "+ -2" et pas de "1(x−a)"
+    const L4 = `<p>\\(y = ${mParen(m)}${bracket(a)}${signAbs(yA)}\\)</p>`;
+    // Développement : pas de "−1x"
+    const L5 = `<p>\\(y = ${mx(m)}${signAbs(t1)}${signAbs(yA)}\\)</p>`;
+
+    // Équation finale (remplissage de l’input en ASCII pour la vérif)
+    const finalTex = `y = ${mx(m)}${p===0 ? '' : signAbs(p)}`;
+    const finalAscii = finalTex.replace(/−/g,'-');     // pour le parseur
+    setVal(host, inputId, finalAscii);
+
+    const L6 = `<p><b>\\(${finalTex}\\)</b></p>`;
+
+    return L1 + L2 + L3 + L4 + L5 + L6;
+  }
+
+  // A puis B (même ordre/format que l’HTML d’origine)
+  sol.innerHTML = block(s.A,'A','eq1') + '<br>' + block(s.B,'B','eq2');
+
+  if (window.retypeMath) retypeMath(sol);
+}
+
 });
 
 
@@ -1924,6 +1991,36 @@ function evalExprSafe(expr, x){
 }
 
 
+// Convertit un bout de TeX simple en expression JS évaluable pour evalExprSafe
+function asEvalExpr(expr){
+  let s = String(expr || '');
+
+  // — Unicode supercripts → ^n — (x², x³, 5², (x+1)², etc.)
+  s = s
+    .replace(/([A-Za-z0-9)\]])\s*²/g, '$1^2')
+    .replace(/([A-Za-z0-9)\]])\s*³/g, '$1^3');
+
+  // \dfrac{A}{B} ou \frac{A}{B} -> (A)/(B)
+  s = s.replace(/\\(?:d)?frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+
+  // \sqrt{...} -> sqrt(...)
+  s = s.replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)');
+
+  // x^{n} -> x^n
+  s = s.replace(/x\^\{(\d+)\}/gi, 'x^$1');
+
+  // \cdot, \times -> *
+  s = s.replace(/\\cdot|\\times/g, '*');
+
+  // Accolades simples -> parenthèses
+  s = s.replace(/\{/g, '(').replace(/\}/g, ')');
+
+  // Espaces
+  s = s.replace(/\s+/g, ' ');
+
+  return s;
+}
+
 
 
 // Remplace x par la valeur en insérant * si un nombre ou ')' précède x
@@ -1933,6 +2030,50 @@ function substXWithMul(str, X){
     .replace(/(\d|\))\s*x\b/g, '$1*' + sub)    // a x^n → a*X^n  (ou )x → )*X)
     .replace(/x\b/g, sub);                     // le reste : x → X
 }
+
+// f(x) évaluée en x=a — insère \times correctement (pas "times")
+function texFxEvalLine(expr, a){
+  const pr = v => fmtNum(v);
+  const A  = (a < 0) ? `(${pr(a)})` : `${pr(a)}`;
+  let t = String(expr||'').trim().replace(/,/g,'.');
+
+  // 1) TeX-ification de l’expression
+  t = t.replace(/sqrt\(\s*x\s*\)/gi, '\\sqrt{x}')
+       .replace(/sqrt\(\s*([^()]+)\s*\)/gi, '\\sqrt{$1}')
+       .replace(/x\^(\d+)/gi, 'x^{\$1}')
+       .replace(/\(([^()]+)\)\s*\^\s*(\d+)/g, '($1)^{\$2}')
+       .replace(/(\d+(?:\.\d+)?)\s*\^\s*(\d+)/g, '{$1}^{\$2}')
+       .replace(/-\s*1\s*\/\s*x\^(\d+)/gi, '-\\dfrac{1}{x^{\$1}}')
+       .replace(/\b1\s*\/\s*x\^(\d+)/gi,  '\\dfrac{1}{x^{\$1}}')
+       .replace(/-\s*1\s*\/\s*x\b/gi,     '-\\dfrac{1}{x}')
+       .replace(/\b1\s*\/\s*x\b/gi,       '\\dfrac{1}{x}')
+       .replace(/\b1\s*\/\s*\(\s*2\s*sqrt\(\s*x\s*\)\s*\)/gi, '\\dfrac{1}{2\\sqrt{x}}');
+
+  // 2) Substitution x -> a (avec parenthèses si a<0)
+  t = t.replace(/x\^{(\d+)}/gi,  `${A}^{\$1}`)
+       .replace(/\\sqrt\{x\}/gi, `\\sqrt{${A}}`)
+       .replace(/x\b/gi,         A);
+
+  // 3) Insertion des \times entre nombre et (a)^p, a, √(...), (...)
+  const escA = A.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+  // n (a)^p  → n \times (a)^p
+  t = t.replace(new RegExp(`([+\\-]?\\d+)\\s*${escA}\\^\\{(\\d+)\\}`,'g'),
+                '$1 \\\\times ' + A + '^{\$2}');
+  // n a      → n \times a
+  t = t.replace(new RegExp(`([+\\-]?\\d+)\\s*${escA}(?![\\w])`,'g'),
+                '$1 \\\\times ' + A);
+  // n √(...) → n \times √(...)
+  t = t.replace(/([+\-]?\d+)\s*\\sqrt\{/g, '$1 \\\\times \\\\sqrt{');
+  // n (...)  → n \times (...)
+  t = t.replace(/([+\-]?\d+)\s*\(/g,        '$1 \\\\times (');
+
+  // 4) Filet de sécurité si un "times" nu subsistait
+  t = t.replace(/\btimes\b/g, '\\times');
+
+  return t;
+}
+
 
 
 
@@ -2006,8 +2147,8 @@ function polyGen(){
 
     if(kind==='square'){    fx='x^2';             dfx='2x';            xA=rchoice([-3,-2,-1,0,1,2,3]); }
     else if(kind==='cube'){ fx='x^3';             dfx='3x^2';          xA=rchoice([-3,-2,-1,0,1,2,3]); }
-    else if(kind==='inverse'){ fx='1/x';          dfx='-1/x^2';        xA=rchoice([-3,-2,-1,1,2,3]);   } // ≠0
-    else if(kind==='sqrt'){    fx='sqrt(x)';      dfx='1/(2sqrt(x))'; xA=rchoice([1,4,9]);   } // simple
+    else if(kind==='inverse'){ fx='1/x';          dfx='-\\dfrac{1}{x^2}';        xA=rchoice([-3,-2,-1,1,2,3]);   } // ≠0
+    else if(kind==='sqrt'){    fx='sqrt(x)';      dfx='\\dfrac{1}{2sqrt(x)}'; xA=rchoice([1,4,9]);   } // simple
     else if(kind==='affine'){
       const m = rchoice([-5,-4,-3,-2,-1,1,2,3,4,5]);         // pente ≠0
       const b = rchoice([-5,-4,-3,-2,-1,1,2,3,4,5]);         // b ≠0 pour éviter linéaire
@@ -2029,45 +2170,76 @@ function polyGen(){
   },
 
   render(host, st){
-    const chosen = (window.__EXO6_KIND__ || 'random');
-    const s = st.params || this.gen(chosen);
-    host.dataset.state = JSON.stringify({params:s});
-    const ui = renderNoRepere(host);
+  const chosen = (window.__EXO6_KIND__ || 'random');
+  const s = st.params || this.gen(chosen);
+  host.dataset.state = JSON.stringify({params:s});
+  const ui = renderNoRepere(host);
 
-    const selectorHTML = `
-      <div class="optionline small" style="margin-bottom:.4rem">
-        <label for="kind6"><b>Type de fonction :</b></label>
-        <select id="kind6">
-          <option value="random">Aléatoire</option>
-          <option value="square">Carré (x²)</option>
-          <option value="cube">Cube (x³)</option>
-          <option value="inverse">Inverse (1/x)</option>
-          <option value="sqrt">Racine carrée (√x)</option>
-          <option value="affine">Affine (mx + b)</option>
-          <option value="linear">Linéaire (kx)</option>
-          <option value="poly">Polynôme (deg 2–3)</option>
-        </select>
-        <button id="regen6" class="btn">↻ Tirer</button>
-      </div>
-    `;
-    // (dans Ex.6 render)
-const fxH  = prettyExprHTML(s.fx);
-const dfxH = prettyExprHTML(s.dfx);
-ui.equ.innerHTML = `
-${selectorHTML}
-  <p>Donner une équation de la tangente <b>T</b> au point <b>A</b> de <b>C<sub>f</sub></b> d’abscisse <b>x<sub>A</sub></b>.</p>
-  <p><code>f(x) = ${fxH}</code> &nbsp; et &nbsp; <code>f'(x) = ${dfxH}</code> &nbsp; en <b>x<sub>A</sub> = ${s.xA}</b>.</p>
-  ${mkInput('r1',260,'y = ...')} <span id="tr1" class="tick">—</span>
-  <div class="steps" id="steps6"></div>
-`;
+  // -- Helpers LaTeX très simples (suffisants pour nos formes) --
+  const toTeX = (expr)=>{
+    let t = String(expr||'').trim();
 
-    host._state=s; host._ui=ui;
+    // racines
+    t = t.replace(/sqrt\(\s*x\s*\)/gi, '\\sqrt{x}')
+         .replace(/sqrt\(\s*([^()]+)\s*\)/gi, '\\sqrt{$1}');
 
-    $('#kind6',host).value = chosen;
-    const regenerate = (kind)=>{ window.__EXO6_KIND__ = kind; this.render(host,{params:this.gen(kind)}); };
-    $('#kind6',host).addEventListener('change', e=>regenerate(e.target.value));
-    $('#regen6',host).addEventListener('click', ()=>regenerate($('#kind6',host).value));
-  },
+    // puissances
+    t = t.replace(/x\^(\d+)/gi, 'x^{\$1}')
+         .replace(/\(([^()]+)\)\s*\^\s*(\d+)/g, '($1)^{\$2}')
+         .replace(/(\d+(?:[.,]\d+)?)\s*\^\s*(\d+)/g, '{$1}^{\$2}');
+
+    // cas fraction simples
+    t = t.replace(/-\s*1\s*\/\s*x\^(\d+)/gi, '-\\dfrac{1}{x^{\$1}}')
+         .replace(/-\s*1\s*\/\s*x\b/gi, '-\\dfrac{1}{x}')
+         .replace(/\b1\s*\/\s*x\^(\d+)/gi, '\\dfrac{1}{x^{\$1}}')
+         .replace(/\b1\s*\/\s*x\b/gi, '\\dfrac{1}{x}')
+         .replace(/\b1\s*\/\s*\(\s*2\s*sqrt\(\s*x\s*\)\s*\)/gi, '\\dfrac{1}{2\\sqrt{x}}');
+
+    // décimale française → point (au cas où)
+    t = t.replace(/,/g,'.');
+
+    // multiplications : on laisse implicites (3x, 2x, …)
+    return t;
+  };
+
+  // — Sélecteur textuel + bouton (inchangés) —
+  const selectorHTML = `
+    <div class="optionline small" style="margin-bottom:.4rem">
+      <label for="kind6"><b>Type de fonction :</b></label>
+      <select id="kind6">
+        <option value="random">Aléatoire</option>
+        <option value="square">Carré (x^2)</option>
+        <option value="cube">Cube (x^3)</option>
+        <option value="inverse">Inverse (1/x)</option>
+        <option value="sqrt">Racine carrée (√x)</option>
+        <option value="affine">Affine (mx + b)</option>
+        <option value="linear">Linéaire (kx)</option>
+        <option value="poly">Polynôme (deg 2–3)</option>
+      </select>
+      <button id="regen6" class="btn">↻ Tirer</button>
+    </div>
+  `;
+
+  // — ÉNONCÉ : formules et points en LaTeX —
+  ui.equ.innerHTML = `
+    ${selectorHTML}
+    <p>Donner une équation de la tangente \\(T\\) au point \\(A\\) de \\(C_f\\) d’abscisse \\(x_A\\).</p>
+    <p>\\( f(x) = ${toTeX(s.fx)} \\) &nbsp; et &nbsp; \\( f'(x) = ${toTeX(s.dfx)} \\) &nbsp; en \\( x_A = ${fmtNum(s.xA)} \\).</p>
+    ${mkInput('r1',260,'y = ...')} <span id="tr1" class="tick">—</span>
+    <div id="steps6" class="steps"></div>
+  `;
+
+  host._state = s; host._ui = ui;
+
+  // sélectionner l’option active et callbacks
+  $('#kind6',host).value = chosen;
+  const regenerate = (kind)=>{ window.__EXO6_KIND__ = kind; this.render(host,{params:this.gen(kind)}); };
+  $('#kind6',host).addEventListener('change', e=>regenerate(e.target.value));
+  $('#regen6',host).addEventListener('click', ()=>regenerate($('#kind6',host).value));
+
+  // Typeset LaTeX de l’énoncé (incluant l’aperçu des formules)
+  if (window.retypeMath) retypeMath(host);
+},
 
   verify(host){
     const s=host._state;
@@ -2080,80 +2252,248 @@ ${selectorHTML}
   },
 
 
-  solution(host){
-  const s = host._state;
-  const U='−', u=t=>String(t).replace(/-/g,U);
-  const frac = (N,D)=>`<span class="frac"><span class="num">${N}</span><span class="den">${D}</span></span>`;
-  const supPow = k => k===2?'²':k===3?'³':`<sup>${k}</sup>`;
-  const showVal = x => u(x);
-  const showPar = x => x<0 ? `(${u(x)})` : u(x);
-  const powShow = (x,k)=>`${showPar(x)}${supPow(k)}`;
-  const multShow= (a,b)=>`${u(a)} × ${showPar(b)}`;
+  /* ===== Ex.6 — PATCH : only show \times on the f'(a) line ===== */
+solution(host){
+  const s  = host._state;
+  const ui = host._ui;
 
-  // valeurs exactes
-  const m = evalExprSafe(s.dfx, s.xA);
-  const y = evalExprSafe(s.fx , s.xA);
-  const X  = s.xA, Xs = showVal(X);
+  const pr = v => fmtNum(v);
+function pushUnique(L, s){ if(!L.length || L[L.length-1]!==s) L.push(s); }
 
-  // — Puces : zéro doublon, × obligatoires, parenthèses seulement si négatif —
-  let fLine='', dLine='';
-  if(/^\s*x\^2\s*$/i.test(s.fx)){                     // carré
-    fLine = `<b>f(${Xs}) = ${powShow(X,2)} = ${showVal(X*X)}</b>`;
-    dLine = `<b>f'(${Xs}) = ${multShow(2,X)} = ${showVal(2*X)}</b>`;
-  }else if(/^\s*x\^3\s*$/i.test(s.fx)){               // cube
-    fLine = `<b>f(${Xs}) = ${powShow(X,3)} = ${showVal(X*X*X)}</b>`;
-    dLine = `<b>f'(${Xs}) = 3 × ${powShow(X,2)} = ${multShow(3,X*X)} = ${showVal(3*X*X)}</b>`;
-  }else if(/^\s*1\s*\/\s*x\s*$/i.test(s.fx)){         // inverse
-    if(Math.abs(X)===1){
-      fLine = `<b>f(${Xs}) = ${showVal(X<0?-1:1)}</b>`;
-      dLine = `<b>f'(${Xs}) = ${U}${showVal(1)}</b>`;
-    }else{
-      const [ny,dy]=reduce(1,Math.abs(X));
-      const [nm,dm]=reduce(1,Math.abs(X*X));
-      fLine = `<b>f(${Xs}) = ${frac(1, X<0?`(${Xs})`:Xs)} = ${(X<0?U:'')}${frac(ny,dy)}</b>`;
-      dLine = `<b>f'(${Xs}) = ${U}${frac(1, `${showPar(X)}${supPow(2)}`)} = ${U}${frac(nm,dm)}</b>`;
+  // ------- LaTeX helpers (sans \times sauf pour la ligne d’évaluation de f') -------
+  const texRat = (val)=>{                   // entier ou fraction
+    const [V,H] = slopeVH(val);
+    if(H===1) return String(V);
+    const sgn = V<0 ? '-' : '';
+    return `${sgn}\\dfrac{${Math.abs(V)}}{${H}}`;
+  };
+  /* === 1) mx sans \times (corrigé : gère m = 0) === */
+const texMxNoTimes = (m)=>{
+  const [V,H] = slopeVH(m);
+  if (V === 0) return '0';                 // <- empêche "0x"
+  if (H===1 && V=== 1) return 'x';
+  if (H===1 && V===-1) return '-x';
+  return `${texRat(m)}x`;
+};
+
+  // + a  /  - a  / rien si 0 — a est formaté en fraction exacte
+const signAbsTex = (val)=>{
+  const [V,H] = slopeVH(val);          // rationnalise val -> V/H
+  if (V === 0) return '';
+  const A = Math.abs(V);
+  const chunk = (H === 1) ? String(A) : `\\dfrac{${A}}{${H}}`;
+  return (V > 0 ? ' + ' : ' - ') + chunk;
+};
+
+  // Mise en TeX simple (pas de \times)
+  const toTeX = (expr)=>{
+    let t = String(expr||'').trim();
+    t = t.replace(/sqrt\(\s*x\s*\)/gi, '\\\\sqrt{x}')
+         .replace(/sqrt\(\s*([^()]+)\s*\)/gi, '\\\\sqrt{$1}')
+         .replace(/x\^(\d+)/gi, 'x^{\$1}')
+         .replace(/\(([^()]+)\)\s*\^\s*(\d+)/g, '($1)^{\$2}')
+         .replace(/(\d+(?:[.,]\d+)?)\s*\^\s*(\d+)/g, '{$1}^{\$2}')
+         .replace(/-\s*1\s*\/\s*x\^(\d+)/gi, '-\\\\dfrac{1}{x^{\$1}}')
+         .replace(/-\s*1\s*\/\s*x\b/gi,       '-\\\\dfrac{1}{x}')
+         .replace(/\b1\s*\/\s*x\^(\d+)/gi,    '\\\\dfrac{1}{x^{\$1}}')
+         .replace(/\b1\s*\/\s*x\b/gi,         '\\\\dfrac{1}{x}')
+         .replace(/\b1\s*\/\s*\(\s*2\s*sqrt\(\s*x\s*\)\s*\)/gi, '\\\\dfrac{1}{2\\\\sqrt{x}}')
+         .replace(/,/g,'.');
+    return t;
+  };
+
+  // >>> LIGNE 2 : f'(a) avec \times UNIQUEMENT ici <<<
+ // ——— Ex.6 : f'(a) avec × UNIQUEMENT sur cette ligne ———
+function texDerivEvalLine(expr, a){
+  const pr = v => fmtNum(v);
+  const aTex = (a < 0) ? `(${pr(a)})` : `${pr(a)}`;
+
+  // TeX propre de f'(x), puis substitution x -> a
+  let t = String(expr||'').trim();
+  t = t.replace(/sqrt\(\s*x\s*\)/gi, '\\sqrt{x}')
+       .replace(/sqrt\(\s*([^()]+)\s*\)/gi, '\\sqrt{$1}')
+       .replace(/x\^(\d+)/gi, 'x^{\$1}')
+       .replace(/\(([^()]+)\)\s*\^\s*(\d+)/g, '($1)^{\$2}')
+       .replace(/(\d+(?:[.,]\d+)?)\s*\^\s*(\d+)/g, '{$1}^{\$2}')
+       .replace(/-\s*1\s*\/\s*x\^(\d+)/gi, '-\\dfrac{1}{x^{\$1}}')
+       .replace(/-\s*1\s*\/\s*x\b/gi,       '-\\dfrac{1}{x}')
+       .replace(/\b1\s*\/\s*x\^(\d+)/gi,    '\\dfrac{1}{x^{\$1}}')
+       .replace(/\b1\s*\/\s*x\b/gi,         '\\dfrac{1}{x}')
+       .replace(/\b1\s*\/\s*\(\s*2\s*sqrt\(\s*x\s*\)\s*\)/gi, '\\dfrac{1}{2\\sqrt{x}}')
+       .replace(/,/g,'.');
+
+  // Substitution x -> a (brackets si négatif)
+  t = t.replace(/x\^{(\d+)}/gi, `${aTex}^{$1}`)
+       .replace(/\\sqrt\{x\}/gi, `\\sqrt{${aTex}}`)
+       .replace(/x\b/gi, aTex);
+
+  // — Insertion du symbole × (Unicode) entre coefficient numérique et a/√a/(a)^n/(...)
+  const escA = aTex.replace(/[-()]/g,'\\$&');
+  // n (a)^n
+  t = t.replace(new RegExp(`([+\\-]?\\d+)\\s*${escA}\\^\\{(\\d+)\\}`,'g'),
+                '$1 × ' + aTex + '^{\$2}');
+  // n a
+  t = t.replace(new RegExp(`([+\\-]?\\d+)\\s*${escA}(?![\\w])`,'g'),
+                '$1 × ' + aTex);
+  // n √(...)
+  t = t.replace(/([+\-]?\d+)\s*\\sqrt\{/g, '$1 × \\sqrt{');
+  // n ( ... )
+  t = t.replace(/([+\-]?\d+)\s*\(/g,        '$1 × (');
+
+  return t;
+}
+// --- utilitaire : comparaison "visuelle" de deux lignes LaTeX ---
+function sameLatexLine(a, b){
+  const norm = s => String(s)
+    .replace(/<\/?[^>]+>/g, '')            // enlève HTML
+    .replace(/\\\\\(|\\\\\)/g, '')         // enlève \( \)
+    .replace(/\\,|\\;|\\!|\\:|~|\\ /g, '') // espaces LaTeX
+    .replace(/\s+/g, '')                   // plus aucun espace
+    .replace(/\\frac/g, '\\dfrac')         // unifie frac/dfrac
+    .replace(/−/g, '-')                    // moins unicode
+    .replace(/\+\-/g, '-')                 // "+ -" -> "-"
+    .replace(/\-\+/g, '-')                 // "- +" -> "-"
+    .replace(/\-\-/g, '+');                // "--" -> "+"
+  return norm(a) === norm(b);
+}
+
+
+  // --- Évaluations robustes (même si s.fx/s.dfx avaient déjà du TeX) ---
+  const a  = s.xA;
+  const m  = evalExprSafe( asEvalExpr(s.dfx), a );
+  const yA = evalExprSafe( asEvalExpr(s.fx) , a );
+
+  const mVH = slopeVH(m);
+  const pVH = pFromPoint(...mVH, a, yA);
+
+  // --- Pré-remplissage ASCII (oblige "y =", * explicites, pas de 1x/-1x) ---
+ /* === 2) Pré-remplissage ASCII (corrigé : pas de 0x) === */
+(function prefillASCII(){
+  // m = V/H ; p = pVH[0]/pVH[1]
+  const [mV,mH] = mVH, [pV,pH] = pVH;
+  let rhs = 'y = ';
+  if (mV === 0) {
+    // y = p
+    rhs += (pH===1) ? String(pV) : '('+pV+'/'+pH+')';
+  } else {
+    // y = (V/H)*x [+/- p]
+    let mTerm;
+    if (mH===1 && mV=== 1) mTerm = 'x';
+    else if (mH===1 && mV===-1) mTerm = '-x';
+    else mTerm = '('+mV+'/'+mH+')*x';
+    rhs += mTerm;
+    if (pV !== 0){
+      const pAbs = (pH===1) ? String(Math.abs(pV))
+                            : '('+Math.abs(pV)+'/'+pH+')';
+      rhs += (pV > 0 ? ' + ' : ' - ') + pAbs;
     }
-  }else if(/sqrt\(\s*x\s*\)/i.test(s.fx)){            // racine
-    fLine = `<b>f(${Xs}) = √${X<0?`(${Xs})`:Xs} = ${showVal(Math.sqrt(X))}</b>`;
-    dLine = `<b>f'(${Xs}) = ${frac(1, `2√${X<0?`(${Xs})`:Xs}`)} = ${frac(1, 2*showVal(Math.sqrt(X)))}</b>`;
-  }else{                                              // affine / linéaire / polynôme
-    const subX = X<0 ? `(${Xs})` : Xs;
-const fSub = prettyExprHTML( substXWithMul(s.fx , X) );
-const dSub = prettyExprHTML( substXWithMul(s.dfx, X) );
+  }
+  setVal(host,'r1', rhs);
+})();
 
-    fLine = `<b>f(${Xs})</b> = ${fSub} = <b>${showVal(y)}</b>`;
-    dLine = `<b>f'(${Xs})</b> = ${dSub} = <b>${showVal(m)}</b>`;
+
+  // Pas de .steps (prime) -> on enlève si présent
+  const old = $('#steps6', host);
+  if (old) old.remove();
+
+  // Boîte grisée LaTeX
+  let sol = ui.right.querySelector('#sol-ex6');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex6';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.classList.add('solution','solbox');
+    sol.innerHTML = '';
   }
 
-  // — Tangente : y = m(x − xA) + f(xA) → y = mx + p (sans +- / --) —
-  const mVH = slopeVH(m);
-  const mHTML = (mVH[1]===1)? showVal(mVH[0]) : frac(mVH[0],mVH[1]);
-  const xShift = X===0 ? '(x)' : `(x ${X<0?'+':'−'} ${showVal(Math.abs(X))})`;
-
-  const termRat = reduce(-mVH[0]*X, mVH[1]);                          // −m xA
-  const termSign = termRat[0] < 0 ? ` ${U} ` : ' + ';
-  const termAbsHTML = (termRat[1]===1)? showVal(Math.abs(termRat[0])) : frac(Math.abs(termRat[0]), Math.abs(termRat[1]));
-
-  let yRat;
-  if(/^\s*1\s*\/\s*x\s*$/i.test(s.fx)){ yRat = reduce((X<0?-1:1)*1, Math.abs(X)); }
-  else { yRat = [y,1]; }
-  const ySign    = yRat[0] < 0 ? ` ${U} ` : ' + ';
-  const yAbsHTML = (yRat[1]===1)? showVal(Math.abs(yRat[0])) : frac(Math.abs(yRat[0]), Math.abs(yRat[1]));
-
-  const pVH = pFromPoint(...mVH, X, y);
-  const eq  = eqHTML(mVH, pVH);
-  setVal(host,'r1', eq);
-
-  $('#steps6',host).innerHTML = `
-    <div class="step">• ${fLine}</div>
-    <div class="step">• ${dLine}</div>
-    <div class="step" style="margin-top:.5rem"><i>L’équation de la tangente</i> <b>T<sub>A</sub></b> est :</div>
-    <div class="step">y = f'(${Xs})${xShift} + f(${Xs})</div>
-    <div class="step">y = ${mHTML}${xShift} + ${(yRat[1]===1)? showVal(yRat[0]) : frac(yRat[0],yRat[1])}</div>
-    <div class="step">y = ${mHTML}x${termSign}${termAbsHTML}${ySign}${yAbsHTML}</div>
-    <div class="step"><b>${eq}</b></div>
-  `;
+ function fixSigns(s){
+  return String(s)
+    .replace(/\+\s*-\s*/g, ' - ')
+    .replace(/-\s*\+\s*/g, ' - ')
+    .replace(/-\s*-\s*/g, ' + ');
 }
+// Normalisation d’un fragment TeX en ligne (pas une ligne entière)
+function normTexInline(t){
+  return String(t)
+    .replace(/\s+/g,'')          // espaces
+    .replace(/\\frac/g,'\\dfrac')// unifie frac/dfrac
+    .replace(/−/g,'-')           // moins unicode
+    .replace(/\+\-/g,'-')        // +-
+    .replace(/\-\+/g,'-')        // -+
+    .replace(/\-\-/g,'+');       // --
+}
+
+// "lhs [= rhs]" mais on supprime rhs si identique à lhs
+function eqOnce(lhs, rhs){
+  return (normTexInline(lhs) === normTexInline(rhs)) ? lhs : `${lhs} = ${rhs}`;
+}
+
+  /* === 3) Lignes de solution : pas de "0x" ni doublons === */
+const L = [];
+
+// L1 : f(a)
+const fEval = texFxEvalLine(s.fx, a); // ex: \dfrac{1}{3} ou \sqrt{9}
+const fVal  = texRat(yA);             // ex: \dfrac{1}{3} ou 3
+L.push(`<p>\\(f(${fmtNum(a)}) = ${eqOnce(fEval, fVal)}\\)</p>`);
+
+// L2 : f'(a) (c’est la seule ligne avec le symbole ×)
+const dEval = texDerivEvalLine(s.dfx, a); // ex: 3, \dfrac{1}{2}\sqrt{...}, ...
+const dVal  = texRat(m);                  // valeur numérique en fraction
+L.push(`<p>\\(f'(${pr(a)}) = ${eqOnce(dEval, dVal)}\\)</p>`);
+
+// L3 : équation point-pente
+// L3 : équation point-pente (jamais '+ -', jamais décimal)
+L.push(`<p>\\(y = ${texRat(m)}(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))})${signAbsTex(yA)}\\)</p>`);
+
+// L4 : remplacement m,f(a) — simplifie le cas m=0
+if (m === 0) {
+  L.push(`<p>\\(y = ${texRat(yA)}\\)</p>`);
+} else {
+  L.push(`<p>\\(y = ${texRat(m)}(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))}) + ${texRat(yA)}\\)</p>`);
+}
+
+
+// L5 : développement — n’affiche pas "0x" et jamais de décimal
+const t1 = m * (-a);
+if (m !== 0) {
+  L.push(`<p>\\(y = ${texMxNoTimes(m)}${signAbsTex(t1)}${signAbsTex(yA)}\\)</p>`);
+}
+
+
+// L6 : forme finale — compacte (m=0 -> y=p ; p=0 -> y=mx)
+// ...après avoir rempli L avec les étapes précédentes...
+const finalLine = (()=>{
+  const pTex = (pVH[0]===0) ? '0'
+           : (pVH[1]===1) ? String(Math.abs(pVH[0]))
+                           : `\\dfrac{${Math.abs(pVH[0])}}{${pVH[1]}}`;
+  if (m === 0)           return `y = ${(pVH[0]===0)?'0':(pVH[0]<0?'- ':'')+pTex}`;
+  if (pVH[0]===0)        return `y = ${texMxNoTimes(m)}`;
+  return `y = ${texMxNoTimes(m)} ${pVH[0]>0?'+':'-'} ${pTex}`;
+})();
+
+const finalHTML = `<p><b>\\(${finalLine}\\)</b></p>`;
+if (!sameLatexLine(L[L.length-1], finalHTML)) {
+  L.push(finalHTML);   // on n’ajoute la dernière ligne que si elle apporte quelque chose
+}
+
+
+/* --- 4) Anti-doublon (consécutif) avant rendu --- */
+function dedupConsecutive(htmlLines){
+  const out=[]; let prev='';
+  for(const s of htmlLines){
+    const n = s.replace(/<\/?[^>]+>/g,'').replace(/\\\\\(|\\\\\)/g,'').replace(/\s+/g,' ').trim();
+    if(n!==prev){ out.push(s); prev=n; }
+  }
+  return out;
+}
+const Lfixed = L.map(fixSigns);
+sol.innerHTML = dedupConsecutive(Lfixed).join('');
+if (window.retypeMath) retypeMath(sol);
+
+}
+
 
 });
 
@@ -2187,29 +2527,41 @@ L.push({
 
     // Courbe seule au départ
     ui.rep.drawCurve(s.f,'#212121',2.5);
+function setTickPending(el){
+  if(!el) return;
+  el.textContent = '—';
+  el.classList.remove('ok','ko'); // enlève couleurs V/X
+}
+[0,1,2].forEach(i=>{
+  setTickPending($('#tbuild'+i,host));
+  setTickPending($('#teq'+i,host));
+});
 
     // Texte d'énoncé + champ d'équation à côté de Tᵢ
-    const mHTML = ([V,H]) => (H===1 ? fmtNum(V) : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`);
-    const bloc = s.tasks.map((t,i)=>{
-	const SUB = ['₁','₂','₃']; // juste au-dessus du template map si besoin
-      const a = fmtNum(t.x), lab = s.labels[i];
-      return `
-        <li style="margin:.6rem 0">
-          On admet que <b>f’(${a}) = ${mHTML(t.VH)}</b>.
-          Tracer sur la courbe la tangente <b>T<sub>${i+1}</sub></b> à la courbe C<sub>f</sub> au point d’abscisse <b>${a}</b>.
-          <i>On appellera ce point ${lab}.</i><br>
-          <span class="small">Clic 1 : sur le point de la courbe d’abscisse ${a} (affiche «&nbsp;${lab}&nbsp;»). Clic 2 : second point (sans étiquette) pour fixer la tangente.</span><br>
-<button class="btn" data-start="${i}">🎯 Activer T${SUB[i]}</button>
-          &nbsp; T<sub>${i+1}</sub> : <input id="eq${i}" style="width:240px" placeholder="y = ..." autocomplete="off"> <span id="teq${i}" class="tick"></span>
-          <span id="tbuild${i}" class="tick" style="margin-left:.4rem"></span>
-        </li>`;
-    }).join('');
+    // helper LaTeX pour une pente [V,H]
+const mTeX = ([V,H]) => (H===1 ? String(V) : `\\dfrac{${V}}{${H}}`);
 
-    ui.equ.innerHTML = `
-      <p><b>Consigne.</b> Pour chaque tangente T<sub>i</sub> : <b>cliquez d’abord</b> sur le point de la courbe d’abscisse demandée (le point <b>A/B/C</b> apparaît), puis <b>cliquez un second point</b> pour tracer T<sub>i</sub>. Écrivez ensuite l’<b>équation de T<sub>i</sub></b> dans la barre à côté.</p>
-      <ol>${bloc}</ol>
-      <div class="steps" id="steps7"></div>
-    `;
+const bloc = s.tasks.map((t,i)=>{
+  const SUB = ['₁','₂','₃'];
+  const a = fmtNum(t.x), lab = s.labels[i];
+  return `
+    <li style="margin:.6rem 0">
+      On admet que \\(\\,f'(${a}) = ${mTeX(t.VH)}\\,\\).<br>
+      Tracer la tangente \\(T_{${i+1}}\\) à la courbe \\(C_f\\) au point d’abscisse \\( ${a} \\).
+      On appellera ce point \\(\\mathbf{${lab}}\\).<br>
+      <span class="small">Clic 1 : sur le point d’abscisse ${a} (affiche « ${lab} »). Clic 2 : autre point pour fixer \\(T_{${i+1}}\\).</span><br>
+      <button class="btn" data-start="${i}">🎯 Activer T${SUB[i]}</button>
+      &nbsp; \\(T_{${i+1}}:\\) <input id="eq${i}" style="width:240px" placeholder="y = ..." autocomplete="off"> <span id="teq${i}" class="tick"></span>
+      <span id="tbuild${i}" class="tick" style="margin-left:.4rem"></span>
+    </li>`;
+}).join('');
+
+ui.equ.innerHTML = `
+  <p><b>Consigne.</b> Pour chaque tangente \\(T_i\\) : <b>cliquez d’abord</b> sur le point d’abscisse demandée (le point \\(\\mathbf{A/B/C}\\) apparaît), puis <b>cliquez un second point</b> pour tracer \\(T_i\\). Écrivez ensuite l’<b>équation</b> de \\(T_i\\) dans la barre à côté.</p>
+  <ol>${bloc}</ol>
+`;
+if (window.retypeMath) retypeMath(ui.equ);
+
 
     // État d’interaction
     host._state = {
@@ -2261,8 +2613,12 @@ L.push({
     // Activation par bouton
     ui.right.querySelectorAll('button[data-start]').forEach(btn=>{
       btn.addEventListener('click', e=>{
-        host._state.active = parseInt(e.currentTarget.dataset.start,10);
-      });
+  host._state.active = parseInt(e.currentTarget.dataset.start,10);
+  const i = host._state.active;
+  setTickPending($('#tbuild'+i,host));
+  setTickPending($('#teq'+i,host));
+});
+
     });
 
     // --- helper : coordonnées SVG (viewBox) depuis un event pointeur ---
@@ -2299,19 +2655,7 @@ const handleTap = (ev) => {
   const i    = host._state.active;
   const task = host._state.tasks[i];
 
-  // ---- 1er clic : uniquement l’abscisse (on "snappe" à A=(a,f(a)) ) ----
-  if (!host._state.anchors[i]){
-    const tol = 0.6; // tolérance sur x en unités du repère
-    if (Math.abs(P.x - task.x) <= tol){
-      host._state.anchors[i] = { x: task.x, y: task.y }; // y forcé à f(a)
-      redrawUser();
-    }
-    return;
-  }
 
-  // ---- 2e clic : second point (arrondi à la grille entière) ----
-  host._state.secondPts[i] = { x: xi, y: yi };
-  redrawUser();
 
   // ---- Vérification (même logique qu’avant) ----
   const A = host._state.anchors[i], E = host._state.secondPts[i];
@@ -2325,6 +2669,23 @@ const handleTap = (ev) => {
     }
   }
   setTick($('#tbuild'+i,host), ok);
+    // ---- 1er clic : uniquement l’abscisse (on "snappe" à A=(a,f(a)) ) ----
+  if (!host._state.anchors[i]){
+    const tol = 0.6; // tolérance sur x en unités du repère
+    if (Math.abs(P.x - task.x) <= tol){
+      host._state.anchors[i] = { x: task.x, y: task.y }; // y forcé à f(a)
+      redrawUser();
+	  	  setTickPending($('#tbuild'+i,host)); // pas de X rouge après le 1er clic
+
+    }
+    return;
+  }
+
+  // ---- 2e clic : second point (arrondi à la grille entière) ----
+  host._state.secondPts[i] = { x: xi, y: yi };
+  redrawUser();
+    setTick($('#tbuild'+i,host), ok);   // V/X uniquement après le 2e clic
+
 };
 
 ui.rep.el.addEventListener('pointerdown', handleTap, {passive:false});
@@ -2339,7 +2700,10 @@ ui.rep.el.addEventListener('click',       handleTap, {passive:true}); // fallbac
     const s = host._state;
     const allOK = [0,1,2].map(i=>{
       const t = s.tasks[i], A = s.anchors[i], E = s.secondPts[i];
-      if(!A || !E){ setTick($('#tbuild'+i,host), null); return false; }
+if(!A || !E){
+  setTickPending($('#tbuild'+i,host)); // au lieu de setTick(..., null/false)
+  return false;
+}
 
       // construction
       let okBuild=false;
@@ -2353,8 +2717,13 @@ ui.rep.el.addEventListener('click',       handleTap, {passive:true}); // fallbac
       // équation attendue : y = (V/H)x + p  avec p = yA - (V/H)a
       const mVH = t.VH;
       const pVH = pFromPoint(...mVH, t.x, t.y);
-      const okEq = lineOKStrict(getVal(host, 'eq'+i), mVH, pVH);
-      setTick($('#teq'+i,host), okEq);
+      const ans = getVal(host,'eq'+i).trim();
+if (!ans){
+  setTickPending($('#teq'+i,host));    // rien saisi → “—”
+  return false;
+}
+const okEq = lineOKStrict(ans, mVH, pVH);
+setTick($('#teq'+i,host), okEq);
 
       return okBuild && okEq;
     });
@@ -2362,169 +2731,237 @@ ui.rep.el.addEventListener('click',       handleTap, {passive:true}); // fallbac
   },
 
   solution(host){
-    const s = host._state;
-    const steps = $('#steps7',host);
-    let html = '';
+  const s  = host._state;
+  const ui = host._ui;
 
-    s.tasks.forEach((t,i)=>{
-      const lab = s.labels[i];
-      const [V,H] = t.VH;
-      const a = fmtNum(t.x), ya = fmtNum(t.y);
-      const mText = (H===1)? fmtNum(V) : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`;
-      const eq = eqHTML([V,H], pFromPoint(V,H, t.x, t.y));
-      setVal(host,'eq'+i, eq); // on pré-remplit la barre d’équation
+  // — helpers LaTeX (mêmes esprits que Ex.6) —
+  const texRat = (val)=>{           // entier ou fraction (via slopeVH)
+    const [V,H] = slopeVH(val);
+    if (H===1) return String(V);
+    const sgn = V<0 ? '-' : '';
+    return `${sgn}\\dfrac{${Math.abs(V)}}{${H}}`;
+  };
+  const texMx = (m)=>{              // mx sans \times
+    const [V,H] = slopeVH(m);
+    if (V===0) return '0';
+    if (H===1 && V=== 1) return 'x';
+    if (H===1 && V===-1) return '-x';
+    return `${texRat(m)}x`;
+  };
+  const signAbsTex = (val)=>{       // " + a" / " - a" / ""
+    const [V,H] = slopeVH(val);
+    if (V===0) return '';
+    const A = Math.abs(V);
+    const chunk = (H===1) ? String(A) : `\\dfrac{${A}}{${H}}`;
+    return (V>0 ? ' + ' : ' - ') + chunk;
+  };
+  const normTexInline = t => String(t)
+    .replace(/\s+/g,'').replace(/\\frac/g,'\\dfrac')
+    .replace(/−/g,'-').replace(/\+\-/g,'-').replace(/\-\+/g,'-').replace(/\-\-/g,'+');
+  const eqOnce = (lhs, rhs) => (normTexInline(lhs)===normTexInline(rhs)) ? lhs : `${lhs} = ${rhs}`;
+  const sameLatexLine = (a,b)=>{
+    const n = s => String(s).replace(/<\/?[^>]+>/g,'').replace(/\\\\\(|\\\\\)/g,'').replace(/\s+/g,' ').trim();
+    return n(a)===n(b);
+  };
+  const fixSigns = s => String(s).replace(/\+\s*-\s*/g,' - ').replace(/-\s*\+\s*/g,' - ').replace(/-\s*-\s*/g,' + ');
+  const dedupConsecutive = lines=>{
+    const out=[]; let prev='';
+    for(const L of lines){
+      const n = L.replace(/<\/?[^>]+>/g,'').replace(/\\\\\(|\\\\\)/g,'').replace(/\s+/g,' ').trim();
+      if(n!==prev){ out.push(L); prev=n; }
+    }
+    return out;
+  };
 
-      if(Math.abs(t.m)<1e-12){
-        // — modèle "tangente horizontale" —
-        html += `
-          <div class="step">
-            <b>T<sub>${i+1}</sub></b> — f'(${a}) = 0 donc la tangente est <b>horizontale</b>.<br>
-            Elle passe par le point <b>${lab}(${a} ; ${ya})</b> donc l'équation de la tangente <b>T<sub>${i+1}</sub></b> est :<br>
-            <b>y = ${ya}</b>
-          </div>
-        `;
-          }else{
-  // — cas général : m ≠ 0 —
-  const [V,H] = t.VH;
-  const aNum = t.x;
-  const yA   = t.y;
+  // — conteneur : boîte grisée unique —
+  let sol = ui.right.querySelector('#sol-ex7');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex7';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.className = 'solution solbox';
+    sol.innerHTML = '';
+  }
 
-  // m en joli (entier ou fraction)
-  const mText = (H===1)
-    ? fmtNum(V)
-    : `<span class="frac"><span class="num">${V}</span><span class="den">${H}</span></span>`;
+  const L = [];
 
-  // terme (−m·a) = (−V·a)/H en fraction réduite
-  const [TN, TD] = reduce(-V * aNum, H);
-  const termAbsHTML = (TD===1)
-    ? fmtNum(Math.abs(TN))
-    : `<span class="frac"><span class="num">${Math.abs(TN)}</span><span class="den">${TD}</span></span>`;
-  const termSign = (TN < 0) ? ' − ' : ' + ';
+  // Pour chaque tangente
+  s.tasks.forEach((t,i)=>{
+    const a   = t.x;
+    const yA  = t.y;
+    const [V,H] = t.VH;         // pente réduite
+    const m   = (Math.abs(t.m) < 1e-12) ? 0 : (V/H);
 
-  // p pour la ligne finale
-  const pVH = pFromPoint(V, H, aNum, yA);
-  const eq  = eqHTML([V,H], pVH);
+    // Pré-remplissage simple ASCII côté input (utile pour l’utilisateur)
+    const pVH = pFromPoint(V,H,a,yA);
+    (function prefill(){
+      let rhs = 'y = ';
+      if (V===0) rhs += (pVH[1]===1) ? String(pVH[0]) : '('+pVH[0]+'/'+pVH[1]+')';
+      else{
+        if (H===1 && V=== 1) rhs += 'x';
+        else if (H===1 && V===-1) rhs += '-x';
+        else rhs += '('+V+'/'+H+')*x';
+        if (pVH[0]!==0){
+          const pAbs = (pVH[1]===1) ? String(Math.abs(pVH[0])) : '('+Math.abs(pVH[0])+'/'+pVH[1]+')';
+          rhs += (pVH[0]>0 ? ' + ' : ' - ') + pAbs;
+        }
+      }
+      setVal(host,'eq'+i, rhs);
+    })();
+// En-tête de section (LaTeX) — pas de <div>
+L.push(`<p><b>Pour \\(T_{${i+1}}\\) :</b></p>`);
 
-  // pré-remplissage du champ équation
-  setVal(host, 'eq'+i, eq);
+    // — Lignes LaTeX (fractions only) —
+    // L1 : f(a)
+    const fEval = `f(${fmtNum(a)})`;
+    const fVal  = texRat(yA);
+    L.push(`<p>\\(${eqOnce(fEval, fVal)}\\)</p>`);
 
-  html += `
-    <div class="step">
-      <b>T<sub>${i+1}</sub></b><br>
-      f' (${fmtNum(aNum)}) = ${mText}<br>
-      Par lecture graphique on a : f(${fmtNum(aNum)}) = ${fmtNum(yA)} car <b>${lab}(${fmtNum(aNum)} ; ${fmtNum(yA)})</b><br>
-      L’équation de la tangente <b>T<sub>${i+1}</sub></b> est :<br><br>
-      y = f' (${fmtNum(aNum)})(x − ${fmtNum(aNum)}) + f(${fmtNum(aNum)})<br>
-      y = ${mText}(x − ${fmtNum(aNum)}) + ${fmtNum(yA)}<br>
-      y = ${mText}x${termSign}${termAbsHTML} ${yA>=0 ? '+ ' : ''}${fmtNum(yA)}<br>
-      <b>${eq}</b>
-    </div>
-  `;
+    // L2 : f'(a)
+    const mTeX = (H===1) ? String(V) : `\\dfrac{${V}}{${H}}`;
+    L.push(`<p>\\(f'(${fmtNum(a)}) = ${mTeX}\\)</p>`);
+
+    // L3 : point-pente
+    L.push(`<p>\\(y = f'(${fmtNum(a)})(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))}) + f(${fmtNum(a)})\\)</p>`);
+
+    // L4 : substitution numérique (fractions, pas de "+-")
+    L.push(`<p>\\(y = ${mTeX}(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))}) + ${texRat(yA)}\\)</p>`);
+
+   // L5 — développement (pas "0x")
+if (m !== 0) {
+  const t1 = m * (-a);
+  L.push(`<p>\\(y = ${texMx(m)}${signAbsTex(t1)}${signAbsTex(yA)}\\)</p>`);
+}
+// (sinon, on ne met rien ici : la ligne finale suffira)
+
+    // L6 : forme finale compacte
+    const pAbs = (pVH[1]===1) ? String(Math.abs(pVH[0])) : `\\dfrac{${Math.abs(pVH[0])}}{${pVH[1]}}`;
+    let final;
+    if (V===0)           final = `y = ${(pVH[0]===0)?'0':(pVH[0]<0?'- ':'')+pAbs}`;
+    else if (pVH[0]===0) final = `y = ${texMx(m)}`;
+    else                 final = `y = ${texMx(m)} ${pVH[0]>0?'+':'-'} ${pAbs}`;
+
+    const last = `<p><b>\\(${final}\\)</b></p>`;
+    if (!sameLatexLine(L[L.length-1], last)) L.push(last);
+	if (i < s.tasks.length - 1) {
+  // Espace vertical entre T1 / T2 / T3 (sans <div>)
+  L.push(`<p style="margin:.7rem 0"></p>`);
 }
 
-    });
+  });
 
-    steps.innerHTML = html;
-	// --- Amélioration : couleurs distinctes + labels toujours visibles ---
-(function drawSolutionTangents(){
+  sol.innerHTML = dedupConsecutive(L.map(fixSigns)).join('');
+  // === Remplacer le repère de GAUCHE par un clone avec tangentes + labels ===
+(function replaceLeftWithSolvedSVG(){
   const ui = host._ui;
-  const rep = ui.rep, R = rep.R;
-  const NS = rep.el.namespaceURI;
+  const s  = host._state;
+  const NS = ui.rep.el.namespaceURI;
 
-  // Nettoyage d'une ancienne couche
-  const old = rep.gUser.querySelector('g.solution-tangents');
-  if (old) old.remove();
-
-  const g = document.createElementNS(NS,'g');
-  g.setAttribute('class','solution-tangents');
-  rep.gUser.appendChild(g);
-
-  // Couleurs distinctes pour T1, T2, T3 (tu peux changer si besoin)
-const COLORS = ['#1e40af', '#7c3aed', '#16a34a']; // bleu, violet, vert
-  const SUB    = ['₁','₂','₃'];
-
-  // Renvoie les deux points d'intersection de la tangente avec la fenêtre [xmin,xmax]×[ymin,ymax]
+  // Intersections tangente / fenêtre (coords du repère)
   function segmentInBox_throughPointSlope(x0,y0,m,R){
     const cand = [];
-
-    // x = xmin / xmax
-    const yL = m*(R.xmin - x0) + y0;
-    if (yL >= R.ymin && yL <= R.ymax) cand.push({x:R.xmin, y:yL});
-    const yR = m*(R.xmax - x0) + y0;
-    if (yR >= R.ymin && yR <= R.ymax) cand.push({x:R.xmax, y:yR});
-
-    // y = ymin / ymax
+    const yL = m*(R.xmin - x0) + y0; if (yL >= R.ymin && yL <= R.ymax) cand.push({x:R.xmin, y:yL});
+    const yR = m*(R.xmax - x0) + y0; if (yR >= R.ymin && yR <= R.ymax) cand.push({x:R.xmax, y:yR});
     if (Math.abs(m) > 1e-12){
-      const xB = x0 + (R.ymin - y0)/m;
-      if (xB >= R.xmin && xB <= R.xmax) cand.push({x:xB, y:R.ymin});
-      const xT = x0 + (R.ymax - y0)/m;
-      if (xT >= R.xmin && xT <= R.xmax) cand.push({x:xT, y:R.ymax});
+      const xB = x0 + (R.ymin - y0)/m; if (xB >= R.xmin && xB <= R.xmax) cand.push({x:xB, y:R.ymin});
+      const xT = x0 + (R.ymax - y0)/m; if (xT >= R.xmin && xT <= R.xmax) cand.push({x:xT, y:R.ymax});
     } else {
-      // horizontale
       cand.push({x:R.xmin, y:y0}, {x:R.xmax, y:y0});
     }
-
-    // Dédupliquer et ne garder que 2 points
-    const uniq = [];
-    for (const p of cand){
-      if (!uniq.some(q => Math.abs(q.x - p.x) < 1e-9 && Math.abs(q.y - p.y) < 1e-9)) uniq.push(p);
-    }
-    // Au pire, compléter avec les bords horizontaux
-    while (uniq.length < 2){
-      uniq.push({x:R.xmin, y:y0}, {x:R.xmax, y:y0});
-    }
+    const uniq=[]; for (const p of cand)
+      if (!uniq.some(q => Math.abs(q.x-p.x)<1e-9 && Math.abs(q.y-p.y)<1e-9)) uniq.push(p);
+    while (uniq.length < 2) uniq.push({x:s.R.xmin, y:y0}, {x:s.R.xmax, y:y0});
     return uniq.slice(0,2);
   }
 
-  s.tasks.forEach((t,i)=>{
-    const x0 = t.x, y0 = t.y;
-    const m  = (Math.abs(t.m) < 1e-12) ? 0 : (t.VH[0] / t.VH[1]);
-    const color = COLORS[i % COLORS.length];
+  // 1) Clone le SVG existant (même grid/styles), sans handlers
+  const repEl = ui.rep.el;
+  const clone = repEl.cloneNode(true);
+  clone.style.pointerEvents = 'none';         // fig. statique pour le corrigé
+  // éviter des IDs dupliqués
+  clone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
 
-    // Segment visible dans la fenêtre
-    const [P1, P2] = segmentInBox_throughPointSlope(x0, y0, m, R);
+  // 2) Calque utilisateur dans le clone (ou crée-le)
+  let gUser = clone.querySelector('g.gUser') || clone.querySelector('g[data-layer="user"]');
+  if (!gUser){
+    gUser = document.createElementNS(NS, 'g');
+    gUser.setAttribute('class', 'gUser');
+    clone.appendChild(gUser);
+  } else {
+    gUser.innerHTML = ''; // nettoie ce calque dans le clone
+  }
 
-    // Dessin de la tangente "solution"
-    const A = rep.coordToScreen(P1.x, P1.y);
-    const B = rep.coordToScreen(P2.x, P2.y);
+  // 3) Ajoute T1/T2/T3 + points + labels A/B/C …
+const DASH    = ['6 6', '0', '10 4 2 4'];             // motifs inchangés
+const COLORS  = ['#1e40af', '#16a34a', '#dc2626'];     // bleu, vert, rouge
 
-    const L = document.createElementNS(NS,'line');
-    L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
-    L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
-    L.setAttribute('stroke', color);
-    L.setAttribute('stroke-width', '2.5');
-    L.setAttribute('vector-effect','non-scaling-stroke');
-    g.appendChild(L);
+s.tasks.forEach((t,i)=>{
+  const color = COLORS[i];                             // <- couleur de la tangente i
+  const m = (Math.abs(t.m) < 1e-12) ? 0 : (t.VH[0] / t.VH[1]);
+  const [P1, P2] = segmentInBox_throughPointSlope(t.x, t.y, m, s.R);
+  const A = ui.rep.coordToScreen(P1.x, P1.y);
+  const B = ui.rep.coordToScreen(P2.x, P2.y);
+  const C = ui.rep.coordToScreen(t.x,  t.y);
 
-    // Position du label : au milieu du segment visible (léger décalage),
-    // puis "clamp" dans la vue via _placeLabel ; halo blanc pour la lisibilité
-    const tMid = 0.55; // 55% du segment, évite souvent le point A
-    const xL = P1.x + tMid*(P2.x - P1.x);
-    const yL = P1.y + tMid*(P2.y - P1.y);
-    const S  = rep.coordToScreen(xL, yL);
+  // ligne de tangente (couleur dédiée)
+  const L = document.createElementNS(NS, 'line');
+  L.setAttribute('x1', A.x); L.setAttribute('y1', A.y);
+  L.setAttribute('x2', B.x); L.setAttribute('y2', B.y);
+  L.setAttribute('stroke', color);                     // <-- ici
+  L.setAttribute('stroke-width', '2.4');
+  L.setAttribute('vector-effect', 'non-scaling-stroke');
+  if (DASH[i] !== '0') L.setAttribute('stroke-dasharray', DASH[i]);
+  gUser.appendChild(L);
 
-    const T = document.createElementNS(NS,'text');
-    T.textContent = 'T' + SUB[i];
-    T.setAttribute('x', S.x + 6);
-    T.setAttribute('y', S.y - 6);
-    T.setAttribute('font-size', '12');
-    T.setAttribute('font-weight', '700');
-    T.setAttribute('fill', color);
-    T.setAttribute('stroke', '#fff');              // halo blanc pour contraste
-    T.setAttribute('stroke-width', '3');
-    T.setAttribute('paint-order', 'stroke');       // dessine d'abord le halo
-    T.setAttribute('pointer-events', 'none');      // n'intercepte pas les clics
-    g.appendChild(T);
+  // point A/B/C : (on garde l’orange)
+  const dot = document.createElementNS(NS, 'circle');
+  dot.setAttribute('cx', C.x); dot.setAttribute('cy', C.y);
+  dot.setAttribute('r', '4.2');
+  dot.setAttribute('fill', '#f57c00');
+  gUser.appendChild(dot);
 
-    // Place intelligemment le label pour rester visible dans le repère
-    if (typeof rep._placeLabel === 'function'){
-      rep._placeLabel(T, S.x + 6, S.y - 6);
-    }
-  });
+  // label A/B/C (orange, inchangé)
+  const T = document.createElementNS(NS, 'text');
+  T.textContent = s.labels[i];
+  T.setAttribute('x', C.x + 6);
+  T.setAttribute('y', C.y - 6);
+  T.setAttribute('font-size', '12');
+  T.setAttribute('font-weight', '700');
+  T.setAttribute('fill', '#f57c00');
+  T.setAttribute('paint-order','stroke');
+  T.setAttribute('stroke','#fff');
+  T.setAttribute('stroke-width','3');
+  gUser.appendChild(T);
+
+  // nom de la tangente Tᵢ avec la même couleur que la ligne
+  const SUB = ['₁','₂','₃'];
+  const xm = (A.x + B.x) / 2, ym = (A.y + B.y) / 2;
+  const TT = document.createElementNS(NS,'text');
+  TT.textContent = 'T' + SUB[i];
+  TT.setAttribute('x', xm + 6);
+  TT.setAttribute('y', ym - 6);
+  TT.setAttribute('font-size', '12');
+  TT.setAttribute('font-weight', '700');
+  TT.setAttribute('fill', color);                     // <-- ici
+  TT.setAttribute('paint-order','stroke');
+  TT.setAttribute('stroke','#fff');
+  TT.setAttribute('stroke-width','3');
+  gUser.appendChild(TT);
+});
+
+  // 4) Remplace le repère de GAUCHE par le clone enrichi
+  repEl.replaceWith(clone);
+  ui.rep.el = clone; // met à jour la référence interne si nécessaire
 })();
 
-    canonizeAllSteps(host);  // nettoyage affichage (×, grands moins, etc.)
-  }
+  if (window.retypeMath) retypeMath(sol);
+
+  // (Optionnel) laisser ton dessin des tangentes de solution si tu le souhaites
+  // drawSolutionTangents();  // <- si tu gardes ta fonction utilitaire
+}
+
 });
 
 

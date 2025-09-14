@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Seconde – Chapitre 0 – Calculs – Écritures fractionnaires</title>
+<title>Seconde – Chapitre 0 – Calculs – Écritures fractionnaires (LaTeX)</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css"><!-- même fichier que ta page LaTeX -->
+<link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
 *{box-sizing:border-box}
@@ -45,7 +47,7 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 }
 #host #res .step{white-space:nowrap}
 
-/* 2 colonnes (plus utilisées pour l'exo 3, mais on garde le style si besoin ailleurs) */
+/* 2 colonnes (si besoin) */
 .steps--two{
   display:grid;
   grid-template-columns:max-content 0.33ch minmax(240px,1fr);
@@ -53,12 +55,6 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 }
 .steps--two .spacer-3ch{width:0.33ch}
 .note-box{padding:0;border:none;background:transparent;font-size:.92rem}
-
-/* fractions */
-.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
-.frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
-.frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
-.frac-sign{margin-right:.15em}
 
 /* énoncé pour PDF */
 @media screen{
@@ -71,11 +67,36 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
   .equ-offscreen .c-label{display:none !important;}
 }
 
-.equ{font-weight:700}
 .hint{opacity:.9;margin:.2rem 0 .6rem}
 .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#f7f7f7;border:1px dashed #ddd;border-radius:8px;padding:2px 6px}
 .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;border:1px dashed #e3e3e3;border-radius:8px;background:#fafafa}
 </style>
+
+<!-- MathJax (LaTeX) — même config que « exercices - Latex.html » -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$','$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      // Petit raccourci utile
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: {
+      // On ne saute PAS <code>/<pre> : on veut tout rendre
+      skipHtmlTags: ['script','noscript','style','textarea']
+    },
+    chtml: { matchFontHeight: false },
+    startup: { typeset: true }
+  };
+</script>
+<script>
+  window.MathJax = {
+    loader: { load: ['[tex]/color'] },
+    tex: { packages: { '[+]': ['color'] }, inlineMath: [['\\(','\\)']] }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="header">
@@ -131,6 +152,115 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 const $=(s,r=document)=>r.querySelector(s);
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=a=>a[Math.floor(Math.random()*a.length)];
+// Couleur sûre (nécessite MathJax [tex]/color)
+const C = v => `\\textcolor{#c62828}{${v}}`;
+
+// Produit sans “× 1”
+const mulTex = (arr)=>{
+  const a = (arr||[]).filter(v => v !== 1 && v !== '1' && v != null && v !== '');
+  return a.length ? a.join(' \\times ') : '1';
+};
+const dfrac = (num, den) => `\\dfrac{${num}}{${den}}`;
+
+/* ---- COMPTAGE DES FACTEURS COMMUNS ---- */
+function _commonCounts(nums, dens){
+  const ca={}, cb={};
+  nums.forEach(v=>{ const k=String(v); ca[k]=(ca[k]||0)+1; });
+  dens.forEach(v=>{ const k=String(v); cb[k]=(cb[k]||0)+1; });
+  const com={};
+  Object.keys(ca).forEach(k=>{
+    const m=Math.min(ca[k], cb[k]||0);
+    if(m>0) com[k]=m;
+  });
+  return com;
+}
+function _applyColorByCounts(arr, com){
+  const used={};
+  return arr.map(v=>{
+    const k=String(v);
+    const u=used[k]||0;
+    if((com[k]||0)>u){ used[k]=u+1; return C(v); }
+    return String(v);
+  });
+}
+
+/* Produit "à plat" coloré : num=[|n1|,|n2|], den=[|d1|,|d2|] */
+function flatProductColored(n1,n2,d1,d2){
+  const num=[Math.abs(n1), Math.abs(n2)];
+  const den=[Math.abs(d1), Math.abs(d2)];
+  const com=_commonCounts(num, den);
+  const numC=_applyColorByCounts(num, com);
+  const denC=_applyColorByCounts(den, com);
+  return dfrac(mulTex(numC), mulTex(denC));
+}
+
+function decompFactorsByGCDs(n1,n2,d1,d2,gA,gB){
+  const n1a=Math.abs(n1), n2a=Math.abs(n2), d1a=Math.abs(d1), d2a=Math.abs(d2);
+  const num=[], den=[];
+
+  // Paire A : n1 ↔ d2
+  if(gA>1){
+    if(n1a===d2a){
+      num.push(n1a); den.push(d2a);
+    }else{
+      num.push(gA); if(n1a/gA!==1) num.push(n1a/gA);
+      den.push(gA); if(d2a/gA!==1) den.push(d2a/gA);
+    }
+  }else{
+    num.push(n1a); den.push(d2a);
+  }
+
+  // Paire B : n2 ↔ d1 (ici on évite le "18" en forçant une factorisation par d2 si possible)
+  if(gB>1){
+    if(n2a===d1a){
+      num.push(n2a); den.push(d1a);
+    }else{
+      if(n2a/gB!==1) num.push(n2a/gB);
+      num.push(gB);
+
+      den.push(gB);
+      let rest = d1a / gB; // ex. 90/5 = 18
+      if(rest !== 1){
+        if(rest % d2a === 0){
+          const k = rest / d2a;   // ex. 18/9 = 2
+          if(k !== 1) den.push(k);
+          den.push(d2a);          // ex. ... × 9
+        }else{
+          den.push(rest);         // pas divisible : on garde tel quel
+        }
+      }
+    }
+  }else{
+    num.push(n2a); den.push(d1a);
+  }
+
+  return {num, den};
+}
+
+
+/* Décomposition colorée (applique la règle "min des comptes" sur TOUS les facteurs) */
+function decompColoredProduct(n1,n2,d1,d2,gA,gB){
+  const {num, den} = decompFactorsByGCDs(n1,n2,d1,d2,gA,gB);
+  const com=_commonCounts(num, den);
+  const numC=_applyColorByCounts(num, com);
+  const denC=_applyColorByCounts(den, com);
+  return dfrac(mulTex(numC), mulTex(denC));
+}
+
+
+
+
+
+/* ====== MathJax utils (comme dans « exercices - Latex.html ») ====== */
+function typesetAll(scope){
+  try{
+    if(window.MathJax && MathJax.typesetPromise){
+      return MathJax.typesetPromise(scope ? [scope] : undefined).catch(()=>{});
+    }
+  }catch(_e){}
+  return Promise.resolve();
+}
+
 /* ==== PARSE SAISIE STRICTE (entier ou a/b ; accepte U+2212) ==== */
 function parseFracInputStrict(raw){
   const s = String(raw||'').trim().replace(/\u2212/g,'-').replace(/\s+/g,'');
@@ -150,10 +280,10 @@ function parseFracInputStrict(raw){
     const p = parseInt(mInt[1],10);
     return { type:'int', p, q:1, irr:true, red:{ p, q:1 } };
   }
-  return null; // tout le reste est refusé (texte, "F =", etc.)
+  return null; // tout le reste est refusé
 }
 
-/* host-inner (comme equations.html) */
+/* host-inner */
 function innerHost(root){
   let n=root.querySelector('.host-inner');
   if(!n){ n=document.createElement('div'); n.className='host-inner'; root.innerHTML=''; root.appendChild(n); }
@@ -171,37 +301,36 @@ const mulR=(A,B)=>norm(A.p*B.p, A.q*B.q);
 const divR=(A,B)=>norm(A.p*B.q, A.q*B.p);
 const isEqualR=(A,B)=>A.p===B.p && A.q===B.q;
 
-/* affichage fractions */
-function fracHTML(p,q){
-  const sign=(p*q<0)?'−':'';
+/* ====== LaTeX helpers (plus AUCUNE fraction HTML) ====== */
+const wrap = s => `\\(${s}\\)`;
+function fracTex(p,q){
+  let sgn = (p*q<0) ? '-' : '';
   p=Math.abs(p); q=Math.abs(q);
-  if(q===1) return sign+String(p);
-  const core=`<span class="frac"><span class="num">${p}</span><span class="bar"></span><span class="den">${q}</span></span>`;
-  return sign ? `<span class="frac-sign">−</span>${core}` : core;
+  if(q===1) return sgn + String(p);
+  return `${sgn}\\dfrac{${p}}{${q}}`;
 }
-const exprFracHTML=R=>fracHTML(R.p,R.q);
-function parenFracHTML(R){ const s=exprFracHTML(R); return (R.p*R.q<0)?`(${s})`:s; }
-const fmtInt=n=>(n<0?'−'+Math.abs(n):String(n));
-
-function fracProdHTML(n1,n2,d1,d2){
-  const f=v=>(v<0?`(−${Math.abs(v)})`:String(v));
-  return `<span class="frac"><span class="num">${f(n1)} × ${f(n2)}</span><span class="bar"></span><span class="den">${f(d1)} × ${f(d2)}</span></span>`;
+const exprFracTex = R => fracTex(R.p,R.q);
+function parenFracTex(R){
+  const neg = R.p*R.q<0 && R.q!==1;
+  const core = fracTex(R.p,R.q);
+  return neg ? `\\left(${core}\\right)` : core;
 }
-/* Mise en évidence inline (visible en PDF) */
-const HI='style="color:#c62828;font-weight:700"';
-function fracProdHTML_g(g, p1, q1){
-  return `<span class="frac"><span class="num"><span ${HI}>${g}</span> × ${p1}</span><span class="bar"></span><span class="den"><span ${HI}>${g}</span> × ${q1}</span></span>`;
+const fmtInt=n=>(n<0?`-${Math.abs(n)}`:String(n));
+function fracProdTex(n1,n2,d1,d2){
+  const f=v=> (v<0?`\\left(-${Math.abs(v)}\\right)` : String(v));
+  return `\\dfrac{${f(n1)}\\times ${f(n2)}}{${f(d1)}\\times ${f(d2)}}`;
 }
-function fracProdHTML_cancel(n1,n2,d1,d2){
-  const f=v=>(v<0?`(−${Math.abs(v)})`:String(v));
-  const gA=gcd(Math.abs(n1),Math.abs(d2));
-  const gB=gcd(Math.abs(n2),Math.abs(d1));
-  const top=`<span ${gA>1?HI:''}>${f(n1)}</span> × <span ${gB>1?HI:''}>${f(n2)}</span>`;
-  const bot=`<span ${gB>1?HI:''}>${f(d1)}</span> × <span ${gA>1?HI:''}>${f(d2)}</span>`;
-  return `<span class="frac"><span class="num">${top}</span><span class="bar"></span><span class="den">${bot}</span></span>`;
+function fracProdTex_g(g, p1, q1){
+  // on n’essaie pas de colorer : lisible et 100% LaTeX
+  return `\\dfrac{${g}\\times ${p1}}{${g}\\times ${q1}}`;
+}
+function fracProdTex_cancel(n1,n2,d1,d2){
+  // version simple sans surlignage (tout LaTeX)
+  const f=v=> (v<0?`\\left(-${Math.abs(v)}\\right)` : String(v));
+  return `\\dfrac{${f(n1)}\\times ${f(n2)}}{${f(d1)}\\times ${f(d2)}}`;
 }
 
-/* normalisation signes (texte) */
+/* normalisation signes (texte hors LaTeX) – conservé */
 function normalizeSigns(html){
   const parts=String(html).split(/(<[^>]+>)/g);
   for(let i=0;i<parts.length;i++){
@@ -222,24 +351,43 @@ function stripTags(s){ return String(s).replace(/<[^>]*>/g, ''); }
 
 const NEED_F_PREFIX=new Set(['reduce','addsub','muldiv','dec2frac','pct2frac','part-total']);
 function addFprefixLine(str){
-  const s=String(str);
-  if (/(?:^|\s)(PPCM|PGCD)\s*\(/.test(s)) return s; // pas de F= sur ces lignes
-  const t=s.replace(/^\s*=\s*/,'').trimStart();
-  return t.startsWith('F =')?t:('F = '+t);
+  const s = String(str);
+
+  // Pas de "F =" pour ces lignes
+  if (/(?:^|\s)(PPCM|PGCD)\s*\(/.test(s)) return s;
+
+  // Retire un éventuel "= ..." au début
+  let t = s.replace(/^\s*=\s*/,'').trimStart();
+
+  // Déjà au bon format -> ne rien faire
+  if (/^\\\(F\s*=/.test(t) || /^\\\[F\s*=/.test(t)) return t;
+
+  // Si t est déjà un bloc LaTeX \( ... \) ou \[ ... \], on fusionne
+  const mInline = t.match(/^\\\(([\s\S]*)\\\)$/);
+  if (mInline) return `\\(F = ${mInline[1].trimStart()}\\)`;
+
+  const mDisplay = t.match(/^\\\[([\s\S]*)\\\]$/);
+  if (mDisplay) return `\\[F = ${mDisplay[1].trimStart()}\\]`;
+
+  // Sinon, on crée un seul bloc inline
+  return `\\(F = ${t}\\)`;
 }
+
+function isLatex(s){ return /\\\(|\\\[|\\begin\{|\\dfrac|\\frac|\\times|\\div|\\color/.test(String(s)); }
+
 function stepsHTML_F(defId, lines){
-  const out = [];
-  const seen = new Set();
+  const out = [], seen = new Set();
   for(const L of lines){
     const obj = (typeof L==='object' && L) ? L : { text:String(L) };
     const withF = NEED_F_PREFIX.has(defId) && !obj.noF ? addFprefixLine(obj.text) : obj.text;
-    const key = stripTags(normalizeSigns(withF)).replace(/\s+/g,' ').trim();
-    if(seen.has(key)) continue;
-    seen.add(key);
-    out.push(`<div class="step">${normalizeSigns(withF)}</div>`);
+    const key   = stripTags(String(withF)).replace(/\s+/g,' ').trim();
+    if(seen.has(key)) continue; seen.add(key);
+    out.push(`<div class="step">${isLatex(withF) ? withF : normalizeSigns(withF)}</div>`);
   }
   return `<div class="steps">${out.join('')}</div>`;
 }
+
+
 function stepsHTML_F_2col(defId, leftLines, notesRight){
   const outL = [], outR = [];
   const seenL = new Set(), seenR = new Set();
@@ -250,14 +398,14 @@ function stepsHTML_F_2col(defId, leftLines, notesRight){
     const key = stripTags(normalizeSigns(withF)).replace(/\s+/g,' ').trim();
     if(seenL.has(key)) continue;
     seenL.add(key);
-    outL.push(`<div class="step">${normalizeSigns(withF)}</div>`);
+    outL.push(`<div class="step">${withF}</div>`);
   }
   for(const R of (notesRight||[])){
     const txt = String(R);
     const key = stripTags(normalizeSigns(txt)).replace(/\s+/g,' ').trim();
     if(seenR.has(key)) continue;
     seenR.add(key);
-    outR.push(`<div class="step">${normalizeSigns(txt)}</div>`);
+    outR.push(`<div class="step">${txt}</div>`);
   }
   return `<div class="steps--two"><div class="col-left">${outL.join('')}</div><div class="spacer-3ch"></div><div class="note-box">${outR.join('')}</div></div>`;
 }
@@ -268,13 +416,11 @@ function listDivisors(n){
   const ds=[]; for(let i=1;i<=Math.sqrt(n);i++){ if(n%i===0){ ds.push(i); if(i*i!==n) ds.push(n/i); } }
   return ds.sort((a,b)=>a-b).map(x=>Math.round(x));
 }
-/* Affiche tous les diviseurs <= g, en rouge pour g ; si g=1 ou g=n, on voit quand même 1 ou n */
 function formatDivisorsUpToG(n, g){
   const dsAll = listDivisors(n).filter(x => x <= g);
-  const ds = dsAll.length ? dsAll : [g]; /* sécurité, on montre g au minimum */
+  const ds = dsAll.length ? dsAll : [g];
   return ds.map(x => x===g ? `<span style="color:#c62828;font-weight:700">${x}</span>` : String(x)).join(' ; ');
 }
-/* Affiche les multiples de d jusqu’à L ; si L<2d (cas L=d), on affiche quand même L en rouge */
 function formatMultiplesTo(d, L){
   const out = [];
   for(let k=2; k*d <= L; k++){
@@ -282,13 +428,12 @@ function formatMultiplesTo(d, L){
     out.push(v===L ? `<span style="color:#c62828;font-weight:700">${v}</span>` : String(v));
   }
   if (!out.length || !out.join(' ; ').includes(String(L))) {
-    out.push(`<span style="color:#c62828;font-weight:700">${L}</span>`); /* garantit la visibilité de L même si L=d */
+    out.push(`<span style="color:#c62828;font-weight:700">${L}</span>`);
   }
   return out.join(' ; ');
 }
 
-/* rendu d’une ligne */
-function renderRow(host, consigneText, labelHTML, placeholder="ex.  3/4", prefixLabel=""){
+function renderRow(host, consigneText, labelLatex, placeholder="ex.  3/4", prefixLabel=""){
   const root=innerHost(host); root.innerHTML="";
 
   // consigne (écran)
@@ -296,14 +441,18 @@ function renderRow(host, consigneText, labelHTML, placeholder="ex.  3/4", prefix
   hint.innerHTML=`<span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span>`;
   root.appendChild(hint);
 
-  // bloc offscreen pour PDF : consigne + énoncé (le label "Consigne :" est masqué via CSS @media print)
+  // bloc offscreen pour PDF
   const off=document.createElement('div'); off.className="equ-offscreen";
-  off.innerHTML=`<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span></div><div class="equation">${labelHTML}</div>`;
+  const needWrap = !(/\\\(|\\\[|<[^>]+>/.test(labelLatex));  // ⇐ déjà LaTeX ou HTML ?
+  off.innerHTML = `<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">${consigneText}</span></div>
+                   <div class="equation">${needWrap ? wrap(labelLatex) : labelLatex}</div>`;
   root.appendChild(off);
 
   // ligne interactive
   const row=document.createElement("div"); row.className="row";
-  const lab=document.createElement("div"); lab.className="col-label equ"; lab.innerHTML=labelHTML; row.appendChild(lab);
+  const lab=document.createElement("div"); lab.className="col-label";
+  lab.innerHTML = needWrap ? wrap(labelLatex) : labelLatex;   // ⇐ pas de double wrap
+  row.appendChild(lab);
 
   const inpLine=document.createElement('div'); inpLine.className='input-line';
   if(prefixLabel){ const pref=document.createElement('span'); pref.className='input-prefix'; pref.textContent=prefixLabel; inpLine.appendChild(pref); }
@@ -312,8 +461,11 @@ function renderRow(host, consigneText, labelHTML, placeholder="ex.  3/4", prefix
 
   const res=document.createElement('div'); res.id='res'; row.appendChild(res);
   root.appendChild(row);
+
+  typesetAll(root);
   return {inp,res,root,row,lab,off};
 }
+
 
 /* ========= Exercices ========= */
 /* 1 — Réduire (irréductible) */
@@ -326,7 +478,7 @@ const ex1={
     const given={p:p0,q:q0}, expected=makeR(p0,q0);
     return {given, expected};
   },
-  text(st){ return `<span class="equ">F = ${fracHTML(st.given.p, st.given.q)}</span>`; },
+  text(st){ return `F = ${exprFracTex(st.given)}`; },
   render(host, st){ renderRow(host, "Écrire sous forme irréductible :", this.text(st)); },
   correct(host, st){
   const parsed = parseFracInputStrict(($("#reponse",host).value||""));
@@ -340,8 +492,9 @@ const ex1={
     }
   }
 
-  $("#res",host).innerHTML = ok ? "✔" : (msg || `✘ Attendu : F = ${exprFracHTML(st.expected)}`);
+  $("#res",host).innerHTML = ok ? "✔" : (msg || `${wrap(`F = ${exprFracTex(st.expected)}`)}`);
   $("#res",host).className  = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
@@ -352,13 +505,14 @@ const ex1={
       {text:`Diviseurs de ${a} : ${dA}`, noF:true},
       {text:`Diviseurs de ${b} : ${dB}`, noF:true},
       {text:`PGCD(${a} ; ${b}) = <span style="color:#c62828;font-weight:700">${g}</span>${g===1 ? ' — Les deux nombres sont premiers entre eux : aucun diviseur commun autre que 1.' : ''}`, noF:true},
-      `${fracHTML(st.given.p, st.given.q)}`,
+      wrap(`${exprFracTex(st.given)}`),
       ...(g>1 ? [
-        `${fracProdHTML_g(g, p1, q1)}`,
-        `${fracHTML(p1, q1)}`
+        wrap(`${fracProdTex_g(g, p1, q1)}`),
+        wrap(`${exprFracTex({p:p1,q:q1})}`)
       ] : [{text:`La fraction est déjà irréductible.`, noF:true}])
     ];
     $("#res",host).innerHTML=stepsHTML_F('reduce', steps);
+    typesetAll($("#res",host));
     $("#reponse",host).value=(st.expected.q===1? String(st.expected.p) : `${st.expected.p}/${st.expected.q}`);
   },
   reset(host){ $("#reponse",host).value=""; $("#res",host).textContent=""; }
@@ -368,7 +522,7 @@ const ex1={
 const ex2={
   id:"addsub", title:"Addition / Soustraction",
   gen(){
-    const A=makeR(rnd(-9,9), rnd(2,10)), B=makeR(rnd(-9,9), rnd(1,10));
+    const A=makeR(rnd(-99,99), rnd(2,30)), B=makeR(rnd(-99,99), rnd(2,30));
     const op=Math.random()<0.5?'+':'−';
     const res=(op==='+')?addR(A,B):subR(A,B);
     const L=lcm(A.q,B.q);
@@ -379,7 +533,10 @@ const ex2={
     const Bneg=st.B.p<0;
     const opDisp=(st.op==='+'&&Bneg)?'−':(st.op==='−'&&Bneg)?'+':st.op;
     const Babs={p:Math.abs(st.B.p),q:st.B.q};
-    return `<span class="equ">F = ${exprFracHTML(st.A)} ${opDisp} ${exprFracHTML(Bneg?Babs:st.B)}</span>`;
+    const left = `${exprFracTex(st.A)}`;
+    const right = `${exprFracTex(Bneg?Babs:st.B)}`;
+    const mid = (opDisp==='+'?'+':'−');
+    return `F =${left} ${mid} ${right}`;
   },
   render(host, st){ renderRow(host, "Calculer et donner une écriture irréductible :", this.text(st)); },
   correct(host, st){
@@ -394,8 +551,9 @@ const ex2={
     }
   }
 
-  $("#res",host).innerHTML = ok ? "✔" : (msg || `✘ Attendu : F = ${exprFracHTML(st.res)}`);
+  $("#res",host).innerHTML = ok ? "✔" : (msg || `${wrap(`F = ${exprFracTex(st.res)}`)}`);
   $("#res",host).className  = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
@@ -409,79 +567,111 @@ const ex2={
       {text:`Multiples de ${A.q} : ${multA}`, noF:true},
       {text:`Multiples de ${B.q} : ${multB}`, noF:true},
       {text:`PPCM(${A.q} ; ${B.q}) = <span style="color:#c62828;font-weight:700">${L}</span>`, noF:true},
-      `${exprFracHTML(A)} ${opDisp} ${exprFracHTML(Bdisp)}`,
-      `${fracProdHTML(A.p, (L/A.q), A.q, (L/A.q))} ${opDisp} ${fracProdHTML(Bdisp.p, (L/B.q), B.q, (L/B.q))}`,
-      `${fracHTML(st.a1, L)} ${opDisp} ${fracHTML(Bneg?Math.abs(st.b1):st.b1, L)}`,
-      `${fracHTML(st.raw.p, st.raw.q)}`,
-      ...(isEqualR(makeR(st.raw.p, st.raw.q), st.res) ? [] : [`${exprFracHTML(st.res)}`])
+      wrap(`${exprFracTex(A)} ${opDisp==='+'?'+':'−'} ${exprFracTex(Bdisp)}`),
+      wrap(`${fracProdTex(A.p, (L/A.q), A.q, (L/A.q))} ${opDisp==='+'?'+':'−'} ${fracProdTex(Bdisp.p, (L/B.q), B.q, (L/B.q))}`),
+      wrap(`${exprFracTex({p:st.a1,q:L})} ${opDisp==='+'?'+':'−'} ${exprFracTex({p:(Bneg?Math.abs(st.b1):st.b1),q:L})}`),
+      wrap(`${exprFracTex(st.raw)}`),
+      ...(isEqualR(makeR(st.raw.p, st.raw.q), st.res) ? [] : [wrap(`${exprFracTex(st.res)}`)])
     ];
     $("#res",host).innerHTML=stepsHTML_F('addsub', lines);
+    typesetAll($("#res",host));
     $("#reponse",host).value=(st.res.q===1? String(st.res.p) : `${st.res.p}/${st.res.q}`);
   },
   reset: ex1.reset
 };
 
-/* 3 — Produit / Quotient (méthode générale en tête, sans "compter X −") */
 const ex3={
   id:"muldiv", title:"Produit / Quotient",
   gen(){
-    const A=makeR(rnd(-9,9), rnd(2,10)), B=makeR(rnd(-9,9), rnd(2,10));
-    const op=Math.random()<0.5?'×':'÷';
-    const res=(op==='×')?mulR(A,B):divR(A,B);
+    const A = makeR(rnd(-99,99), rnd(2,100));
+    const op = Math.random() < 0.5 ? '×' : '÷';
+    let B = makeR(rnd(-9,9), rnd(2,10));
+    if (op === '÷') { while (B.p === 0) B = makeR(rnd(-9,9), rnd(2,10)); }
+
+    const res = (op === '×') ? mulR(A,B) : divR(A,B);
     const n1=A.p, d1=A.q, n2=(op==='×')?B.p:B.q, d2=(op==='×')?B.q:B.p;
-    const gA=gcd(Math.abs(n1),Math.abs(d2));
-    const gB=gcd(Math.abs(n2),Math.abs(d1));
-    const n1r=n1/gA, d2r=d2/gA, n2r=n2/gB, d1r=d1/gB;
-    const raw={p:n1r*n2r,q:d1r*d2r}, irre=makeR(raw.p, raw.q);
+
+    const gA=gcd(Math.abs(n1),Math.abs(d2)); // commun n1 ↔ d2
+    const gB=gcd(Math.abs(n2),Math.abs(d1)); // commun n2 ↔ d1
+
+    const n1r=n1/gA, d2r=d2/gA, n2r=n2/gB, d1r=d1/gB; // réductions partielles
+    const raw={p:n1r*n2r, q:d1r*d2r}, irre=makeR(raw.p, raw.q);
     return {A,B,op,res,n1,n2,d1,d2,gA,gB,n1r,n2r,d1r,d2r,raw,irre};
   },
   text(st){
-    const right=(st.op==='×')?`${exprFracHTML(st.A)} × ${parenFracHTML(st.B)}`:`${exprFracHTML(st.A)} ÷ ${parenFracHTML(st.B)}`;
-    return `<span class="equ">F = ${right}</span>`;
+    return (st.op==='×')
+      ? `F =${exprFracTex(st.A)} \\times ${parenFracTex(st.B)}`
+      : `F =${exprFracTex(st.A)} \\div ${parenFracTex(st.B)}`;
   },
   render(host, st){ renderRow(host, "Calculer et donner une écriture irréductible :", this.text(st)); },
   correct(host, st){
-  const parsed = parseFracInputStrict(($("#reponse",host).value||""));
-  let ok=false, msg="";
-
-  if(parsed && isEqualR(parsed.red, st.irre)){
-    if(parsed.type==='frac' && !parsed.irr){
-      msg = "Tu peux encore réduire la fraction.";
-    }else{
-      ok = true;
+    const parsed = parseFracInputStrict(($("#reponse",host).value||""));
+    let ok=false, msg="";
+    if(parsed && isEqualR(parsed.red, st.irre)){
+      if(parsed.type==='frac' && !parsed.irr) msg="Tu peux encore réduire la fraction.";
+      else ok = true;
     }
-  }
-
-  $("#res",host).innerHTML = ok ? "✔" : (msg || `✘ Attendu : F = ${exprFracHTML(st.irre)}`);
-  $("#res",host).className  = ok ? "res-ok" : "res-ko";
-  return {ok,total:1};
-},
-  solution(host, st){
-    const first=(st.op==='×')?`${exprFracHTML(st.A)} × ${parenFracHTML(st.B)}`:`${exprFracHTML(st.A)} ÷ ${parenFracHTML(st.B)}`;
-    const invLine=(st.op==='÷')?`${exprFracHTML(st.A)} × ${parenFracHTML({p:st.B.q,q:st.B.p})}`:null;
-
-    // (on ne montre PAS le comptage des "−" ; juste la méthode générale en tête)
-    const prodColored = fracProdHTML_cancel(Math.abs(st.n1),Math.abs(st.n2),Math.abs(st.d1),Math.abs(st.d2));
-    const prodReduced = fracProdHTML(Math.abs(st.n1r),Math.abs(st.n2r),Math.abs(st.d1r),Math.abs(st.d2r));
-    const rawAbs={p:Math.abs(st.raw.p),q:Math.abs(st.raw.q)};
-    const rawLine= fracHTML(rawAbs.p, rawAbs.q);
-
-    const lines=[
-      {text:`On s’occupe de compter les " − " d’abord :`, noF:true},
-      {text:`• Si le nombre est pair, il n’y a plus de " − " dans le calcul`, noF:true},
-      {text:`• Si le nombre est impair, il y a un seul " − " devant la fraction dans le calcul`, noF:true},
-      first,
-      ...(invLine ? [{text:'— Diviser par un nombre revient à multiplier par son inverse.', noF:true}, invLine] : []),
-      prodColored, 
-      prodReduced, 
-      rawLine,
-      ...(isEqualR(st.raw, st.irre) ? [] : [`${exprFracHTML(st.irre)}`])
-    ];
-    $("#res",host).innerHTML=stepsHTML_F('muldiv', lines);
-    $("#reponse",host).value=(st.irre.q===1? String(st.irre.p) : `${st.irre.p}/${st.irre.q}`);
+    $("#res",host).innerHTML = ok ? "✔" : (msg || `${wrap(`F = ${exprFracTex(st.irre)}`)}`);
+    $("#res",host).className  = ok ? "res-ok" : "res-ko";
+    typesetAll($("#res",host));
+    return {ok,total:1};
   },
+  solution(host, st){
+  const first = (st.op==='×')
+    ? `${exprFracTex(st.A)} \\times ${parenFracTex(st.B)}`
+    : `${exprFracTex(st.A)} \\div ${parenFracTex(st.B)}`;
+  const invLine = (st.op==='÷')
+    ? `${exprFracTex(st.A)} \\times ${parenFracTex({p:st.B.q,q:st.B.p})}`
+    : null;
+
+  // signe global appliqué à chaque fraction/mise en évidence
+  const neg = [st.n1, st.n2, st.d1, st.d2].filter(x=>x<0).length % 2 === 1;
+  const S = s => neg ? `-${s}` : s;
+
+  const n1a=Math.abs(st.n1), n2a=Math.abs(st.n2), d1a=Math.abs(st.d1), d2a=Math.abs(st.d2);
+  const hasCommon = (st.gA>1 || st.gB>1);
+  const eqA = st.gA>1 && n1a===d2a;   // même nombre n1/d2
+  const eqB = st.gB>1 && n2a===d1a;   // même nombre n2/d1
+  const exactSame = eqA || eqB;
+  const multiples = hasCommon && !exactSame;
+  const noCommon  = !hasCommon;
+
+  const prodSimple   = S( dfrac(mulTex([n1a, n2a]), mulTex([d1a, d2a])) );
+  const flatColored  = S( flatProductColored(st.n1, st.n2, st.d1, st.d2) );
+  const decompColor  = S( decompColoredProduct(st.n1, st.n2, st.d1, st.d2, st.gA, st.gB) );
+  const reducedProd  = S( dfrac(mulTex([Math.abs(st.n1r), Math.abs(st.n2r)]),
+                                mulTex([Math.abs(st.d1r), Math.abs(st.d2r)])) );
+  const finalLine    = exprFracTex(st.irre);
+
+  const lines=[
+    {text:`On s’occupe de compter les " − " d’abord :`, noF:true},
+    {text:`• Si le nombre est pair, il n’y a plus de " − " dans le calcul`, noF:true},
+    {text:`• Si le nombre est impair, il y a un seul " − " devant la fraction dans le calcul`, noF:true},
+    wrap(first),
+    ...(invLine ? [{text:'— Diviser par un nombre revient à multiplier par son inverse.', noF:true}, wrap(invLine)] : []),
+
+    // Branches demandées
+    ...(exactSame
+      // mêmes nombres en face : colorier directement sur la ligne "à plat", puis résultat
+      ? [ wrap(flatColored), wrap(finalLine) ]
+      : multiples
+        // multiples : décomposer (gA/gB), colorier par comptage, réduire, résultat
+        ? [ wrap(decompColor), wrap(reducedProd), wrap(finalLine) ]
+        // aucun commun : produit simple, résultat
+        : [ wrap(prodSimple), wrap(finalLine) ]
+    )
+  ];
+
+  $("#res",host).innerHTML=stepsHTML_F('muldiv', lines);
+  typesetAll($("#res",host));
+  $("#reponse",host).value=(st.irre.q===1? String(st.irre.p) : `${st.irre.p}/${st.irre.q}`);
+},
+
+
   reset: ex1.reset
 };
+
+
 
 /* 4 — Décimal → n/10^k */
 const ex4={
@@ -492,25 +682,33 @@ const ex4={
     let n; do{ n=rnd(1,20*denomPow-1)*sgn; }while(n%denomPow===0);
     const val=n/denomPow; return {value:val, denomPow, num:n};
   },
-  text(st){ return `<span class="equ">F = ${String(st.value).replace('.',',')}</span>`; },
-  render(host, st){ renderRow(host, "Écrire sous la forme n/10<sup>k</sup> (pas de virgule) :", this.text(st)); },
+  text(st){ return `F =${String(st.value).replace('.',',')}`; },
+render(host, st){
+  renderRow(host,
+    "Écrire sous la forme \\(\\dfrac{n}{10^{k}}\\) (pas de virgule) :",
+    this.text(st)
+  );
+},
+
   correct(host, st){
   const raw = ($("#reponse",host).value||"").replace(/\u2212/g,'-').trim();
   const m = raw.match(/^([-+]?\d+)\s*\/\s*(10|100|1000|10000)$/);
   const ok = !!m && (parseInt(m[1],10)===st.num) && (parseInt(m[2],10)===st.denomPow);
-  $("#res",host).innerHTML = ok ? "✔" : `✘ Attendu : F = ${fracHTML(st.num, st.denomPow)}`;
+  $("#res",host).innerHTML = ok ? "✔" : wrap(` ${fracTex(st.num, st.denomPow)}`);
   $("#res",host).className  = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
-    const lines=[ {text:`F = ${String(st.value).replace('.',',')}`}, {text:`F = ${fracHTML(st.num, st.denomPow)}`} ];
+    const lines=[ wrap(` ${String(st.value).replace('.',',')}`), wrap(` ${fracTex(st.num, st.denomPow)}`) ];
     $("#res",host).innerHTML=stepsHTML_F('dec2frac', lines);
+    typesetAll($("#res",host));
     $("#reponse",host).value=`${st.num}/${st.denomPow}`;
   },
   reset: ex1.reset
 };
 
-/* 5 — Comparer deux fractions (sélecteur **entre** les nombres) */
+/* 5 — Comparer deux fractions */
 const ex5={
   id:"compare", title:"Comparer deux fractions",
   gen(){
@@ -519,7 +717,10 @@ const ex5={
     const cmp=Math.sign(A.p*B.q - B.p*A.q), symbol=(cmp<0)?' < ':(cmp>0?' > ':' = ');
     return {A,B,cmp,symbol};
   },
-  text(st){ return `<span class="equ"><span class="left">${exprFracHTML(st.A)}</span> <span id="cmp-slot"></span> <span class="right">${exprFracHTML(st.B)}</span></span>`; },
+  text(st){
+    // On sépare en trois blocs LaTeX pour insérer le <select> au milieu
+    return `${wrap(exprFracTex(st.A))} <span id="cmp-slot"></span> ${wrap(exprFracTex(st.B))}`;
+  },
   render(host, st){
     const ctx=renderRow(host, "Comparer deux fractions :", this.text(st), "", "");
     const inpLine = ctx.row.querySelector('.input-line'); if (inpLine) inpLine.remove();
@@ -528,24 +729,27 @@ const ex5={
     sel.style.verticalAlign="middle"; sel.style.margin="0 .35rem";
     if(slot){ slot.replaceWith(sel); }
     const offEq = ctx.root.querySelector('.equ-offscreen .equation');
-    if (offEq) offEq.innerHTML = `<span class="equ">${exprFracHTML(st.A)} ▢ ${exprFracHTML(st.B)}</span>`;
+    if (offEq) offEq.innerHTML = wrap(`${exprFracTex(st.A)} \\square ${exprFracTex(st.B)}`);
+    typesetAll(ctx.root);
   },
   correct(host, st){
     const val=($("#reponse-sym",host)||{}).value||"";
     const ok=(val===(st.cmp<0?"<":st.cmp>0?">":"="));
-    $("#res",host).innerHTML= ok ? "✔" : `✘ Attendu : ${exprFracHTML(st.A)} ${st.symbol.trim()} ${exprFracHTML(st.B)}`;
-    $("#res",host).className= ok ? "res-ok":"res-ko"; return {ok,total:1};
+    $("#res",host).innerHTML= ok ? "✔" : wrap(`${exprFracTex(st.A)} ${st.symbol.trim()} ${exprFracTex(st.B)}`);
+    $("#res",host).className= ok ? "res-ok":"res-ko";
+    typesetAll($("#res",host));
+    return {ok,total:1};
   },
   solution(host, st){
     const left=st.A.p*st.B.q, right=st.B.p*st.A.q;
     const lS=fmtInt(left), rS=fmtInt(right);
     const steps=[
-      `${exprFracHTML(st.A)} ▢ ${exprFracHTML(st.B)}`,
-      `Comparer ${exprFracHTML(st.A)} et ${exprFracHTML(st.B)} revient à comparer ${lS} et ${rS} (produits en croix).`,
-      `${lS} ${st.symbol} ${rS} donc ${exprFracHTML(st.A)} ${st.symbol} ${exprFracHTML(st.B)}`
+      wrap(`${exprFracTex(st.A)} \\square ${exprFracTex(st.B)}`),
+      `Comparer \\(${exprFracTex(st.A)}\\) et \\(${exprFracTex(st.B)}\\) revient à comparer \\(${lS}\\) et \\(${rS}\\) (produits en croix).`,
+      wrap(`${lS} ${st.symbol.trim()} ${rS} \\;\\Rightarrow\\; ${exprFracTex(st.A)} ${st.symbol.trim()} ${exprFracTex(st.B)}`)
     ];
-    /* PAS de F= pour l'exo 5 */
     $("#res",host).innerHTML=stepsHTML_F('compare', steps);
+    typesetAll($("#res",host));
   },
   reset(host){ const sel=$("#reponse-sym",host); if(sel){ sel.value=""; } $("#res",host).textContent=""; }
 };
@@ -558,10 +762,9 @@ const ex6={
     const L=lcm(A.q,B.q); const A1={p:A.p*(L/A.q), q:L}, B1={p:B.p*(L/B.q), q:L};
     return {A,B,L,A1,B1};
   },
-  text(st){ return `<span class="equ">${exprFracHTML(st.A)} et ${exprFracHTML(st.B)}</span>`; },
+  text(st){ return `${exprFracTex(st.A)} \\text{ et } ${exprFracTex(st.B)}`; },
   render(host, st){ renderRow(host, "Mettre au même dénominateur (On cherchera le dénominateur le plus petit possible) :", this.text(st), "ex.  3/8 et -5/8"); },
   correct(host, st){
-  // normalisation saisie
   const raw = ($("#reponse",host).value||"")
     .trim()
     .replace(/\s+/g,'')
@@ -575,15 +778,13 @@ const ex6={
     const a1 = parseInt(m[1],10), qa = parseInt(m[2],10);
     const b1 = parseInt(m[3],10), qb = parseInt(m[4],10);
 
-    const L = lcm(st.A.q, st.B.q);                 // PPCM attendu
-    const expA_L = st.A.p * (L / st.A.q);          // numérateurs attendus au PPCM
+    const L = lcm(st.A.q, st.B.q);
+    const expA_L = st.A.p * (L / st.A.q);
     const expB_L = st.B.p * (L / st.B.q);
 
-    // Cas 1 : exactement le PPCM (réponse correcte)
     if (qa === qb && qa === L && a1 === expA_L && b1 === expB_L){
       ok = true;
     } else {
-      // Cas 2 : même dénominateur, commun, mais plus grand que le PPCM -> message
       const sameDen = (qa === qb);
       const kA = qa / st.A.q, kB = qb / st.B.q;
       const isCommonMultiple = sameDen && Number.isInteger(kA) && Number.isInteger(kB);
@@ -597,9 +798,10 @@ const ex6={
 
   $("#res",host).innerHTML = ok
     ? "✔"
-    : (msg || `✘ Attendu : ${fracHTML(st.A1.p, st.A1.q)} et ${fracHTML(st.B1.p, st.B1.q)}`);
+    : (msg || wrap(`${exprFracTex(st.A1)} \\text{ et } ${exprFracTex(st.B1)}`));
 
   $("#res",host).className = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
@@ -609,12 +811,12 @@ const ex6={
       {text:`Multiples de ${st.A.q} : ${multA}`, noF:true},
       {text:`Multiples de ${st.B.q} : ${multB}`, noF:true},
       {text:`PPCM(${st.A.q} ; ${st.B.q}) = <span style="color:#c62828;font-weight:700">${st.L}</span>`, noF:true},
-      `${exprFracHTML(st.A)} = ${fracProdHTML(st.A.p, (st.L/st.A.q), st.A.q, (st.L/st.A.q))}`,
-      `${exprFracHTML(st.B)} = ${fracProdHTML(st.B.p, (st.L/st.B.q), st.B.q, (st.L/st.B.q))}`,
-      `On obtient donc : ${fracHTML(st.A1.p, st.A1.q)} et ${fracHTML(st.B1.p, st.B1.q)}`
+      wrap(`${exprFracTex(st.A)} = ${fracProdTex(st.A.p, (st.L/st.A.q), st.A.q, (st.L/st.A.q))}`),
+      wrap(`${exprFracTex(st.B)} = ${fracProdTex(st.B.p, (st.L/st.B.q), st.B.q, (st.L/st.B.q))}`),
+      wrap(`\\text{On obtient donc : } ${exprFracTex(st.A1)} \\text{ et } ${exprFracTex(st.B1)}`)
     ];
-    /* PAS de F= pour l'exo 6 */
     $("#res",host).innerHTML=stepsHTML_F('same-den', steps);
+    typesetAll($("#res",host));
   },
   reset: ex1.reset
 };
@@ -623,13 +825,24 @@ const ex6={
 const ex7={
   id:"pct2frac", title:"Pourcentage → fraction irréductible",
   gen(){
-    const kind=choice(['int','d1','d2']); let num,den,label;
-    if(kind==='int'){ const p=(Math.random()<.5?-1:1)*rnd(1,150); num=p; den=100; label=String(p).replace('.',',')+' %'; }
-    else if(kind==='d1'){ const m=(Math.random()<.5?-1:1)*rnd(1,300); num=m; den=1000; label=(m/10).toString().replace('.',',')+' %'; }
-    else { const m=(Math.random()<.5?-1:1)*rnd(1,300); num=m; den=10000; label=(m/100).toString().replace('.',',')+' %'; }
-    return {disp:label, value:{p:num,q:den}, expected: makeR(num,den)};
-  },
-  text(st){ return `<span class="equ">F = ${st.disp}</span>`; },
+  const kind=choice(['int','d1','d2']); let num,den,label;
+  if(kind==='int'){
+    const p=(Math.random()<.5?-1:1)*rnd(1,150);
+    num=p; den=100;
+    label = String(p).replace('.',',') + '\\,\\%';
+  } else if(kind==='d1'){
+    const m=(Math.random()<.5?-1:1)*rnd(1,300);
+    num=m; den=1000;
+    label = (m/10).toString().replace('.',',') + '\\,\\%';
+  } else {
+    const m=(Math.random()<.5?-1:1)*rnd(1,300);
+    num=m; den=10000;
+    label = (m/100).toString().replace('.',',') + '\\,\\%';
+  }
+  return {disp:label, value:{p:num,q:den}, expected: makeR(num,den)};
+},
+
+  text(st){ return `F = ${st.disp}`; },
   render(host, st){ renderRow(host, "Écrire sous forme de fraction irréductible :", this.text(st)); },
   correct(host, st){
   const parsed = parseFracInputStrict(($("#reponse",host).value||""));
@@ -643,13 +856,15 @@ const ex7={
     }
   }
 
-  $("#res",host).innerHTML = ok ? "✔" : (msg || `✘ Attendu : F = ${exprFracHTML(st.expected)}`);
+  $("#res",host).innerHTML = ok ? "✔" : (msg || wrap(`F = ${exprFracTex(st.expected)}`));
   $("#res",host).className  = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
-    const arr=[ {text:`F = ${st.disp}`}, {text:`F = ${fracHTML(st.value.p, st.value.q)}`}, ...(isEqualR(st.value, st.expected) ? [] : [{text:`F = ${exprFracHTML(st.expected)}`}]) ];
+    const arr=[ wrap(`F = ${st.disp}`), wrap(`F = ${exprFracTex(st.value)}`), ...(isEqualR(st.value, st.expected) ? [] : [wrap(`F = ${exprFracTex(st.expected)}`)]) ];
     $("#res",host).innerHTML=stepsHTML_F('pct2frac', arr);
+    typesetAll($("#res",host));
     $("#reponse",host).value=(st.expected.q===1? String(st.expected.p) : `${st.expected.p}/${st.expected.q}`);
   },
   reset: ex1.reset
@@ -662,7 +877,7 @@ const ex8={
     const total=rnd(10,60), part=rnd(1,total-1), expected=makeR(part,total);
     return {part,total,expected};
   },
-  text(st){ return `<span class="equ">${st.part} sur ${st.total}</span>`; },
+  text(st){ return `${exprFracTex({p:st.part,q:st.total})}`; },
   render(host, st){ renderRow(host, "Donner la fraction irréductible correspondant à :", this.text(st)); },
   correct(host, st){
   const parsed = parseFracInputStrict(($("#reponse",host).value||""));
@@ -676,8 +891,9 @@ const ex8={
     }
   }
 
-  $("#res",host).innerHTML = ok ? "✔" : (msg || `✘ Attendu : F = ${exprFracHTML(st.expected)}`);
+  $("#res",host).innerHTML = ok ? "✔" : (msg || wrap(`F = ${exprFracTex(st.expected)}`));
   $("#res",host).className  = ok ? "res-ok" : "res-ko";
+  typesetAll($("#res",host));
   return {ok,total:1};
 },
   solution(host, st){
@@ -685,23 +901,24 @@ const ex8={
     const p1=a/g, q1=b/g;
     const dA=formatDivisorsUpToG(a, g), dB=formatDivisorsUpToG(b, g);
     const steps=[
-      `${fracHTML(a,b)}`,
+      wrap(`${exprFracTex({p:a,q:b})}`),
       {text:`Diviseurs de ${a} : ${dA}`, noF:true},
       {text:`Diviseurs de ${b} : ${dB}`, noF:true},
       {text:`PGCD(${a} ; ${b}) = <span style="color:#c62828;font-weight:700">${g}</span>${g===1 ? ' — Les deux nombres sont premiers entre eux : aucun diviseur commun autre que 1.' : ''}`, noF:true},
       ...(g>1 ? [
-        `${fracProdHTML_g(g, p1, g, q1)}`,
-        `${fracHTML(p1, q1)}`
+        wrap(`${fracProdTex_g(g, p1, g, q1)}`),
+        wrap(`${exprFracTex({p:p1,q:q1})}`)
       ] : [{text:`La fraction est déjà irréductible.`, noF:true}])
     ];
     $("#res",host).innerHTML=stepsHTML_F('part-total', steps);
+    typesetAll($("#res",host));
   },
   reset: ex1.reset
 };
 
 /* ===== registre & moteur ===== */
-const REGISTRY=[ex1,ex2,ex3,ex4,ex5,ex6,ex7,ex8];
-window.REGISTRY = REGISTRY; /* nécessaire pour exo-pdf-kit */
+const REGISTRY=[ex1,ex6,ex2,ex3,ex4,ex5];
+window.REGISTRY = REGISTRY;
 
 let scoreOK=0, scoreTot=0;
 function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
@@ -762,7 +979,7 @@ document.addEventListener('DOMContentLoaded', function(){
             const equ=tmp.querySelector('.equ-offscreen');
             if(equ){
               const clone=equ.cloneNode(true);
-              const lab=clone.querySelector('.c-label'); if(lab) lab.remove(); /* retire « Consigne : » */
+              const lab=clone.querySelector('.c-label'); if(lab) lab.remove();
               return clone.outerHTML;
             }
             return tmp.innerHTML;
@@ -790,6 +1007,69 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
 <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
 <script src="../../../../js/fraction-sign-clarity.dom.v3.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  // 1) Barre d’actions mobile (clones des boutons existants)
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+[['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+  const src = document.querySelector(sel);
+  if (src) {
+    const clone = src.cloneNode(true);
+    clone.classList.add('btn');
+    clone.type = 'button';
+    clone.removeAttribute('id');
+    clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
+    bar.appendChild(clone);
+  } else {
+    const fallback = document.createElement('button');
+    fallback.className = 'btn';
+    fallback.type = 'button';
+    fallback.textContent = label;
+    fallback.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+    bar.appendChild(fallback);
+  }
+});
+      document.body.appendChild(bar);
+    }
+  }
+
+  // 2) Clavier math repliable (si présent)
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  // 3) Confort de saisie
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  // 4) Points à déplacer : rayon + touche (héritage)
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r < 10) c.setAttribute('r', String(12));
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
 </body>
 </html>

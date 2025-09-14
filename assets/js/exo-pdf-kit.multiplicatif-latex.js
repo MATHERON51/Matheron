@@ -435,6 +435,25 @@ table.pdfb.corrige th:nth-child(3){
   padding-left: 12px;
   padding-right: 12px;
 }
+/* Tableau 2 colonnes pour c / t */
+.eq-tab{ border-collapse:collapse; border:none; }
+.eq-tab td{ border:none; padding:.12rem .4rem; vertical-align:baseline; }
+.eq-tab .col-bullet{ width:1.6em; }
+
+/* Grosse puce ronde */
+.eq-tab .dot{
+  display:inline-block;
+  width:.50em; height:.50em;      /* ← taille de la puce */
+  border-radius:50%;
+  background:currentColor;
+  vertical-align:middle;
+  transform: translateY(.06em);   /* ajustement fin d’alignement */
+}
+
+/* aucune bordure même à l'impression */
+@media print{
+  .eq-tab, .eq-tab td{ border:none !important; }
+}
 
 </style>
 

@@ -7,8 +7,8 @@
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-gras.css">
-<link rel="stylesheet" href="../../../../css/espace-latex.css">
 <link rel="stylesheet" href="../../../../css/mobile.css">
+
 
 <style>
 *{box-sizing:border-box}
@@ -32,36 +32,15 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
 .res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
 .res-ko{background:#fef2f2;border:1px solid #fecaca}
 
-/* mise en forme des équations (héritée si besoin) */
 .eq .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1}
 .eq .frac .num,.frac .den{padding:0 .2em;white-space:nowrap}
 .eq .frac .bar{border-top:1.6px solid currentColor;align-self:stretch;margin:.06em 0}
-
 /* petit tick après les champs */
 .tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
 .tick.ok{color:#059669}
 .tick.ko{color:#dc2626}
 
-/* Tableau des étapes (puces + expressions) */
-.eq-tab{ border-collapse:collapse; }
-.eq-tab td{ border:0; padding:2px 8px; vertical-align:top; }
-.eq-tab .col-bullet{ width:18px; }
-.eq-tab .dot{ display:inline-block; width:0.46em; height:0.46em; border-radius:50%; background:#111; position:relative; top:.55em; }
-.eq-tab .math{ white-space:nowrap; }
 </style>
-<!-- MathJax (LaTeX) -->
-<script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'],['$','$']],
-      displayMath: [['\\[','\\]']],
-      processEscapes: true
-    },
-    chtml: { matchFontHeight: false },
-    options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
 </head>
 
 <body>
@@ -91,9 +70,9 @@ select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px
       <li>Arrondis : taux au <strong>% près</strong> (équivalent à 0,01 en décimal).</li>
     </ul>
   </div>
-  <div class="card"><div data-math-kbd style="display:flex; justify-content:center"></div></div>
-</div>
+    <div class="card"><div data-math-kbd style="display:flex; justify-content:center"></div></div>
 
+</div>
 <script src='../../../../js/math-kbd.js' defer></script>
 
 <script>
@@ -119,29 +98,9 @@ function addTicks(host){ $$('#host input[type=text]').forEach(inp=>{ if(!inp.nex
 function setTick(inp, ok){ const t=inp.nextElementSibling?.classList?.contains('tick')?inp.nextElementSibling:null; if(!t) return; t.textContent=ok===null?'':(ok?'✔':'✘'); t.className='tick '+(ok?'ok':'ko'); }
 // signe "=" ou "≈" selon arrondi
 function eqSign(exact, shown){ return (Math.abs(exact - shown) < 1e-12) ? '=' : '≈'; }
-function eqSignTex(exact, shown){ return (Math.abs(exact - shown) < 1e-12) ? '=' : '\\approx'; }
 const noun = s => s==='+' ? 'hausse' : 'baisse';
 const needed = s => s==='+' ? 'réduction' : 'hausse'; // pour revenir à l'initial
 function rto(v,d=2){ return Math.round(v*10**d)/10**d; }
-
-/* LaTeX : convertir nombres & % dans un texte, sans toucher ce qui est déjà en \( \) */
-function latexifyNumbers(txt){
-  if (!txt) return txt;
-  // % -> \(12\%\)
-  txt = txt.replace(/(\d+(?:[.,]\d+)?)\s*%/g, (_, n) => `\\(${n}\\%\\)`);
-  // nombres “nus” hors \( ... \)
-  const parts = txt.split(/(\\\([^)]*\\\))/g);
-  for (let i = 0; i < parts.length; i += 2) {
-    parts[i] = parts[i].replace(/\b(\d+(?:[.,]\d+)?)\b/g, (_, n) => `\\(${n}\\)`);
-  }
-  return parts.join('');
-}
-/* Relance MathJax dans une zone */
-function retypeset(host){
-  try{
-    if (window.MathJax?.typesetPromise) MathJax.typesetPromise(host ? [host] : undefined);
-  }catch(e){}
-}
 
 /* ======= Ex. 1 — Taux réciproque d’un pourcentage donné ======= */
 const ex1={
@@ -156,22 +115,17 @@ const ex1={
     return {s, p, c, cr, tr};
   },
   render(host, st){
-    const inner = (host.innerHTML = '<div class="inner"></div>', host.querySelector('.inner'));
-    const enonce = latexifyNumbers(
-      `Déterminer, sous forme de pourcentage, le taux d’évolution réciproque d’une ${noun(st.s)} de ${st.p}%.`
-    );
-    inner.innerHTML = `
+    host.innerHTML = `<div class="inner">
       <div class="consigne">
         <div style="font-weight:700">Énoncé</div>
-        ${enonce}
+        Déterminer, sous forme de pourcentage, le taux d’évolution <em>réciproque</em> d’une <strong>${noun(st.s)}</strong> de <strong>${st.p}%</strong>.
       </div>
       <div class="row">
         <div class="col-label"><strong>Réponse attendue :</strong> le taux réciproque (au % près)</div>
-        <div class="input-line"><input id="t1" type="text" placeholder=""></div>
+        <div class="input-line"><input id="t1" type="text" placeholder="ex. 17% ou 0,17"></div>
       </div>
       <div id="res" class="res"></div>
-    `;
-    retypeset(inner);
+    </div>`;
   },
   correct(host, st){
     const inner=$('.inner',host); addTicks(inner);
@@ -182,74 +136,28 @@ const ex1={
     return {ok,total:1};
   },
   solution(host, st){
-    const inner = $('.inner', host);
+  const inner = $('.inner', host);
 
-    const c1Exact = st.c;                                   // 1 ± p/100
-    const c1_2    = rto(c1Exact, 2);
-    const c1Show  = tidyDecFR(c1_2, 2);
+  const c1Exact = st.c;                          // 1 ± p/100
+  const c1Show  = tidyDecFR(c1Exact, 2);
 
-    const c2Exact = 1 / c1Exact;
-    const c2_2    = rto(c2Exact, 2);
-    const c2Show  = tidyDecFR(c2_2, 2);
+  const c2Exact = 1 / c1Exact;
+  const c2Show  = tidyDecFR(rto(c2Exact, 2), 2);
 
-    const tExact  = c2Exact - 1;                            // décimal
-    const t_2     = rto(tExact, 2);
-    const tDec    = tidyDecFR(t_2, 2);                      // ex: −0,13
-    const tPctI   = Math.round(tExact * 100);               // au % près (entier signé)
-    const signWord = (st.s === '+') ? 'baisse' : 'hausse';
+  const tExact  = c2Exact - 1;                   // décimal
+  const tDec    = tidyDecFR(rto(tExact, 2), 2);  // ex: −0,13
+  const tPctI   = Math.round(tExact * 100);      // au % près (entier signé)
+  const signWord = (st.s === '+') ? 'baisse' : 'hausse';
 
-    // Prépare #res
-    const res = $('#res', inner);
-    res.className = 'res';
-    res.innerHTML = '';
-
-    // Tableau 2 colonnes (puce | expression LaTeX)
-    const table = document.createElement('table');
-    table.className = 'eq-tab';
-    const tbody = document.createElement('tbody'); table.appendChild(tbody);
-
-    const addRow = (hasDot, latex) => {
-      const tr = document.createElement('tr');
-
-      const td1 = document.createElement('td');
-      td1.className = 'col-bullet';
-      if (hasDot){
-        const dot = document.createElement('span');
-        dot.className = 'dot';
-        td1.appendChild(dot);
-      }
-
-      const td2 = document.createElement('td');
-      td2.className = 'math';
-      td2.innerHTML = latex; // LaTeX
-
-      tr.append(td1, td2);
-      tbody.appendChild(tr);
-    };
-
-    // Bloc c1
-    addRow(true , `\\( c_1 = 1 ${st.s==='+'?'+':'-'} \\dfrac{${st.p}}{100} \\)`);
-    addRow(false, `\\( c_1 ${eqSignTex(c1Exact,c1_2)} \\; ${c1Show} \\)`);
-
-    // Bloc c2
-    addRow(true , `\\( c_2 = \\dfrac{1}{c_1} \\)`);
-    addRow(false, `\\( c_2 = \\dfrac{1}{${c1Show}}  \\)`);
-addRow(false, `\\( c_2  ${eqSignTex(c2Exact,c2_2)} \\; ${c2Show} \\)`);
-    // Bloc t2
-    addRow(true , `\\( t_2 = c_2 - 1 \\)`);
-    addRow(false, `\\( t_2 ${eqSignTex(c2Exact,c2_2)} \\; ${c2Show} - 1  \\)`);
-	addRow(false, `\\( t_2 ${eqSignTex(tExact,t_2)} \\; ${tDec} \\)`);
-    addRow(false, `\\( t_2 \\approx ${tPctI}\\% \\)`);
-
-    res.appendChild(table);
-
-    // Conclusion sous le tableau
-    const pEnd = document.createElement('p');
-    pEnd.innerHTML = `Il faut une <strong>${signWord}</strong> d’environ <strong>\\(${Math.abs(tPctI)}\\%\\)</strong>.`;
-    res.appendChild(pEnd);
-
-    retypeset(inner);
-  },
+  $('#res', inner).innerHTML = `
+    <div class="eq">
+      <div>c<sub>1</sub> = 1 ${st.s==='+'?'+':'−'} ${fracHTML(st.p,'100')} = ${c1Show}</div>
+      <div>c<sub>2</sub> = ${fracHTML('1','c<sub>1</sub>')} = ${fracHTML('1', c1Show)} ${eqSign(c2Exact, rto(c2Exact,2))} ${c2Show}</div>
+      <div>t<sub>2</sub> = c<sub>2</sub> − 1 ${eqSign(tExact, rto(tExact,2))} ${tDec} ≈ ${tPctI}%</div>
+      <p>Il faut une <strong>${signWord}</strong> d’environ <strong>${Math.abs(tPctI)}%</strong>.</p>
+    </div>`;
+  $('#res', inner).className = 'res eq';
+},
 
   reset(host){ host.innerHTML=''; }
 };
@@ -300,19 +208,17 @@ const ex2={
     return {s,p,c,cr,tr, ctxText: ctx({s,p})};
   },
   render(host, st){
-    const inner = (host.innerHTML = '<div class="inner"></div>', host.querySelector('.inner'));
-    inner.innerHTML = `
+    host.innerHTML = `<div class="inner">
       <div class="consigne">
         <div style="font-weight:700">Énoncé</div>
-        ${latexifyNumbers(st.ctxText)}
+        ${st.ctxText}
       </div>
       <div class="row">
         <div class="col-label"><strong>Réponse attendue :</strong> le taux réciproque (au % près)</div>
-        <div class="input-line"><input id="t2" type="text" placeholder=""></div>
+        <div class="input-line"><input id="t2" type="text" placeholder="ex. 17% ou 0,17"></div>
       </div>
       <div id="res" class="res"></div>
-    `;
-    retypeset(inner);
+    </div>`;
   },
   correct(host, st){
     const inner=$('.inner',host); addTicks(inner);
@@ -323,61 +229,28 @@ const ex2={
     return {ok,total:1};
   },
   solution(host, st){
-    const inner = $('.inner', host);
+  const inner = $('.inner', host);
 
-    const c1Exact = st.c;                          // 1 ± p/100
-    const c1_2    = rto(c1Exact, 2);
-    const c1Show  = tidyDecFR(c1_2, 2);
+  const c1Exact = st.c;                          // 1 ± p/100
+  const c1Show  = tidyDecFR(c1Exact, 2);
 
-    const c2Exact = 1 / c1Exact;
-    const c2_2    = rto(c2Exact, 2);
-    const c2Show  = tidyDecFR(c2_2, 2);
+  const c2Exact = 1 / c1Exact;
+  const c2Show  = tidyDecFR(rto(c2Exact, 2), 2);
 
-    const tExact  = c2Exact - 1;
-    const t_2     = rto(tExact, 2);
-    const tDec    = tidyDecFR(t_2, 2);
-    const tPctI   = Math.round(tExact * 100);
-    const signWord = (st.s === '+') ? 'baisse' : 'hausse';
+  const tExact  = c2Exact - 1;
+  const tDec    = tidyDecFR(rto(tExact, 2), 2);
+  const tPctI   = Math.round(tExact * 100);
+  const signWord = (st.s === '+') ? 'baisse' : 'hausse';
 
-    const res = $('#res', inner);
-    res.className = 'res';
-    res.innerHTML = '';
-
-    const table = document.createElement('table');
-    table.className = 'eq-tab';
-    const tbody = document.createElement('tbody'); table.appendChild(tbody);
-
-    const addRow = (hasDot, latex) => {
-      const tr = document.createElement('tr');
-      const td1 = document.createElement('td'); td1.className='col-bullet';
-      if (hasDot){ const d=document.createElement('span'); d.className='dot'; td1.appendChild(d); }
-      const td2 = document.createElement('td'); td2.className='math'; td2.innerHTML=latex;
-      tr.append(td1,td2); tbody.appendChild(tr);
-    };
-
-    // c1
-    addRow(true , `\\( c_1 = 1 ${st.s==='+'?'+':'-'} \\dfrac{${st.p}}{100} \\)`);
-    addRow(false, `\\( c_1 ${eqSignTex(c1Exact,c1_2)} \\; ${c1Show} \\)`);
-
-    // c2
-    addRow(true , `\\( c_2 = \\dfrac{1}{c_1} \\)`);
-    addRow(false, `\\( c_2 = \\dfrac{1}{${c1Show}}  \\)`);
-    addRow(false, `\\( c_2  ${eqSignTex(c2Exact,c2_2)} \\; ${c2Show} \\)`);
-
-    // t2
-    addRow(true , `\\( t_2 = c_2 - 1 \\)`);
-    addRow(false, `\\( t_2 ${eqSignTex(c2Exact,c2_2)} \\;${c2Show} - 1  \\)`);
-        addRow(false, `\\( t_2 ${eqSignTex(tExact,t_2)} \\; ${tDec} \\)`);
-	addRow(false, `\\( t_2 \\approx ${tPctI}\\% \\)`);
-
-    res.appendChild(table);
-
-    const pEnd=document.createElement('p');
-    pEnd.innerHTML = `Il faut donc une <strong>${signWord}</strong> d’environ <strong>\\(${Math.abs(tPctI)}\\%\\)</strong> pour revenir à la valeur initiale.`;
-    res.appendChild(pEnd);
-
-    retypeset(inner);
-  },
+  $('#res', inner).innerHTML = `
+    <div class="eq">
+      <div>c<sub>1</sub> = 1 ${st.s==='+'?'+':'−'} ${fracHTML(st.p,'100')} = ${c1Show}</div>
+      <div>c<sub>2</sub> = ${fracHTML('1','c<sub>1</sub>')} = ${fracHTML('1', c1Show)} ${eqSign(c2Exact, rto(c2Exact,2))} ${c2Show}</div>
+      <div>t<sub>2</sub> = c<sub>2</sub> − 1 ${eqSign(tExact, rto(tExact,2))} ${tDec} ≈ ${tPctI}%</div>
+      <p>Il faut donc une <strong>${signWord}</strong> d’environ <strong>${Math.abs(tPctI)}%</strong> pour revenir à la valeur initiale.</p>
+    </div>`;
+  $('#res', inner).className = 'res eq';
+},
 
   reset(host){ host.innerHTML=''; }
 };
@@ -422,14 +295,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- Générateur PDF -->
-<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif.js' defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   if (window.ExoPDF) {
     ExoPDF.init({
       title: (document.title || 'Fiche d’exercices').replace(/\s+–.+$/, '').trim(),
-      mountAfterSelector: '.wrap .card.small',
+      mountAfterSelector: '.wrap .card.small', // sous « Saisie & réponses acceptées »
       max: 50
+      // On laisse le fallback du kit : rendu offscreen propre + extraction de #res pour la correction.
     });
   } else {
     console.warn('ExoPDF non chargé');
@@ -446,16 +320,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actions) {
       const bar = document.createElement('div');
       bar.className = 'mb-actions';
+      // Boutons bas = miroirs des originaux (on déclenche .click() sur eux)
 [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
   const src = document.querySelector(sel);
   if (src) {
     const clone = src.cloneNode(true);
     clone.classList.add('btn');
     clone.type = 'button';
-    clone.removeAttribute('id');
+    clone.removeAttribute('id');        // id doit rester unique
     clone.addEventListener('click', (e)=>{ e.preventDefault(); src.click(); });
     bar.appendChild(clone);
   } else {
+    // fallback si jamais l’original est absent (rare)
     const fallback = document.createElement('button');
     fallback.className = 'btn';
     fallback.type = 'button';
@@ -485,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.setAttribute('autocapitalize','off');
     el.setAttribute('autocorrect','off');
     el.setAttribute('spellcheck','false');
+    // Scroll au centre quand le clavier s’ouvre
     el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
   });
 

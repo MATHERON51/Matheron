@@ -409,6 +409,33 @@ footer.print-footer{position:fixed;bottom:6mm;left:0;right:0;text-align:center;c
 /* Assurer que tout le contenu des formules est visible et hérite de la couleur */
 .equ, .equ *{visibility:visible !important; color:inherit !important}
 code.equ{visibility:visible !important; color:inherit !important}
+/* === Bordures opt-in pour certains tableaux (PDF uniquement) === */
+table.pdfb{ border-collapse: collapse; }
+table.pdfb, table.pdfb th, table.pdfb td{
+  border: 1px solid #000;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+/* Tableaux "plein largeur" pour le PDF, uniquement si .pdfb est présente */
+table.pdfb{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;          /* répartit la largeur sur toute la page */
+}
+table.pdfb, table.pdfb th, table.pdfb td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: top;
+  white-space: normal;          /* pour que le contenu aille à la ligne */
+  word-break: break-word;
+}
+/* PDF : même respiration pour la colonne 3 des tableaux de corrigé */
+table.pdfb.corrige td:nth-child(3),
+table.pdfb.corrige th:nth-child(3){
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
 </style>
 
 <style>

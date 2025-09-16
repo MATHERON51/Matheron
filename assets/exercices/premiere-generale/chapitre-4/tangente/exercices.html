@@ -1457,7 +1457,8 @@ verify(host){
   const checkLine = (id, mVH, pVH, tickSel) => {
     const raw = getVal(host, id);
     if(raw.trim()===''){ setTick($(tickSel,host), null); return null; }
-    const ok = lineOKStrict(raw, mVH, pVH);
+    const ok = lineOKStrict(raw, mVH, pVH) ||
+           isSameLine(raw, mVH[0]/mVH[1], pVH[0]/pVH[1]);
     setTick($(tickSel,host), ok);
     return ok;
   };
@@ -2442,6 +2443,7 @@ L.push(`<p>\\(f(${fmtNum(a)}) = ${eqOnce(fEval, fVal)}\\)</p>`);
 const dEval = texDerivEvalLine(s.dfx, a); // ex: 3, \dfrac{1}{2}\sqrt{...}, ...
 const dVal  = texRat(m);                  // valeur numérique en fraction
 L.push(`<p>\\(f'(${pr(a)}) = ${eqOnce(dEval, dVal)}\\)</p>`);
+L.push(`<p>\\(y = f'(${pr(a)})(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))}) + f(${pr(a)})\\)</p>`);
 
 // L3 : équation point-pente
 // L3 : équation point-pente (jamais '+ -', jamais décimal)
@@ -2722,8 +2724,13 @@ if (!ans){
   setTickPending($('#teq'+i,host));    // rien saisi → “—”
   return false;
 }
-const okEq = lineOKStrict(ans, mVH, pVH);
+
+// APRÈS
+const okEq =
+  lineOKStrict(ans, mVH, pVH) ||
+  isSameLine(ans, t.VH[0]/t.VH[1], pVH[0]/pVH[1]); // accepte y=2x et y=2x+0
 setTick($('#teq'+i,host), okEq);
+
 
       return okBuild && okEq;
     });

@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Première — Suites numériques — TABLEUR (LaTeX)</title>
+
+<!-- mêmes feuilles que ton modèle -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:14px}
+.small{font-size:.95rem;color:#444}
+.btn{appearance:none;border:1px solid #ddd;border-radius:10px;background:#f7f7f7;padding:.55rem .9rem;cursor:pointer}
+.btn:hover{background:#f0f0f0}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.score{margin-left:auto;font-weight:600}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.row.narrow{grid-template-columns:minmax(0,620px) 1fr}
+.statement p{margin:.4rem 0}
+.hint{color:#555;font-style:italic}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+.tick{display:inline-block;min-width:1.2em;margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b}
+.tick.ko{color:#b00020}
+table.sheet{border-collapse:collapse;font-size:.95rem}
+.sheet th,.sheet td{border:1px solid #cfd6e4;padding:.25rem .55rem;min-width:42px;text-align:center}
+.sheet thead th{background:#f2f5fb}
+.sheet .colA{background:#fafafa;font-weight:600}
+.blank-wrap{ display:inline-block; vertical-align:baseline }
+.blank{ display:inline-block; min-width:220px; border-bottom:1px solid #111; padding:2px 6px; }
+code,kbd{background:#f6f6f6;border:1px solid #eaeaea;border-radius:6px;padding:.05rem .35rem}
+.frac{display:inline-flex;flex-direction:column;line-height:1}
+.frac>.num,.frac>.den{display:block;text-align:center;padding:0 .2em}
+.frac>.num{border-bottom:1.5px solid currentColor}
+@media print{
+  .controls,.header,.kbd-host,.hide-print{display:none!important}
+  .card{box-shadow:none}
+  .frac>.num{border-bottom:0;position:relative}
+  .frac>.num::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:currentColor}
+}
+input.formula{font-family:ui-monospace,Menlo,Consolas,monospace;width:420px;max-width:100%;padding:.45rem .6rem;border:1px solid #ddd;border-radius:8px}
+.input-row{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:.35rem 0}
+kbd{border-bottom-width:2px}
+/* Grille façon tableur avec indices de lignes/colonnes */
+table.sheet{border-collapse:collapse;font-size:.95rem}
+.sheet th,.sheet td{border:1px solid #cfd6e4;padding:.25rem .55rem;min-width:46px;text-align:center}
+.sheet thead th{background:#f2f5fb;font-weight:700}
+.sheet .corner{background:#eef2f9;width:34px;min-width:34px}
+.sheet .rhead{background:#f7f8fb;font-weight:600;width:34px}
+.sheet .colA{background:#fafafa;font-weight:600}
+.warn{ color:#b00020; font-size:.9rem; margin-left:.4rem }
+
+</style>
+<!-- MathJax (rendu LaTeX \( ... \) ) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<!-- mêmes libs partagées -->
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Première — <strong>Suites numériques – TABLEUR</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <!-- Barre de contrôle -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-sol" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div id="score" class="score">Score : 0 / 0</div>
+    </div>
+
+    <!-- Hôte d’exercice -->
+    <div id="host" class="card" data-active="" data-state=""></div>
+
+    <!-- Bloc "Saisie & réponses acceptées" -->
+    <div class="card small" id="info-saisie">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul>
+  <li><strong>Une formule commence toujours par un « = ».</strong></li>
+  <li>« fois » s’écrit <code>*</code>, « divisé » s’écrit <code>/</code> et les puissances s’écrivent <code>^</code>.</li>
+  <li>Les opérations doivent être écrites : <code>=4*B2</code> fonctionne, mais il faut mettre le <code>*</code> !</li>
+  <li>Utilisation du <code>$</code> : il bloque une référence quand on recopie la formule.
+    <ul>
+      <li>dans <code>\$A\$2</code> : le <code>A</code> est bloqué, le <code>2</code> est bloqué ;</li>
+      <li>dans <code>$A2</code> : le <code>A</code> est bloqué, mais le <code>2</code> ne l’est pas ;</li>
+      <li>dans <code>A$2</code> : le <code>2</code> est bloqué, mais le <code>A</code> ne l’est pas.</li>
+    </ul>
+  </li>
+  <li>Décimales au <strong>choix</strong> : <code>,</code> ou <code>.</code> (<code>1,3*B2</code> ou <code>1.3*B2</code>).</li>
+  <li>Puissances : <code>^</code> ou <code>PUISSANCE(x;2)</code> / <code>POWER(x,2)</code>. Références relatives et absolues acceptées (<code>A2</code>, <code>$A$2</code>…).</li>
+  <li><kbd>Entrée</kbd> déclenche <em>Vérifier</em>. Le score n’évolue que si <u>tous</u> les champs de l’exercice sont remplis.</li>
+</ul>
+
+    </div>
+
+    <!-- Zone clavier (si tu souhaites l’afficher) -->
+    <div class="card kbd-host hide-print"><div data-math-kbd></div></div>
+  </div>
+
+<script>
+/* ===== Mini utilitaires DOM ===== */
+const $ = (sel,root)=> (root||document).querySelector(sel);
+const $$ = (sel,root)=> Array.from((root||document).querySelectorAll(sel));
+function scoreSet(a,b){ const s=$("#score"); if(s) s.textContent = `Score : ${a} / ${b}`; }
+let SCORE=[0,0];
+function val(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
+function tick(el,ok){
+  if(!el) return;
+  el.classList.remove('ok','ko'); el.textContent='';
+  if(ok===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(ok===false){ el.classList.add('ko'); el.textContent='✗'; }
+}
+function clearWarn(tickEl){
+  if(!tickEl) return;
+  const w = tickEl.parentNode?.querySelector?.('.warn');
+  if(w) w.remove();
+}
+function warn(tickEl, msg){
+  clearWarn(tickEl);
+  const s = document.createElement('span');
+  s.className = 'warn';
+  s.textContent = msg;
+  tickEl.parentNode.appendChild(s);
+}
+function requireEqualSign(raw, tickEl){
+  // Renvoie true si OK, false si on doit refuser (et affiche le message)
+  if(raw !== '' && !raw.trim().startsWith('=')){
+    tick(tickEl,false);
+    warn(tickEl,"Tu as oublié quelque chose d'important : la formule doit commencer par =");
+    return false;
+  }
+  clearWarn(tickEl);
+  return true;
+}
+
+// Rend une formule FR/internationale sans doublon.
+// Ex: mkSol("=1,5*B2","=1.5*B2") → "… ou …"
+//     mkSol("=B2^2","=B2^2")     → juste une formule (pas de "ou")
+function mkSol(formFrRaw, formIntlRaw){
+  const fr = String(formFrRaw || '').trim();
+  const intl = String(formIntlRaw || '').trim();
+  if(!fr && !intl) return '';
+  if(fr && intl && fr !== intl){
+    return `\\(\\texttt{${intl}}\\) <span class="muted">ou</span> \\(\\texttt{${fr}}\\)`;
+  }
+  // identiques → n'afficher qu'une fois
+  const one = fr || intl;
+  return `\\(\\texttt{${one}}\\)`;
+}
+
+/* ===== Random ===== */
+const rint=(a,b)=> a+Math.floor(Math.random()*(b-a+1));
+const choice=a=> a[Math.floor(Math.random()*a.length)];
+const UMINUS='−';
+
+/* ===== Rendu LaTeX via MathJax (fourni par tes feuilles) ===== */
+function retypeMath(root){ if(window.MathJax?.typeset){ MathJax.typeset(root?[root]:undefined); }}
+
+/* ===== Normalisation nombres FR ===== */
+function normalizeDecimals(s){
+  // 1) PUISSANCE/POWER → POW(x,y)
+  s = s.replace(/PUISSANCE\s*\(/gi,'POW(').replace(/POWER\s*\(/gi,'POW(');
+  // 2) remplace le séparateur d’arguments “;” par “,”
+  s = s.replace(/;/g,',');
+  // 3) décimales avec virgule → point (mais pas dans A1, B2…)
+  s = s.replace(/(\d+),(\d+)/g, (_,a,b)=> a+'.'+b);
+  return s;
+}
+
+/* ===== Évaluateur de formules façon tableur =====
+   - Supporte + - * / ^, parenthèses, POW(x,y)
+   - Références : A2, $A$2, B12, etc. (colonnes A..Z)
+   - Contexte fourni par l’exo : getA(row), getB(row)
+*/
+function compileFormula(raw, ctx){
+  if(!raw) return null;
+  let s = String(raw).trim();
+  if(s.startsWith('=')) s = s.slice(1);
+  s = normalizeDecimals(s);
+
+  // Références de cellule : on capte les $ pour savoir si c'est absolu
+  // groups: 1 = $ avant la lettre, 2 = lettre, 3 = $ avant le numéro, 4 = numéro
+  s = s.replace(/(\$?)([A-Z])(\$?)(\d+)/g, (m, c1, col, c2, rStr) => {
+    const r = parseInt(rStr, 10);
+    const abs = (c1==='$' || c2==='$');  // si un $ présent → référence absolue
+    if (col === 'A') return abs ? `getAabs(${r})` : `getArel(${r})`;
+    if (col === 'B') return abs ? `getBabs(${r})` : `getBrel(${r})`;
+    return 'NaN';
+  });
+
+  // puissances
+  s = s.replace(/\^/g,'**');
+
+  const POW = (x,y)=> Math.pow(x,y);
+
+  try{
+    const f = new Function(
+      'getArel','getAabs','getBrel','getBabs','POW',
+      `return (${s});`
+    );
+    return (row)=> f(
+      (R)=> ctx.getArel(R, row),
+      (R)=> ctx.getAabs(R, row),
+      (R)=> ctx.getBrel(R, row),
+      (R)=> ctx.getBabs(R, row),
+      POW
+    );
+  }catch(e){ return null; }
+}
+function evalFormulaSafe(formula, ctx, row){
+  const f = compileFormula(formula, ctx);
+  if (typeof f !== 'function') return { ok:false, value:NaN };
+  try {
+    const v = f(row);
+    return { ok: Number.isFinite(v), value: Number(v) };
+  } catch {
+    return { ok:false, value:NaN };
+  }
+}
+
+/* Helpers de rendu pour des tables à la façon des screens */
+// remplace ta version par celle-ci
+function sheet2Cols(headA="rang \\(n\\)", headB="terme \\(u_n\\)", rows=[0,1,2], b2Value=null){
+  const letters=['A','B'];
+  return `
+  <table class="sheet">
+    <thead>
+      <tr><th class="corner"></th>${letters.map(L=>`<th>${L}</th>`).join('')}</tr>
+      <tr><th class="rhead">1</th><th class="colA">${headA}</th><th>${headB}</th></tr>
+    </thead>
+    <tbody>
+      ${rows.map((n,i)=>`
+        <tr>
+          <th class="rhead">${i+2}</th>
+          <td>${n}</td>
+          <td>${i===0 && b2Value!==null ? b2Value : ''}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+function sheet3Cols(
+  headA="rang \\(n\\)",
+  headB="terme \\(u_n\\)",
+  headC="somme : \\(u_0+\\cdots+u_n\\)",
+  rows=[0,1,2,3,4],
+  b2Value=null,       // valeur à mettre en B2 (u0)
+  c2Value=null        // valeur à mettre en C2 (u0 pour l’exo 4)
+){
+  const letters=['A','B','C'];
+  return `
+  <table class="sheet">
+    <thead>
+      <tr><th class="corner"></th>${letters.map(L=>`<th>${L}</th>`).join('')}</tr>
+      <tr><th class="rhead">1</th><th class="colA">${headA}</th><th>${headB}</th><th>${headC}</th></tr>
+    </thead>
+    <tbody>
+      ${rows.map((n,i)=>`
+        <tr>
+          <th class="rhead">${i+2}</th>
+          <td>${n}</td>
+          <td>${i===0 && b2Value!==null ? b2Value : ''}</td>
+          <td>${i===0 && c2Value!==null ? c2Value : ''}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+
+function sheetHoriz2Lines(u0, letters=['B','C','D','E','F','G','H']){
+  return `
+  <table class="sheet">
+    <thead>
+      <tr>
+        <th class="corner"></th>
+        <th>A</th>
+        ${letters.map(L=>`<th>${L}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th class="rhead">1</th>
+        <td class="colA">valeur de \\(n\\)</td>
+        ${letters.map((_,i)=>`<td>${i}</td>`).join('')}
+      </tr>
+      <tr>
+        <th class="rhead">2</th>
+        <td class="colA">valeur de \\(u_n\\)</td>
+        <td>${u0}</td>${letters.slice(1).map(()=>`<td></td>`).join('')}
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+
+
+
+
+
+// format signe + suppression des +0 et des 1/-1 affichés
+function fmtCoeffVar(a, v){ // v = 'n' ou 'u_n'
+  if(a===0) return '';
+  if(a===1)  return `${v}`;
+  if(a===-1) return `- ${v}`;
+  return `${a}${v}`;
+}
+function joinTerms(first, ...rest){
+  const parts = [];
+  if(first && first!=='+' && first!=='-') parts.push(first);
+  for(const t of rest){
+    if(!t) continue;
+    const s = String(t).trim();
+    if (s.startsWith('-')) parts.push('− ' + s.slice(1).trim());
+    else if (s.startsWith('+')) parts.push('+ ' + s.slice(1).trim()); // ✅ évite “+ + …”
+    else parts.push('+ ' + s);                                        // s n'a pas de signe
+  }
+  return parts.join(' ').replace(/\+\s*−/g,'−').replace(/\s+/g,' ').trim();
+}
+
+function fmtConst(b){
+  if(b===0) return '';
+  return (b<0?`- ${-b}`:`+ ${b}`);
+}
+// Supprime 1* et -1* après un signe (=, +, -) et les +0/-0 résiduels
+function _stripOneStar(s){
+  if(!s) return s;
+  let t = String(s);
+  t = t.replace(/([=+\-])\s*1\*/g, '$1');   // =1*X → =X ; +1*X → +X
+  t = t.replace(/([=+\-])\s*-1\*/g, '$1-'); // =-1*X → =-X ; +-1*X → + -X (puis réduit)
+  t = t.replace(/\+\s*0(?![\d])/g, '');     // +0
+  t = t.replace(/-\s*0(?![\d])/g, '');      // -0
+  t = t.replace(/\s+/g,' ').trim();
+  return t;
+}
+
+// Rend FR/international sans doublon (version corrigée des "1*")
+function mkSol(formFrRaw, formIntlRaw){
+  const intl = _stripOneStar(formIntlRaw||'').trim();
+  const fr   = _stripOneStar((formFrRaw||'').trim());
+  if(!intl && !fr) return '';
+  if(intl && fr && intl !== fr){
+    return `\\(\\texttt{${intl}}\\) <span class="muted">ou</span> \\(\\texttt{${fr}}\\)`;
+  }
+  return `\\(\\texttt{${intl || fr}}\\)`;
+}
+
+// convertit virgule/point etc. (déjà présent chez toi)
+function normalizeDecimals(s){
+  s = s.replace(/PUISSANCE\s*\(/gi,'POW(').replace(/POWER\s*\(/gi,'POW(');
+  s = s.replace(/;/g,',');
+  s = s.replace(/(\d+),(\d+)/g, (_,a,b)=> a+'.'+b);
+  return s;
+}
+
+
+/* ====== REGISTRY d’exercices ====== */
+const REGISTRY = [];
+
+/* ---------- Exercice 1 : Formule en B2 pour une suite explicite (4 cas) ---------- */
+REGISTRY.push({
+  id:'tab_ex1',
+  title:"Ex. 1 — Suite explicite : formule en B2 (1 seul énoncé)",
+  gen(){
+    // Sacs de modèles : linéaire/affine/carré/puissance/poly
+    const makers = [];
+
+    // linéaire a n  (a∈Z\{0})
+    makers.push(()=>{ const a = choice([-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9]);
+      const tex = fmtCoeffVar(a,'n'); // affiche n, -n, 2n…
+      return { tex, f:n=>a*n, formula:`=${a}*A2` };
+    });
+
+    // affine a n + b (b peut être 0 mais n’est PAS affiché)
+    makers.push(()=>{ const a = choice([-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9]);
+      const b = rint(-9,9);
+      const first = fmtCoeffVar(a,'n');
+      const tex = joinTerms(first, b? (b<0?`- ${-b}`:`+ ${b}`):'');
+      const formula = `=${a}*A2${b? (b<0?`${b}`:`+${b}`):''}`;
+      return { tex, f:n=>a*n+b, formula };
+    });
+
+    // carré
+    makers.push(()=>({ tex:`n^2`, f:n=>n*n, formula:`=A2^2` }));
+
+    // puissance k^n, ±a×k^n (a∈{1,2,3}, rendu sans “1×”)
+    makers.push(()=>{ const k=choice([2,3,4,5]); const a=choice([-3,-2,-1,1,2,3]);
+      const coef = (a===1?``:a===-1?`- `:`${a}\\times `);
+      const tex = `${coef}${k}^{n}`;
+      const formula = `=${a}*${k}^A2`;
+      return { tex, f:n=>a*Math.pow(k,n), formula };
+    });
+
+    // polynôme: a n^2 + b n + c (affichage sans 1/-1 et sans +0)
+    makers.push(()=>{ 
+      const a=choice([-3,-2,-1,1,2,3]);
+      const b=choice([-4,-3,-2,-1,1,2,3,4]);
+      const c=rint(-9,9);
+      const t2 = (a===0)? '' : (a===1?`n^2`:(a===-1?`- n^2`:`${a}n^2`));
+      const t1 = fmtCoeffVar(b,'n');
+      const tex = joinTerms(t2 || '0', t1, c? (c<0?`- ${-c}`:`+ ${c}`):'').replace(/^0\s*(\+|−)\s*/,'').trim();
+      const formula = `=${a}*A2^2${b? (b<0?`${b}`:`+${b}`):''}*A2${c? (c<0?`${c}`:`+${c}`):''}`.replace('+*','+').replace('-*','-');
+      const f = n => a*n*n + b*n + c;
+      return { tex, f, formula };
+    });
+
+    const pick = choice(makers)(); // 1 seul
+    return { pick };
+  },
+render(host, s){
+  const table = sheet2Cols("rang \\(n\\)","terme \\(u_n\\)",[0,1,2]);
+  host.innerHTML = `
+    <div class="row narrow">
+      <div class="statement">
+        <p>\\((u_n)\\) est définie par la relation explicite \\(u_n=${s.pick.tex}\\).</p>
+		<p>On construit la feuille de calcul ci-dessous.</p>
+        ${table}
+		        <p>Donner la <b>formule à saisir en B2</b> pour que, quand on la recopie vers le bas, les termes de la suite se calculent.</p>
+
+        <div class="input-row">
+          <input id="ex1_f" class="formula" placeholder="">
+          <span id="ex1_t" class="tick"></span>
+        </div>
+
+        <!-- ✅ Bloc solution dans la même colonne -->
+        <div id="sol-ex1" class="steps" style="margin-top:12px">
+          
+        </div>
+      </div>
+    </div>`;
+  retypeMath(host);
+},
+
+  check(host){
+ const raw = val('ex1_f'); const t=$('#ex1_t',host);
+if(raw===''){ tick(t,null); clearWarn(t); return false; }
+if(!requireEqualSign(raw, t)) return false;  // ⬅️ nouveau garde
+
+
+  const baseRow = 2; // la formule est saisie en B2
+  const ctx = {
+    getArel: (q,row)=> (row + (q - baseRow)) - 2, // n
+    getAabs: (q,row)=> q - 2,
+    getBrel: ()=> NaN,
+    getBabs: ()=> NaN
+  };
+
+  let ok = true;
+  for(let rr=2; rr<=4; rr++){
+    const { ok:okEval, value:v } = evalFormulaSafe(raw, ctx, rr);
+    const n = rr - 2;
+    const tgt = this._current.pick.f(n);
+    if(!okEval || Math.abs(v - tgt) > 1e-9){ ok = false; break; }
+  }
+
+  tick(t,ok);
+  SCORE[1]++; if(ok) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]);
+  return ok;
+},
+
+  solution(host){
+    const p = this._current.pick;
+  const intl = _stripOneStar(p.formula);
+  const fr   = _stripOneStar(p.formula.replace(/\./g,','));
+  const sol  = mkSol(fr, intl);
+
+  const box = host.querySelector('[id^="sol-"]');
+  box.innerHTML = `
+    <b>Formule en B2 :</b> ${sol}
+    `;
+  retypeMath(box);
+}
+
+});
+
+
+REGISTRY.push({
+  id:'tab_ex2',
+  title:"Ex. 2 — Suite récurrente : formule en B3 (1 seul énoncé)",
+  gen(){
+    const makeAffine = ()=>{ // u_{n+1} = a u_n + b, a ≠ 0
+      const a = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      const b = rint(-9,9);
+      const aTex = (a===1?`u_n`:(a===-1?`- u_n`:`${a}u_n`));
+      const tex = joinTerms(aTex, b? (b<0?`- ${-b}`:`+ ${b}`):'');
+      const show = `=${a}*B2${b? (b<0?`${b}`:`+${b}`):''}`;
+      return { kind:'aff', tex:`u_{n+1}=${tex}`, show, f:(un,n)=>a*un+b, needA:false };
+    };
+    const makePolyUn = ()=>{ // carré / cube / poly en u_n
+      const t = choice(['square','cube','poly2']);
+      if(t==='square') return { kind:'sq', tex:`u_{n+1}=u_n^2`, show:`=B2^2`, f:un=>un*un, needA:false };
+      if(t==='cube')   return { kind:'cu', tex:`u_{n+1}=u_n^3`, show:`=B2^3`, f:un=>un*un*un, needA:false };
+      // poly2 : a u_n^2 + b u_n + c
+      const a=choice([-3,-2,-1,1,2,3]), b=choice([-4,-3,-2,-1,1,2,3,4]), c=rint(-6,6);
+      const t2 = (a===1?`u_n^2`:(a===-1?`- u_n^2`:`${a}u_n^2`));
+      const t1 = fmtCoeffVar(b,'u_n');
+      const tex = `u_{n+1}=${joinTerms(t2, t1, c? (c<0?`- ${-c}`:`+ ${c}`):'')}`;
+      const show = `=${a}*B2^2${b? (b<0?`${b}`:`+${b}`):''}*B2${c? (c<0?`${c}`:`+${c}`):''}`.replace('+*','+').replace('-*','-');
+      const f = un => a*un*un + b*un + c;
+      return { kind:'poly2', tex, show, f, needA:false };
+    };
+    const makeKunPlusN = ()=>{ // k u_n + n
+      const k = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      const kTex = (k===1?`u_n`:(k===-1?`- u_n`:`${k}u_n`));
+      return { kind:'kun+n', tex:`u_{n+1}=${kTex}+n`, show:`=${k}*B2+A2`, f:(un,n)=>k*un+n, needA:true };
+    };
+
+    // tirage pondéré 60/20/20
+    const r = Math.random();
+    const pick = (r<0.6)? makeAffine() : (r<0.8)? makePolyUn() : makeKunPlusN();
+    const u0 = rint(-5,5);
+    return { u0, pick };
+  },
+  render(host,s){
+  const table = sheet2Cols("rang \\(n\\)","terme \\(u_n\\)", [0,1,2], s.u0); // ← B2 = u0
+    host.innerHTML = `
+    <div class="row narrow">
+      <div class="statement">
+        <p>On prend \\(u_0=${s.u0}\\) et \\(${s.pick.tex}\\).</p>
+        <p>On construit la feuille de calcul ci-dessous.</p>
+        ${table}
+		        <p>Donner la <b>formule à saisir en B3</b> pour que, quand on la recopie vers le bas, les termes de la suite se calculent.</p>
+
+        <div class="input-row"><input id="ex2_f" class="formula" placeholder=""><span id="ex2_t" class="tick"></span></div>
+          <!-- ✅ Bloc solution dans la même colonne -->
+        <div id="sol-ex2" class="steps" style="margin-top:12px">
+                  </div>
+      </div>
+    </div>`;
+    retypeMath(host);
+  },
+  check(host){
+    const s=this._current; const raw=val('ex2_f'); const t=$('#ex2_t',host);
+if(raw===''){ tick(t,null); clearWarn(t); return false; }
+if(!requireEqualSign(raw, t)) return false;  // ⬅️
+
+    // Contexte pour calculer B3 puis B4
+    function makeCtx(row, prevB){
+  const baseRow = 3; // formule en B3
+  return {
+    getArel: (q, r) => ({2:0,3:1,4:2}[ r + (q - baseRow) ] ?? NaN),
+    getAabs: (q, r) => ({2:0,3:1,4:2}[ q ] ?? NaN),
+    getBrel: (q, r) => {
+      const target = r + (q - baseRow);
+      if (target === 2) return s.u0;          // B2
+      if (target === 3) return (r===3 ? s.u0 : prevB); // B3
+      if (target === 4) return (r===4 ? prevB : NaN);  // B4
+      return NaN;
+    },
+    getBabs: (q, r) => (q===2? s.u0 : q===3? (r===3? s.u0 : prevB) : q===4? (r===4? prevB : NaN) : NaN)
+  };
+}
+    const fn3 = compileFormula(raw, makeCtx(3, null));
+const v3  = fn3 ? Number(fn3(3)) : NaN;
+let ok    = Number.isFinite(v3) && Math.abs(v3 - s.pick.f(s.u0,0)) < 1e-9;
+
+if (ok) {
+  const fn4 = compileFormula(raw, makeCtx(4, v3));
+  const v4  = fn4 ? Number(fn4(4)) : NaN;
+  ok = Number.isFinite(v4) && Math.abs(v4 - s.pick.f(v3,1)) < 1e-9;
+}
+
+    tick(t,ok); SCORE[1]++; if(ok) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); return ok;
+  },
+  solution(host){
+  const intl = _stripOneStar(this._current.pick.show);
+  const fr   = _stripOneStar(intl.replace(/\./g,','));
+  const sol  = mkSol(fr, intl);
+
+  const box = host.querySelector('[id^="sol-ex2"]');
+  box.innerHTML = `
+    
+      <b>Formule en B3 :</b> ${sol}
+    `;
+  retypeMath(box);
+}
+
+});
+
+
+
+REGISTRY.push({
+  id:'tab_ex3',
+  title:"Ex. 3 — Récurrence (tableau horizontal A…H)",
+  gen(){
+
+
+    // réutilise les mêmes fabrications que l'exo 2
+    const makeAffine = ()=>{ const a=choice([-5,-4,-3,-2,-1,1,2,3,4,5]), b=rint(-9,9);
+      const aTex=(a===1?`u_n`:(a===-1?`- u_n`:`${a}u_n`));
+      const tex=joinTerms(aTex, b? (b<0?`- ${-b}`:`+ ${b}`):'');
+      return { tex:`u_{n+1}=${tex}`, showC2:`=${a}*B2${b? (b<0?`${b}`:`+${b}`):''}`, step:(u)=>a*u+b };
+    };
+    const makePolyUn = ()=>{ const t=choice(['square','cube']);
+      if(t==='square') return { tex:`u_{n+1}=u_n^2`, showC2:`=B2^2`, step:u=>u*u };
+      return { tex:`u_{n+1}=u_n^3`, showC2:`=B2^3`, step:u=>u*u*u };
+    };
+    const makeKunPlusN = ()=>{ const k=choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+      const kTex=(k===1?`u_n`:(k===-1?`- u_n`:`${k}u_n`));
+      return { tex:`u_{n+1}=${kTex}+n`, showC2:`=${k}*B2+B1`, step:(u,n)=>k*u+n };
+    };
+
+    const r=Math.random();
+    const pick=(r<0.6)?makeAffine():(r<0.8)?makePolyUn():makeKunPlusN();
+    const u0=rint(-5,5);
+	  const targetCol = choice(['E','F','G','H']);   // ← nouvelle cible pour la question b/
+return { u0, pick, targetCol };
+  },
+  render(host,s){
+    const table = sheetHoriz2Lines(s.u0, ['B','C','D','E','F','G','H']);
+    host.innerHTML = `
+    <div class="row narrow">
+      <div class="statement">
+        <p>\\(u_0=${s.u0}\\) et \\(${s.pick.tex}\\).</p>
+        <p>On construit la feuille de calcul ci-dessous.</p>
+        ${table}
+
+		        <p>a) Donner la <b>formule à saisir en C2</b> pour que, quand on la recopie vers la droite, les termes de la suite se calculent.</p>
+        <div class="input-row"><input id="ex3_f1" class="formula" placeholder=""><span id="ex3_t1" class="tick"></span></div>
+<p>b) Que devient cette formule en <b>${s.targetCol}2</b> ?</p>
+        <div class="input-row"><input id="ex3_f2" class="formula" placeholder=""><span id="ex3_t2" class="tick"></span></div>
+          <!-- ✅ Bloc solution dans la même colonne -->
+        <div id="sol-ex3" class="steps" style="margin-top:12px">
+                 </div>
+      </div>
+    </div>`;
+    retypeMath(host);
+  },
+  check(host){
+    const s=this._current;
+    const f1=val('ex3_f1'), f2=val('ex3_f2');
+const t1=$('#ex3_t1',host), t2=$('#ex3_t2',host);
+if(f1===''){ tick(t1,null); clearWarn(t1); } 
+else if(!requireEqualSign(f1, t1)){ /* on laisse t2 tel quel */ return false; }
+
+    // C2 calcule u1 à partir de B2=u0 et, selon le cas, de B1=0 (pour +n)
+const ctxC2 = {
+  getArel: (q,row) => NaN,
+  getAabs: (q,row) => NaN,
+  getBrel: (q,row) => (q===2 ? s.u0 : (q===1 ? 0 : NaN)),  // B2, B1
+  getBabs: (q,row) => (q===2 ? s.u0 : (q===1 ? 0 : NaN))
+};
+
+const fn = compileFormula(f1, ctxC2);
+const v  = fn ? Number(fn(0)) : NaN;   // l'argument 'row' est ignoré par ce ctx
+const tgt = s.pick.step(s.u0, 0);
+const ok1 = Number.isFinite(v) && Math.abs(v - tgt) < 1e-9;
+
+    tick(t1,ok1);
+
+    // H2 attendu : même forme que C2 mais avec G2 / G1 (selon modèle)
+if(f2===''){ tick(t2,null); clearWarn(t2); }
+else if(!requireEqualSign(f2, t2)){ return false; }
+    const prev = String.fromCharCode(s.targetCol.charCodeAt(0) - 1); // colonne précédente
+const n = normalizeDecimals(f2.replace(/^=/,'')).replace(/\s+/g,'').toUpperCase();
+
+// On accepte si la formule contient bien la bonne colonne précédente (prev2 ou prev1 selon les cas),
+// et si c'est cohérent avec le modèle initial (qui utilisait B2 et éventuellement B1).
+const needsB1 = s.pick.showC2.includes('B1');
+const ok2 = n.includes(prev+'2') && (!needsB1 || n.includes(prev+'1'));
+tick(t2, ok2);
+
+    const ok = ok1 && ok2; SCORE[1]++; if(ok) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); return ok;
+  },
+  solution(host){
+  const c2Intl = _stripOneStar(this._current.pick.showC2);
+  const c2Fr   = _stripOneStar(c2Intl.replace(/\./g,','));
+ const prev = String.fromCharCode(this._current.targetCol.charCodeAt(0) - 1);
+const h2Intl = _stripOneStar(this._current.pick.showC2.replace(/B2/g, prev+'2').replace(/B1/g, prev+'1'));
+const h2Fr   = _stripOneStar(h2Intl.replace(/\./g,','));
+
+
+  const solA = mkSol(c2Fr, c2Intl);
+  const solB = mkSol(h2Fr, h2Intl);
+
+  const box = host.querySelector('[id^="sol-ex3"]');
+  box.innerHTML = `
+  <p><b>a)</b> En C2 : ${solA}</p>
+  <p><b>b)</b> En ${this._current.targetCol}2 : ${solB}</p>
+`;
+
+  retypeMath(box);
+}
+
+});
+
+/* ---------- Exercice 4 : Récurrence + colonne des sommes (3 colonnes) ---------- */
+REGISTRY.push({
+  id:'tab_ex4',
+  title:"Ex. 4 — Récurrence affine + somme cumulée (1 seul énoncé)",
+  gen(){
+  const a = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+  const b = rint(-9,9);
+  const u0 = choice([50,80,100,120]);    // 👈 d'abord u0
+  const aTex = (a===1?`u_n`:(a===-1?`- u_n`:`${a}u_n`));
+  const tex = `u_{n+1}=${joinTerms(aTex, b? (b<0?`- ${-b}`:`+ ${b}`):'')}`;
+  const showB3 = `=${a}*B2${b? (b<0?`${b}`:`+${b}`):''}`;
+
+  const targetRow = choice([4,5,6]);     // 👈 ensuite la ligne demandée en b)
+
+  return { u0, a, b, tex, showB3, targetRow };
+}
+,
+  render(host,s){
+const table = sheet3Cols(
+  "rang \\(n\\)","terme \\(u_n\\)","somme : \\(u_0+\\cdots+u_n\\)",
+  [0,1,2,3,4],
+  s.u0,      // B2
+  s.u0       // C2 = u0 (somme initiale)
+);
+    host.innerHTML = `
+    <div class="row narrow">
+      <div class="statement">
+        <p>\\(u_0=${s.u0}\\) et \\(${s.tex}\\).</p>
+        <p>On construit la feuille de calcul ci-dessous.</p>
+        ${table}
+
+		        <p>a) Donner la <b>formule à saisir en B3</b> pour que, quand on la recopie vers la droite, les termes de la suite se calculent.</p>
+        
+        <div class="input-row"><input id="ex4_f1" class="formula" placeholder=""><span id="ex4_t1" class="tick"></span></div>
+<p>b) Que devient-elle en <b>B${s.targetRow}</b> ?</p>
+        <div class="input-row"><input id="ex4_f2" class="formula" placeholder=""><span id="ex4_t2" class="tick"></span></div>
+        <p>c) Formule de la somme en <b>C3</b> :</p>
+        <div class="input-row"><input id="ex4_f3" class="formula" placeholder=""><span id="ex4_t3" class="tick"></span></div>
+          <!-- ✅ Bloc solution dans la même colonne -->
+        <div id="sol-ex4" class="steps" style="margin-top:12px">
+                 </div>
+      </div>
+    </div>`;
+    retypeMath(host);
+  },
+  check(host){
+  const s=this._current;
+  const f1=val('ex4_f1'), f2=val('ex4_f2'), f3=val('ex4_f3');
+  const t1=$('#ex4_t1',host), t2=$('#ex4_t2',host), t3=$('#ex4_t3',host);
+
+  // --- Règle "=" : prévenir si l'élève oublie le signe égal
+  if(f1===''){ tick(t1,null); clearWarn(t1); } else if(!requireEqualSign(f1,t1)) return false;
+  if(f2===''){ tick(t2,null); clearWarn(t2); } else if(!requireEqualSign(f2,t2)) return false;
+  if(f3===''){ tick(t3,null); clearWarn(t3); } else if(!requireEqualSign(f3,t3)) return false;
+
+  // Contexte "tableur" pour B3/B4 (références relatives/absolues)
+  function makeCtx(row, prevB){
+    const baseRow = 3; // formule saisie en B3
+    return {
+      getArel: (q, r) => ({2:0,3:1,4:2}[ r + (q - baseRow) ] ?? NaN),
+      getAabs: (q, r) => ({2:0,3:1,4:2}[ q ] ?? NaN),
+      getBrel: (q, r) => {
+        const target = r + (q - baseRow);
+        if (target === 2) return s.u0;                     // B2 = u0
+        if (target === 3) return (r===3 ? s.u0 : prevB);   // B3
+        if (target === 4) return (r===4 ? prevB : NaN);    // B4
+        return NaN;
+      },
+      getBabs: (q, r) => (q===2? s.u0 : q===3? (r===3? s.u0 : prevB) : q===4? (r===4? prevB : NaN) : NaN)
+    };
+  }
+
+  const results = [];
+
+  // a) B3 : on évalue la formule saisie en B3
+  let ok1 = null;
+  if (f1 !== '') {
+    const r1 = evalFormulaSafe(f1, makeCtx(3,null), 3);
+    ok1 = r1.ok && Math.abs(r1.value - (s.a*s.u0+s.b)) < 1e-9;
+  }
+  tick(t1, ok1); results.push(ok1);
+
+  // b) B{targetRow} : on valide juste la "translation" (référence à la ligne précédente)
+  let ok2 = null;
+  if (f2 !== '') {
+    const n = normalizeDecimals(f2.replace(/^=/,'')).replace(/\s+/g,'').toUpperCase();
+    const need = 'B' + (s.targetRow - 1); // ex: pour B6 → on doit voir B5
+    ok2 = n.includes(need);
+  }
+  tick(t2, ok2); results.push(ok2);
+
+ 
+  let ok3 = null;
+  if (f3 !== '') {
+    const raw = f3.trim();
+    const n = normalizeDecimals(raw.replace(/^=/,''))
+                .replace(/\s+/g,'')
+                .toUpperCase();
+
+    // 1) forme "+": C2 + B3 (ordre indifférent)
+    const plusForm =
+      (n.includes('C2') && n.includes('B3') && n.includes('+'));
+
+    // 2) SOMME / SUM avec deux arguments séparés (séparateur ; ou ,)
+    const sommeArgs = /SOMME\((?:C2[,;]B3|B3[,;]C2)\)/.test(n);
+    const sumArgs   = /SUM\((?:C2[,;]B3|B3[,;]C2)\)/.test(n);
+
+    // 3) SOMME / SUM sur une plage $B$2:B3 (avec ou sans $)
+    const sommeRange = /SOMME\(\$?B\$?2:B3\)/.test(n);
+    const sumRange   = /SUM\(\$?B\$?2:B3\)/.test(n);
+
+    ok3 = plusForm || sommeArgs || sumArgs || sommeRange || sumRange;
+  }
+  tick(t3, ok3); results.push(ok3);
+
+
+  // Score uniquement si les 3 réponses sont renseignées
+  if (results.every(v => v !== null)) {
+    SCORE[1]++; if (results.every(Boolean)) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]);
+    return results.every(Boolean);
+  }
+  return false;
+}
+,
+
+  solution(host){
+  const b3Intl = _stripOneStar(this._current.showB3);
+  const b3Fr   = _stripOneStar(b3Intl.replace(/\./g,','));
+ const b6Intl = _stripOneStar(this._current.showB3.replace('B2', 'B' + (this._current.targetRow - 1)));
+const b6Fr   = _stripOneStar(b6Intl.replace(/\./g,','));
+  const c3 = '=C2+B3'; // identique FR/Intl
+
+  const solA = mkSol(b3Fr, b3Intl);
+  const solB = mkSol(b6Fr, b6Intl);
+  const solC = mkSol(c3, c3); // s'affichera une seule fois
+
+  const box = host.querySelector('[id^="sol-ex4"]');
+  box.innerHTML = `
+          <p><b>a)</b> En B3 : ${mkSol(b3Fr, b3Intl)}</p>
+  <p><b>b)</b> En B${this._current.targetRow} : ${mkSol(b6Fr, b6Intl)}</p>
+      <p><b>c)</b> En C3 (somme cumulée) : ${mkSol(c3, c3)}</p>
+    `;
+  retypeMath(box);
+}
+
+
+});
+
+
+  // Expose le registre pour le kit PDF
+  window.REGISTRY = REGISTRY;
+
+
+/* ====== Infrastructure : rendu / navigation / PDF ====== */
+function populateSelect(){
+  const sel=$("#exo-select"); sel.innerHTML = REGISTRY.map((d,i)=>`<option value="${d.id}">${d.title}</option>`).join('');
+}
+function findDef(id){ return REGISTRY.find(d=>d.id===id) || REGISTRY[0]; }
+function renderActive(origin){
+  const sel=$("#exo-select"); const id = sel.value; const def=findDef(id);
+  const host=$("#host"); host.__def=def;
+  def._current = def.gen(); def.render(host, def._current);
+  host.dataset.active = id; host.dataset.state = 'fresh';
+  // Entrée → Vérifier
+  host.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); checkActive(); }});
+  retypeMath(host);
+}
+function checkActive(){
+  const host=$("#host"); const def=host.__def; if(!def) return;
+  const ok = def.check(host);
+  return ok;
+}
+function showSolution(){
+  const host=$("#host"); const def=host.__def; if(!def) return;
+  if(def.solution) def.solution(host);
+  retypeMath(host);
+  // pas d’auto-remplissage (on garde la liberté côté saisie)
+}
+function resetAll(){
+  const inputs = $$('input.formula'); inputs.forEach(i=>i.value='');
+  $$('.tick').forEach(t=>{t.textContent='';t.classList.remove('ok','ko'); clearWarn(t);});
+  SCORE=[0,0]; scoreSet(0,0);
+}
+
+
+/* Boot */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Sélecteur
+  populateSelect();
+  $("#exo-select").addEventListener('change', ()=>renderActive('select'));
+  $("#btn-new").addEventListener('click', ()=>renderActive('new'));
+  $("#btn-check").addEventListener('click', checkActive);
+  $("#btn-sol").addEventListener('click', showSolution);
+  $("#btn-reset").addEventListener('click', resetAll);
+  renderActive('boot');
+  scoreSet(0,0);
+
+
+  (function waitForPDF(){
+    const okKit  = !!(window.ExoPDF && typeof ExoPDF.init==='function');
+    const okReg  = Array.isArray(window.REGISTRY) && window.REGISTRY.length>0;
+    if (okKit && okReg) {
+      ExoPDF.init({
+        title: 'Première — Suites numériques — TABLEUR',
+        max: 50,
+        mountAfterSelector: '#info-saisie', // zone d’ancrage du panneau PDF
+        autoPrint: false                    // garde l’impression manuelle
+      });
+    } else {
+      setTimeout(waitForPDF, 80);
+    }
+  })();
+
+
+});
+</script>
+</body>
+</html>

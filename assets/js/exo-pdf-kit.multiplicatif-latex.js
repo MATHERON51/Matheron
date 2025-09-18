@@ -454,7 +454,13 @@ table.pdfb.corrige th:nth-child(3){
 @media print{
   .eq-tab, .eq-tab td{ border:none !important; }
 }
-
+/* Grille façon tableur avec indices de lignes/colonnes */
+table.sheet{border-collapse:collapse;font-size:.95rem}
+.sheet th,.sheet td{border:1px solid #cfd6e4;padding:.25rem .55rem;min-width:46px;text-align:center}
+.sheet thead th{background:#f2f5fb;font-weight:700}
+.sheet .corner{background:#eef2f9;width:34px;min-width:34px}
+.sheet .rhead{background:#f7f8fb;font-weight:600;width:34px}
+.sheet .colA{background:#fafafa;font-weight:600}
 </style>
 
 <style>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Console Python — Éditeur / Console / Sortie</title>
+<style>
+  :root{ --bg:#0b0e14; --fg:#e6e6e6; --panel:#11151c; --muted:#bbc0ca; --btn:#212737; --btnb:#2e3547; --acc:#4ea1ff; }
+  *{ box-sizing:border-box }
+  html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg); }
+  body{ display:flex; flex-direction:column; min-height:100vh; }
+  .toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; padding:.7rem 1rem; background:var(--panel); border-bottom:1px solid #1b2030; position:sticky; top:0; z-index:5; }
+  .toolbar h1{ margin:0; font-size:1rem; color:var(--muted); font-weight:600; }
+  .toolbar .spacer{ flex:1 }
+  .btn{ border:1px solid var(--btnb); background:var(--btn); color:#fff; border-radius:.6rem; padding:.45rem .75rem; cursor:pointer; }
+  .btn:hover{ filter:brightness(1.05) } .btn:active{ transform:translateY(1px) }
+  .hint{ color:var(--muted); font-size:.9rem }
+  #status{ color:#b6c2d0; font-size:.9rem; }
+  #status.ready{ color:#7ee787 } #status.busy{ color:#f7c06a } #status.err{ color:#ff6b6b }
+  .wrap{ flex:1 1 auto; display:flex; flex-direction:column; gap:.75rem; padding:10px; min-height:0; }
+  #editor{ width:100%; min-height:160px; height:36vh; resize:vertical; padding:12px; border:1px solid #1f2536; border-radius:10px; background:#0f1420; color:#e7eaf0; outline:none; font:14px/1.4 ui-monospace, Menlo, Consolas, monospace; }
+  .repl{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+  .repl label{ font-weight:600; color:var(--muted) }
+  #repl-input{ flex:1; min-width:220px; padding:10px 12px; border:1px solid #1f2536; border-radius:10px; background:#0f1420; color:#e7eaf0; outline:none; font:14px/1.3 ui-monospace, Menlo, Consolas, monospace; }
+  #out{ flex:1 1 auto; min-height:120px; overflow:auto; white-space:pre-wrap; padding:12px; border:1px solid #1f2536; border-radius:10px; background:#0a0d14; color:#d6deeb; font:14px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+  #pkg-name{ min-width:180px; background:#0f1420; border:1px solid #1f2536; color:#e7eaf0; border-radius:.6rem; padding:.45rem .6rem; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Console Python — <span class="hint">Éditeur / Console / Sortie</span></h1>
+    <div class="spacer"></div>
+    <button id="btn-run"  class="btn">▶️ Exécuter (Ctrl/Cmd+Entrée)</button>
+    <button id="btn-eval" class="btn">⏎ Eval (Console)</button>
+    <button id="btn-clear" class="btn">🧹 Effacer sortie</button>
+    <button id="btn-pkg-np" class="btn">📦 NumPy</button>
+    <button id="btn-pkg-pd" class="btn">📦 Pandas</button>
+    <button id="btn-pkg-mpl" class="btn">📦 Matplotlib</button>
+    <input id="pkg-name" placeholder="nom du package…" />
+    <button id="btn-pkg-any" class="btn">⬇ Charger</button>
+    <span id="status">Pyodide : chargement…</span>
+  </div>
+
+  <div class="wrap">
+    <textarea id="editor" spellcheck="false" placeholder="
+"></textarea>
+
+    <div class="repl">
+      <label for="repl-input">Console ›</label>
+      <input id="repl-input" placeholder="" />
+      <button id="btn-eval-inline" class="btn">⏎</button>
+    </div>
+
+    <pre id="out">[sortie]</pre>
+  </div>
+
+  <script>
+  (function(){
+    const $ = sel => document.querySelector(sel);
+    const outEl = $('#out'), statusEl = $('#status'), editor = $('#editor'), replIn = $('#repl-input');
+    function setStatus(txt, cls){ statusEl.textContent=txt; statusEl.className=''; if(cls) statusEl.classList.add(cls); }
+    function appendOut(txt){ if(outEl.textContent.trim()==='[sortie]') outEl.textContent=''; outEl.textContent += (outEl.textContent?'\n':'') + txt; outEl.scrollTop = outEl.scrollHeight; }
+
+    let pyodide=null, lastRunCode='';
+    async function ensurePy(){
+      if(pyodide) return pyodide;
+      setStatus('Pyodide : chargement…','busy');
+      if(!window.loadPyodide){
+        const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+        await new Promise(r=>{ s.onload=r; document.head.appendChild(s); });
+      }
+      pyodide = await loadPyodide({});
+      setStatus('Pyodide : prêt','ready'); return pyodide;
+    }
+    async function pyExec(code){
+      await ensurePy(); setStatus('Exécution…','busy');
+      let stdout='', stderr=''; pyodide.setStdout({batched:m=>stdout+=m}); pyodide.setStderr({batched:m=>stderr+=m});
+      try{ await pyodide.runPythonAsync(code); lastRunCode=code;
+        if(stdout.trim()) appendOut(stdout.trim()); if(stderr.trim()) appendOut('[stderr]\\n'+stderr.trim()); setStatus('Terminé','ready'); return true;
+      }catch(e){ appendOut('[Erreur] '+(e?.message||String(e))); setStatus('Erreur','err'); return false; }
+    }
+    async function ensureEditorRan(){ const code=editor.value; if(code.trim() && code!==lastRunCode){ appendOut('[info] Exécution du code de l’éditeur…'); await pyExec(code); } }
+
+    // Boutons
+    $('#btn-run').addEventListener('click', async ()=>{ const code=editor.value.trim(); if(!code){ appendOut('[info] Éditeur vide.'); return; } await pyExec(code); });
+    $('#btn-eval').addEventListener('click', async ()=>{ await evalLine(); });
+    $('#btn-eval-inline').addEventListener('click', async ()=>{ await evalLine(); });
+    $('#btn-clear').addEventListener('click', ()=>{ outEl.textContent='[sortie]'; });
+   
+
+    // Chargement de packages
+    async function loadPkgs(pkgs){
+      await ensurePy();
+      const list = Array.isArray(pkgs)? pkgs : [pkgs];
+      setStatus('Chargement : ' + list.join(', '), 'busy');
+      try{
+        await pyodide.loadPackage(list);
+        setStatus('Packages prêts', 'ready');
+        appendOut('[info] Chargé : ' + list.join(', '));
+        if(list.includes('numpy'))     appendOut('>>> import numpy as np');
+        if(list.includes('pandas'))    appendOut('>>> import pandas as pd');
+        if(list.includes('matplotlib'))appendOut('>>> import matplotlib.pyplot as plt');
+      }catch(e){
+        setStatus('Erreur de chargement', 'err');
+        appendOut('[Erreur] ' + (e?.message || String(e)));
+      }
+    }
+    $('#btn-pkg-np').addEventListener('click', ()=>loadPkgs('numpy'));
+    $('#btn-pkg-pd').addEventListener('click', ()=>loadPkgs('pandas'));
+    $('#btn-pkg-mpl').addEventListener('click', async ()=>{
+      await loadPkgs('matplotlib');
+      await pyExec(`import matplotlib; matplotlib.use("AGG")`);
+      appendOut('[info] Matplotlib prêt. Exemple :\\n>>> import matplotlib.pyplot as plt\\n>>> plt.plot([1,2,3]); plt.savefig("plot.png")');
+    });
+    $('#btn-pkg-any').addEventListener('click', ()=>{
+      const name = ($('#pkg-name').value||'').trim();
+      if(!name){ appendOut('[info] Indique un nom de package.'); return; }
+      loadPkgs(name);
+    });
+
+    // Console
+    const hist=[], HMAX=200; let hIdx=-1;
+    $('#repl-input').addEventListener('keydown', async (e)=>{
+      if(e.key==='Enter'){ e.preventDefault(); await evalLine(); }
+      else if(e.key==='ArrowUp'){ if(hist.length){ hIdx=Math.max(0,(hIdx<0?hist.length:hIdx)-1); e.currentTarget.value=hist[hIdx]; e.preventDefault(); } }
+      else if(e.key==='ArrowDown'){ if(hist.length){ hIdx=Math.min(hist.length,hIdx+1); e.currentTarget.value=(hIdx>=hist.length?'':hist[hIdx]); e.preventDefault(); } }
+    });
+    async function evalLine(){
+      const line = $('#repl-input').value.trim(); if(!line) return;
+      $('#repl-input').value=''; hist.push(line); if(hist.length>HMAX) hist.shift(); hIdx=hist.length;
+      appendOut('>>> ' + line); await ensureEditorRan();
+      const wrapper = `
+import builtins
+_res_ = None
+try:
+    _res_ = eval(${JSON.stringify(line)})
+    if _res_ is not None:
+        print(repr(_res_))
+except SyntaxError:
+    exec(${JSON.stringify(line)})
+`;
+      await pyExec(wrapper);
+    }
+
+    // Éditeur : indentation & raccourcis
+    (function enhanceEditor(){
+      function insert(text){ const s=editor.selectionStart,e=editor.selectionEnd; editor.setRangeText(text, s, e, 'end'); }
+      function curLine(){ const pos=editor.selectionStart,b=editor.value.slice(0,pos),ls=b.lastIndexOf('\n')+1,line=b.slice(ls),indent=(line.match(/^\s*/)||[''])[0]; return {line,indent}; }
+      function indentSel(add=true){
+        const start=editor.selectionStart,end=editor.selectionEnd,v=editor.value;
+        const from=v.lastIndexOf('\n',start-1)+1, to=v.indexOf('\n',end), endPos=(to===-1?v.length:to);
+        const lines=v.slice(from,endPos).split('\n'), pad='    ';
+        const changed=lines.map(s=> add? pad+s : (s.startsWith('    ')?s.slice(4):s.replace(/^ {1,3}/,''))).join('\n');
+        editor.value=v.slice(0,from)+changed+v.slice(endPos);
+        const delta=changed.length-(endPos-from); editor.setSelectionRange(start+(add?4:0), end+delta);
+      }
+      editor.addEventListener('keydown', (e)=>{
+        if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#btn-run').click(); return; }
+        if(e.key==='Tab'){ e.preventDefault(); if(editor.selectionStart!==editor.selectionEnd) indentSel(!e.shiftKey); else insert('    '); return; }
+        if(e.key==='Enter'){ e.preventDefault(); const {line,indent}=curLine(); const more=/:\\s*$/.test(line)?'    ':''; insert('\n'+indent+more); return; }
+      });
+    })();
+  })();
+  </script>
+</body>
+</html>

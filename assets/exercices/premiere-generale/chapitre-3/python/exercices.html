@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Première — Suites numériques — Python (Pour & Tant que)</title>
+
+<!-- mêmes feuilles que ton modèle -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.controls select{border:1px solid #ccc;border-radius:8px;padding:.45rem .55rem}
+.controls .btn:active{transform:translateY(1px)}
+.controls .score{margin-left:auto;font-weight:700}
+.small{font-size:.92rem;color:#555}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.tick{display:none;margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b;display:inline}
+.tick.ko{color:#b00020;display:inline}
+
+.tbl{border-collapse:collapse}
+.tbl td,.tbl th{border:1px solid #ddd;padding:6px 8px;text-align:center}
+
+/* Lignes de réponse imprimables */
+.blank-wrap{ display:inline-block; vertical-align:baseline }
+.blank-wrap .blank{ display:none; height:1.4em; border-bottom:2px solid #000; vertical-align:baseline; }
+@media print{
+  .controls,.header,.kbd-host,.hide-print{display:none!important}
+  .card{box-shadow:none}
+  .blank-wrap input{ display:none !important; }
+  .blank-wrap .blank{ display:inline-block !important; }
+}
+</style>
+
+<!-- MathJax identique -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)'], ['$', '$']], displayMath: [['\\[','\\]'], ['$$','$$']], processEscapes: true },
+  chtml: { matchFontHeight:false }, startup: { typeset: true }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+<!-- libs partagées -->
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Première — <strong>Suites numériques — Python (Pour & Tant que)</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <!-- Barre de contrôle -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-sol" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <!-- Hôte -->
+    <div id="host" class="card" data-active="" data-state=""></div>
+
+    <!-- Saisie & réponses acceptées -->
+    <div class="card small" id="info-saisie">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul>
+  <li>Ecritures <em>toutes</em> acceptées
+      <code>u(n+1)=...</code>, <code>u_(n+1)=...</code>, <code>u_{n+1)=...</code>
+      (espaces, parenthèses/accolades, soulignés, <code>*</code> ou <code>×</code> sont normalisés).</li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+(function(){
+"use strict";
+
+/* ====== Utilitaires ====== */
+function $(s,root){return (root||document).querySelector(s)}
+function $all(s,root){return Array.from((root||document).querySelectorAll(s))}
+function rint(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function choice(A){return A[Math.floor(Math.random()*A.length)]}
+function near(a,b,eps){return Math.abs(a-b)<= (eps||1e-9)}
+function parseNumber(s){
+  if(s==null) return NaN;
+  s = (''+s).trim().replace(',', '.');
+  if(/^[-+]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return +s;
+  return NaN;
+}
+function retypeMath(scope){ if(window.MathJax?.typesetPromise) MathJax.typesetPromise([scope||document]) }
+function mkInput(id,w){ return `<span class="blank-wrap"><input id="${id}" style="width:${w||110}px;font-size:15px;padding:6px;border:1px solid #ddd;border-radius:8px"> <span class="blank" style="width:${(w||110)-14}px"></span></span>` }
+function tickTri(el, state){
+  if(!el) return;
+  el.classList.remove('ok','ko');
+  if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+  else el.textContent='';
+}
+function scoreSet(a,b){ const s=$("#score"); if(s) s.textContent=`Score : ${a} / ${b}` }
+let SCORE=[0,0];
+function normPy(s){
+  return (''+s).toLowerCase()
+    .replace(/[ \t]/g,'')
+    .replace(/[−–—]/g,'-')
+    .replace(/\u00A0/g,'')
+    .replace(/;+$/,''); // ; facultatif
+}
+function normRelation(str){
+  if(str==null) return '';
+  let s=(''+str).toLowerCase().replace(/\s+/g,'');
+  s=s.replace(/[−–—]/g,'-');
+  s=s.replace(/u\(([^)]+)\)/g,'u_{$1}').replace(/u_\(([^)]+)\)/,'u_{$1}').replace(/u_\{([^}]+)\)/g,'u_{$1}');
+  s=s.replace(/u_\{([a-z])\}/g,'u_$1').replace(/\{(\d+)\}/g,'$1');
+  return s;
+}
+
+/* ====== REGISTRY ====== */
+function makeExos(){
+  const L=[];
+
+  /* ---------- EXO 1 : Pour — exécuter un programme affine ---------- */
+  L.push({
+    id:'ex1_for_run',
+    title:'Ex. 1 — Boucle for : exécuter le programme',
+    gen(){
+      const u0 = rint(-5,5);
+      let a = choice([-4,-3,-2,2,3,4]);
+      let b = rint(-6,6); if(b===0) b=3;
+      const N = rint(3,5);
+
+      const code =
+`def suite(n):
+    u = ${u0}
+    for k in range(1, n+1):
+        u = ${a}*u ${b<0?'-':'+'} ${Math.abs(b)}
+    return u`;
+
+      const U=[u0];
+      for(let k=1;k<=N;k++) U.push(a*U[k-1]+b);
+
+      return {u0,a,b,N,U,code};
+    },
+    render(host,s){
+      host.innerHTML = `
+        <div class="row norepere">
+          <div class="statement">
+            <p>La suite \\((u_n)\\) est définie par \\(u_0=${s.u0}\\) et le programme Python suivant permet d’afficher \\(u_n\\) :</p>
+            <pre style="margin:6px 0 12px"><code>${s.code}</code></pre>
+            <p>1) Faire tourner ce programme pour \\(n=${s.N}\\).</p>
+            <table class="tbl" style="margin:.3rem 0 1rem">
+              <tr><th>k</th>${Array.from({length:s.N+1},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>u</th>${Array.from({length:s.N+1},(_,i)=>`<td>${mkInput('u'+i,90)} <span id="t${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+            <p>2) Exprimer \\(u_{n+1}\\) en fonction de \\(u_n\\) : ${mkInput('rel',220)} <span id="trel" class="tick"></span></p>
+
+            <div class="equ-offscreen" style="display:none">
+              <p>La suite \\((u_n)\\) est définie par \\(u_0=${s.u0}\\) et le programme Python suivant permet d’afficher \\(u_n\\) :</p>
+            <pre style="margin:6px 0 12px"><code>${s.code}</code></pre>
+            <p>1) Faire tourner ce programme pour \\(n=${s.N}\\).</p>
+			 <table class="tbl" style="margin:.3rem 0 1rem">
+              <tr><th>k</th>${Array.from({length:s.N+1},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>u</th>${Array.from({length:s.N+1},(_,i)=>`<td>${mkInput('u'+i,90)} <span id="t${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+			<p>2) Exprimer \\(u_{n+1}\\) en fonction de \\(u_n\\)</p>
+            </div>
+          </div>
+          <div><div id="steps" class="steps"></div></div>
+        </div>
+      `;
+      retypeMath(host); host.__state=s;
+    },
+    check(host){
+      const s=host.__state;
+      let allOk=true, allFilled=true;
+
+      for(let i=0;i<=s.N;i++){
+        const v=val('u'+i);
+        const ok = v===''? null : near(parseNumber(v), s.U[i]);
+        tickTri($('#t'+i,host), ok);
+        if(ok===null) allFilled=false;
+        if(ok===false) allOk=false;
+      }
+      const target = `u_{n+1}=${s.a===1?'':(s.a===-1?'−':'{'+Math.abs(s.a)+'}') }u_n${s.b? (s.b<0?'−'+Math.abs(s.b):'+'+s.b):''}`.replace(/\s+/g,'');
+      const okRel = (val('rel').trim()==='') ? null : (normRelation(val('rel'))===normRelation(target));
+      tickTri($('#trel',host), okRel);
+      if(okRel===null) allFilled=false;
+      if(okRel===false) allOk=false;
+
+      if(allFilled){ SCORE[1]++; if(allOk) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); }
+      return allFilled && allOk;
+      function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+    },
+    solution(host){
+      const s=host.__state, W=$('#steps',host);
+      let html = '<div class="steps">';
+      html += `<div class="step">\\(u_0=${s.U[0]}\\)</div>`;
+      for(let k=1;k<=s.N;k++){
+        html += `<div class="step">\\(u_{${k}} = ${s.a}\\times u_{${k-1}} ${s.b<0?'−':' + '} ${Math.abs(s.b)} = ${s.U[k]}\\)</div>`;
+      }
+      const rel = `u_{n+1} = ${s.a===1?'':(s.a===-1?'−':'{'+Math.abs(s.a)+'}') }u_n${s.b? (s.b<0?' − '+Math.abs(s.b):' + '+s.b):''}`.replace(/\s+\+/g,' + ').replace(/\s+−/g,' − ');
+      html += `<div class="step" style="margin-top:.4rem">\\(\\boxed{${rel}}\\)</div>`;
+      html += '</div>';
+      W.innerHTML = html; retypeMath(W);
+    }
+  });
+
+/* === EXO 2 (NOUVEAU) — 50% affine, 50% k*u_n + n === */
+L.push({
+  id:'ex2_recurrence_1',
+  title:"Ex. 2 — Suite récurrente (for) : affine ou k·u_n + n",
+
+  // petits helpers d'affichage : jamais 1/−1 visibles, jamais "+ 0"
+  _signNum(x){ return String(x).replace(/-/g,'−'); },
+  _plus(b){ return b ? (b<0 ? ' − '+Math.abs(b) : ' + '+b) : '' },
+  _coefU(a){
+    if(a===0) return '0';
+    if(a===1) return 'u_n';
+    if(a===-1) return '−u_n';
+    return (a<0?'−':'')+'{'+Math.abs(a)+'}u_n';
+  },
+  _clean(s){ return s.replace(/\s*\+\s*0(?![0-9])/g,'').replace(/^\s*\+\s*/,''); },
+  _normPy(s){ return (''+s).toLowerCase().replace(/[ \t]/g,'').replace(/[−–—]/g,'-') },
+
+  gen(){
+    const pick = Math.random() < 0.5 ? 'affine' : 'kunplusn';
+    const u0 = rint(-5,5);
+    if(pick==='affine'){
+      let a = choice([-4,-3,-2,-1,1,2,3,4]);  // a ≠ 0
+      let b = rint(-6,6); if(b===0) b = 3;    // pas de +0
+      const N = rint(3,5);
+      // progression
+      const U=[u0]; for(let k=1;k<=N;k++) U.push(a*U[k-1]+b);
+      // relation affichée (sans 1/−1 et sans +0)
+      const rel = this._clean(`u_{n+1}=${this._coefU(a)}${this._plus(b)}`);
+      return {mode:'affine', u0, a, b, N, U, rel};
+    }else{
+      let kcoef = choice([-4,-3,-2,2,3,4]);   // k ≠ 0, ±1 autorisés mais masqués
+      const N = rint(3,5);
+      const U=[u0];
+      for(let k=1;k<=N;k++){ U.push(kcoef*U[k-1] + (k-1)); } // (k-1) car n = indice précédent
+      const head = (kcoef===1)?'u_n':(kcoef===-1?'−u_n':(kcoef<0?'−':'')+'{'+Math.abs(kcoef)+'}u_n');
+      const rel = `u_{n+1}=${head}+n`.replace(/\+\s*0$/,'');
+      return {mode:'kunplusn', u0, kcoef, N, U, rel};
+    }
+  },
+
+  render(host,s){
+    // code modèle (on montre la variante range(1,n+1), le checker accepte aussi range(n))
+    const code = (s.mode==='affine')
+      ? `def suite(n):
+    u = ${s.u0}
+    for k in range(1, n+1):
+        u = ${s.a}*u ${s.b<0?'-':'+'} ${Math.abs(s.b)}
+    return u`
+      : `def suite(n):
+    u = ${s.u0}
+    for k in range(1, n+1):
+        u = ${s.kcoef}*u + (k - 1)
+    return u`;
+
+    host.innerHTML = `
+      <div class="row norepere">
+        <div class="statement">
+          <p>On considère la suite \\((u_n)\\) définie par \\(u_0=${s.u0}\\) et
+             ${ s.mode==='affine'
+                 ? `\\(\\;${this._clean(`u_{n+1}=${this._coefU(s.a)}${this._plus(s.b)}`)}\\).`
+                 : `\\(\\;u_{n+1}=${(s.kcoef===1?'u_n':s.kcoef===-1?'−u_n':(s.kcoef<0?'−':'')+'{'+Math.abs(s.kcoef)+'}u_n')}+n\\).` }
+          </p>
+          <p>1) Donner les quatre premiers termes :
+             \\(u_0=\\) ${mkInput('a0',80)} <span id="t0" class="tick"></span> &nbsp;
+             \\(u_1=\\) ${mkInput('a1',80)} <span id="t1" class="tick"></span> &nbsp;
+             \\(u_2=\\) ${mkInput('a2',80)} <span id="t2" class="tick"></span> &nbsp;
+             \\(u_3=\\) ${mkInput('a3',80)} <span id="t3" class="tick"></span>
+          </p>
+
+          <p>2) Compléter ce programme Python :</p>
+<pre><code>def suite(n):
+    u = ${mkInput('c1',70)}   <span id="tC1" class="tick"></span>
+    for k in range(1, ${mkInput('c2',70)}):  <span id="tC2" class="tick"></span> 
+        u = ${mkInput('c3',180)}   <span id="tC3" class="tick"></span>
+    return u</code></pre>
+
+
+          
+
+          <p>3) Modifier l’algorithme pour calculer aussi \\(S_N=u_0+\\cdots+u_N\\).
+             Écrire les 3 lignes clefs avec pour variable S pour la somme :</p>
+          <ul>
+            <li>Initialisation : ${mkInput('d1',160)} <span id="td1" class="tick"></span></li>
+            <li>Accumulation (dans la boucle, après la mise à jour de \\(u\\)) :
+                ${mkInput('d2',220)} <span id="td2" class="tick"></span></li>
+            <li>Retour : ${mkInput('d3',200)} <span id="td3" class="tick"></span></li>
+          </ul>
+
+          <div class="equ-offscreen" style="display:none">
+ <p>On considère la suite \\((u_n)\\) définie par \\(u_0=${s.u0}\\) et
+             ${ s.mode==='affine'
+                 ? `\\(\\;${this._clean(`u_{n+1}=${this._coefU(s.a)}${this._plus(s.b)}`)}\\).`
+                 : `\\(\\;u_{n+1}=${(s.kcoef===1?'u_n':s.kcoef===-1?'−u_n':(s.kcoef<0?'−':'')+'{'+Math.abs(s.kcoef)+'}u_n')}+n\\).` }
+          </p>
+		            <p>1) Donner les quatre premiers termes.</p>
+					          <p>2) Compléter ce programme Python :</p>
+<pre><code>def suite(n):
+    u = ${mkInput('c1',70)}   <span id="tC1" class="tick"></span>
+    for k in range(1, ${mkInput('c2',70)}):  <span id="tC2" class="tick"></span> 
+        u = ${mkInput('c3',180)}   <span id="tC3" class="tick"></span>
+    return u</code></pre>
+
+
+          
+
+          <p>3) Modifier l’algorithme pour calculer aussi \\(S_N=u_0+\\cdots+u_N\\).
+             </p>
+
+          </div>
+        </div>
+        <div><div class="steps" id="steps"></div></div>
+      </div>`;
+    retypeMath(host); host.__state=s;
+  },
+
+  check(host){
+    const s=host.__state;
+    // Q1 : valeurs
+    const ok0 = chkNum('a0', s.U[0], '#t0');
+    const ok1 = chkNum('a1', s.U[1], '#t1');
+    const ok2 = chkNum('a2', s.U[2], '#t2');
+    const ok3 = chkNum('a3', s.U[3], '#t3');
+
+    // Q2 : code (accepter deux variantes équivalentes)
+    const c1 = this._normPy(val('c1')), c2 = this._normPy(val('c2')), c3 = this._normPy(val('c3'));
+
+    const okInit = c1==='' ? null : (c1===String(s.u0));
+    const isRange1 = (c2==='n+1' || c2==='(n+1)');
+    const isRange0 = (c2==='n' || c2==='(n)');
+    const okRange  = c2==='' ? null : (isRange1 || isRange0);
+
+    let okUpdate = null;
+    if(c3!==''){
+      if(s.mode==='affine'){
+        okUpdate = (c3===`u=${s.a}*u+${s.b}` || c3===`u=${s.b}+${s.a}*u`);
+      }else{
+        okUpdate = ( (isRange1 && c3===`u=${s.kcoef}*u+(k-1)`) ||
+                     (isRange0 && c3===`u=${s.kcoef}*u+k`) );
+      }
+    }
+
+    // Q3 : somme — S = u (pas 0), et on ajoute u après MAJ
+    const d1 = this._normPy(val('d1'));
+    const d2 = this._normPy(val('d2'));
+    const d3 = this._normPy(val('d3'));
+    const okd1 = d1==='' ? null : (d1==='s=u');
+    const okd2 = d2==='' ? null : (d2==='s=s+u'||d2==='s+=u');
+    const okd3 = d3==='' ? null : (/return.*(u,?s|s,?u)/.test(d3)); // on accepte "return u, s" ou "return s, u"
+
+    tick(okInit,'#tC1'); tick(okRange,'#tC2'); tick(okUpdate,'#tC3');
+    tick(okd1,'#td1'); tick(okd2,'#td2'); tick(okd3,'#td3');
+
+    const list=[ok0,ok1,ok2,ok3,okInit,okRange,okUpdate,okd1,okd2,okd3];
+    const filled=list.every(x=>x!==null);
+    const okAll=list.every(x=>x===true);
+    if(filled){ SCORE[1]++; if(okAll) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); }
+    return filled && okAll;
+
+    // helpers
+    function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+    function tick(state, sel){ const el=$(sel,host); if(!el) return; el.classList.remove('ok','ko');
+      if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+      else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+      else el.textContent=''; }
+    function chkNum(id, target, tickSel){
+      const v = val(id).trim();
+      const ok = v==='' ? null : near(parseNumber(v), target);
+      tick(ok, tickSel); return ok;
+    }
+  },
+
+  solution(host){
+    const s=host.__state, W=$('#steps',host);
+    const U = s.U.map(x=>String(x).replace(/-/g,'−'));
+    // relation propre
+    const rel = (s.mode==='affine')
+      ? `u_{n+1}=${this._coefU(s.a)}${this._plus(s.b)}`
+      : `u_{n+1}=${(s.kcoef===1?'u_n':s.kcoef===-1?'−u_n':(s.kcoef<0?'−':'')+'{'+Math.abs(s.kcoef)+'}u_n')}+n`;
+
+    const code = (s.mode === 'affine')
+  ? `def suite(n):
+    u = ${s.u0}
+    for k in range(1, n+1):
+        u = ${s.a}*u ${s.b<0?'-':'+'} ${Math.abs(s.b)}
+    return u
+
+def suite_et_somme(n):
+    u = ${s.u0}
+    S = u
+    for k in range(1, n+1):
+        u = ${s.a}*u ${s.b<0?'-':'+'} ${Math.abs(s.b)}
+        S = S + u
+    return u, S`
+  : `def suite(n):
+    u = ${s.u0}
+    for k in range(1, n+1):
+        u = ${s.kcoef}*u + (k - 1)
+    return u
+
+def suite_et_somme(n):
+    u = ${s.u0}
+    S = u
+    for k in range(1, n+1):
+        u = ${s.kcoef}*u + (k - 1)
+        S = S + u
+    return u, S`;
+
+
+    W.innerHTML = `
+  <div class="steps">
+    <div class="step">\\(u_0=${U[0]},\\ u_1=${U[1]},\\ u_2=${U[2]},\\ u_3=${U[3]}\\)</div>
+    <div class="step">\\(\\boxed{${rel}}\\)</div>
+    <pre style="margin-top:8px"><code>${code}</code></pre>
+  </div>`;
+
+    retypeMath(W);
+  }
+});
+
+
+  /* ---------- EXO 3 : Tant que — seuil multiplicatif ---------- */
+  L.push({
+    id:'ex3_while_threshold',
+    title:'Ex. 3 — Boucle while : atteindre un seuil',
+    gen(){
+      const d0 = rint(320,520);
+      const seuil = d0 - rint(8,28);
+      const r = choice([0.99,0.985,0.98,0.975,0.97]);
+      // simulation :
+      const D=[d0]; let n=0;
+      while(D[D.length-1] > seuil && D.length<20){
+        n++; D.push(+ (r*D[D.length-1]).toFixed(3));
+      }
+      const code =
+`def seuil():
+    n = 0
+    d = ${d0}
+    while d > ${seuil}:
+        n = n + 1
+        d = ${r}*d
+    return n`;
+      return {d0,seuil,r,code,D,n};
+    },
+    render(host,s){
+      const cols = 6; // on demande 6 colonnes de simulation
+      host.innerHTML = `
+        <div class="row norepere">
+          <div class="statement">
+            <p>On donne le programme Python :</p>
+            <pre><code>${s.code}</code></pre>
+            <p>1) Faire fonctionner ce programme (simuler les premières itérations) :</p>
+            <table class="tbl" style="margin:.3rem 0 8px">
+              <tr><th>n</th>${Array.from({length:cols},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>d</th>${Array.from({length:cols},(_,i)=>`<td>${mkInput('d'+i,90)} <span id="td${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+            <p>2) Le programme renvoie \\(n=\\) ${mkInput('nout',80)} <span id="tn" class="tick"></span></p>
+            <p>3) Compléter : « On cherche la plus petite valeur \\(n\\) à partir de laquelle les termes de la suite sont 
+              <select id="cmp">
+                <option value="">—</option>
+                <option value="le">inférieurs ou égaux</option>
+                <option value="ge">supérieurs ou égaux</option>
+              </select>
+              à \\(${s.seuil}\\). » <span id="tcmp" class="tick"></span>
+            </p>
+
+            <div class="equ-offscreen" style="display:none">
+             <p>On donne le programme Python :</p>
+            <pre><code>${s.code}</code></pre>
+            <p>1) Faire fonctionner ce programme (simuler les premières itérations) :</p>
+            <table class="tbl" style="margin:.3rem 0 8px">
+              <tr><th>n</th>${Array.from({length:cols},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>d</th>${Array.from({length:cols},(_,i)=>`<td>${mkInput('d'+i,90)} <span id="td${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+            <p>2) Le programme renvoie \\(n=\\) </p>
+            <p>3) Compléter : « On cherche la plus petite valeur \\(n\\) à partir de laquelle les termes de la suite sont ______________ à \\(${s.seuil}\\). » 
+            </p> </div>
+          </div>
+          <div><div id="steps" class="steps"></div></div>
+        </div>
+      `;
+      retypeMath(host); host.__state=s;
+    },
+    check(host){
+      const s=host.__state;
+      const cols=6;
+      let allFilled=true, allOk=true;
+
+      for(let i=0;i<cols;i++){
+        const v = val('d'+i);
+        const ok = v==='' ? null : near(parseNumber(v), (s.D[i]??NaN), 1e-2);
+        tickTri($('#td'+i,host), ok);
+        if(ok===null) allFilled=false; if(ok===false) allOk=false;
+      }
+      const okN = val('nout').trim()==='' ? null : (+val('nout')===s.n);
+      tickTri($('#tn',host), okN); if(okN===null) allFilled=false; if(okN===false) allOk=false;
+
+      const okCmp = ($('#cmp').value==='') ? null : ($('#cmp').value==='le'); // while d>seuil ⇒ on s’arrête à d ≤ seuil
+      tickTri($('#tcmp',host), okCmp); if(okCmp===null) allFilled=false; if(okCmp===false) allOk=false;
+
+      if(allFilled){ SCORE[1]++; if(allOk) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); }
+      return allFilled && allOk;
+
+      function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+    },
+    solution(host){
+      const s=host.__state, W=$('#steps',host);
+      let html = '<div class="steps">';
+      html += `<div class="step">\\(d_0=${s.d0}\\)</div>`;
+      for(let k=1;k<s.D.length;k++){
+        html += `<div class="step">\\(d_{${k}}=${s.r}\\times d_{${k-1}}\\approx ${s.D[k]}\\)</div>`;
+      }
+      html += `<div class="step">Arrêt lorsque \\(d\\le ${s.seuil}\\). Le programme renvoie \\(\\boxed{n=${s.n}}\\).</div>`;
+      html += '</div>';
+      W.innerHTML = html; retypeMath(W);
+    }
+  });
+
+  /* ---------- EXO 4 : Tant que — suite affine jusqu’à un seuil ---------- */
+  L.push({
+    id:'ex4_while_affine',
+    title:'Ex. 4 — Boucle while : suite affine jusqu’à un seuil',
+    gen(){
+      const u0 = rint(1,7);
+      const a  = choice([2,3,4]);
+      const b  = rint(1,7);
+      const T  = rint(60,140);
+      // simulate
+      let U=[u0], n=0;
+      while(U[U.length-1] < T && U.length<20){
+        n++; U.push(a*U[U.length-1] + b);
+      }
+      const code =
+`def seuil():
+    n = 0
+    u = _______
+    while u ___ ${T}:
+        n = n + 1
+        u = _______
+    return n`;
+      return {u0,a,b,T,U,n,code};
+    },
+    render(host,s){
+      const cols=6;
+      host.innerHTML = `
+        <div class="row norepere">
+          <div class="statement">
+            <p>On considère la suite \\((u_n)\\) définie par \\(u_0=${s.u0}\\) et \\(u_{n+1}=${s.a}u_n+${s.b}\\). On cherche la plus petite valeur \\(n\\) à partir de laquelle \\(u_n\\ge ${s.T}\\).</p>
+            <p>1) Compléter le programme :</p>
+            <pre><code>def seuil():
+    n = 0
+    u = ${mkInput('e1',80)} <span id="tE1" class="tick"></span>
+    while u ${mkInput('e2',40)} ${s.T}: <span id="tE2" class="tick"></span>
+        n = n + 1
+        u = ${mkInput('e3',140)} <span id="tE3" class="tick"></span>
+    return n</code></pre>
+
+            <p>2) Faire fonctionner ce programme (quelques itérations) :</p>
+            <table class="tbl" style="margin:.3rem 0 8px">
+              <tr><th>n</th>${Array.from({length:cols},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>u</th>${Array.from({length:cols},(_,i)=>`<td>${mkInput('f'+i,90)} <span id="tf${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+            <p>Valeur renvoyée : \\(n=\\) ${mkInput('fN',80)} <span id="tFN" class="tick"></span></p>
+
+            <div class="equ-offscreen" style="display:none">
+              <p>On considère la suite \\((u_n)\\) définie par \\(u_0=${s.u0}\\) et \\(u_{n+1}=${s.a}u_n+${s.b}\\). On cherche la plus petite valeur \\(n\\) à partir de laquelle \\(u_n\\ge ${s.T}\\).</p>
+            <p>1) Compléter le programme :</p>
+            <pre><code>def seuil():
+    n = 0
+    u = ${mkInput('e1',80)} <span id="tE1" class="tick"></span>
+    while u ${mkInput('e2',40)} ${s.T}: <span id="tE2" class="tick"></span>
+        n = n + 1
+        u = ${mkInput('e3',140)} <span id="tE3" class="tick"></span>
+    return n</code></pre>
+
+            <p>2) Faire fonctionner ce programme (quelques itérations) :</p>
+            <table class="tbl" style="margin:.3rem 0 8px">
+              <tr><th>n</th>${Array.from({length:cols},(_,i)=>`<th>${i}</th>`).join('')}</tr>
+              <tr><th>u</th>${Array.from({length:cols},(_,i)=>`<td>${mkInput('f'+i,90)} <span id="tf${i}" class="tick"></span></td>`).join('')}</tr>
+            </table>
+            <p>Valeur renvoyée : \\(n=\\) </p> </div>
+          </div>
+          <div><div id="steps" class="steps"></div></div>
+        </div>
+      `;
+      retypeMath(host); host.__state=s;
+    },
+    check(host){
+      const s=host.__state;
+      // code
+// code
+const c1 = normPy(val('e1'));
+const c2 = normPy(val('e2'));
+// ---- construire c3 UNE SEULE FOIS, en tolérant "u=" éventuel
+let c3 = normPy(val('e3'));
+c3 = c3.replace(/^u=/,'');   // autorise que l'élève tape "u=..."
+const ok1 = c1==='' ? null : (c1===String(s.u0));
+const ok2 = c2==='' ? null : (c2==='<' || c2==='<=');
+
+// accepter "a*u+b" ou "b+a*u"
+const ok3 = c3==='' ? null :
+  (c3 === `${s.a}*u+${s.b}` || c3 === `${s.b}+${s.a}*u`);
+
+tickTri($('#tE1',host), ok1);
+tickTri($('#tE2',host), ok2);
+tickTri($('#tE3',host), ok3);
+
+      // tableau
+      const cols=6; let allFilled=true, allOk=true;
+      for(let i=0;i<cols;i++){
+        const v = val('f'+i);
+        const ok = v==='' ? null : near(parseNumber(v), (s.U[i]??NaN));
+        tickTri($('#tf'+i,host), ok);
+        if(ok===null) allFilled=false; if(ok===false) allOk=false;
+      }
+      const okN = val('fN').trim()==='' ? null : (+val('fN')===s.n);
+      tickTri($('#tFN',host), okN); if(okN===null) allFilled=false; if(okN===false) allOk=false;
+
+
+      // ticks code (discrets : pas d’IDs visibles dans l’énoncé)
+      // (on pourrait en afficher si tu veux)
+      if(allFilled && ok1!==null && ok2!==null && ok3!==null){
+        SCORE[1]++; if(allOk && ok1 && ok2 && ok3) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]);
+      }
+      return allFilled && allOk && ok1 && ok2 && ok3;
+
+      function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+    },
+    solution(host){
+      const s=host.__state, W=$('#steps',host);
+      const code =
+`def seuil():
+    n = 0
+    u = ${s.u0}
+    while u < ${s.T}:
+        n = n + 1
+        u = ${s.a}*u + ${s.b}
+    return n`;
+      let html = `<pre><code>${code}</code></pre>`;
+      html += '<div class="steps">';
+      html += `<div class="step">\\(u_0=${s.U[0]}\\)</div>`;
+      for(let k=1;k<s.U.length;k++){
+        html += `<div class="step">\\(u_{${k}}=${s.a}\\times u_{${k-1}}+${s.b}=${s.U[k]}\\)</div>`;
+      }
+      html += `<div class="step">Arrêt dès que \\(u_n\\ge ${s.T}\\). Le programme renvoie \\(\\boxed{n=${s.n}}\\).</div>`;
+      html += '</div>';
+      W.innerHTML = html; retypeMath(W);
+    }
+  });
+
+  return L;
+}
+
+/* ====== UI ====== */
+const REGISTRY = makeExos();
+window.REGISTRY = REGISTRY;
+
+function populateSelect(){
+  const sel=$("#exo-select"); if(!sel) return;
+  sel.innerHTML = '';
+  for(const e of REGISTRY){
+    const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o);
+  }
+}
+function renderActive(){
+  const host=$("#host"), sel=$("#exo-select");
+  try{
+    const def=REGISTRY.find(e=>e.id===sel.value) || REGISTRY[0];
+    host.dataset.active=def.id;
+    def.render(host, def.gen());
+    host.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('keydown', ev=>{ if(ev.key==='Enter') $('#btn-check').click(); });
+    });
+    retypeMath(host);
+  }catch(e){
+    host.innerHTML = `<div class="steps" style="color:#b00020"><b>Erreur :</b> ${e.message}</div>`;
+  }
+}
+function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+
+window.addEventListener('load', ()=>{
+  populateSelect();
+  $("#exo-select")?.addEventListener('change', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-new")?.addEventListener('click', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-reset")?.addEventListener('click', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-check")?.addEventListener('click', ()=>{
+    const host=$("#host");
+    const def=REGISTRY.find(e=>e.id===host.dataset.active);
+    if(def?.check) def.check(host);
+  });
+  $("#btn-sol")?.addEventListener('click', ()=>{
+    const host=$("#host");
+    const def=REGISTRY.find(e=>e.id===host.dataset.active);
+    if(def?.solution) def.solution(host);
+  });
+
+  renderActive(); scoreSet(0,0);
+
+  // Init PDF (même position que d’habitude)
+  (function waitForPDF(){
+    if (window.ExoPDF?.init && Array.isArray(window.REGISTRY) && window.REGISTRY.length){
+      ExoPDF.init({
+        title: 'Première — Suites numériques — Python (Pour & Tant que)',
+        max: 50,
+        mountAfterSelector: '#info-saisie',
+        autoPrint: false
+      });
+    } else { setTimeout(waitForPDF, 60); }
+  })();
+});
+})();
+</script>
+<!-- === Console Python 3 panneaux : Éditeur / Console / Sortie === -->
+<style>
+/* === Console Python — CSS consolidé (remplace les doublons) === */
+#py-panel{
+  position: fixed;
+  right: 16px;
+  /* top est fixé par placePanel() en JS */
+  bottom: auto;
+  width: 680px;
+  max-width: 95vw;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 12px 22px rgba(0,0,0,.14);
+  display: none;               /* affiché/masqué par le bouton */
+  flex-direction: column;
+  z-index: 9999;
+  max-height: 80vh;            /* hauteur max raisonnable */
+}
+
+#py-head{
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px; border-bottom: 1px solid #eee;
+}
+#py-head .btn{ border:1px solid #ccc; background:#fff; border-radius:8px; padding:.35rem .6rem; cursor:pointer }
+#py-head .btn:active{ transform: translateY(1px) }
+#py-status{ margin-left: auto }
+
+#py-sections{
+  display: flex;               /* <<< PAS grid */
+  flex-direction: column;
+  min-height: 0;               /* indispensable pour que #py-out puisse grandir */
+}
+
+#py-editor{
+  width: 100%;
+  height: 230px;               /* éditable */
+  min-height: 120px;
+  resize: vertical;
+  border: none; border-bottom: 1px solid #eee;
+  padding: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  outline: none;
+}
+
+#py-repl{ display:flex; gap:8px; align-items:center; padding:8px; border-bottom:1px solid #eee }
+#py-input{
+  flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size:14px;
+}
+
+#py-out{
+  flex: 1 1 auto;              /* prend tout l'espace restant */
+  min-height: 120px;
+  overflow: auto;
+  padding: 10px;
+  background: #0e1116; color:#d6deeb;
+  border-bottom-left-radius:12px; border-bottom-right-radius:12px;
+  white-space: pre-wrap;
+}
+@media (max-width:720px){ #py-panel{ width:96vw } }
+
+</style>
+
+<script>
+(function(){
+  // === 0) Bouton barre d’outils
+  const bar = document.querySelector('.controls');
+  if(bar && !document.getElementById('py-open')){
+    const btn=document.createElement('button');
+    btn.id='py-open'; btn.className='btn'; btn.textContent='▶️ Console Python';
+    bar.insertBefore(btn, bar.children[1]||null);
+  }
+
+  // === 1) Panneau
+  const panel=document.createElement('div');
+  panel.id='py-panel';
+  panel.innerHTML=`
+    <div id="py-head">
+      <strong>Éditeur / Console / Sortie</strong>
+      <button id="py-fill" class="btn">🧩 Préremplir depuis l’exercice</button>
+      <button id="py-run"  class="btn">▶️ Exécuter le code</button>
+      <button id="py-eval" class="btn">⏎ Eval (ligne console)</button>
+      <button id="py-clear" class="btn">🧹 Effacer sortie</button>
+      <div id="py-status">Pyodide : chargement…</div>
+      <button id="py-close" class="btn">✖</button>
+    </div>
+    <div id="py-sections">
+      <textarea id="py-editor" spellcheck="false"
+        placeholder="# Écris ton programme ici (def suite(n): ...)."></textarea>
+      <div id="py-repl">
+        <span><strong>Console</strong> › </span>
+        <input id="py-input" placeholder="ex: suite(5) ou print(suite(5))">
+      </div>
+      <pre id="py-out">[sortie]</pre>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const $ = sel => document.querySelector(sel);
+function placePanel(){
+  const controls = document.querySelector('.controls');
+  if(!controls) return;
+  const r = controls.getBoundingClientRect();
+  const top = Math.round(r.bottom + 8 + window.scrollY);
+  panel.style.top = top + 'px';
+
+  const free = window.innerHeight - (r.bottom + 8);
+  panel.style.maxHeight = Math.max(260, free - 16) + 'px'; // pas de height fixe !
+}
+
+  // === 2) Charger Pyodide (une seule fois)
+  let pyodide=null;
+  async function ensurePy(){
+    if(pyodide) return pyodide;
+    if(!window.loadPyodide){
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+      await new Promise(r=>{ s.onload=r; document.head.appendChild(s); });
+    }
+    pyodide=await loadPyodide({});
+    $('#py-status').textContent='Pyodide : prêt';
+    return pyodide;
+  }
+  $('#py-open')?.addEventListener('click', async ()=>{
+  const btn = document.getElementById('py-open');
+  const isShown = panel.style.display === 'flex';
+  if (isShown) {
+    panel.style.display = 'none';
+    btn?.setAttribute('aria-pressed','false');
+    btn.textContent = '▶️ Console Python';
+  } else {
+    placePanel();                 // <— positionne sous le sélecteur
+    panel.style.display = 'flex';
+    btn?.setAttribute('aria-pressed','true');
+    btn.textContent = '⏹ Fermer la console';
+    await ensurePy();             // charge Pyodide à l’ouverture
+  }
+});
+
+// --- ajuster au scroll / resize (déboursé léger)
+let _placeTO=null;
+function schedulePlace(){
+  clearTimeout(_placeTO);
+  _placeTO = setTimeout(placePanel, 20);
+}
+window.addEventListener('scroll', schedulePlace, {passive:true});
+window.addEventListener('resize', schedulePlace);
+  $('#py-close')?.addEventListener('click', ()=>{ panel.style.display='none'; });
+
+  // === 3) Exécution & capture stdout/stderr
+function appendOut(txt){
+  const el = document.querySelector('#py-out');
+  if (el.textContent.trim() === '[sortie]') el.textContent = ''; // enlève le placeholder
+  el.textContent += (el.textContent ? '\n' : '') + txt;
+  el.scrollTop = el.scrollHeight;
+}
+  async function pyExec(code){
+    await ensurePy();
+    let stdout='', stderr='';
+    pyodide.setStdout({batched:msg=>{stdout+=msg;}});
+    pyodide.setStderr({batched:msg=>{stderr+=msg;}});
+    try{
+      await pyodide.runPythonAsync(code);
+      if(stdout.trim()) appendOut(stdout.trim());
+      if(stderr.trim()) appendOut('[stderr]\\n'+stderr.trim());
+    }catch(e){
+      appendOut('[Erreur] ' + (e?.message || String(e)));
+    }
+  }
+
+  // === 4) Exécuter le contenu de l’éditeur
+  $('#py-run').addEventListener('click', async ()=>{
+    const code=$('#py-editor').value;
+    await pyExec(code);
+  });
+
+  // === 5) Évaluer une ligne console
+  // - si c’est une expression, on affiche repr(expr)
+  // - sinon on exécute comme une instruction (ex: x=3)
+  const hist=[]; let hIdx=-1;
+  $('#py-eval').addEventListener('click', async ()=>{ await runConsoleLine(); });
+  $('#py-input').addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); await runConsoleLine(); }
+    else if(e.key==='ArrowUp'){ if(hist.length){hIdx=Math.max(0,hIdx-1); $('#py-input').value=hist[hIdx]; e.preventDefault();} }
+    else if(e.key==='ArrowDown'){ if(hist.length){hIdx=Math.min(hist.length, hIdx+1); $('#py-input').value=(hIdx>=hist.length?'':hist[hIdx]); e.preventDefault();} }
+  });
+  async function runConsoleLine(){
+    const line=$('#py-input').value.trim();
+    if(!line) return;
+    hist.push(line); hIdx=hist.length;
+    $('#py-input').value='';
+    // essaie eval(...)
+    const wrapper = `
+import builtins
+_res_ = None
+try:
+    _res_ = eval(${JSON.stringify(line)})
+    if _res_ is not None:
+        print(repr(_res_))
+except SyntaxError:
+    exec(${JSON.stringify(line)})
+`;
+    await pyExec(wrapper);
+  }
+
+  // === 6) Effacer sortie
+  $('#py-clear').addEventListener('click', ()=>{ $('#py-out').textContent='[sortie]'; });
+
+  // === 7) Préremplir depuis l’exercice actif (même logique que ta console précédente)
+  function getVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function codeFromExercise(){
+    const host=document.querySelector('#host');
+    const active=host?.dataset?.active||'';
+    const state=host?.__state||{};
+    if(active==='ex1_for_run' && state.code){
+      return state.code + `
+
+`;
+    }
+    if(active==='ex2_recurrence_1'){
+      const u0=state.u0;
+      let init=getVal('c1')||String(u0);
+      let rangeArg=getVal('c2')||'1, n+1';
+      let update=getVal('c3');
+      if(!update){
+        update = (state.mode==='affine')
+          ? `${state.a}*u ${state.b<0?'-':'+'} ${Math.abs(state.b)}`
+          : `${state.kcoef}*u + (k - 1)`;
+      }
+      update = update.replace(/^\s*u\s*=\s*/,''); // tolère "u=..."
+      return (
+`def suite(n):
+    u = ${init}
+    for k in range(${rangeArg}):
+        u = ${update}
+    return u
+
+`);
+    }
+    if(active==='ex3_recurrence_2'){
+      const a=state.a,b=state.b,u0=state.u0,u1=state.u1;
+      return (
+`def termes(u0, u1, N):
+    u=[u0,u1]
+    for _ in range(N-1):
+        u.append(${a}*u[-1] ${b<0?'-':'+'} ${Math.abs(b)}*u[-2])
+    return u
+
+`);
+    }
+	// === EX 3 — seuil géométrique : d_{n+1} = r * d_n, while d > seuil
+if (active === 'ex3_while_threshold' || state?.isSeuilGeo === true || /seuil/i.test((host?.dataset?.activeTitle||'')+ (state?.title||''))) {
+  // on récupère d0, r, seuil depuis les champs si présents, sinon depuis l’état, sinon des défauts
+  const parse = s => {
+    s = (s||'').replace(',', '.').trim();
+    if (/^[-+]?\d+(\.\d+)?$/.test(s)) return Number(s);
+    return null;
+  };
+  const pickNum = (...cands) => {
+    for (const c of cands) {
+      const v = parse(typeof c === 'string' ? c : (c!=null ? String(c) : ''));
+      if (v!=null) return v;
+    }
+    return null;
+  };
+
+  const d0   = pickNum( getVal('d0'), getVal('e1'), state?.d0, state?.u0, 10 );   // ordre: saisie -> state -> défaut 10
+  const r    = pickNum( getVal('r'),  state?.r, 0.8 );                            // défaut 0.8 (décroissance)
+  const seuil= pickNum( getVal('seuil'), getVal('T'), state?.seuil, state?.T, 1 );// défaut 1
+
+  const code =
+`def seuil():
+    n = 0
+    d = ${d0 ?? 10}
+    while d > ${seuil ?? 1}:
+        n = n + 1
+        d = ${r ?? 0.8}*d
+    return n
+`;
+
+  
+  return code;
+}
+
+    if(active==='ex4_while_affine'){
+      const init=getVal('e1')||String(state.u0);
+      const cond=getVal('e2')||'<';
+      const upd=(getVal('e3')||`${state.a}*u + ${state.b}`).replace(/^\s*u\s*=\s*/,'');
+      const T=state.T;
+      return (
+`def seuil():
+    n = 0
+    u = ${init}
+    while u ${cond} ${T}:
+        n = n + 1
+        u = ${upd}
+    return n
+`);
+    }
+    return '# Exercice non pris en charge.';
+  }
+  $('#py-fill').addEventListener('click', ()=>{ $('#py-editor').value = codeFromExercise(); });
+
+  // === 8) Petit “éditeur intelligent” : indentation après ":" + Tab/Shift+Tab + Ctrl/Cmd+Enter
+  (function enhanceEditor(){
+    const ta=$('#py-editor');
+    function insert(text){
+      const s=ta.selectionStart, e=ta.selectionEnd;
+      ta.setRangeText(text, s, e, 'end');
+    }
+    function curLine(){
+      const pos=ta.selectionStart, before=ta.value.slice(0,pos);
+      const ls = before.lastIndexOf('\n')+1;
+      const line = before.slice(ls);
+      const indent = (line.match(/^\s*/)||[''])[0];
+      return {line, indent};
+    }
+    function indentSel(add=true){
+      const start=ta.selectionStart, end=ta.selectionEnd, v=ta.value;
+      const from=v.lastIndexOf('\n',start-1)+1;
+      const to=v.indexOf('\n',end); const endPos=(to===-1?v.length:to);
+      const lines=v.slice(from,endPos).split('\n');
+      const pad='    ';
+      const changed=lines.map(s=> add? pad+s : (s.startsWith('    ')?s.slice(4):s.replace(/^ {1,3}/,''))).join('\n');
+      ta.value = v.slice(0,from)+changed+v.slice(endPos);
+      const delta=changed.length - (endPos-from);
+      ta.setSelectionRange(start+(add?4:0), end+delta);
+    }
+    ta.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#py-run').click(); return; }
+      if(e.key==='Tab'){ e.preventDefault(); if(ta.selectionStart!==ta.selectionEnd) indentSel(!e.shiftKey); else insert('    '); return; }
+      if(e.key==='Enter'){ e.preventDefault(); const {line,indent}=curLine(); const more=/:\s*$/.test(line)?'    ':''; insert('\n'+indent+more); return; }
+    });
+  })();
+})();
+</script>
+
+
+</body>
+</html>

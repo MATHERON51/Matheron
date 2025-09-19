@@ -1,35 +1,1344 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 3 – Introduction 2nd degré</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1STI2D– Chapitre 3 – Polynômes  — Introduction des polynômes et racines</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+
+  .table{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+  .table th{background:#f3f3f6;text-align:left}
+  .table td:last-child,.table th:last-child{text-align:center;white-space:nowrap}
+
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  /* masque noir pour cacher les champs dans l’énoncé PDF */
+  .pdf-mask{display:block;height:14px;background:#000;border-radius:2px}
+
+  @media print{ .controls{display:none !important;} }
+</style>
+
+<!-- MathJax v3 (LaTeX) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
-  <h1>Exercices – Introduction 2nd degré</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Introduction 2nd degré</strong> (Premiere Sti2D, chapitre 3) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-3</code></li>
-        <li>Thème (slug) : <code>introduction-2nd-degre</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1STI2D– Chapitre 3 – Polynômes  — Introduction des polynômes et racines</h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+      </span>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Entrée ⏎ déclenche <b>Vérifier</b>.</li>
+        <li>Si ce n’est pas du second degré, laissez <b>a</b>, <b>b</b>, <b>c</b> vides.</li>
+        <li>Décimales : virgule ou point. Produits implicites acceptés (ex. <code>2x</code>, <code>(x+1)(x-3)</code>).</li>
+        <li>Puissances acceptées : <code>x^2</code>, <code>x ^ 2</code>, <code>x²</code>, <code>x**2</code>, <code>(x)^2</code>, <code>(x+3)^2</code>, <code>(2x)^3</code>…</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- dépendances -->
+  <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
+  <script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+<script>
+(function(){
+'use strict';
+
+/* ========= petits helpers DOM ========= */
+const $=(s,r)=> (r||document).querySelector(s);
+const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]];} return b;};
+
+/* ========= attendre DevRules + algebraicEqual ========= */
+function whenReady(cb){
+  function ok(){return window.DevRules && window.algebraicEqual}
+  if(ok()) return cb();
+  let t=0, i=setInterval(()=>{ if(ok()){clearInterval(i);cb();} else if((t+=50)>6000){clearInterval(i);} },50);
+}
+
+/* ========= LaTeX helpers ========= */
+function fixSigns(s){
+  return String(s)
+    .replace(/\u2212/g,'-')              // U+2212 → ASCII pour LaTeX
+    .replace(/\+\s*-\s*/g, ' - ')
+    .replace(/-\s*\+\s*/g, ' - ')
+    .replace(/-\s*-\s*/g, ' + ')
+    .replace(/\+\s*\+\s*/g, ' + ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+function typesetAll(root){
+  const run = () => MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise){
+    MathJax.startup.promise.then(run);
+  } else {
+    const t=setInterval(()=>{ if(window.MathJax && MathJax.typesetPromise){ clearInterval(t); run(); } },60);
+  }
+}
+function powLatex(p){
+  if(p===0) return '';
+  if(p===1) return 'x';
+  return 'x^{' + p + '}';
+}
+function monoLatex(c,p,opt){
+  opt = opt||{};
+  const A = Math.abs(c);
+  const body = (p===0 ? String(A) : (A===1 ? powLatex(p) : (A + powLatex(p))));
+  let s = (c<0? '-' : '') + body;
+  // Si c<0 ET on est un facteur : on parenthèse à droite (géré par appelant au besoin)
+  return s;
+}
+function monoLatexAbs(c,p){ return monoLatex(Math.abs(c), p, {omitOne:true}); }
+function polyLatexNoOne(poly){
+  var out=[], first=true;
+  for(var p=poly.length-1;p>=0;p--){
+    var c=poly[p]; if(!c) continue;
+    var seg = monoLatex(c,p,{omitOne:true});
+    out.push(first ? ((c<0? '-' : '')+seg) : ((c<0? ' - ' : ' + ')+seg));
+    first=false;
+  }
+  return fixSigns(out.length? out.join(''):'0');
+}
+function polyLatexDesc(P){
+  let out=[], first=true;
+  for(let p=P.length-1; p>=0; p--){
+    const c=P[p]; if(!c) continue;
+    const A=Math.abs(c);
+    const seg = (p===0 ? String(A) : (A===1 ? powLatex(p) : (A+powLatex(p))));
+    out.push(first ? (c<0?('-'+seg):seg) : (c<0?(' - '+seg):(' + '+seg)));
+    first=false;
+  }
+  return out.length ? fixSigns(out.join('')) : '0';
+  }
+function L(tex){ return '\\( '+fixSigns(tex)+' \\)'; }
+function parenIfNegNum(n){ return n<0 ? ('\\left('+n+'\\right)') : String(n); }
+function sumTermsLatex(terms){
+  // terms: [{c,p}]
+  const items=[];
+  let first=true;
+  for(const t of terms||[]){
+    if(!t || !t.c) continue;
+    const c=t.c, p=t.p;
+    const A=Math.abs(c);
+    const seg = (p===0 ? String(A) : (A===1? powLatex(p) : (A+powLatex(p))));
+    const pref = first ? (c<0? '-' : '') : (c<0? ' - ' : ' + ');
+    items.push(pref + seg);
+    first=false;
+  }
+  return items.length? items.join('') : '0';
+}
+// ==== Clé canonique pour un polynôme (pour comparer) ====
+function polyKey(P){
+  const Q = (P||[]).slice();
+  while (Q.length && !Q[Q.length-1]) Q.pop(); // supprime les zéros de fin
+  return Q.map(x => String(x)).join(',');
+}
+function polyToExpr(P){
+  const terms = [];
+  for (let p = P.length - 1; p >= 0; p--){
+    const c = P[p] || 0; if (!c) continue;
+    const A = Math.abs(c);
+    const seg = (p === 0)
+      ? String(A)
+      : (A === 1 ? 'x' + (p === 1 ? '' : '^' + p) : (A + 'x' + (p === 1 ? '' : '^' + p)));
+    terms.push((c < 0 ? ' - ' : (terms.length ? ' + ' : '')) + seg);
+  }
+  return terms.join('').trim() || '0';
+}
+// ==== Tirage sans doublons (re-tente jusqu’à 'maxTry' fois) ====
+function pushUnique(arr, keySet, item, key){
+  const k = key(item);
+  if (keySet.has(k)) return false;
+  keySet.add(k); arr.push(item); return true;
+}
+
+/* ========= PDF (table clone) ========= */
+function setColWidth(td, mm){ td.style.width = mm+'mm'; td.style.maxWidth = mm+'mm'; }
+function cloneTableForPDF(root){
+  const t = root.querySelector('.table'); if(!t) return '';
+  const clone = t.cloneNode(true);
+
+  // style général
+  Object.assign(clone.style, { borderCollapse:'collapse', border:'1px solid #000', tableLayout:'fixed', width:'100%' });
+  clone.querySelectorAll('th,td').forEach(td=>{ td.style.border='1px solid #000'; td.style.verticalAlign='top'; });
+
+  // retirer la dernière colonne "Valider"
+  let ths = Array.from(clone.querySelectorAll('thead th'));
+  if (ths.length) ths.at(-1).remove();
+  clone.querySelectorAll('tbody tr').forEach(tr=>{
+    const cells = Array.from(tr.children);
+    if (cells.length) cells.at(-1).remove();
+    // masquer les champs interactifs
+    Array.from(tr.children).forEach(td=>{
+      if (td.querySelector('input,select,button')) td.innerHTML = '<span class="pdf-mask"></span>';
+    });
+  });
+
+  // ======= largeurs par nombre de colonnes =======
+  const head = clone.querySelector('thead tr');
+  const cols = head ? head.children.length : 0;
+
+  // gabarits en millimètres (à ajuster si tu veux)
+  let widthsMM;
+  switch (cols) {
+    case 2: // EXO 5 : P(x) | Racines réelles
+      widthsMM = [140, 50];      // grande place pour la formule, champ réponse plus étroit
+      break;
+    case 3: // EXO 4 : a.| P(x) | Racine évidente
+      widthsMM = [10, 130, 50];
+      break;
+    case 4: // EXO 3 : a.| P(x) | Nombre | Racine ?
+      widthsMM = [10, 110, 40, 30];
+      break;
+    case 6: // EXO 1/2 : a.| Expression | Développement | a | b | c
+      widthsMM = [10, 110, 70, 18, 18, 18];
+      break;
+    default: // fallback : répartition douce
+      widthsMM = new Array(cols).fill(100/Math.max(cols,1));
+  }
+
+  // appliquer les largeurs
+  if (head){
+    const H = Array.from(head.children);
+    H.forEach((th,i)=>{ th.style.width = widthsMM[i]+'mm'; th.style.maxWidth = widthsMM[i]+'mm'; });
+  }
+  clone.querySelectorAll('tbody tr').forEach(tr=>{
+    const TD = Array.from(tr.children);
+    TD.forEach((td,i)=>{ td.style.width = widthsMM[i]+'mm'; td.style.maxWidth = widthsMM[i]+'mm'; td.style.overflow='hidden'; });
+  });
+
+  return clone.outerHTML;
+}
+
+
+/* ========= util polynômes ========= */
+function polyEval(P,x){ let s=0, p=1; for(let i=0;i<P.length;i++){ s+= (P[i]||0)*p; p*=x; } return s; }
+function polyFromRoots(roots, a=1){
+  let P=[a]; // constant a
+  for(const r of roots){
+    const L=[-r,1]; // (x - r)
+    P = DevRules.polyMul(P,L);
+  }
+  return P;
+}
+function degOf(P){for(let p=P.length-1;p>=0;p--){if(P[p])return p}return 0}
+function degreePhraseFr(it){
+  const P = it.poly || [];
+  const d = degOf(P);
+
+  if (d === 0) {
+    return 'La fonction f est constante.';
+  }
+
+  if (d === 1) {
+    const isLinear = (P[0] || 0) === 0; // terme constant nul → linéaire
+    return 'La fonction f est ' + (isLinear ? 'linéaire' : 'affine') + '.';
+  }
+
+  if (d === 2) {
+    const a = (it.a != null) ? it.a : (P[2] || 0);
+    const b = (it.b != null) ? it.b : (P[1] || 0);
+    const c = (it.c != null) ? it.c : (P[0] || 0);
+    // a, b, c : tout en LaTeX (lettre, =, et nombre)
+    return 'Le polynôme est de degré 2 avec  '
+         + L(': a = ' + a) + ', '
+         + L(': b = ' + b) + ', '
+         + L(': c = ' + c) + '.';
+  }
+
+  return 'Le polynôme est de degré ' + d + '.';
+}
+// ----- Anti-doublons (comparaison "visuelle") -----
+function dedupConsecutive(lines){
+  const norm = s => fixSigns(String(s).replace(/\s+/g,' ').trim());
+  const out = [];
+  for (const s of lines){
+    if (out.length && norm(out[out.length-1]) === norm(s)) continue; // saute le doublon
+    out.push(s);
+  }
+  return out;
+}
+
+// ===== Détails propres pour P(k) — parenthèses sur facteur négatif en multiplication, "P(k) =" à chaque ligne =====
+
+// k^p : parenthèses seulement si k<0 et p>=2 (règle puissance)
+function powerTex(k, p){
+  if (p === 0) return '1';
+  if (p === 1) return String(k); // jamais ^1
+  const base = (k < 0) ? `\\left(${k}\\right)` : String(k);
+  return `${base}^{${p}}`;
+}
+
+// pour l'ARGUMENT d'une multiplication : parenthèses si le NOMBRE est négatif
+function mulArgTex(n){
+  return (n < 0) ? `\\left(${n}\\right)` : String(n);
+}
+
+// pour l'ARGUMENT "x remplacé par k" avant évaluation :
+// - si p>=2 : on utilise powerTex(k,p) (gère les parenthèses pour base négative)
+// - si p=1  : si k<0 et on est en multiplication → parenthèses autour de k
+function subArgForMul(k, p){
+  if (p >= 2) return powerTex(k, p);
+  // p === 1
+  return (k < 0) ? `\\left(${k}\\right)` : String(k);
+}
+
+// Monôme c*x^p après SUBSTITUTION : {sign: +1|-1, body: "…"} (pas de +- / --)
+function monomeSubPart(c, k, p){
+  if (p === 0){
+    const sgn = Math.sign(c) || 1;
+    const body = String(Math.abs(c));
+    return { sign: sgn, body };
+  }
+  if (c === 1)  return { sign: +1, body: powerTex(k, p) };
+  if (c === -1) return { sign: -1, body: powerTex(k, p) };
+  const sgn = (c < 0 ? -1 : +1);
+  const body = `${Math.abs(c)}\\times ${subArgForMul(k, p)}`; // p=1 & k<0 → (k)
+  return { sign: sgn, body };
+}
+
+// Monôme c*x^p après ÉVALUATION numérique : {sign, body, val}
+// Ici on multiplie des NOMBRES : on parenthèse le facteur négatif
+function monomeEvalPart(c, k, p){
+  const pow = Math.pow(k, p);
+  const val = c * pow;
+  const sgn = (val < 0 ? -1 : +1);
+  if (p === 0){
+    return { sign: sgn, body: String(Math.abs(val)), val };
+  }
+  const A = Math.abs(c);
+  const Btex = mulArgTex(pow); // pow<0 → (pow)
+  if (A === 1){
+    // pas de "1×"
+    return { sign: sgn, body: Btex, val };
+  }
+  return { sign: sgn, body: `${A}\\times ${Btex}`, val };
+}
+
+// Joint proprement des morceaux signés (jamais "+-", "-+", "--")
+function joinSigned(parts){
+  const segs = [];
+  parts.forEach((t, i) => {
+    const sep = (i === 0) ? (t.sign < 0 ? '− ' : '') : (t.sign < 0 ? ' − ' : ' + ');
+    segs.push(sep + t.body);
+  });
+  return segs.join('');
+}
+
+// Construit les lignes, toutes préfixées par "P(k) ="
+function stepsForPk(P, k){
+  // termes non nuls, degré décroissant
+  const terms = [];
+  for (let p = P.length - 1; p >= 0; p--){
+    const c = P[p] || 0;
+    if (c) terms.push({ c, p });
+  }
+
+  // Ligne 1 : P(x) = …
+  const lineExpr = L('P(x) = ' + polyLatexDesc(P));
+
+  // Substitution
+  const subs  = terms.map(t => monomeSubPart(t.c, k, t.p));
+  const l2    = `P(${k}) = ${joinSigned(subs)}`;
+
+  // Produits numériques
+  const evals = terms.map(t => monomeEvalPart(t.c, k, t.p));
+  const l3    = `P(${k}) = ${joinSigned(evals)}`;
+
+  // Somme des nombres
+  const nums  = evals.map(e => ({ sign: e.val < 0 ? -1 : +1, body: String(Math.abs(e.val)) }));
+  const l4    = `P(${k}) = ${joinSigned(nums)}`;
+
+  // Total
+  const total = evals.reduce((s, e) => s + e.val, 0);
+  const l5    = `P(${k}) = ${total}`;
+
+const lines = dedupConsecutive([ lineExpr, L(l2), L(l4), L(l5) ]);
+  return { lines, value: total };}
+
+
+
+/* ===================== Exercice 1 ===================== */
+const ex1={
+  id:'p1',
+  title:'Identifier les trinômes et donner a, b, c',
+ gen(){
+  const items = [];
+  const keys  = new Set();
+
+  function mkQuad(){
+    let a=choice([-3,-2,-1,1,2,3]);
+    let b=rnd(-6,6), c=rnd(-6,6);
+    const P=[]; P[0]=c; P[1]=b; P[2]=a;
+    return {isQuad:true,a,b,c,poly:P};
+  }
+  function mkNonQuad(){
+    const d = choice([0,1,3,4,5]);
+    const P = Array(d+1).fill(0).map(()=>rnd(-6,6));
+    if (d===2){ P[Math.random()<0.5?0:2]=0; } // pas un vrai trinôme
+    return {isQuad:false,poly:P};
+  }
+  function unorderedTex(P){
+    const terms=[]; for(let p=0;p<P.length;p++){ const c=P[p]||0; if(c) terms.push({c,p}); }
+    if(!terms.length) return '0';
+    let sh=terms.slice().sort(()=>Math.random()-.5);
+    // éviter par hasard l'ordre strict décroissant (on mélange à nouveau si besoin)
+    let tries=4;
+    while(tries--){
+      const desc = sh.every((t,i)=>i===0||sh[i-1].p>t.p);
+      if (!desc) break; sh=terms.slice().sort(()=>Math.random()-.5);
+    }
+    let out=[], first=true;
+    for(const t of sh){
+      const A=Math.abs(t.c);
+      const seg=(t.p===0?String(A):(A===1?powLatex(t.p):(A+powLatex(t.p))));
+      out.push(first?(t.c<0?('-'+seg):seg):(t.c<0?(' - '+seg):(' + '+seg)));
+      first=false;
+    }
+    return fixSigns(out.join(''));
+  }
+
+  // on veut 6 lignes, mélange quad / non-quad sans doublons de polynôme
+  let tries=0;
+  while(items.length<6 && tries<200){
+    tries++;
+    const it = (items.length<3 ? mkQuad() : (Math.random()<0.5?mkQuad():mkNonQuad()));
+    const ok  = pushUnique(items, keys, it, x => (x.isQuad?'Q|':'N|')+polyKey(x.poly||[]));
+    if (ok) it.exprTex = unorderedTex(it.poly||[]);
+  }
+  return {items};
+},
+
+  render(host,st){
+    host.innerHTML=[
+      '<div>Dans chaque cas, dire si c’est un polynôme de degré 2. ',
+      'Si Oui, donner \\(a\\), \\(b\\) et \\(c\\). Sinon, laisser \\(a\\), \\(b\\), \\(c\\) vides.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression</th><th>Trinôme ?</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      (st.items||[]).map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td class="expr">${L('f(x) = ' + it.exprTex)}</td>
+          <td>
+  <select class="yn">
+    <option value="" selected>—</option>
+    <option>Oui</option>
+    <option>Non</option>
+  </select>
+</td>
+          <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx1(host,tr,true);
+    });
+    typesetAll(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0; $$('.table tbody tr',host).forEach(tr=>{ const r=checkRowEx1(host,tr,true); if(r){ ok+=r.ok; tot+=r.total; }});
+    $('#res',host).innerHTML = `<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    typesetAll(host);
+    return {ok,total:tot};
+  },
+  solution(host,st){
+    const items=(st&&st.items)||[];
+    const html = items.map((it,i)=>{
+      const src = it.exprTex;
+      const ord = polyLatexDesc(it.poly||[]);
+      const lines = [
+        `<div class="step">${L('f(x) = '+src)}</div>`,
+        `<div class="step">${L('f(x) = '+ord)}</div>`,
+        `<div class="step">${degreePhraseFr(it)}</div>`
+		];
+      const dedup = lines.filter((s,idx,a)=> idx===0 || s!==a[idx-1]);
+      return `<div class="step" style="margin-top:.25rem"><strong>(${String.fromCharCode(97+i)})</strong></div>` + dedup.join('');
+    }).join('');
+
+    $('#res',host).innerHTML = `<div class="steps">${html}</div>`;
+    typesetAll($('#res',host));
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+function checkRowEx1(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i;
+  const it=st.items && st.items[i]; if(!it) return null;
+  const yn=$('.yn',row).value;
+  const a=$('.a',row).value.trim(), b=$('.b',row).value.trim(), c=$('.c',row).value.trim();
+
+  if (yn===''){ row.style.outline=''; return null; } // ⇦ non renseigné → on ignore
+
+  const answered=(yn==='Non' && !a && !b && !c) || (yn==='Oui' && a!=='' && b!=='' && c!=='');
+  if(!answered){ row.style.outline=''; return null; }
+
+  let good=false;
+  if(yn==='Non') good = !it.isQuad && !a && !b && !c;
+  if(yn==='Oui') good = it.isQuad && (+a===it.a && +b===it.b && +c===it.c);
+  row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+// Marque une étape pour ne pas l’afficher dans la solution
+function omitStep(s){ return { __omit: true, text: s }; }
+
+/* ===================== Exercice 2 ===================== */
+const ex2={
+  id:'p2',
+  title:'Développer 6 expressions (si trinôme, donner a, b, c)',
+  gen(){
+    const cases=[];
+    const UMIN = '-';
+
+    /* 1) (ax+b)(cx+d) — degré 2 — version détaillée */
+    (function(){
+      let a = rnd(-5,5); while(a===0) a = rnd(-5,5);
+      let c = rnd(-5,5); while(c===0) c = rnd(-5,5);
+      const b = rnd(-5,5), d = rnd(-5,5);
+      const A=[b,a], B=[d,c];
+      const P = DevRules.polyMul(A,B);
+
+      const ax = (a===1? 'x' : (a===-1? '-x' : (a+'x')));
+      const bx = (b===0? '' : ((b>0?' + ':' - ') + Math.abs(b)));
+      const Btex = polyLatexDesc(B);
+
+      let step2 = `f(x) = ${ax}\\,\\big(${Btex}\\big)`;
+      if (b !== 0){
+        const bfac = (Math.abs(b)===1? '' : String(Math.abs(b)));
+        step2 += (b>0? ' + ' : ' - ') + bfac + `\\,\\big(${Btex}\\big)`;
+      }
+
+      const four = [
+        {c:a*c, p:2},
+        {c:a*d, p:1},
+        {c:b*c, p:1},
+        {c:b*d, p:0}
+      ];
+
+      const steps = [
+  `f(x) = \\big(${polyLatexDesc(A)}\\big)\\,\\big(${Btex}\\big)`,
+  omitStep(step2),                        // ⟵ masque la ligne ax(…)+b(…)
+  `f(x) = ${sumTermsLatex(four)}`,
+  `f(x) = ${polyLatexDesc(P)}`
+];
+
+
+      cases.push({ isQuad:true, poly:P, tex:`\\big(${polyLatexDesc(A)}\\big)\\,\\big(${Btex}\\big)`, steps });
+    })();
+
+    /* 2) (ax+b)^2 − (ax−b)^2 — degré 1 */
+    (function(){
+      let a = rnd(-5,5); while(a===0) a = rnd(-5,5);
+      let b = rnd(-5,5); while(b===0) b = rnd(-5,5);
+      const A=[b,a], B=[-b,a];
+      const A2=DevRules.polyMul(A,A), B2=DevRules.polyMul(B,B);
+      const P=[0, 4*a*b];
+
+      const six = [
+        {c:a*a,p:2},{c:2*a*b,p:1},{c:b*b,p:0},
+        {c:-a*a,p:2},{c:2*a*b,p:1},{c:-b*b,p:0}
+      ];
+
+      const steps = [
+        `f(x) = \\big(${polyLatexDesc(A)}\\big)^{2} - \\big(${polyLatexDesc(B)}\\big)^{2}`,
+        `f(x) = \\big(${polyLatexDesc(A2)}\\big) - \\big(${polyLatexDesc(B2)}\\big)`,
+        `f(x) = ${sumTermsLatex(six)}`,
+        `f(x) = ${polyLatexDesc(P)}`
+      ];
+
+      cases.push({ isQuad:false, poly:P, tex:`\\big(${polyLatexDesc(A)}\\big)^{2} - \\big(${polyLatexDesc(B)}\\big)^{2}`, steps });
+    })();
+
+    /* 3) k(x+p)^2 + (l x + m) — degré 2 */
+    (function(){
+// k ≠ 0 et k ≠ 1 (k = -1 reste autorisé)
+      let k = rnd(-5,5); while(k===0 || k===1) k = rnd(-5,5);      
+	  let p = rnd(-5,5); while(p===0) p = rnd(-5,5);
+      const l = rnd(-5,5), m = rnd(-5,5);
+
+      const A=[p,1], B=[m,l];
+      const A2=DevRules.polyMul(A,A);
+      const P=[k*p*p + m, 2*k*p + l, k];
+
+      const five = [
+        {c:k, p:2},
+        {c:2*k*p, p:1},
+        {c:k*p*p, p:0},
+        {c:l, p:1},
+        {c:m, p:0}
+      ];
+
+      const ktex = (k===-1? '-' : String(k));
+      const steps = [
+        `f(x) = ${ktex}\\,\\big(${polyLatexDesc(A)}\\big)^{2} + \\big(${polyLatexDesc(B)}\\big)`,
+        `f(x) = ${ktex}\\,\\big(${polyLatexDesc(A2)}\\big) + \\big(${polyLatexDesc(B)}\\big)`,
+        `f(x) = ${sumTermsLatex(five)}`,
+        `f(x) = ${polyLatexDesc(P)}`
+      ];
+
+      cases.push({ isQuad:true, poly:P, tex:`${ktex}\\,\\big(${polyLatexDesc(A)}\\big)^{2} + \\big(${polyLatexDesc(B)}\\big)`, steps });
+    })();
+
+    /* 4) (x+u)(x+v)(x+w) — degré 3 */
+    (function(){
+      const u=rnd(-5,5), v=rnd(-5,5), w=rnd(-5,5);
+      const A=[u,1], B=[v,1], C=[w,1];
+      const AB=DevRules.polyMul(A,B);
+      const P=DevRules.polyMul(AB,C);
+
+      const uv=u*v, uPv=u+v;
+      let step3 = `f(x) = x^{2}\\,\\big(${polyLatexDesc(C)}\\big)`;
+      if (uPv!==0) step3 += (uPv>0?' + ':' - ') + (Math.abs(uPv)===1?'x':(Math.abs(uPv)+'x')) + `\\,\\big(${polyLatexDesc(C)}\\big)`;
+      if (uv)      step3 += (uv>0?' + ':' - ') + parenIfNegNum(Math.abs(uv)) + `\\,\\big(${polyLatexDesc(C)}\\big)`;
+
+      const six = [
+        {c:1, p:3},
+        {c:w, p:2},
+        {c:u+v, p:2},
+        {c:(u+v)*w, p:1},
+        {c:u*v, p:1},
+        {c:u*v*w, p:0}
+      ];
+
+     const steps = [
+  `f(x) = \\big(${polyLatexDesc(A)}\\big)\\,\\big(${polyLatexDesc(B)}\\big)\\,\\big(${polyLatexDesc(C)}\\big)`,
+  `f(x) = \\big(${polyLatexDesc(AB)}\\big)\\,\\big(${polyLatexDesc(C)}\\big)`,
+  omitStep(step3),                        // ⟵ masque x²(…)+(u+v)x(…)+uv(…)
+  `f(x) = ${sumTermsLatex(six)}`,
+  `f(x) = ${polyLatexDesc(P)}`
+];
+
+
+      cases.push({ isQuad:false, poly:P, tex:`\\big(${polyLatexDesc(A)}\\big)\\,\\big(${polyLatexDesc(B)}\\big)\\,\\big(${polyLatexDesc(C)}\\big)`, steps });
+    })();
+
+    /* 5) (ax+u-b)^2 + (ax-u-b)^2 — degré 2 (via d1, d2) */
+    (function(){
+      let a=rnd(-5,5); while(a===0) a=rnd(-5,5);
+      let u=rnd(-5,5);
+      let b=rnd(-5,5); while(b===u || b===-u) b=rnd(-5,5);
+
+      const d1=u-b, d2=-(u+b);
+      const L1=[d1,a], L2=[d2,a];
+      const L1sq=DevRules.polyMul(L1,L1), L2sq=DevRules.polyMul(L2,L2);
+      const P=[ 2*(u*u + b*b), -4*a*b, 2*a*a ];
+
+      const six = [
+        {c:a*a,p:2},{c:2*a*d1,p:1},{c:d1*d1,p:0},
+        {c:a*a,p:2},{c:2*a*d2,p:1},{c:d2*d2,p:0}
+      ];
+
+      const steps = [
+        `f(x) = \\big(${polyLatexDesc(L1)}\\big)^{2} + \\big(${polyLatexDesc(L2)}\\big)^{2}`,
+        `f(x) = \\big(${polyLatexDesc(L1sq)}\\big) + \\big(${polyLatexDesc(L2sq)}\\big)`,
+        `f(x) = ${sumTermsLatex(six)}`,
+        `f(x) = ${polyLatexDesc(P)}`
+      ];
+
+      cases.push({ isQuad:true, poly:P, tex:`\\big(${polyLatexDesc(L1)}\\big)^{2} + \\big(${polyLatexDesc(L2)}\\big)^{2}`, steps });
+    })();
+
+    /* 6) (x+u)^2 (x+v)^2 — degré 4 */
+    (function(){
+      const u=rnd(-3,3), v=rnd(-3,3);
+      const A=[u,1], B=[v,1];
+      const A2=DevRules.polyMul(A,A), B2=DevRules.polyMul(B,B);
+      const P=DevRules.polyMul(A2,B2);
+
+      const B2tex=polyLatexDesc(B2);
+      const sCoeff = (k, monome) => {
+        const s = k>=0 ? ' + ' : ' - ';
+        const A=Math.abs(k);
+        return s + (A===1 && monome ? monome : (A + (monome||'')));
+      };
+      let step4 = `f(x) = x^{2}\\,\\big(${B2tex}\\big)`;
+      if (2*u) step4 += sCoeff(2*u, 'x') + `\\,\\big(${B2tex}\\big)`;
+      if (u*u) step4 += sCoeff(u*u,  '') + `\\,\\big(${B2tex}\\big)`;
+
+      const nine = [
+        {c:1,p:4},{c:2*v,p:3},{c:v*v,p:2},
+        {c:2*u,p:3},{c:4*u*v,p:2},{c:2*u*v*v,p:1},
+        {c:u*u,p:2},{c:2*u*u*v,p:1},{c:u*u*v*v,p:0}
+      ];
+
+      const steps = [
+  `f(x) = \\big(${polyLatexDesc(A)}\\big)^{2}\\,\\big(${polyLatexDesc(B)}\\big)^{2}`,
+  `f(x) = \\big(${polyLatexDesc(A2)}\\big)\\,\\big(${polyLatexDesc(B2)}\\big)`,
+  omitStep(step4),                        // ⟵ masque la grande ligne de distribution
+  `f(x) = ${sumTermsLatex(nine)}`,
+  `f(x) = ${polyLatexDesc(P)}`
+];
+
+
+      cases.push({ isQuad:false, poly:P, tex:`\\big(${polyLatexDesc(A)}\\big)^{2}\\,\\big(${polyLatexDesc(B)}\\big)^{2}`, steps });
+    })();
+
+    cases.sort(()=>Math.random()-.6);
+
+// on sélectionne 6 CAS SANS DOUBLONS de polynôme développé
+const picked = [];
+const K = new Set();
+for (const it of cases){
+  const key = 'P|'+polyKey(it.poly||[]);
+  if (!K.has(key)){ K.add(key); picked.push(it); }
+  if (picked.length===6) break;
+}
+
+// si on n'en a pas 6 (rare), on régénère quelques cas
+let safety=0;
+while (picked.length<6 && safety<60){
+  safety++;
+  const pool = [0,1,2,3,4,5];
+  const idx = choice(pool);
+  // Recrée un cas en rejouant la IIFE correspondante
+  // Astuce rapide : ré-appelle gen() récursivement et pioche dedans
+  const regen = (function(){ const g = ex2.gen(); return g.cases; })();
+  for (const it of regen){
+    const key = 'P|'+polyKey(it.poly||[]);
+    if (!K.has(key)){ K.add(key); picked.push(it); if(picked.length===6) break; }
+  }
+}
+// ⚙️ Renseigne a, b, c pour les quadratiques (sinon checkRowEx2 échoue)
+picked.forEach(it => {
+  const P = it.poly || [];
+  const d = degOf(P);
+  if (d === 2) {
+    it.isQuad = true;
+    it.a = P[2] || 0;
+    it.b = P[1] || 0;
+    it.c = P[0] || 0;
+  }
+});
+
+return {cases: picked};
+
+  },
+  render(host,st){
+    host.innerHTML=[
+      '<div>Pour chaque expression : développer et réduire. Si le résultat est un trinôme, indiquer \\(a\\), \\(b\\), \\(c\\). Sinon, laisser \\(a\\), \\(b\\), \\(c\\) vides.</div>',
+      '<table class="table"><thead><tr><th></th><th>Expression</th><th>Développement</th><th>a</th><th>b</th><th>c</th><th>Valider</th></tr></thead><tbody>',
+      (st.cases||[]).map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td class="expr">${L('f(x) = '+it.tex)}</td>
+          <td><input class="dev" type="text" placeholder="forme développée"/></td>
+          <td><input class="a" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="b" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><input class="c" type="text" inputmode="numeric" style="width:70px"></td>
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx2(host,tr,true);
+    });
+    typesetAll(host);
+  },
+  correct(host,st){
+    const rows=$$('.table tbody tr',host); let ok=0, tot=0;
+    rows.forEach(tr=>{ const r=checkRowEx2(host,tr,true); if(r){ok+=r.ok; tot+=r.total;} });
+    $('#res',host).innerHTML=`<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    typesetAll(host);
+    return {ok,total:tot};
+  },
+  solution(host,st){
+    const arr=(st&&st.cases)||[];
+    const S = arr.map((it,i)=>{
+      
+const raw = it.steps || [];
+
+// 1) on enlève les étapes marquées {__omit:true}
+const kept = raw
+  .filter(s => !(s && typeof s === 'object' && s.__omit))
+  .map(s => (typeof s === 'string' ? s : s.text));
+
+// 2) normalisation + dédoublonnage
+const norm  = kept.map(s => fixSigns(s));
+const dedup = norm.filter((s, i, a) => i === 0 || s !== a[i - 1]);
+
+// 3) rendu
+const chain = dedup.map(s => `<div class="step">${L(s)}</div>`).join('');
+      const end = `<div class="step">${degreePhraseFr(it)}</div>`;
+
+      return `<div class="step" style="margin-top:.25rem"><strong>${String.fromCharCode(97+i)})</strong></div>${chain}${end}`;
+    }).join('');
+    $('#res',host).innerHTML=`<div class="steps">${S}</div>`;
+    typesetAll($('#res',host));
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+function checkRowEx2(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i;
+  const ex=st.cases&&st.cases[i]; if(!ex){ row.style.outline=''; return null; }
+
+  // saisie élève
+  const raw = $('.dev',row).value || '';
+  let dev = raw.replace(/\u2212/g,'-').trim();
+  if(!dev){ row.style.outline=''; return null; }
+
+  // tolère "f(x)=", "P(x)=", "y="
+  dev = dev.replace(/^(?:[fFpP]\s*\(\s*x\s*\)|y)\s*=\s*/,'').trim();
+
+  const a=$('.a',row).value.trim(), b=$('.b',row).value.trim(), c=$('.c',row).value.trim();
+
+  // 1) test natif poly ↔ expr
+  let good = false;
+  try{ good = equalPolyVsExpr(ex.poly, dev); }catch(_){ good = false; }
+
+  // 2) fallback robuste : expr ↔ expr avec algebraicEqual (produits implicites OK)
+  if(!good && window.algebraicEqual){
+    const target = polyToExpr(ex.poly); // ex. "8x"
+    try{ good = algebraicEqual(dev, target); }catch(_){ /* ignore */ }
+  }
+
+  // Progressif : si trinôme non encore rempli → on ignore
+  if(ex.isQuad){
+    const filled = (a!=='' && b!=='' && c!=='');
+    if(!filled){ row.style.outline=''; return null; }
+    good = good && (+a===ex.a && +b===ex.b && +c===ex.c);
+  }else{
+    good = good && (!a && !b && !c);
+  }
+
+  row.style.outline = good ? '2px solid #11823b55' : '2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+/* ===================== Exercice 3 ===================== */
+const ex3={
+  id:'p3',
+  title:'Ce nombre est-il une racine ? (deg 2 ↔ 3, 50/50)',
+  gen(){
+  const ROOTS=[-3,-2,-1,0,1,2,3];
+  const rows=[];
+  const keys=new Set();
+
+  function addUnique(d, P, k, isRoot){
+    return pushUnique(rows, keys, {deg:d,P,k,isRoot}, it => polyKey(it.P)+'|k='+it.k);
+  }
+
+  const degs = shuffle([2,3,2,3,2,3]);
+  let tries=0;
+
+  // YES (3)
+  for(let i=0;i<3;i++){
+    tries=0;
+    while(tries++<60){
+      const d=degs[i];
+      if(d===2){
+        const r1=choice(ROOTS), r2=choice(ROOTS);
+        const a=choice([-2,-1,1,2]);
+        const P=polyFromRoots([r1,r2],a);
+        const k=choice([r1,r2]);
+        if(addUnique(d,P,k,true)) break;
+      }else{
+        const r1=choice(ROOTS), r2=choice(ROOTS), r3=choice(ROOTS);
+        const a=choice([-1,1]);
+        const P=polyFromRoots([r1,r2,r3],a);
+        const k=choice([r1,r2,r3]);
+        if(addUnique(d,P,k,true)) break;
+      }
+    }
+  }
+  // NO (3)
+  for(let i=0;i<3;i++){
+    tries=0;
+    while(tries++<80){
+      const d=degs[3+i];
+      let P,k;
+      if(d===2){
+        const r1=choice(ROOTS), r2=choice(ROOTS);
+        const a=choice([-2,-1,1,2]);
+        P=polyFromRoots([r1,r2],a);
+        do{ k=choice(ROOTS); }while(polyEval(P,k)===0);
+      }else{
+        const r1=choice(ROOTS), r2=choice(ROOTS), r3=choice(ROOTS);
+        const a=choice([-1,1]);
+        P=polyFromRoots([r1,r2,r3],a);
+        do{ k=choice(ROOTS); }while(polyEval(P,k)===0);
+      }
+      if(addUnique(d,P,k,false)) break;
+    }
+  }
+  return {rows};
+},
+
+  render(host,st){
+    host.innerHTML=[
+      '<div>Dire si le nombre proposé est une <strong>racine</strong> du polynôme donné.</div>',
+      '<table class="table"><thead><tr><th></th><th>\\(P(x)\\)</th><th>Nombre</th><th>Racine ?</th><th>Valider</th></tr></thead><tbody>',
+      st.rows.map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td>${L('P(x)= '+polyLatexDesc(it.P))}</td>
+          <td>${L('x = '+it.k)}</td>
+          <td>
+  <select class="yn">
+    <option value="" selected>—</option>
+    <option>Oui</option>
+    <option>Non</option>
+  </select>
+</td>
+
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx3(host,tr,true);
+    });
+    typesetAll(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0; $$('.table tbody tr',host).forEach(tr=>{ const r=checkRowEx3(host,tr,true); if(r){ ok+=r.ok; tot+=r.total; }});
+    $('#res',host).innerHTML = `<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    return {ok,total:tot};
+  },
+  solution(host,st){
+  const html = st.rows.map((it,i)=>{
+    const S = stepsForPk(it.P, it.k);
+    // phrase finale en TEXTE BRUT (pas de L(...))
+    const concl = (S.value===0)
+      ? `<div class="step">Donc ${it.k} est une racine.</div>`
+      : `<div class="step">Donc ${it.k} n’est pas une racine.</div>`;
+    return `<div class="step" style="margin-top:.25rem"><strong>${String.fromCharCode(97+i)})</strong></div>`
+         + S.lines.map(s=>`<div class="step">${s}</div>`).join('')
+         + concl;
+  }).join('');
+  $('#res',host).innerHTML = `<div class="steps">${html}</div>`;
+  typesetAll($('#res',host));
+},
+
+  reset(host){ $('#res',host).textContent=''; }
+};
+function checkRowEx3(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i; const it=st.rows[i];
+  const yn=$('.yn',row).value;
+
+  if (yn===''){ row.style.outline=''; return null; } // ⇦ non renseigné → on ignore
+
+  const val = polyEval(it.P,it.k);
+  const good = (yn==='Oui' && val===0) || (yn==='Non' && val!==0);
+  row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+
+/* ===================== Exercice 4 ===================== */
+const ex4={
+  id:'p4',
+  title:'Conjecturer une racine « évidente » (−2, −1, 0, 1, 2)',
+  gen(){
+  const E=[-2,-1,0,1,2];
+  const rows=[];
+  const K=new Set();
+  const degs=shuffle([2,3,2,3,2,3]);
+
+  let i=0, guard=0;
+  while(rows.length<6 && guard++<120){
+    const d=degs[i%degs.length];
+    let P;
+    if(d===2){
+      const r = choice(E);
+      const other = choice([-3,-2,-1,0,1,2,3].filter(x=>x!==r));
+      const a = choice([-2,-1,1,2]);
+      P = polyFromRoots([r,other],a);
+    }else{
+      const r = choice(E);
+      const pool=[-4,-3,-2,-1,0,1,2,3,4];
+      let r2=choice(pool), r3=choice(pool);
+      const a=choice([-1,1]);
+      P = polyFromRoots([r,r2,r3],a);
+    }
+    const key = polyKey(P);
+    if (!K.has(key)){ K.add(key); rows.push({P}); i++; }
+  }
+  return {rows};
+},
+
+  render(host,st){
+    host.innerHTML=[
+      '<div>Donner une <strong>racine évidente</strong> parmi { −2 ; −1 ; 0 ; 1 ; 2 } (une seule valeur suffit).</div>',
+      '<table class="table"><thead><tr><th></th><th>\\(P(x)\\)</th><th>Racine évidente</th><th>Valider</th></tr></thead><tbody>',
+      st.rows.map((it,i)=>`
+        <tr data-i="${i}">
+          <td><strong>${String.fromCharCode(97+i)}.</strong></td>
+          <td>${L('P(x)= '+polyLatexDesc(it.P))}</td>
+          <td><input class="root" type="text" placeholder="-2, -1, 0, 1 ou 2" style="width:160px"></td>
+          <td><button class="btn btn-row">Valider</button></td>
+        </tr>`).join(''),
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      const tr=b.closest('tr'); checkRowEx4(host,tr,true);
+    });
+    typesetAll(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0; $$('.table tbody tr',host).forEach(tr=>{ const r=checkRowEx4(host,tr,true); if(r){ ok+=r.ok; tot+=r.total; }});
+    $('#res',host).innerHTML = `<div class="steps"><div class="step">Résultat : <b>${ok} / ${tot}</b></div></div>`;
+    return {ok,total:tot};
+  },
+ solution(host, st){
+  const html = st.rows.map((it,i)=>{
+    const E = [-2,-1,0,1,2];
+    const valids = E.filter(r => polyEval(it.P, r) === 0); // uniquement les vraies racines « évidentes »
+
+    // bloc d'en-tête : P(x)
+    let block = `<div class="step" style="margin-top:.25rem"><strong>${String.fromCharCode(97+i)})</strong></div>` +
+                `<div class="step">${L('P(x)= '+polyLatexDesc(it.P))}</div>`;
+
+    // résumé
+    block += `<div class="step" style="margin-top:.35rem">Racines « évidentes » : <b>${valids.length ? valids.join(' ; ') : 'aucune'}</b>.</div>`;
+
+    // détails de calcul UNIQUEMENT pour les valides
+    for(const r of valids){
+      const S = stepsForPk(it.P, r); // produit les lignes "P(r) =" correctement formatées
+      block += `<div class="step" style="margin-top:.35rem"><em>Justification pour</em> ${L('x = '+r)}</div>`;
+      block += S.lines.map(s => `<div class="step">${s}</div>`).join('');
+      block += `<div class="step">Donc ${r} est une racine.</div>`; // phrase en texte brut
+    }
+
+    return block;
+  }).join('');
+
+  $('#res',host).innerHTML = `<div class="steps">${html}</div>`;
+  typesetAll($('#res',host));
+}
+,
+
+  reset(host){ $('#res',host).textContent=''; }
+};
+function checkRowEx4(host,row,count){
+  const st=JSON.parse(host.dataset.state||'{}'); const i=+row.dataset.i; const it=st.rows[i];
+  const txt=($('.root',row).value||'').replace(/\u2212/g,'-').trim();
+  if(!txt){ row.style.outline=''; return null; }
+  const r = Number(txt.replace(',','.'));
+  const E=[-2,-1,0,1,2];
+  const good = Number.isFinite(r) && E.includes(r) && polyEval(it.P,r)===0;
+  row.style.outline = good?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(good) scoreOK++; updateScore(); }
+  return {ok:good?1:0,total:1};
+}
+
+/* ===================== Exercice 5 ===================== */
+const ex5={
+  id:'p5',
+  title:'Lire les racines sur la courbe (deg 2 ↔ 3)',
+  gen(){
+    // domaine/échelle fixes pour lisibilité
+    const X=[-6,6], Y=[-6,6];
+    const isQuad = Math.random()<0.5;
+    let P, rootsShown=[];
+    if(isQuad){
+      const mode = choice(['0','1','2']); // nb de racines réelles
+      const a = choice([-1,1]);
+      if(mode==='2'){
+        const r1=choice([-2,-1,0,1,2]), r2=choice([-2,-1,0,1,2].filter(x=>x!==r1));
+        rootsShown=[r1,r2].sort((a,b)=>a-b);
+        P=polyFromRoots([r1,r2],a);
+      }else if(mode==='1'){
+        const r=choice([-2,-1,0,1,2]);
+        rootsShown=[r];
+        P=polyFromRoots([r,r],a);
+      }else{
+        // 0 racine réelle : sommet au-dessus ou au-dessous
+        const r=choice([-2,-1,0,1,2]);
+        const b = rnd(1,3); // éloigne de l'axe
+        // (x-r)^2 + b (ou -b)
+        const base = DevRules.polyMul([ -r,1 ],[ -r,1 ]); // (x-r)^2
+        const shift = (a>0? b : -b);
+        P=[(base[0]||0)+shift, base[1]||0, a]; // a(x-r)^2 ± b (a intégré sur x²)
+        rootsShown=[]; // aucune
+      }
+    }else{
+      const pattern = choice(['1','2','3']); // nb de racines réelles
+      const a=choice([-1,1]);
+      if(pattern==='3'){
+        const r1=choice([-2,-1,0,1,2]), r2=choice([-2,-1,0,1,2].filter(x=>x!==r1));
+        const r3=choice([-2,-1,0,1,2].filter(x=>x!==r1&&x!==r2));
+        rootsShown=[r1,r2,r3].sort((a,b)=>a-b);
+        P=polyFromRoots([r1,r2,r3],a);
+      }else if(pattern==='2'){
+        const r1=choice([-2,-1,0,1,2]), r2=choice([-2,-1,0,1,2].filter(x=>x!==r1));
+        rootsShown=[r1,r2].sort((a,b)=>a-b); // racine double + simple (on ignore la multiplicité pour la réponse)
+        P=polyFromRoots([r1,r1,r2],a);
+      }else{
+        // 1 seule réelle : (x-r)(x^2+px+q) avec Δ<0
+        const r=choice([-2,-1,0,1,2]); rootsShown=[r];
+        let p=rnd(-2,2); let q=rnd(1,4); while(p*p-4*q>=0){ p=rnd(-2,2); q=rnd(1,4); }
+        const Q=[q,p,1];
+        P=DevRules.polyMul([ -r,1 ],Q); if(a===-1) P=P.map(c=>-c);
+      }
+    }
+    return {X:[-6,6],Y:[-6,6],P, roots:rootsShown};
+  },
+  _svgFor(st, highlight=false){
+    const W=360,H=260, m=28;
+    const [xmin,xmax]=st.X, [ymin,ymax]=st.Y;
+    const X = x => m + (x - xmin) * (W-2*m)/(xmax-xmin);
+    const Y = y => H - m - (y - ymin) * (H-2*m)/(ymax-ymin);
+    // grille
+    let grid='';
+    for(let xi=Math.ceil(xmin); xi<=Math.floor(xmax); xi++){
+      const x=X(xi); grid+=`<path d="M ${x} ${m} V ${H-m}" stroke="#e5e5e5"/>`;
+    }
+    for(let yi=Math.ceil(ymin); yi<=Math.floor(ymax); yi++){
+      const y=Y(yi); grid+=`<path d="M ${m} ${y} H ${W-m}" stroke="#e5e5e5"/>`;
+    }
+  // --- axes : à l'origine si visible, sinon collés au bord bas/gauche
+const xAxisY = (ymin <= 0 && ymax >= 0) ? Y(0) : (H - m); // horizontal : y=0 ou bord bas
+const yAxisX = (xmin <= 0 && xmax >= 0) ? X(0) : m;       // vertical   : x=0 ou bord gauche
+
+const axX = `<path d="M ${m} ${xAxisY} H ${W-m}" stroke="#000"/>`;
+const axY = `<path d="M ${yAxisX} ${m} V ${H-m}" stroke="#000"/>`;
+
+// --- graduations et labels COLLÉS aux axes
+let labels = "";
+
+// abscisses (petits traits verticaux centrés sur l'axe horizontal)
+for (let xi = Math.ceil(xmin); xi <= Math.floor(xmax); xi++) {
+  const x = X(xi);
+  labels += `<line x1="${x}" y1="${xAxisY-4}" x2="${x}" y2="${xAxisY+4}" stroke="#000"/>`;
+  labels += `<text x="${x}" y="${xAxisY+16}" font-size="11" text-anchor="middle">${xi}</text>`;
+}
+
+// ordonnées (petits traits horizontaux centrés sur l'axe vertical)
+for (let yi = Math.ceil(ymin); yi <= Math.floor(ymax); yi++) {
+  const y = Y(yi);
+  labels += `<line x1="${yAxisX-4}" y1="${y}" x2="${yAxisX+4}" y2="${y}" stroke="#000"/>`;
+  labels += `<text x="${yAxisX-8}" y="${y+4}" font-size="11" text-anchor="end">${yi}</text>`;
+}
+
+    // courbe
+    const pts=[]; const step=(st.X[1]-st.X[0])/320;
+    for(let x=xmin; x<=xmax; x+=step){ pts.push([X(x), Y(polyEval(st.P,x))]); }
+    const path = 'M '+pts.map(p=>p[0].toFixed(2)+' '+p[1].toFixed(2)).join(' L ');
+    // racines (solution)
+    let dots='';
+    if(highlight){
+      for(const r of st.roots){ dots+=`<circle cx="${X(r)}" cy="${Y(0)}" r="4" fill="#000"/>`; }
+    }
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet"
+  style="max-width:560px;border:1px solid #ddd;border-radius:10px;background:#fff">
+      <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
+      ${grid}
+      ${axX}${axY}
+      <path d="${path}" fill="none" stroke="#e34133" stroke-width="2"/>
+      ${labels}
+      ${dots}
+    </svg>`;
+  },
+  render(host,st){
+    host.innerHTML = [
+      '<div>Conjecturer les <strong>racines réelles</strong> de \\(P\\) à partir de sa courbe (donner chaque racine une seule fois ; écrire <code>∅</code> s’il n’y en a aucune).</div>',
+      `<div class="plot" style="margin:.5rem 0">${this._svgFor(st,false)}</div>`,
+      '<table class="table"><thead><tr><th>\\(P(x)\\)</th><th>Racines réelles</th><th>Valider</th></tr></thead><tbody>',
+      `<tr data-i="0"><td>${L('P(x)= '+polyLatexDesc(st.P))}</td>
+           <td><input class="roots" type="text" placeholder="ex. -2;0;3" style="width:220px"></td>
+           <td><button class="btn btn-row">Valider</button></td></tr>`,
+      '</tbody></table>',
+      '<div id="res" class="small"></div>'
+    ].join('');
+    host.dataset.state=JSON.stringify(st);
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('.btn-row'); if(!b) return;
+      checkRowEx5(host,true);
+    });
+    typesetAll(host);
+  },
+  correct(host,st){
+    const r=checkRowEx5(host,true);
+    $('#res',host).innerHTML = `<div class="steps"><div class="step">Résultat : <b>${r.ok} / ${r.total}</b></div></div>`;
+    return r;
+  },
+  solution(host,st){
+    const want = st.roots.slice().sort((a,b)=>a-b);
+    const pretty = want.length? want.join(' ; ') : '∅';
+    const svg = this._svgFor(st,true);
+    $('#res',host).innerHTML = `<div class="steps">
+      <div class="step">${svg}</div>
+      <div class="step">Racines réelles : <b>${pretty}</b>.</div>
+    </div>`;
+    typesetAll($('#res',host));
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+function parseList(txt){
+  const s=String(txt||'').replace(/\u2212/g,'-').trim();
+  if(!s) return null;
+  if(/^∅$/.test(s)) return [];
+  return s.split(/[;,]/).map(t=>Number(t.trim().replace(',','.'))).filter(v=>Number.isFinite(v));
+}
+function checkRowEx5(host,count){
+  const st=JSON.parse(host.dataset.state||'{}');
+  const inp=$('.roots',host).value;
+  if(!inp){ return {ok:0,total:0}; }
+  const got=parseList(inp); if(got==null){ return {ok:0,total:0}; }
+  const want = st.roots.slice().sort((a,b)=>a-b);
+  const A=[...new Set(got)].sort((a,b)=>a-b);
+  const same = (A.length===want.length) && A.every((v,i)=>Math.abs(v-want[i])<1e-9);
+  const row=$('tbody tr',host);
+  row.style.outline = same?'2px solid #11823b55':'2px solid #b0002050';
+  if(count){ scoreTot++; if(same) scoreOK++; updateScore(); }
+  return {ok:same?1:0,total:1};
+}
+
+/* ===== registre + UI ===== */
+const REGISTRY=[ex1,ex2,ex3,ex4,ex5]; window.REGISTRY=REGISTRY;
+function getDefById(id){ return REGISTRY.find(d=>d.id===id) || REGISTRY[0]; }
+
+function buildOne(){
+  const id=$("#exo-select").value;
+  const def=getDefById(id), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd && MathKbd.attachAllInputs){ MathKbd.attachAllInputs(host); } }catch(_){}
+}
+function checkAll(){
+  // reset le score à chaque vérification globale
+  scoreOK = 0; scoreTot = 0;
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st);
+  scoreOK = r.ok; scoreTot = r.total; updateScore();
+}
+
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+whenReady(function(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange=buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value='p1'; // démarre sur l'exo 3 pour tester rapidement
+  buildOne();
+
+  /* ===== PDF : énoncé = phrase + TABLEAU/SVG ; correction = bloc gris ===== */
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: document.title,
+      max: 40,
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, withSolutions){
+        const tmp=document.createElement('div'); tmp.style.position='fixed'; tmp.style.left='-10000px'; document.body.appendChild(tmp);
+        const PRINT_STYLES = `
+  <style>
+    .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+    .table, .table th, .table td{border:1px solid #000;border-collapse:collapse}
+    .table th{background:#f3f3f6}
+    .mjx-container{white-space:normal !important}
+    .mjx-math{overflow-wrap:anywhere;word-break:break-word}
+    .table td{overflow:hidden}
+    svg{width:560px;max-width:100%;height:auto}
+  </style>`;
+
+        try{
+          def.render(tmp, st);
+          // bloc introductif (premier élément non-table)
+          // ✅ nouveau : prend TOUS les blocs non-TABLE (intro + courbe(s) + etc.) avant le tableau
+const blocks = Array.from(tmp.children).filter(el => el.tagName !== 'TABLE');
+const leadHTML = blocks.map(el => el.outerHTML).join('');
+const tbl = cloneTableForPDF(tmp);
+
+const statement = PRINT_STYLES
+  + (leadHTML || '')
+  + (tbl ? ('<div class="step" style="margin-top:6px">'+tbl+'</div>') : '');
+ if(!withSolutions){ tmp.remove(); return statement; }
+
+          try{ def.solution(tmp, st); }catch(_){}
+          const solHTML = (tmp.querySelector('#res')||tmp).innerHTML;
+          tmp.remove();
+          return { statement, solution: PRINT_STYLES + solHTML };
+        }catch(e){ tmp.remove(); return withSolutions?{statement:'',solution:'Corrigé indisponible'}:'Énoncé indisponible'; }
+      }
+    });
+  }
+}); // whenReady
+})(); // IIFE
+</script>
 </body>
 </html>

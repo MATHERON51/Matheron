@@ -461,6 +461,82 @@ table.sheet{border-collapse:collapse;font-size:.95rem}
 .sheet .corner{background:#eef2f9;width:34px;min-width:34px}
 .sheet .rhead{background:#f7f8fb;font-weight:600;width:34px}
 .sheet .colA{background:#fafafa;font-weight:600}
+
+/* === Bordures pour nos tableaux « écran » quand ils sont imprimés par le kit === */
+
+/* tables classiques (ta classe .table) : bordures noires partout */
+table.table{
+  border-collapse: collapse;
+  width: 100%;
+}
+table.table th, table.table td{
+  border: 1px solid #000;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+table.table th{ background:#f3f3f6 }
+
+/* tableau de variations (ta classe .var) :
+   — cadre extérieur uniquement
+   — + séparateur vertical après la 1ʳᵉ colonne (x / f) */
+table.var{
+  border-collapse: separate !important;
+  border-spacing: 0;
+}
+table.var th, table.var td{
+  border: none !important;
+  padding: 4px 6px;
+}
+/* Cadre extérieur */
+table.var tr:first-child > * { border-top:    1.5px solid #000; }
+table.var tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var tr > *:first-child { border-left:   1.5px solid #000; }
+table.var tr > *:last-child  { border-right:  1.5px solid #000; }
+/* Séparateur vertical après la 1ʳᵉ colonne */
+table.var thead tr > *:first-child,
+table.var tbody tr > *:first-child{
+  border-right: 1.5px solid #000;
+}
+
+/* base */
+table.pdf-tbl{
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  margin: .4rem 0;
+  position: relative; /* pour le pseudo-élément cadre */
+}
+table.pdf-tbl th, table.pdf-tbl td{
+  border: none;
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+table.pdf-tbl th{ background:#f3f3f6 }
+
+/* === Cadre extérieur, une seule fois pour toute la table === */
+table.pdf-tbl::before{
+  content:"";
+  position:absolute; inset:0;
+  border:1.5px solid #000;
+  pointer-events:none;   /* ne gêne pas les interactions */
+}
+
+/* === Séparateur vertical après la 1ʳᵉ colonne === */
+table.pdf-tbl thead tr > *:first-child,
+table.pdf-tbl tbody tr > *:first-child{
+  border-right: 1.5px solid #000;
+}
+
+/* Ne PAS tracer ce séparateur sur les lignes “techniques” */
+table.pdf-tbl tbody tr.thin > *:first-child,
+table.pdf-tbl tbody tr.gaprow > *:first-child{
+  border-right: none !important;
+}
+table.pdf-tbl thead tr > *{
+  border-bottom: 1.5px solid #000; /* séparation x / f(x) */
+}
+
 </style>
 
 <style>

@@ -70,6 +70,25 @@
   .tbl3c{border-collapse:collapse;margin:.5rem 0}
   .tbl3c td{border:none;padding:2px 10px;vertical-align:baseline;white-space:nowrap}
   .tbl3c .eq{width:1.2em;text-align:center}
+  
+  /* table des équations (3 colonnes invisibles) */
+.tbl3c { border-collapse: collapse; margin:.5rem 0; }
+.tbl3c td { border:none; padding:2px 10px; vertical-align:baseline; white-space:nowrap; }
+.tbl3c .eq { width:1.2em; text-align:center }
+
+/* 👉 la cellule de gauche qui a le rowspan doit coller en haut */
+.tbl3c td[rowspan],
+.tbl3c tr > td:first-child {           /* au cas où */
+  vertical-align: top !important;
+}
+
+@media print {
+  .tbl3c td[rowspan],
+  .tbl3c tr > td:first-child {
+    vertical-align: top !important;
+  }
+}
+
 /* Surlignage stable (pas de dépassement) */
 mjx-container .hlY, mjx-container .hlC,
 .mjx-chtml .hlY, .mjx-chtml .hlC{
@@ -83,23 +102,73 @@ mjx-container .hlY, .mjx-chtml .hlY{ background:#fff3b0; } /* jaune */
 mjx-container .hlC, .mjx-chtml .hlC{ background:#bff0ff; } /* cyan  */
 
   @media print{ .controls{display:none !important;} }
+    /* --- PDF helpers --- */
+  .pdf-only{display:none}
+  @media print{ .pdf-only{display:block} }
+
+/* base */
+table.pdf-tbl{
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  margin: .4rem 0;
+  position: relative; /* pour le pseudo-élément cadre */
+}
+table.pdf-tbl th, table.pdf-tbl td{
+  border: none;
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+table.pdf-tbl th{ background:#f3f3f6 }
+
+/* === Cadre extérieur, une seule fois pour toute la table === */
+table.pdf-tbl::before{
+  content:"";
+  position:absolute; inset:0;
+  border:1.5px solid #000;
+  pointer-events:none;   /* ne gêne pas les interactions */
+}
+
+/* === Séparateur vertical après la 1ʳᵉ colonne === */
+table.pdf-tbl thead tr > *:first-child,
+table.pdf-tbl tbody tr > *:first-child{
+  border-right: 1.5px solid #000;
+}
+
+/* Ne PAS tracer ce séparateur sur les lignes “techniques” */
+table.pdf-tbl tbody tr.thin > *:first-child,
+table.pdf-tbl tbody tr.gaprow > *:first-child{
+  border-right: none !important;
+}
+table.pdf-tbl thead tr > *{
+  border-bottom: 1.5px solid #000; /* séparation x / f(x) */
+}
 </style>
 
 <!-- MathJax (LaTeX inline \( ... \) ) -->
 <script>
   window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-	        packages: {'[+]': ['bbox']},   // ← AJOUT
+  loader: {
+    // forcer le chargement des extensions utilisées par tes macros
+    load: ['[tex]/html', '[tex]/bbox']
+  },
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true,
+    packages: {'[+]': ['html','bbox']},
+    macros: {
+      frac: ['\\dfrac{#1}{#2}', 2],
+      hlY:  ['\\class{hlY}{#1}', 1],
+      hlC:  ['\\class{hlC}{#1}', 1]
+    }
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+  chtml: { matchFontHeight:false },
+  startup: { typeset: true }
+};
 
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    chtml: { matchFontHeight:false },
-    startup: { typeset: true }
-  };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
@@ -142,54 +211,7 @@ mjx-container .hlC, .mjx-chtml .hlC{ background:#bff0ff; } /* cyan  */
   <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
   <script src='../../../../js/fraction-sign-clarity.dom.v3.js' defer></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
 
-  ExoPDF.init({
-    title: document.title.replace(/\s+–.+$/,'').trim(),
-	  mountAfterSelector: '#host',   // PATCH B : la barre sera insérée juste après le bloc #host
-
-    beforeGen(def, st, opts){ return st; },
-
-    /* ---- PDF : on rend exactement l'HTML de l'écran ; MathJax a le temps de typer avant capture ---- */
-    beforeRender(def, st, withSolutions){
-      try{
-        const S = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
-        function attachForStyles(node){
-          const holder = document.createElement('div');
-          holder.style.position='fixed'; holder.style.left='-10000px'; holder.style.top='-10000px';
-          holder.style.width='0'; holder.style.height='0'; holder.style.overflow='hidden';
-          holder.appendChild(node); document.body.appendChild(holder); return holder;
-        }
-        const tmp = document.createElement('div'); tmp.id='host';
-        try{ if (def && typeof def.render==='function') def.render(tmp, st||{}); }catch(_){}
-        const holder = attachForStyles(tmp);
-
-        // Solution si demandé
-        if (withSolutions){
-          let res = tmp.querySelector('#res'); if (!res){ res=document.createElement('div'); res.id='res'; tmp.appendChild(res); }
-          try{ if (def && typeof def.solution==='function') def.solution(tmp, st||{}); }catch(_){}
-        }
-
-        // Laisser MathJax faire le rendu puis renvoyer l'HTML
-        if (window.MathJax && MathJax.typesetPromise){
-          return MathJax.typesetPromise([tmp]).then(()=> {
-            document.body.removeChild(holder);
-            return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML);
-          }).catch(()=>{ document.body.removeChild(holder); return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML); });
-        } else {
-          document.body.removeChild(holder);
-          return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML);
-        }
-      }catch(e){
-        console.error('PDF beforeRender error:', e);
-        return null;
-      }
-    }
-  });
-});
-</script>
 
 <script>
 (function(){
@@ -210,6 +232,28 @@ function setTick(el, ok){
   t.textContent = ok ? '✔' : '✗';
   t.classList.toggle('ok', ok);
   t.classList.toggle('ko', !ok);
+}
+// — MathJax ready + typeset, à l'épreuve des courses —
+function mjxReady(){
+  return (window.MathJax && MathJax.startup && MathJax.startup.promise)
+    ? MathJax.startup.promise
+    : new Promise(resolve=>{
+        const t = setInterval(()=>{
+          if (window.MathJax && MathJax.startup && MathJax.startup.promise){
+            clearInterval(t); MathJax.startup.promise.then(resolve).catch(resolve);
+          }
+        }, 50);
+      });
+}
+window.mjxReady = mjxReady;
+
+function typesetAll(root){
+  const nodes = root ? [root] : undefined;
+  return mjxReady().then(()=> {
+    if (window.MathJax && MathJax.typesetPromise){
+      return MathJax.typesetPromise(nodes).catch(()=>{});
+    }
+  });
 }
 
 /* ==== RATIONNELS & TEX ==== */
@@ -252,6 +296,10 @@ function betaFrac(a,b,c){
   const al=alphaFrac(a,b);
   return add( add( mul(fromInt(a), sq(al)), mul(fromInt(b), al) ), fromInt(c) );
 }
+function ratExpr(fr){
+  const s = simp(fr[0], fr[1]); // déjà dans ton code
+  return (s[1] === 1) ? String(s[0]) : `${s[0]}/${s[1]}`; // "-9/4"
+}
 
 /* ===== Normalisation & comparaison ===== */
 function normExpr(s){
@@ -291,12 +339,7 @@ function factorizedTexFromRoots(a, r, s){
   const f2 = (s>0? `x - ${s}` : (s<0? `x + ${-s}` : 'x'));
   return `${aPref? aPref: ''}${aPref? '':''}\\left(${f1}\\right)\\left(${f2}\\right)`;
 }
-function mjTypeset(node){
-  if (window.MathJax?.typesetPromise) {
-    // typeset seulement la zone concernée
-    return MathJax.typesetPromise([node]).catch(()=>{});
-  }
-}
+
 // Affiche " + c" / " - c" si c ≠ 0, sinon rien
 function texCst(c){
   return c===0 ? '' : `${pm(c)} ${Math.abs(c)}`;
@@ -328,6 +371,7 @@ const exIdentify={ id:'id', title:'Différentes formes : identifier « développ
       '<div id="res" class="small"></div>'
     ].join('');
     if (window.MathJax?.typeset) MathJax.typeset();
+	typesetAll(host);
   },
   correct(host,st){
     let ok=0,tot=0;
@@ -341,6 +385,8 @@ const exIdentify={ id:'id', title:'Différentes formes : identifier « développ
   },
   solution(host,st){
     $('#res',host).innerHTML='<div class="steps">'+st.rows.map((r,i)=>'<div class="step">('+(i+1)+') : <b>'+r.label+'</b></div>').join('')+'</div>';
+  typesetAll(host);
+  
   },
   reset(host){ $('#res',host).textContent=''; }
 };
@@ -357,39 +403,47 @@ function ratStr([p,q]){
 }
 
 function canonRegexesFor(a, A, B){
-  // --- morceaux communs ---
+  // helpers
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const aStr  = (a===1?'':(a===-1?'-':String(a)));
   const aAbs  = Math.abs(a);
   const mul   = (aAbs===1) ? '' : '(?:\\*|×|·)?';
 
-  // (x - α)^2  avec signe interne correct
-  const AabsStr = ratStr([Math.abs(A[0]), Math.abs(A[1])]);
-  const inner = '\\(x' + (A[0]<0 ? '\\+' : '\\-') + escRegex(AabsStr) + '\\)\\^2';
+  // alpha (valeur absolue) en "p/q" (sans parenthèses)
+  const simpAbs = ([p,q])=>{
+    if(q<0){p=-p;q=-q}
+    const g=(x,y)=>{x=Math.abs(x);y=Math.abs(y);while(y){[x,y]=[y,x%y]}return x||1};
+    p=Math.abs(p); q=Math.abs(q); const d=g(p,q); return [p/d,q/d];
+  };
+  const fracStr = ([p,q])=> `${p}/${q}`;
 
-  // β (module) – on réutilise le même rendu clavier que le reste de la page
-  const BmagStr = ratStr([Math.abs(B[0]), Math.abs(B[1])]);
-  const Bmag    = escRegex(BmagStr);
+  const [Ap,Aq] = simpAbs(A);
+  const Aplain  = fracStr([Ap,Aq]);                           // "1/2"
+  const Aopt    = '(?:' + esc(Aplain) + '|\\(' + esc(Aplain) + '\\))'; // "1/2" ou "(1/2)"
 
-  // ---------- Ordre "classique" : a(...)^2 ± β ----------
+  // (x ± α)^2
+  const inner = '\\(x' + (A[0]<0 ? '\\+' : '\\-') + Aopt + '\\)\\^2';
+
+  // β (même tolérance de parenthèses)
+  const [Bp,Bq] = simpAbs(B);
+  const Bplain  = fracStr([Bp,Bq]);                           // "19/4"
+  const Bopt    = '(?:' + esc(Bplain) + '|\\(' + esc(Bplain) + '\\))';
+
+  // ----- Ordre classique : a(...)^2 ± β -----
   const tailClassic = (B[0]<0)
-    ? '(?:\\-' + Bmag + '|\\+\\-' + Bmag + '|\\+\\(' + Bmag + '\\))'
-    : '\\+' + Bmag;
-  const classic = new RegExp('^' + escRegex(aStr) + mul + inner + tailClassic + '$');
+    ? '(?:\\-' + Bopt + '|\\+\\-' + Bopt + ')'
+    : '\\+' + Bopt;
+  const classic = new RegExp('^' + esc(aStr) + mul + inner + tailClassic + '$');
 
-  // ---------- Ordre commuté : β ± |a|(...)^2 ----------
-  // B signé (on autorise juste "-Bmag" pour rester simple et robuste)
-  const Bsigned = (B[0]<0 ? '\\-' : '') + Bmag;
-
-  // signe entre β et le terme carré
+  // ----- Ordre commuté : β ± |a|(...)^2 -----
+  const Bsigned = (B[0]<0 ? '\\-' : '') + Bopt;         // "-19/4" ou "19/4"
   const between = (a>0 ? '\\+' : '\\-');
-
-  // coefficient devant le carré dans l’ordre commuté
-  const coef = (aAbs===1) ? '' : escRegex(String(aAbs)) + mul;
-
+  const coef = (aAbs===1) ? '' : esc(String(aAbs)) + mul;
   const commuted = new RegExp('^' + Bsigned + between + coef + inner + '$');
 
   return [classic, commuted];
 }
+
 
 function isCanonicalInput(str, a, A, B){
   const s = normExpr(str).replace(/\s+/g,''); // on supprime tous les espaces
@@ -419,28 +473,44 @@ const exTwoWays={ id:'2w', title:'Forme canonique — 2 méthodes (tableau 2 col
     ].join('');
     host.dataset.state=JSON.stringify(st);
     if (window.MathJax?.typeset) MathJax.typeset();
+	typesetAll(host);
   },
+  textHTML(st){
+  // énoncé minimal, robuste, que le kit sait imprimer sans dépendre du DOM caché
+  return `<div class="statement">
+    Déterminer, par deux méthodes, la forme canonique des trinômes définies par :
+    ${wrap( polyDevTex(st.a, st.b, st.c) )}
+  </div>`;
+},
+
   correct(host,st){
-    let ok=0, tot=0;
-    const a1=$('.alpha',host).value.trim(); if(a1){ const okA = algebraOK(ratText(st.alpha), a1); setTick($('.alpha',host), okA); tot++; if(okA) ok++; }
-    const b1=$('.beta',host).value.trim();  if(b1){ const okB = algebraOK(ratText(st.beta),  b1); setTick($('.beta',host),  okB); tot++; if(okB) ok++; }
+  let ok=0, tot=0;
 
-    // Réponse canonique attendue en écriture clavier : a(x - α)^2 + β
-    const wantCanon = (function(){
-      const a=st.a, A=st.alpha, B=st.beta;
-      const aPref = (a===1?'':(a===-1?'-':String(a)));
-      const tex = `${aPref}${aPref?'':''}(x - ${ratText(A)})^2 ${B[0]<0?'-':'+'} ${ratText([Math.abs(B[0]),Math.abs(B[1])])}`;
-      return tex;
-    })();
-const c1=$('.canon',host).value.trim();
-if(c1){
-  const okC = isCanonicalInput(c1, st.a, st.alpha, st.beta); // ← n'accepte QUE la forme canonique
-  setTick($('.canon',host), okC); tot++; if(okC) ok++;
-}
+  // α et β : comparer sur "p/q" (arithmétique), pas sur LaTeX
+  const a1=$('.alpha',host).value.trim();
+  if(a1){
+    const okA = algebraOK(ratExpr(st.alpha), a1);
+    setTick($('.alpha',host), okA); tot++; if(okA) ok++;
+  }
 
-    $('#res',host).innerHTML='<div class="steps"><div class="step">Résultat : <b>'+ok+' / '+tot+'</b></div></div>';
-    scoreTot+=tot; scoreOK+=ok; updateScore();
-  },
+  const b1=$('.beta',host).value.trim();
+  if(b1){
+    const okB = algebraOK(ratExpr(st.beta), b1);
+    setTick($('.beta',host), okB); tot++; if(okB) ok++;
+  }
+
+  // Forme canonique : on garde la vérif stricte dédiée
+  const c1=$('.canon',host).value.trim();
+  if(c1){
+    const okC = isCanonicalInput(c1, st.a, st.alpha, st.beta);
+    setTick($('.canon',host), okC); tot++; if(okC) ok++;
+  }
+
+  $('#res',host).innerHTML =
+    '<div class="steps"><div class="step">Résultat : <b>'+ok+' / '+tot+'</b></div></div>';
+  scoreTot+=tot; scoreOK+=ok; updateScore();
+},
+
   solution(host, st){
   const {a,b,c} = st;
   // Ligne "f(x) = ..." (LaTeX)
@@ -519,8 +589,10 @@ const left = `
 
 
 // Remplace \bbox par \class : fond via CSS, aucune coupe de \left...\right
-const HL_Y = t => `\\class{hlY}{${t}}`; // jaune
-const HL_C = t => `\\class{hlC}{${t}}`; // cyan
+// APRES — utilise les macros, c'est plus robuste
+const HL_Y = t => `\\hlY{${t}}`;
+const HL_C = t => `\\hlC{${t}}`;
+
 
 // --- puis conserve exactement les mêmes expressions qu'avant :
 const startTex  = x2_plus_kx_TEX(b_a);        // "x^2 ± (b/a)x"
@@ -578,9 +650,12 @@ fxLine +
     `<div class="equ"><span class="muted">a = ${st.a} ; b = ${st.b} ; c = ${st.c}</span></div>`+
     `<div class="corr-grid"><div class="col">${left}</div><div class="col">${right}</div></div>`;
 
-  mjTypeset(res);
+typesetAll(host);
+  
 
 },
+
+
 reset(host){ $('#res',host).textContent=''; }
 
 };
@@ -607,9 +682,15 @@ const exVariations={ id:'var', title:'Tableau de variations à compléter (f en 
         '<td style="text-align:center"><input class="d-beta-bot" type="text" placeholder="minimum"></td>',
       '</tr>',
       '</tbody></table></div>',
+	     // 🔽 bloc offscreen demandé (servira pour le PDF)
+    `<div class="equ-offscreen" style="display:none">
+      <p>Donner le <strong>tableau de variations</strong> de la fonction \\(f\\) définie par : ${line} et les coordonnées du sommet \\(S\\) de la courbe.</p>
+    </div>`,
       '<div id="res" class="small"></div>'
     ].join('');
     if (window.MathJax?.typeset) MathJax.typeset();
+	typesetAll(host);
+
   },
   correct(host,st){
     let ok=0, tot=0;
@@ -648,15 +729,16 @@ const exVariations={ id:'var', title:'Tableau de variations à compléter (f en 
     const res = $('#res',host);
 	const aNote =
   (st.a > 0)
-    ? `Ici \\(a=${st.a}>0\\) donc la parabole est tournée vers le <b>haut</b>.`
-    : `Ici \\(a=${st.a}<0\\) donc la parabole est tournée vers le <b>bas</b>.`;
+    ? `Ici \\( \\) \\(a=${st.a}>0\\) donc la parabole est tournée vers le <b>haut</b>.`
+    : `Ici \\( \\) \\(a=${st.a}<0\\) donc la parabole est tournée vers le <b>bas</b>.`;
 
 res.innerHTML = [
-  '<div class="steps"><div class="step"><b>Sommet :</b> \\(S\\)(',wrap(texRat(st.alpha)),' ; ',wrap(texRat(st.beta)),').</div>',
+  '<div class="steps">',
+    '  <div class="step"><b>Sommet :</b> \\(S\\)(',wrap(texRat(st.alpha)),' ; ',wrap(texRat(st.beta)),').</div>',
   '<div class="step">Tableau attendu :</div>',
-  '<div class="step">On regarde le signe de \\(a\\)</div>',
+  '<div class="step">On regarde le signe de \\( \\) \\(a\\)</div>',
   ` <div class="step small">${aNote}</div>`,          // ⟵ AJOUT
-  '<div class="var-wrap"><table class="var">',
+  '<div class="var-wrap"><table class="pdf-tbl">',
       '<thead><tr><th>\\(x\\)</th><td>\\(−∞\\)</td><td>' + wrap(texRat(st.alpha)) + '</td><td>\\(+∞\\)</td></tr></thead>',
       '<tbody>',
       '<tr><th rowspan="2">\\(f\\)</th><td class="bigsel" rowspan="2">',sensL,'</td><td style="text-align:center">',top,'</td><td class="bigsel" rowspan="2">',sensR,'</td></tr>',
@@ -664,7 +746,7 @@ res.innerHTML = [
       '</tbody></table></div>',
       '</div>'
     ].join('');
-mjTypeset(res);  },
+typesetAll(host);  },
   reset(host){ $('#res',host).textContent=''; }
 };
 
@@ -678,8 +760,14 @@ gen(){
   const a = 1;
 
   // r1, r2 non nuls et distincts  → c ≠ 0
-  let r1; do { r1 = rnd(-5, 4); } while (r1 === 0);
-  let r2; do { r2 = rnd(-6, 5); } while (r2 === 0 || r2 === r1);
+ // r1 non nul
+let r1; do { r1 = rnd(-5, 4); } while (r1 === 0);
+
+// r2 non nul, ≠ r1, et ≠ -r1  →  alpha ≠ 0
+let r2;
+do { r2 = rnd(-6, 5); }
+while (r2 === 0 || r2 === r1 || r2 === -r1);
+
 
   const b = -(r1 + r2);
   const c = r1 * r2;
@@ -723,117 +811,156 @@ gen(){
     const fact  = wrap( factorizedTexFromRoots(st.a, st.r1, st.r2) );
 
     host.innerHTML = [
-      `<div class="statement">On considère la fonction f sous sa forme développée : ${poly}.</div>`,
-      '<ol class="statement">',
+  '<div class="statement">',                         // ← un SEUL wrapper .statement
+    `<div>On considère la fonction \\(f\\) sous sa forme développée : ${poly}.</div>`,
+    '<ol>',
+      `<li>Montrer que ${fact} est une forme factorisée de \\(f\\).</li>`,
+      `<li>Montrer que ${canon} est la forme canonique de \\(f\\).</li>`,
+      '<li>Choisir la forme la mieux adaptée et répondre :',
+        '<ol type="a">',
+          `<li>Calculer l’image de \\(${st.r}\\) <input class="q3a_r1" style="width:110px"> <span class="tick"></span>, de \\(0\\) <input class="q3a_0" style="width:110px"> <span class="tick"></span> et de <b>${wrap(texRat(st.alpha))}</b> <input class="q3a_alpha" style="width:110px"> <span class="tick"></span></li>`,
+          '<li>Résoudre l’équation \\(f(x)=0\\) : \\(S=\\) <input class="q3bS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>',
+          `<li>Résoudre l’équation \\(f(x)=${st.c}\\) : \\(S=\\) <input class="q3cS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>`,
+          `<li>Résoudre l’équation ${wrap('f(x)=' + texRat(st.k))} : \\(S=\\) <input class="q3dS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>`,
+          '<li>Déterminer les variations de \\(f\\) :</li>',
+        '</ol>',
+        '<div class="var-wrap" style="margin:.4rem 0 .6rem 0"><table class="var">',
+          '<thead><tr><th>\\(x\\)</th><td>\\(−∞\\)</td><td style="text-align:center"><input class="d-alpha" type="text" style="width:90px"></td><td>\\(+∞\\)</td></tr></thead>',
+          '<tbody>',
+            '<tr>',
+              '<th rowspan="3">\\(f\\)</th>',
+              '<td class="bigsel" rowspan="3"><select class="d-L"><option value=""></option><option>↘</option><option>↗</option></select></td>',
+              '<td style="text-align:center"><input class="d-beta-top" type="text" placeholder="maximum"></td>',
+              '<td class="bigsel" rowspan="3"><select class="d-R"><option value=""></option><option>↘</option><option>↗</option></select></td>',
+            '</tr>',
+            '<tr class="gaprow"><td></td></tr>',
+            '<tr class="thin">',
+              '<td style="text-align:center"><input class="d-beta-bot" type="text" placeholder="minimum"></td>',
+            '</tr>',
+          '</tbody></table></div>',
+      '</li>',
+    '</ol>',
+  '</div>',                                            // ← fin du seul .statement
+  '<div id="res" class="small"></div>'
+].join('');
+
+    if (window.MathJax?.typeset) MathJax.typeset();
+	typesetAll(host);
+
+  },
+textHTML(st){
+  const poly  = wrap( polyDevTex(st.a, st.b, st.c) );
+  const canon = wrap( canonTex(st.a, st.alpha, st.beta) );
+  const fact  = wrap( factorizedTexFromRoots(st.a, st.r1, st.r2) );
+  return [
+    '<div class="statement">',
+      `<div>On considère la fonction \\(f\\) sous sa forme développée : ${poly}.</div>`,
+      '<ol>',
         `<li>Montrer que ${fact} est une forme factorisée de \\(f\\).</li>`,
         `<li>Montrer que ${canon} est la forme canonique de \\(f\\).</li>`,
         '<li>Choisir la forme la mieux adaptée et répondre :',
           '<ol type="a">',
-            `<li>Calculer l’image de <b>${st.r}</b> <input class="q3a_r1" style="width:110px"> <span class="tick"></span>, de <b>0</b> <input class="q3a_0" style="width:110px"> <span class="tick"></span> et de <b>${wrap(texRat(st.alpha))}</b> <input class="q3a_alpha" style="width:110px"> <span class="tick"></span></li>`,
-            '<li>Résoudre l’équation \\(f(x)=0\\) : \\(S=\\) <input class="q3bS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>',
-            `<li>Résoudre l’équation \\(f(x)=${st.c}\\) : \\(S=\\) <input class="q3cS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>`,
-`<li>Résoudre l’équation ${wrap('f(x)=' + texRat(st.k))} : \\(S=\\) <input class="q3dS" style="width:220px" placeholder="{ … }"> <span class="tick"></span></li>`,
-            '<li>Déterminer les variations de \\(f\\) :</li>',
+            `<li>Calculer l’image de \\(${st.r}\\), de \\(0\\) et de <b>${wrap(texRat(st.alpha))}</b>.</li>`,
+            `<li>Résoudre \\(f(x)=0\\).</li>`,
+            `<li>Résoudre \\(f(x)=${st.c}\\).</li>`,
+            `<li>Résoudre ${wrap('f(x)=' + texRat(st.k))}.</li>`,
+            '<li>Déterminer les variations de \\(f\\).</li>',
           '</ol>',
-          '<div class="var-wrap" style="margin:.4rem 0 .6rem 0"><table class="var">',
-            '<thead><tr><th>\\(x\\)</th><td>\\(−∞\\)</td><td style="text-align:center"><input class="d-alpha" type="text" style="width:90px"></td><td>\\(+∞\\)</td></tr></thead>',
-            '<tbody>',
-              '<tr>',
-                '<th rowspan="3">\\(f\\)</th>',
-                '<td class="bigsel" rowspan="3"><select class="d-L"><option value=""></option><option>↘</option><option>↗</option></select></td>',
-                '<td style="text-align:center"><input class="d-beta-top" type="text" placeholder="maximum"></td>',
-                '<td class="bigsel" rowspan="3"><select class="d-R"><option value=""></option><option>↘</option><option>↗</option></select></td>',
-              '</tr>',
-              '<tr class="gaprow"><td></td></tr>',
-              '<tr class="thin">',
-                '<td style="text-align:center"><input class="d-beta-bot" type="text" placeholder="minimum"></td>',
-              '</tr>',
-            '</tbody></table></div>',
         '</li>',
       '</ol>',
-      '<div id="res" class="small"></div>'
-    ].join('');
-    if (window.MathJax?.typeset) MathJax.typeset();
-  },
+    '</div>'
+  ].join('');
+},
 
   correct(host, st){
-    let ok = 0, tot = 0;
+  let ok = 0, tot = 0;
 
-    const a1OK = algebraOK("0", $('.q3a_r1',host).value.trim());
-    if($('.q3a_r1',host).value.trim()){ setTick($('.q3a_r1',host), a1OK); tot++; if(a1OK) ok++; }
+  const a1OK = algebraOK("0", $('.q3a_r1',host).value.trim());
+  if($('.q3a_r1',host).value.trim()){ setTick($('.q3a_r1',host), a1OK); tot++; if(a1OK) ok++; }
 
-    const a2OK = algebraOK(String(st.c), $('.q3a_0',host).value.trim());
-    if($('.q3a_0',host).value.trim()){ setTick($('.q3a_0',host), a2OK); tot++; if(a2OK) ok++; }
+  const a2OK = algebraOK(String(st.c), $('.q3a_0',host).value.trim());
+  if($('.q3a_0',host).value.trim()){ setTick($('.q3a_0',host), a2OK); tot++; if(a2OK) ok++; }
 
-    const a3OK = algebraOK(ratText(st.beta), $('.q3a_alpha',host).value.trim());
-    if($('.q3a_alpha',host).value.trim()){ setTick($('.q3a_alpha',host), a3OK); tot++; if(a3OK) ok++; }
+  // ⬇️ compare sur "-9/4" (arithmétique), pas sur "\frac{-9}{4}" (LaTeX)
+  const a3OK = algebraOK(ratExpr(st.beta), $('.q3a_alpha',host).value.trim());
+  if($('.q3a_alpha',host).value.trim()){ setTick($('.q3a_alpha',host), a3OK); tot++; if(a3OK) ok++; }
 
-    // sets "S = { … }" ; ordre indifférent ; éléments rationnels/entiers
-    function setAnswerOK(inputStr, expectedVals){
-      if(!inputStr) return false;
-      const s = inputStr.replace(/\s+/g,'').replace(/^S=?/, '').replace(/^\{|\}$/g,'');
-      const parts = s.split(/[;,]/).filter(Boolean);
-      if(parts.length !== expectedVals.length) return false;
-      const used = new Array(parts.length).fill(false);
-      for(const exp of expectedVals){
-        let found = false;
-        for(let i=0;i<parts.length;i++){
-          if(used[i]) continue;
-          if(algebraOK(ratText(Array.isArray(exp)?exp:fromInt(exp)), parts[i]) || algebraOK(String(exp), parts[i])){
-            used[i]=true; found=true; break;
-          }
+  // ——— utilitaire pour valider { … } (ordre indifférent)
+  function setAnswerOK(inputStr, expectedVals){
+    if(!inputStr) return false;
+    const s = inputStr.replace(/\s+/g,'').replace(/^S=?/, '').replace(/^\{|\}$/g,'');
+    const parts = s.split(/[;,]/).filter(Boolean);
+    if(parts.length !== expectedVals.length) return false;
+
+    const used = new Array(parts.length).fill(false);
+    for(const exp of expectedVals){
+      const fr = Array.isArray(exp) ? exp : fromInt(exp);      // attend un [p,q]
+      let found = false;
+      for(let i=0;i<parts.length;i++){
+        if(used[i]) continue;
+        if(algebraOK(ratExpr(fr), parts[i])){                  // ⬅️ compare sur "p/q"
+          used[i] = true; found = true; break;
         }
-        if(!found) return false;
       }
-      return true;
+      if(!found) return false;
     }
+    return true;
+  }
 
-    // 3b : f(x)=0 → { r1 ; r2 }
-    {
-      const inB = $('.q3bS',host).value.trim();
-      if(inB){
-        const okB = setAnswerOK(inB, [st.r1, st.r2]);
-        setTick($('.q3bS',host), okB); tot++; if(okB) ok++;
-      }
+  // 3b : f(x)=0 → { r1 ; r2 }
+  {
+    const inB = $('.q3bS',host).value.trim();
+    if(inB){
+      const okB = setAnswerOK(inB, [st.r1, st.r2]);            // entiers OK
+      setTick($('.q3bS',host), okB); tot++; if(okB) ok++;
     }
+  }
 
-    // 3c : f(x)=c → ax^2+bx=c ⇒ ax^2+bx=0 ⇒ x=0 ou x=-b/a
-    {
-      const inC = $('.q3cS',host).value.trim();
-      if(inC){
-        const sols = [0, -st.b/st.a];
-        const okC = setAnswerOK(inC, sols);
-        setTick($('.q3cS',host), okC); tot++; if(okC) ok++;
-      }
+  // 3c : f(x)=c → ax^2+bx=c ⇒ ax^2+bx=0 ⇒ x=0 ou x=-b/a
+  {
+    const inC = $('.q3cS',host).value.trim();
+    if(inC){
+      const okC = setAnswerOK(inC, [0, [-st.b, st.a]]);        // ⬅️ passe la fraction [-b,a]
+      setTick($('.q3cS',host), okC); tot++; if(okC) ok++;
     }
+  }
 
-    // 3d : f(x)=k = β + m^2 ⇒ x = α ± m
-    {
-      const inD = $('.q3dS',host).value.trim();
-      if(inD){
-        const s1 = add(st.alpha, fromInt(st.m));
-        const s2 = sub(st.alpha, fromInt(st.m));
-        const okD = setAnswerOK(inD, [s1, s2]);
-        setTick($('.q3dS',host), okD); tot++; if(okD) ok++;
-      }
+  // 3d : f(x)=k = β + m^2 ⇒ x = α ± m
+  {
+    const inD = $('.q3dS',host).value.trim();
+    if(inD){
+      const s1 = add(st.alpha, fromInt(st.m));                 // [p,q]
+      const s2 = sub(st.alpha, fromInt(st.m));
+      const okD = setAnswerOK(inD, [s1, s2]);
+      setTick($('.q3dS',host), okD); tot++; if(okD) ok++;
     }
+  }
 
-    // variations
-    const expect = st.a>0? ['↘','↗','bot'] : ['↗','↘','top'];
-    const A=$('.d-alpha',host).value.trim(), LT=$('.d-L',host).value, RT=$('.d-R',host).value;
-    if(A){ const AOK=algebraOK(ratText(st.alpha),A); setTick($('.d-alpha',host),AOK); tot++; if(AOK) ok++; }
-    if(LT){ const LOK=(LT===expect[0]); setTick($('.d-L',host),LOK); tot++; if(LOK) ok++; }
-    if(RT){ const ROK=(RT===expect[1]); setTick($('.d-R',host),ROK); tot++; if(ROK) ok++; }
-    const bTop=$('.d-beta-top',host).value.trim(), bBot=$('.d-beta-bot',host).value.trim();
-    if(bTop || bBot){
-      let bOK=false;
-      if(expect[2]==='top'){ bOK = algebraOK(ratText(st.beta), bTop) && bBot===''; setTick($('.d-beta-top',host), algebraOK(ratText(st.beta), bTop)); if(bBot) setTick($('.d-beta-bot',host), false); }
-      else { bOK = algebraOK(ratText(st.beta), bBot) && bTop===''; setTick($('.d-beta-bot',host), algebraOK(ratText(st.beta), bBot)); if(bTop) setTick($('.d-beta-top',host), false); }
-      tot++; if(bOK) ok++;
+  // variations
+  const expect = st.a>0? ['↘','↗','bot'] : ['↗','↘','top'];
+  const A=$('.d-alpha',host).value.trim(), LT=$('.d-L',host).value, RT=$('.d-R',host).value;
+
+  if(A){ const AOK = algebraOK(ratExpr(st.alpha), A); setTick($('.d-alpha',host), AOK); tot++; if(AOK) ok++; }
+  if(LT){ const LOK=(LT===expect[0]); setTick($('.d-L',host),LOK); tot++; if(LOK) ok++; }
+  if(RT){ const ROK=(RT===expect[1]); setTick($('.d-R',host),ROK); tot++; if(ROK) ok++; }
+
+  const bTop=$('.d-beta-top',host).value.trim(), bBot=$('.d-beta-bot',host).value.trim();
+  if(bTop || bBot){
+    let bOK=false;
+    if(expect[2]==='top'){
+      bOK = algebraOK(ratExpr(st.beta), bTop) && bBot==='';            // ⬅️ ratExpr
+      setTick($('.d-beta-top',host), algebraOK(ratExpr(st.beta), bTop));
+      if(bBot) setTick($('.d-beta-bot',host), false);
+    }else{
+      bOK = algebraOK(ratExpr(st.beta), bBot) && bTop==='';            // ⬅️ ratExpr
+      setTick($('.d-beta-bot',host), algebraOK(ratExpr(st.beta), bBot));
+      if(bTop) setTick($('.d-beta-top',host), false);
     }
+    tot++; if(bOK) ok++;
+  }
 
-    $('#res',host).innerHTML='<div class="steps"><div class="step">Résultat : <b>'+ok+' / '+tot+'</b></div></div>';
-  },
+  $('#res',host).innerHTML='<div class="steps"><div class="step">Résultat : <b>'+ok+' / '+tot+'</b></div></div>';
+},
 
   solution(host, st){
   // === Helpers d’affichage locaux (version LaTeX) ===
@@ -857,13 +984,24 @@ gen(){
     if(a1b1) parts.push(pm(a1b1) + Math.abs(a1b1));
     return parts.join('');
   }
-  function table3(exprFirstCol, lines){
-    const rows = lines.map((rhs,i)=> i===0
-      ? '<tr><td rowspan="'+lines.length+'">'+exprFirstCol+'</td><td class="eq">=</td><td>'+rhs+'</td></tr>'
-      : '<tr><td class="eq">=</td><td>'+rhs+'</td></tr>'
-    ).join('');
-    return '<table class="tbl3c"><tbody>'+rows+'</tbody></table>';
-  }
+function table3(exprFirstCol, lines){
+  const first =
+    `<tr>
+       <td class="lhs" style="vertical-align:top">${exprFirstCol}</td>
+       <td class="eq"  style="width:1.2em;text-align:center">=</td>
+       <td class="rhs">${lines[0]}</td>
+     </tr>`;
+
+  const rest = lines.slice(1).map(rhs => `
+     <tr>
+       <td class="lhs"></td>  <!-- colonne 1 vide -->
+       <td class="eq"  style="width:1.2em;text-align:center">=</td>
+       <td class="rhs">${rhs}</td>
+     </tr>`).join('');
+
+  return `<table class="tbl3c"><tbody>${first}${rest}</tbody></table>`;
+}
+
   const dedup = arr => arr.filter((x,i,a)=> i===0 || x!==a[i-1]);
   function factorStr(r){
     if(r===0) return wrap('x');
@@ -971,10 +1109,11 @@ const L6 = '<p><b>'+ wrap(`S = \\{ ${L5a} \\; ; \\; ${L5b} \\}`) +'</b></p>';
   /* ===== variations (ex-3d → 3e) ===== */
   const sensL2 = st.a>0?'↘':'↗', sensR2 = st.a>0?'↗':'↘';
   const expectTop = st.a<0, top = expectTop?wrap(betaR):'', bot = expectTop?'':wrap(betaR);
+
   const tableVar =
-    '<div class="var-wrap"><table class="var">'+
-      '<thead><tr><th>x</th><td>−∞</td><td>'+wrap(alphaR)+'</td><td>+∞</td></tr></thead>'+
-      '<tbody><tr><th rowspan="2">f</th><td class="bigsel" rowspan="2">'+sensL2+'</td><td style="text-align:center">'+top+'</td><td class="bigsel" rowspan="2">'+sensR2+'</td></tr><tr class="thin"><td style="text-align:center">'+bot+'</td></tr></tbody>'+
+    '<div class="var-wrap"><table class="pdf-tbl">'+
+      '<thead><tr><th>\\(x\\)</th><td>−∞</td><td>'+wrap(alphaR)+'</td><td>+∞</td></tr></thead>'+
+      '<tbody><tr><th rowspan="2">\\(f\\)</th><td class="bigsel" rowspan="2">'+sensL2+'</td><td style="text-align:center">'+top+'</td><td class="bigsel" rowspan="2">'+sensR2+'</td></tr><tr class="thin"><td style="text-align:center">'+bot+'</td></tr></tbody>'+
     '</table></div>';
 
   // ===== rendu final =====
@@ -1004,7 +1143,8 @@ const L6 = '<p><b>'+ wrap(`S = \\{ ${L5a} \\; ; \\; ${L5b} \\}`) +'</b></p>';
 
     const res = $('#res',host);
 res.innerHTML = html;
-mjTypeset(res);  },
+typesetAll(host);
+ },
 
   reset(host){ $('#res',host).textContent=''; }
 };
@@ -1029,7 +1169,61 @@ function mount(){
 document.addEventListener('DOMContentLoaded', mount);
 })();
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
 
+  ExoPDF.init({
+    title: document.title.replace(/\s+–.+$/,'').trim(),
+	  mountAfterSelector: '#host',   // PATCH B : la barre sera insérée juste après le bloc #host
+
+    beforeGen(def, st, opts){ return st; },
+
+    /* ---- PDF : on rend exactement l'HTML de l'écran ; MathJax a le temps de typer avant capture ---- */
+    beforeRender(def, st, withSolutions){
+      try{
+        const S = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+        function attachForStyles(node){
+          const holder = document.createElement('div');
+          holder.style.position='fixed'; holder.style.left='-10000px'; holder.style.top='-10000px';
+          holder.style.width='0'; holder.style.height='0'; holder.style.overflow='hidden';
+          holder.appendChild(node); document.body.appendChild(holder); return holder;
+        }
+        const tmp = document.createElement('div'); tmp.id='host';
+        try{ if (def && typeof def.render==='function') def.render(tmp, st||{}); }catch(_){}
+        const holder = attachForStyles(tmp);
+
+        // Solution si demandé
+        if (withSolutions){
+          let res = tmp.querySelector('#res'); if (!res){ res=document.createElement('div'); res.id='res'; tmp.appendChild(res); }
+          try{ if (def && typeof def.solution==='function') def.solution(tmp, st||{}); }catch(_){}
+        }
+
+        // Laisser MathJax faire le rendu puis renvoyer l'HTML
+        // Laisser MathJax faire le rendu puis renvoyer l'HTML
+if (window.MathJax) {
+  return mjxReady().then(()=> MathJax.typesetPromise([tmp]))
+    .then(()=>{
+      document.body.removeChild(holder);
+      return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML);
+    })
+    .catch(()=>{
+      document.body.removeChild(holder);
+      return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML);
+    });
+} else {
+  document.body.removeChild(holder);
+  return (withSolutions ? (tmp.querySelector('#res')||tmp).outerHTML : tmp.innerHTML);
+}
+
+      }catch(e){
+        console.error('PDF beforeRender error:', e);
+        return null;
+      }
+    }
+  });
+});
+</script>
 <script>
 /* UI confort (mobile, clavier, etc.) – inchangé */
 document.addEventListener('DOMContentLoaded', () => {

@@ -1154,18 +1154,25 @@ const REG=[exIdentify, exTwoWays, exVariations, exAdapt];
 window.REGISTRY = window.REGISTRY && Array.isArray(window.REGISTRY) ? window.REGISTRY : REG;
 
 function mount(){
-  const sel=$("#exo-select"); sel.innerHTML=REG.map((e,i)=>`<option value="${e.id}">${i+1}. ${e.title}</option>`).join('');
+  const sel = $("#exo-select");
+  sel.innerHTML = REG.map((e,i)=>`<option value="${e.id}">${i+1}. ${e.title}</option>`).join('');
+
   function get(){ const id=sel.value||REG[0].id; return REG.find(e=>e.id===id)||REG[0]; }
-  function newOne(){ scoreOK=0;scoreTot=0;updateScore(); const ex=get(); const st=ex.gen(); ex.render($("#host"),st); $("#host").dataset.state=JSON.stringify(st); }
+  function newOne(){ scoreOK=0; scoreTot=0; updateScore(); const ex=get(); const st=ex.gen(); ex.render($("#host"),st); $("#host").dataset.state=JSON.stringify(st); }
   function check(){ const ex=get(); ex.correct($("#host"), JSON.parse($("#host").dataset.state||'{}')); }
   function sol(){ const ex=get(); ex.solution($("#host"), JSON.parse($("#host").dataset.state||'{}')); }
-  function reset(){ const ex=get(); ex.reset($("#host")); scoreOK=0;scoreTot=0;updateScore(); }
+  function reset(){ const ex=get(); ex.reset($("#host")); scoreOK=0; scoreTot=0; updateScore(); }
 
   sel.onchange=newOne; $("#btn-new").onclick=newOne; $("#btn-check").onclick=check; $("#btn-solution").onclick=sol; $("#btn-reset").onclick=reset;
   document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ check(); }});
 
-  sel.value=REG[0].id; newOne();
+  // ⬇️ démarre APRES que MathJax soit prêt
+  const boot = () => { sel.value = REG[0].id; newOne(); };
+  (window.mjxReady ? mjxReady() : (window.MathJax?.startup?.promise || Promise.resolve()))
+    .then(boot)
+    .catch(boot); // sécurité
 }
+
 document.addEventListener('DOMContentLoaded', mount);
 })();
 </script>

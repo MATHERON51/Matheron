@@ -536,6 +536,104 @@ table.pdf-tbl tbody tr.gaprow > *:first-child{
 table.pdf-tbl thead tr > *{
   border-bottom: 1.5px solid #000; /* séparation x / f(x) */
 }
+.sign-table{
+  width:100%;
+  border:2px solid #000;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+  --zeroW: 110px;
+}
+.sign-table col.col-lbl{ width: 96px; }
+.sign-table col.col-zero{ width: var(--zeroW); }
+.sign-table col.col-int{ width:auto; }
+
+.sign-table th, .sign-table td{
+  padding:8px 6px; text-align:center; vertical-align:middle;
+  border-top:1px solid #000;
+  border-bottom:1px solid #000;
+  border-right:none; border-left:none;
+}
+
+.sign-table .lbl{
+  font-weight:600;
+  border-right:2px solid #000;
+  white-space:nowrap;
+}
+
+.sign-table td.int{ border-left:0 !important; border-right:0 !important; }
+.sign-table td.zero{ border-left:0 !important; border-right:0 !important; }
+.sign-table .cap-left{ text-align:left; padding-left:8px; }
+.sign-table .cap-right{ text-align:right; padding-right:8px; }
+
+.sign-table .sel, .sign-table .root{
+    width: var(--zeroW);
+    height: 34px;
+    line-height: 1.2;
+    font-size: 16px;
+    padding: 6px 8px;
+    border:1px solid #cbd5e1; border-radius:8px;
+    text-align:center; box-sizing:border-box;
+    margin:0 auto; display:block; background:#fff;
+  }
+.sign-table .sel{
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
+  text-align-last:center;
+}
+
+.sign-table{ font-size:1.15rem; }
+.sign-table th, .sign-table td{
+  padding:10px 14px;
+}
+.sign-table .cell{ width:84px; height:44px; font-size:1.12rem; }
+.sign-table .sel{ height:40px; min-width:84px; text-align-last:center; }
+.sign-table .root{ min-width:110px; height:40px; font-size:1.12rem; }
+
+  @media print{ .controls{display:none !important;} }
+
+.sign-table .cell-inline{ display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+
+/* Demi-taille pour le tableau de signes */
+.sign-table.half{
+  font-size:.575rem;           /* 1.15 / 2 */
+  --zeroW:55px;                /* 110 / 2 */
+}
+.sign-table.half th,
+.sign-table.half td{ padding:5px 7px; }      /* 10–14 -> ~5–7 */
+.sign-table.half .cell{ width:42px; height:22px; font-size:.56rem; } /* 84x44 -> moitié */
+.sign-table.half .sel{ height:20px; min-width:42px; }
+.sign-table.half .root{ min-width:55px; height:22px; font-size:.56rem; }
+/* Extrémités de la ligne f(x) : gauche -> droite ; droite -> gauche */
+
+
+/* Si tu utilises .half ou .pdf-large, on réaffirme pareil */
+.sign-table.half tbody tr:nth-child(2) td.int:first-of-type{ text-align:right !important; }
+.sign-table.half tbody tr:nth-child(2) td.int:last-of-type { text-align:left  !important; }
+.pdf-large.sign-table tbody tr:nth-child(2) td.int:first-of-type{ text-align:right !important; }
+.pdf-large.sign-table tbody tr:nth-child(2) td.int:last-of-type { text-align:left  !important; }
+
+@media print {
+  .equ-offscreen{
+    position: static !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+}
+@media print {
+  .pdf-half{
+    width:50% !important;
+    display:inline-block !important;
+    vertical-align:top !important;
+  }
+  .pdf-half .sign-table{
+    width:100% !important;   /* le tableau remplit son wrapper à 50% */
+  }
+}
 
 </style>
 

@@ -435,7 +435,7 @@ solution(){
   }
 
   this.state={A,B,C,aligned,k};
-  setEqu(`<p>On considère les points \\(A\\), \\(B\\) et \\(C\\) d’affixes \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), \\(z_C=${fmtZLaNum(C.a,C.b)}\\).</p> <p>Les points \\(A\\), \\(B\\) et \\(C\\) sont-ils alignés ?</p>`);
+  setEqu(`<p>On considère les points \\(A\\), \\(B\\) et \\(C\\) d’affixes \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), \\(z_C=${fmtZLaNum(C.a,C.b)}\\).</p> <p>Les points sont-ils alignés ?</p>`);
 },
     verify(){ const {aligned}=this.state; const r=stripAccents($('#ans',HOST).value); const ok=(aligned&&/^o(ui)?$/.test(r))||(!aligned&&/^n(on)?$/.test(r)); setFB(ok, ok?``:`Attendu : ${aligned?'oui':'non'}.`); return ok; },
     // REGISTRY.e3.solution — TABLE borderless
@@ -508,144 +508,106 @@ solution(){
   },
 
   /* e4 */
- /* e4 */
-e4 : {
-  name:"(AB) et (CD) sont-elles parallèles ?",
-  lead:"Répondre « oui » ou « non ». ",
-  gen(){
-    const MIN=-4, MAX=4;
-    // A ≠ B
-    const A = randPointNum(MIN,MAX);
-    const B = randPointNum(MIN,MAX,[A]);
+  e4:{ name:"(AB) et (CD) sont-elles parallèles ?", lead:"Répondre « oui » ou « non ». ",
+    gen(){
+  const MIN=-4, MAX=4;
+  let parallel = Math.random() < 0.5;
+  let A,B,C,D,k=null;
 
-    // vecteur u = AB
-    const u = { x: B.a - A.a, y: B.b - A.b };
-    if (u.x===0 && u.y===0) return this.gen(); // ultra-sécurité
+  // A ≠ B
+  A = randPointNum(MIN,MAX);
+  B = randPointNum(MIN,MAX, [A]);
 
-    // tirage parallèle / non-parallèle
-    const wantParallel = Math.random() < 0.5;
-    let C, D, k = 0;
+  if (parallel){
+    const u = {x:B.a-A.a, y:B.b-A.b};
+    if (u.x===0 && u.y===0) return this.gen(); // sécurité
+    k = randInt(-4,4) || 2; // ≠ 0
+    do{
+      C = randPointNum(MIN,MAX, [A,B]);
+      D = { a: C.a + k*u.x, b: C.b + k*u.y };
+    }while(!allDistinctPts([A,B,C,D]) || Math.max(Math.abs(D.a),Math.abs(D.b))>MAX);
+  } else {
+    do{
+      C = randPointNum(MIN,MAX, [A,B]);
+      D = randPointNum(MIN,MAX, [A,B,C]);
+      // non parallèles : (AB) // (CD) interdit
+    }while( (B.a-A.a)*(D.b-C.b) - (B.b-A.b)*(D.a-C.a) === 0 );
+  }
 
-    if (wantParallel){
-      // k ∈ ℤ \ {0}
-      do { k = randInt(-4,4); } while (k === 0);
-      // placer C puis D = C + k * u, en respectant la fenêtre & points distincts
-      let tries = 0;
-      do{
-        C = randPointNum(MIN,MAX,[A,B]);
-        D = { a: C.a + k*u.x, b: C.b + k*u.y };
-        tries++;
-        if (tries>200) { // garde-fou anti-boucle
-          return this.gen();
-        }
-      } while (!allDistinctPts([A,B,C,D]) || Math.max(Math.abs(D.a),Math.abs(D.b))>MAX);
-    } else {
-      // non parallèles : det(AB,CD) ≠ 0
-      let det = 0, tries = 0;
-      do{
-        C = randPointNum(MIN,MAX,[A,B]);
-        D = randPointNum(MIN,MAX,[A,B,C]);
-        det = (B.a-A.a)*(D.b-C.b) - (B.b-A.b)*(D.a-C.a);
-        tries++;
-        if (tries>300) { // garde-fou
-          return this.gen();
-        }
-      } while (det === 0 || !allDistinctPts([A,B,C,D]));
-    }
+  this.state={A,B,C,D,parallel,k};
+  setEqu(`<p>On considère les points \\(A\\), \\(B\\), \\(C\\) et \\(D\\) d’affixes \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), \\(z_C=${fmtZLaNum(C.a,C.b)}\\), \\(z_D=${fmtZLaNum(D.a,D.b)}\\).</p> <p>Les droites \\((AB)\\) et \\((CD)\\) sont-elles parallèles ?</p>`);
+},
+    verify(){ const rep=stripAccents($('#ans',HOST).value); const ok=/^(o|oui|n|non)$/.test(rep); if(!ok){ setFB(false,'Répondez « oui » ou « non ».'); return false; }
+      const expect=this.state.parallel?'oui':'non'; const ok2=(stripAccents($('#ans',HOST).value)[0]===expect[0]); setFB(ok2, ok2?``:`Attendu : ${expect}.`); return ok2; },
+    // REGISTRY.e4.solution — TABLE borderless
+solution(){
+  const {A,B,C,D,parallel,k} = this.state;
 
-    this.state = { A,B,C,D, parallel: wantParallel, k };
-    setEqu(
-      `<p>On considère les points \\(A\\), \\(B\\), \\(C\\) et \\(D\\) d’affixes
-       \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\),
-       \\(z_C=${fmtZLaNum(C.a,C.b)}\\), \\(z_D=${fmtZLaNum(D.a,D.b)}\\).</p>
-       <p>Les droites \\((AB)\\) et \\((CD)\\) sont-elles parallèles ?</p>`
-    );
-  },
-
-  verify(){
-    const rep = stripAccents($('#ans',HOST).value||'');
-    if(!/^(o|oui|n|non)$/.test(rep)){
-      setFB(false,'Répondez « oui » ou « non ».');
-      return false;
-    }
-    const expect = this.state.parallel ? 'oui' : 'non';
-    const ok = rep[0] === expect[0];
-    setFB(ok, ok ? '' : `Attendu : ${expect}.`);
-    return ok;
-  },
-
-  // === Correction robuste (sans division par 0, sans noms en collision) ===
-  solution(){
-    const {A,B,C,D,parallel,k} = this.state;
-
-    // petits utilitaires locaux (noms uniques pour éviter toute collision)
-    const subLine_num_e4 = (label, L, R) => {
-      const left  = fmtZLaNum(L.a,L.b);
-      const right = fmtZLaNum(R.a,R.b);
-      const noPar = (R.a===0 && R.b>0);
-      return { text: `${label} = ${left} − ${ noPar ? right : `(${right})` }`,
-               usedParens: !noPar };
+  function subLine(label, L, R){
+    const left  = fmtZLaNum(L.a, L.b);
+    const right = fmtZLaNum(R.a, R.b);
+    const noParens = (R.a===0 && R.b>0);
+    return { text: `${label} = ${left} − ${ noParens ? right : `(${right})` }`,
+             usedParens: !noParens };
+  }
+  function expandDiffNum(L, R){
+    const parts = [];
+    const push = (sign, txt)=>{
+      if(parts.length===0){ parts.push(sign==='-' ? '− '+txt : txt); }
+      else{ parts.push((sign==='-'?' − ':' + ')+txt); }
     };
-    const expandDiffNum_e4 = (L, R) => {
-      const parts = [];
-      const push = (sign, txt)=>{
-        if(parts.length===0){ parts.push(sign==='-' ? '− '+txt : txt); }
-        else{ parts.push((sign==='-'?' − ':' + ')+txt); }
-      };
-      if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
-      if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : `${Math.abs(L.b)}i`);
-      const mAa = -R.a, mAb = -R.b;
-      if(mAa!==0) push(mAa<0?'-':'+', String(Math.abs(mAa)));
-      if(mAb!==0) push(mAb<0?'-':'+', Math.abs(mAb)===1 ? 'i' : `${Math.abs(mAb)}i`);
-      return parts.join('') || '0';
-    };
+    if(L.a!==0) push(L.a<0?'-':'+', String(Math.abs(L.a)));
+    if(L.b!==0) push(L.b<0?'-':'+', Math.abs(L.b)===1 ? 'i' : String(Math.abs(L.b))+'i');
+    const mAa = -R.a, mAb = -R.b;
+    if(mAa!==0) push(mAa<0?'-':'+', String(Math.abs(mAa)));
+    if(mAb!==0) push(mAb<0?'-':'+', Math.abs(mAb)===1 ? 'i' : String(Math.abs(mAb))+'i');
+    return parts.join('') || '0';
+  }
+  function coefK_R(U,V){
+    if(U.a!==0) return R(V.a, U.a);
+    if(U.b!==0) return R(V.b, U.b);
+    return R(0,1);
+  }
 
-    // vecteurs
-    const AB = {a:B.a-A.a, b:B.b-A.b};
-    const CD = {a:D.a-C.a, b:D.b-C.b};
+  const AB = {a:B.a-A.a, b:B.b-A.b};
+  const CD = {a:D.a-C.a, b:D.b-C.b};
 
-    // lignes de substitution
-    const subAB = subLine_num_e4('z_{\\overrightarrow{AB}}', B, A);
-    const subCD = subLine_num_e4('z_{\\overrightarrow{CD}}', D, C);
+  const subAB = subLine('z_{\\overrightarrow{AB}}', B, A);
+  const subCD = subLine('z_{\\overrightarrow{CD}}', D, C);
 
-    const leftLines = [
-      `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`,
-      `\\( ${subAB.text} \\)`
-    ];
-    if (subAB.usedParens) leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${expandDiffNum_e4(B,A)} \\)`);
-    leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaNum(AB.a,AB.b)} \\)`);
+  const leftLines = [
+    `\\( z_{\\overrightarrow{AB}} = z_B - z_A \\)`,
+    `\\( ${subAB.text} \\)`
+  ];
+  if(subAB.usedParens) leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${expandDiffNum(B,A)} \\)`);
+  leftLines.push(`\\( z_{\\overrightarrow{AB}} = ${fmtZLaNum(AB.a,AB.b)} \\)`);
 
-    const rightLines = [
-      `\\( z_{\\overrightarrow{CD}} = z_D - z_C \\)`,
-      `\\( ${subCD.text} \\)`
-    ];
-    if (subCD.usedParens) rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${expandDiffNum_e4(D,C)} \\)`);
-    rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${fmtZLaNum(CD.a,CD.b)} \\)`);
+  const rightLines = [
+    `\\( z_{\\overrightarrow{CD}} = z_D - z_C \\)`,
+    `\\( ${subCD.text} \\)`
+  ];
+  if(subCD.usedParens) rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${expandDiffNum(D,C)} \\)`);
+  rightLines.push(`\\( z_{\\overrightarrow{CD}} = ${fmtZLaNum(CD.a,CD.b)} \\)`);
 
-    // test de parallélisme purement numérique (pas de fractions)
-    const det = AB.a*CD.b - AB.b*CD.a;
-    const areParallel = Math.abs(det) < 1e-12;
+  const left  = leftLines.map(L=>`<p>${L}</p>`).join('');
+  const right = rightLines.map(L=>`<p>${L}</p>`).join('');
 
-    // texte de conclusion (sans calculer un k « exact » qui pourrait diviser par 0)
-    const tail = areParallel
-          ? `<p>On remarque \\( z_{\\overrightarrow{CD}} = ${latexR(k==null?coefK_R(AB,CD):R(k,1))}\\,z_{\\overrightarrow{AB}} \\). Ainsi \\((AB)\\) et \\((CD)\\) sont parallèles.</p>`
+  const tail = parallel
+    ? `<p>On remarque \\( z_{\\overrightarrow{CD}} = ${latexR(k==null?coefK_R(AB,CD):R(k,1))}\\,z_{\\overrightarrow{AB}} \\). Ainsi \\((AB)\\) et \\((CD)\\) sont parallèles.</p>`
     : `<p>Il n’y a aucune relation entre \\( z_{\\overrightarrow{CD}} \\) et \\( z_{\\overrightarrow{AB}} \\). Ainsi \\((AB)\\) et \\((CD)\\) ne sont pas parallèles.</p>`;
 
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+       <tr>
+         <td style="border:none;vertical-align:top;padding:6px;">${left}</td>
+         <td style="border:none;vertical-align:top;padding:6px;">${right}</td>
+       </tr>
+     </table>${tail}`
+  );
 
-    const left  = leftLines.map(L=>`<p>${L}</p>`).join('');
-    const right = rightLines.map(L=>`<p>${L}</p>`).join('');
+}
 
-    setStepsHTML(
-      `<table style="border-collapse:collapse;width:100%;">
-         <tr>
-           <td style="border:none;vertical-align:top;padding:6px;">${left}</td>
-           <td style="border:none;vertical-align:top;padding:6px;">${right}</td>
-         </tr>
-       </table>${tail}`
-    );
-  }
-},
-
+  },
 
   /* e5 */
   e5:{ name:"Milieu de [AB]", 

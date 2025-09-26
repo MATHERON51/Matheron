@@ -476,26 +476,70 @@ table.table th, table.table td{
 }
 table.table th{ background:#f3f3f6 }
 
-/* tableau de variations (ta classe .var) :
-   — cadre extérieur uniquement
-   — + séparateur vertical après la 1ʳᵉ colonne (x / f) */
+  /* Variation table */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+/* 1) 1ʳᵉ ligne moins haute + padding horizontal raisonnable */
+table.var thead th,
+table.var thead td{
+  padding: 12px 16px !important;    /* plus 80px */
+}
+
+/* 2) Coller -∞ à gauche et +∞ à droite */
+table.var thead td.cap-left{
+  text-align: left;
+  padding-left: 0 !important;       /* bord gauche collé */
+}
+table.var thead td.cap-right{
+  text-align: right;
+  padding-right: 0 !important;      /* bord droit collé */
+}
+
+  table.var th, table.var td{padding:20px 30px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var tr > td:nth-child(2), table.var tr > th:nth-child(2){ border-right:none; }
+  table.var tr > td:nth-child(3), table.var tr > th:nth-child(3){ border-left:none; border-right:none; }
+  table.var tr > td:nth-child(4), table.var tr > th:nth-child(4){ border-left:none; }
+  table.var tbody tr:first-child td:nth-child(3){ border-bottom:none; }
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+table.var .cap-left{ text-align:left; padding-left:8px; }
+table.var .cap-right{ text-align:right; padding-right:8px; }
+/* 1) Taille générale du texte dans le tableau */
 table.var{
-  border-collapse: separate !important;
-  border-spacing: 0;
+  font-size: 20px;                 /* ← grossit tout le texte “normal” (x, f, flèches, etc.) */
 }
-table.var th, table.var td{
-  border: none !important;
-  padding: 4px 6px;
+
+/* 2) Rendre plus gros le rendu MathJax (−∞, +∞, x, f en LaTeX) */
+table.var .mjx-chtml{
+  font-size: 1.25em !important;    /* 1.2–1.35 selon ton goût */
 }
-/* Cadre extérieur */
-table.var tr:first-child > * { border-top:    1.5px solid #000; }
-table.var tr:last-child  > * { border-bottom: 1.5px solid #000; }
-table.var tr > *:first-child { border-left:   1.5px solid #000; }
-table.var tr > *:last-child  { border-right:  1.5px solid #000; }
-/* Séparateur vertical après la 1ʳᵉ colonne */
-table.var thead tr > *:first-child,
-table.var tbody tr > *:first-child{
-  border-right: 1.5px solid #000;
+
+/* 3) Champs (inputs + sélecteurs de flèches) */
+table.var input[type="text"]{
+  width: 100px;
+  font-size: 20px;                 /* valeur cohérente avec le tableau */
+  text-align: center;
+}
+table.var .bigsel select{
+  font-size: 32px;                 /* flèches bien visibles */
+  line-height: 1;
+  height: 2.2em;
+}
+/* 1ʳᵉ colonne plus étroite + padding réduit (override) */
+table.var tr > *:first-child{
+  width: 50px !important;          /* ajuste 60–90 selon ton goût */
+  padding: 12px 14px !important;   /* au lieu de 50px 80px */
+  white-space: nowrap;             /* évite le retour à la ligne sur "f" ou "x" */
+}
+
+/* Écran + PDF */
+table.var input, table.var select,
+.sign-table input, .sign-table select{
+  display: none !important;
 }
 
 /* base */
@@ -537,12 +581,13 @@ table.pdf-tbl thead tr > *{
   border-bottom: 1.5px solid #000; /* séparation x / f(x) */
 }
 .sign-table{
-  width:100%;
+  width:50%;
   border:2px solid #000;
   border-collapse:separate;
   border-spacing:0;
   table-layout:fixed;
   --zeroW: 110px;
+   margin: 0 auto;              /* ← centre le tableau */
 }
 .sign-table col.col-lbl{ width: 96px; }
 .sign-table col.col-zero{ width: var(--zeroW); }
@@ -634,6 +679,47 @@ table.pdf-tbl thead tr > *{
     width:100% !important;   /* le tableau remplit son wrapper à 50% */
   }
 }
+/* base */
+table.pdf-tbl-var{
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  margin: .6rem 0;                 /* un peu plus d’air */
+  position: relative;              /* pour le pseudo-cadre */
+  font-size: 50px;                 /* ← agrandit TOUT le tableau */
+}
+table.pdf-tbl-var th, table.pdf-tbl td{
+  border: none;
+  padding: 10px 14px;              /* ← au lieu de 4px 6px */
+  text-align: center;
+  vertical-align: middle;
+}
+table.pdf-tbl-var th{ background:#f3f3f6 }
+.left-dev{
+  display:flex;
+  justify-content:space-between;   /* label à gauche, expression collée à droite */
+  align-items:baseline;
+  gap:.5rem;
+}
+.left-dev .fact-latex{ white-space:nowrap; }  /* évite le retour à la ligne */
+.pdf-expand{ display:none; }
+
+/* En PDF seulement : on force la hauteur de la ligne Développement */
+
+  /* le spacer devient visible et “pousse” la cellule */
+  .pdf-expand{
+    display:block;
+    height: 24mm;            /* ajuste 24–40mm selon la place que tu veux */
+  }
+
+  /* si besoin, neutraliser le padding qu’on aurait ajouté ailleurs */
+  .table tr.row-dev td.dev-right{
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+ .tbl-main{ table-layout: fixed; width: 100%; }
+  .tbl-main col.col-left  { width: 35% !important; }  /* ← ajuste 26–35% à ton goût */
+  .tbl-main col.col-right { width: 65% !important; }
 
 </style>
 

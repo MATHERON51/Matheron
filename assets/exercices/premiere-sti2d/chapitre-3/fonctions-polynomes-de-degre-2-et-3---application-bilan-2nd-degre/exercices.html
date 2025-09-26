@@ -1,35 +1,1597 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 3 – Fonctions polynômes de degré 2 et 3 - Application bilan 2nd degré</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1STI2D – Application bilan (2ᵈ degré)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .table{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+  .table th{background:#f3f3f6;text-align:left}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+
+  /* Variation table */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var tr > td:nth-child(2), table.var tr > th:nth-child(2){ border-right:none; }
+  table.var tr > td:nth-child(3), table.var tr > th:nth-child(3){ border-left:none; border-right:none; }
+  table.var tr > td:nth-child(4), table.var tr > th:nth-child(4){ border-left:none; }
+  table.var tbody tr:first-child td:nth-child(3){ border-bottom:none; }
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* Tableau de signes détaillé */
+  .sign-table{
+    width:auto;border:2px solid #000;border-collapse:separate;border-spacing:0;table-layout:fixed;
+    --zeroW: 120px;
+  }
+  .sign-table col.col-lbl{ width: 120px; }
+  .sign-table col.col-zero{ width: var(--zeroW); }
+  .sign-table col.col-int{ width: 140px; }
+  .sign-table th,.sign-table td{
+    padding:10px 12px;text-align:center;vertical-align:middle;
+    border-top:1px solid #000;border-bottom:1px solid #000;border-right:none;border-left:none;
+  }
+  .sign-table .lbl{font-weight:600;border-right:2px solid #000;white-space:nowrap}
+  .sign-table .cap-left{ text-align:left; padding-left:8px; }
+  .sign-table .cap-right{ text-align:right; padding-right:8px; }
+  .sign-table .sel,.sign-table .root{
+    width:var(--zeroW);height:40px;font-size:16px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;text-align:center;background:#fff
+  }
+  .sign-table .sel{appearance:none;text-align-last:center}
+
+  /* ticks */
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+table.pdf-tbl{
+  border-collapse: separate;   /* important pour pouvoir cibler uniquement le pourtour */
+  border-spacing: 0;
+  border: none;                /* pas de bordure de table (évite le double trait) */
+  margin:.4rem 0;
+}
+table.pdf-tbl th, table.pdf-tbl td{
+  border: none;                /* on nettoie toutes les bordures intérieures */
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+table.pdf-tbl th{ background:#f3f3f6 }
+
+/* — Cadre extérieur uniquement — */
+table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+/* Séparateur vertical après la 1ʳᵉ colonne (x et f / f(x)) */
+table.pdf-tbl thead tr > *:first-child,
+table.pdf-tbl tbody tr > *:first-child{
+  border-right: 1.5px solid #000;
+}
+.left-dev{
+  display:flex;
+  justify-content:space-between;   /* label à gauche, expression collée à droite */
+  align-items:baseline;
+  gap:.5rem;
+}
+.left-dev .fact-latex{ white-space:nowrap; }  /* évite le retour à la ligne */
+
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true,macros:{frac:['\\dfrac{#1}{#2}',2]}},options:{skipHtmlTags:['script','noscript','style','textarea']},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
-  <h1>Exercices – Fonctions polynômes de degré 2 et 3 - Application bilan 2nd degré</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Fonctions polynômes de degré 2 et 3 - Application bilan 2nd degré</strong> (Premiere Sti2D, chapitre 3) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-3</code></li>
-        <li>Thème (slug) : <code>fonctions-polynomes-de-degre-2-et-3---application-bilan-2nd-degre</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1STI2D — Application bilan (2ᵈ degré)</h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Sommet : <code>S(α;β)</code> ou <code>(α;β)</code> ; axe : <code>x=α</code>.</li>
+               <li>Racines : liste ordonnée — ex. <code>-2;1</code>.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+<script defer src="../../../../js/exo-pdf-kit.multiplicatif-latex.js"></script>
+
+  <script>
+(function(){
+'use strict';
+
+/* ===== utils ===== */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+String(s).replace(/\\u2212/g,'-')+' \\)';}
+function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+function ensureTickAfter(el){ let s=el?.nextElementSibling; if(!s || !s.classList?.contains('tick')){ s=document.createElement('span'); s.className='tick nu'; el.insertAdjacentElement('afterend',s);} return s; }
+function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+function valTrim(el){ return (el?.value||'').replace(/\u2212/g,'-').trim(); }
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+const UMINUS = '−';
+const AMINUS = '-';                 // ASCII (pour les comparaisons / nettoyage)
+
+// remplace l’ancienne version
+function frac(p, q){
+  p = Number(p); q = Number(q);
+  // sécurité
+  if(!Number.isFinite(p) || !Number.isFinite(q) || q===0){
+    return String(p) + '/' + String(q);
+  }
+  // signe porté par le numérateur
+  const neg = (p<0) !== (q<0);
+  p = Math.abs(p); q = Math.abs(q);
+  // réduction
+  const g = gcd(p,q);
+  p /= g; q /= g;
+  // pas de "/1" (jamais)
+  if(q === 1) return (neg ? '−' : '') + String(p);
+  return String.raw`\dfrac{${neg ? '−' : ''}${p}}{${q}}`;
+}
+
+// α = (x1+x2)/2 en fraction irréductible (signe porté par le numérateur)
+function alphaRat(x1,x2){
+  let p = x1 + x2, q = 2;
+  const d = gcd(p,q); p/=d; q/=d;
+  return {p, q};
+}
+
+// Détail de (α − r) avec α = p/q et r entier.
+// Affiche: (p/q ± r) = (p/q ± rq/q) = ( (p ∓ r q)/q )  (le ± est traité correctement)
+function parenDiffDetail_alpha_minus_int(p, q, r){
+  const sign1 = (r<0 ? '+' : UMINUS);                 // α − (−k) = α + k
+  const rq = Math.abs(r) * q;
+  const num = p - r*q;                                 // p - r q (r porte son signe)
+  const d   = gcd(num, q);
+  const numR = num/d, qR = q/d;
+
+  return {
+    middle: String.raw`\Big( ${frac(p,q)} \;${sign1}\; ${Math.abs(r)} \Big)
+= \Big( ${frac(p,q)} \;${sign1}\; ${frac(rq,q)} \Big)`,
+    result: frac(numR, qR)                              // résultat simplifié
+  };
+}
+function toFrac(x){
+  // entier → "k", sinon "\dfrac{p}{q}" irréductible, signe porté par p
+  if(Number.isInteger(x)) return String(x);
+  let s = (x<0) ? '-' : '';
+  x = Math.abs(x);
+  // convertit décimaux “propres” en fraction (ici suffisant: /2 pour α, mais généralisons)
+  // on passe par une fraction sur une puissance de 10 puis on réduit
+  const str = String(x);
+  const dec = (str.split('.')[1]||'').length;
+  let q = Math.pow(10, dec);
+  let p = Math.round(x*q);
+  const d = gcd(p,q);
+  p/=d; q/=d;
+  return `\\dfrac{${s}${p}}{${q}}`;
+}
+function fmtPlusMinus(x){ return x<0?'- '+Math.abs(x):'+ '+x; }
+const MINUS_ASC = '-';
+const MINUS_U   = '−';
+const PM = '\\+|['+MINUS_ASC+MINUS_U+']'; // + ou minus (unicode/ASCII)
+// Nombre "joli" pour le TeX (virgule OK) :
+
+// — Signes
+
+// Coefficient → préfixe "joli"
+function coefText(k){
+  if(k === 1)  return '';           // 1·… supprimé
+  if(k === -1) return UMINUS;       // −1·… → "−" devant le monôme/facteur
+  return String(k);
+}
+
+// Terme "linéaire" bx (pour l'affichage développé)
+function termBx(b){
+  if(b === 0) return '';
+  const abs = Math.abs(b);
+  const core = (abs === 1) ? 'x' : abs + 'x';
+  return (b > 0 ? ' + ' : ' ' + UMINUS + ' ') + core;
+}
+
+// Terme constant c (avec signe)
+function termC(c){
+  if(c === 0) return '';
+  return (c > 0 ? ' + ' : ' ' + UMINUS + ' ') + String(Math.abs(c));
+}
+
+// f(x) = ax² + bx + c  (sans 1x²/1x)
+function polyString(a,b,c){
+  const aTxt = coefText(a);
+  const aPart = (a===0) ? '' : (aTxt ? aTxt + 'x^2' : 'x^2');
+  const bPart = termBx(b);
+  const cPart = termC(c);
+  // concat propre + nettoyage des espaces doublons éventuels
+  return [aPart,bPart,cPart].join('').replace(/\s+/g,' ').trim();
+}
+
+// Un facteur (x − r) "propre" : r=0 → x ; r<0 → x+|r|
+function factorCore(r){
+  if(r === 0) return 'x';
+  return 'x' + (r<0 ? '+' : '−') + Math.abs(r);
+}
+
+// Facteur rendable dans un produit :
+// - si c'est "x" on n'ajoute PAS de parenthèses (x)(...) → x(...)
+// - sinon on met (x±r)
+function factorText(r){
+  const core = factorCore(r);
+  return (core === 'x') ? 'x' : `( ${core} )`.replace(/\s+/g,'').replace('(', '(').replace(')', ')');
+}
+
+// Produit factorisé a·(x−r1)(x−r2) en respectant 1/−1
+function factorizedString(a,r1,r2){
+  const aTxt = coefText(a);                 // '', '−', ou nombre
+  const f1 = factorText(r1);
+  const f2 = factorText(r2);
+  // gestion des parenthèses : si f1/f2 == 'x', on ne met pas de parenthèses
+  const p1 = (f1==='x') ? 'x' : `(${factorCore(r1)})`;
+  const p2 = (f2==='x') ? 'x' : `(${factorCore(r2)})`;
+  // concat
+  const head = (a===0) ? '' : (aTxt);       // '' | '−' | 'k'
+  const body = (p1==='x' ? 'x' : p1) + (p2==='x' ? 'x' : p2);
+  return `${head}${body}`.replace(/\s+/g,'');
+}
+
+// Libellé pour la ligne du tableau de signes
+function factorLabelNice(r){
+  return (r===0) ? 'x' : `x${r<0?'+':'−'}${Math.abs(r)}`;
+}
+
+
+
+function latexNum(n){
+  const v = Math.round((+n + Number.EPSILON)*100)/100;
+  return String(Math.abs(v) < 1e-12 ? 0 : v).replace('.', ',').replace(/^-0$/, '0');
+}
+function cleanSigns(str){
+  if(!str) return str;
+  return String(str)
+    // --  → +
+    .replace(new RegExp('(['+MINUS_ASC+MINUS_U+'])\\s*(['+MINUS_ASC+MINUS_U+'])','g'), ' + ')
+    // +-  or + − → −
+    .replace(new RegExp('\\+\\s*(['+MINUS_ASC+MINUS_U+'])','g'), ' '+MINUS_U+' ')
+    // -+  → −
+    .replace(new RegExp('(['+MINUS_ASC+MINUS_U+'])\\s*\\+','g'), ' '+MINUS_U+' ')
+    // ++  → +
+    .replace(/\+\s*\+/g, ' + ')
+    // espaces multiples → un espace
+    .replace(/\s{2,}/g, ' ')
+    // + ) ou + ] collés après simplif → ré-ajuste (cosmétique)
+    .replace(/\s+\)/g, ')').replace(/\s+\]/g, ']');
+}
+function cleanTextNodes(root){
+  try{
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(n => { n.nodeValue = cleanSigns(n.nodeValue); });
+  }catch(_){}
+}
+/* ====== Variations ====== */
+function renderVariationTable(host, a, alphaTex, betaTex){
+  const left = (a>0?'↘':'↗'), right=(a>0?'↗':'↘');
+  const isMax = (a<0);
+  host.innerHTML = [
+    '<div class="var-wrap"><table class="var pdf-large">',
+      '<thead><tr><th>\\(x\\)</th><td class="int cap-left">\\(−∞\\)</td><td style="text-align:center"><input class="alpha-in" type="text" style="width:90px"></td><td class="cap-right">\\(+∞\\)</td></tr></thead>',
+      '<tbody>',
+      '<tr>',
+        '<th rowspan="3">\\(f\\)</th>',
+        '<td class="bigsel" rowspan="3"><select class="d-L"><option value=""></option><option>↘</option><option>↗</option></select></td>',
+        '<td style="text-align:center"><input class="d-beta-top" type="text" placeholder="maximum"></td>',
+        '<td class="bigsel" rowspan="3"><select class="d-R"><option value=""></option><option>↘</option><option>↗</option></select></td>',
+      '</tr>',
+      '<tr class="gaprow"><td></td></tr>',
+      '<tr class="thin">',
+        '<td style="text-align:center"><input class="d-beta-bot" type="text" placeholder="minimum"></td>',
+      '</tr>',
+      '</tbody></table></div>'
+  ].join('');
+}
+
+function signTableHTML_solution(a, x1, x2){
+  const hasA = a !== 1;
+  const sOut = a > 0 ? '+' : '−';
+  const sIn  = a > 0 ? '−' : '+';
+  const lab = r => (r===0 ? '\\(x\\)' : `\\(x${r<0?'+':'−'}${Math.abs(r)}\\)`);
+
+  return `
+  <div class="var-wrap">
+    <table class="sign-table" aria-label="Tableau de signes détaillé (solution)">
+      <colgroup>
+        <col class="col-lbl"><col class="col-int"><col class="col-zero">
+        <col class="col-int"><col class="col-zero"><col class="col-int">
+      </colgroup>
+      <tbody>
+        <tr>
+          <th class="lbl">\\(x\\)</th>
+          <td class="int cap-left">−∞</td>
+          <td class="zero">\\(${x1}\\)</td>
+          <td class="int"></td>
+          <td class="zero">\\(${x2}\\)</td>
+          <td class="int cap-right">+∞</td>
+        </tr>
+
+        ${hasA ? `
+        <tr>
+          <th class="lbl">\\(${a}\\)</th>
+          <td class="int">${sOut}</td>
+          <td class="zero"></td>
+          <td class="int">${sOut}</td>
+          <td class="zero"></td>
+          <td class="int">${sOut}</td>
+        </tr>` : ''}
+
+        <tr>
+          <th class="lbl">${lab(x1)}</th>
+          <td class="int">−</td>
+          <td class="zero">0</td>
+          <td class="int">+</td>
+          <td class="zero"></td>
+          <td class="int">+</td>
+        </tr>
+
+        <tr>
+          <th class="lbl">${lab(x2)}</th>
+          <td class="int">−</td>
+          <td class="zero"></td>
+          <td class="int">−</td>
+          <td class="zero">0</td>
+          <td class="int">+</td>
+        </tr>
+
+        <tr>
+          <th class="lbl">\\(f(x)\\)</th>
+          <td class="int">${sOut}</td>
+          <td class="zero">0</td>
+          <td class="int">${sIn}</td>
+          <td class="zero">0</td>
+          <td class="int">${sOut}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+
+
+/* === Helpers HTML pour PDF (variations & signes) === */
+function pdfVarTableHTML(a, alpha, beta){
+  const arrowL = a>0 ? '↘' : '↗';
+  const arrowR = a>0 ? '↗' : '↘';
+  const top = (a<0 ? L(beta) : '&nbsp;');
+  const bot = (a>0 ? L(beta) : '&nbsp;');
+  return `
+    <div class="var-wrap">
+<table class="pdf-tbl" aria-label="Tableau de variations (PDF)">
+  <thead>
+    <tr><th>${L('x')}</th><th>${L('-\\infty')}</th><th>${L(alpha)}</th><th>${L('+\\infty')}</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>${L('f')}</th>
+      <td>${arrowL}</td>
+      <td><div>${top}</div><div style="height:4px"></div><div>${bot}</div></td>
+      <td>${arrowR}</td>
+    </tr>
+  </tbody>
+</table>  </div>`;
+}
+
+/* ====== Tableau de signes (DETAILED, comme demandé) ====== */
+function factorLabel(r){
+  const s = Number(r);
+  return (s>=0) ? `x-${s}` : `x+${Math.abs(s)}`;
+}
+function buildSignTableHTML(st){
+  const hasA = st.a!==1;
+  function hdrRow(){
+    return [
+      '<tr>',
+        '<th class="lbl">\\(x\\)</th>',
+        '<td class="int cap-left">−∞</td>',
+        '<td class="zero"><div class="cell-inline">',
+          '<input id="hdr_r1" class="root" placeholder="">',
+          '<span id="ok_hdr_r1" class="tick"></span>',
+        '</div></td>',
+        '<td class="int"></td>',
+        '<td class="zero"><div class="cell-inline">',
+          '<input id="hdr_r2" class="root" placeholder="">',
+          '<span id="ok_hdr_r2" class="tick"></span>',
+        '</div></td>',
+        '<td class="int cap-right">+∞</td>',
+      '</tr>'
+    ].join('');
+  }
+  function lineA(){
+    return [
+      '<tr>',
+        `<th class="lbl">\\(${st.a}\\)</th>`,
+        '<td class="int"><div class="cell-inline">',
+          '<select id="A_L" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_A_L" class="tick"></span>',
+        '</div></td>',
+        '<td class="zero"></td>',
+        '<td class="int"><div class="cell-inline">',
+          '<select id="A_M" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_A_M" class="tick"></span>',
+        '</div></td>',
+        '<td class="zero"></td>',
+        '<td class="int"><div class="cell-inline">',
+          '<select id="A_R" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_A_R" class="tick"></span>',
+        '</div></td>',
+      '</tr>'
+    ].join('');
+  }
+  function lineFactor(label,idRoot){
+    return [
+      '<tr>',
+        `<th class="lbl">\\(${label}\\)</th>`,
+        '<td class="int"><div class="cell-inline">',
+          `<select id="${idRoot}_L" class="sel"><option></option><option>+</option><option>−</option></select>`,
+          `<span id="ok_${idRoot}_L" class="tick"></span>`,
+        '</div></td>',
+        '<td class="zero"><div class="cell-inline">',
+          `<select id="${idRoot}_Z1" class="sel"><option></option><option>0</option></select>`,
+          `<span id="ok_${idRoot}_Z1" class="tick"></span>`,
+        '</div></td>',
+        '<td class="int"><div class="cell-inline">',
+          `<select id="${idRoot}_M" class="sel"><option></option><option>+</option><option>−</option></select>`,
+          `<span id="ok_${idRoot}_M" class="tick"></span>`,
+        '</div></td>',
+        '<td class="zero"><div class="cell-inline">',
+          `<select id="${idRoot}_Z2" class="sel"><option></option><option>0</option></select>`,
+          `<span id="ok_${idRoot}_Z2" class="tick"></span>`,
+        '</div></td>',
+        '<td class="int"><div class="cell-inline">',
+          `<select id="${idRoot}_R" class="sel"><option></option><option>+</option><option>−</option></select>`,
+          `<span id="ok_${idRoot}_R" class="tick"></span>`,
+        '</div></td>',
+      '</tr>'
+    ].join('');
+  }
+  function lineProduct(){
+    return [
+      '<tr>',
+        '<th class="lbl">\\(f(x)\\)</th>',
+        '<td class="int"><div class="cell-inline">',
+          '<select id="F_L" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_F_L" class="tick"></span>',
+        '</div></td>',
+        '<td class="zero"><div class="cell-inline">',
+          '<select id="F_Z1" class="sel"><option></option><option>0</option></select>',
+          '<span id="ok_F_Z1" class="tick"></span>',
+        '</div></td>',
+        '<td class="int"><div class="cell-inline">',
+          '<select id="F_M" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_F_M" class="tick"></span>',
+        '</div></td>',
+        '<td class="zero"><div class="cell-inline">',
+          '<select id="F_Z2" class="sel"><option></option><option>0</option></select>',
+          '<span id="ok_F_Z2" class="tick"></span>',
+        '</div></td>',
+        '<td class="int"><div class="cell-inline">',
+          '<select id="F_R" class="sel"><option></option><option>+</option><option>−</option></select>',
+          '<span id="ok_F_R" class="tick"></span>',
+        '</div></td>',
+      '</tr>'
+    ].join('');
+  }
+  const table = [
+    '<table class="sign-table" aria-label="Tableau de signes détaillé">',
+      '<colgroup><col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int"></colgroup>',
+      '<tbody>',
+        hdrRow(),
+        (hasA? lineA() : ''),
+        lineFactor(factorLabelNice(st.x1),'R1'),
+lineFactor(factorLabelNice(st.x2),'R2'),
+
+        lineProduct(),
+      '</tbody>',
+    '</table>'
+  ].join('');
+  return table;
+}
+function texSign(n){ return (n>=0?'+':'−')+' '+Math.abs(n); }
+// a(x±r1)(x±r2) avec r=0 → "x" (sans parenthèses)
+function texFactor(a, r1, r2){
+  const UMINUS = '−';
+  const aTex = (Math.abs(a)===1 ? (a===-1?UMINUS:'') : String(a));
+  const f = r => (r===0 ? 'x' : `\\big(x${r<0?'+':UMINUS}${Math.abs(r)}\\big)`);
+  // si l'un des facteurs est 'x', on ne remet pas de parenthèses autour :
+  return `${aTex}${f(r1)}${f(r2)}`;
+}
+
+// ——— Helpers d’affichage (jamais 1x/1x², pas de 0x ni +0) ———
+
+function sgnStr(k){ return k>=0 ? '+ ' : UMINUS+' '; }
+function absI(n){ return Math.abs(Number(n)); }
+
+// Concat propre : filtre chaînes vides puis joint avec un espace
+function joinParts(...parts){
+  return parts.filter(s => s && String(s).trim()!=='')
+              .join(' ')
+              .replace(/\s+/g,' ')
+              .replace(/^\+\s*/,'')                 // pas de + initial
+              .trim();
+}
+
+// terme linéaire signé : "+ x", "− x", "+ 3x", "− 7x" ; si k=0 → ""
+function linSigned(k){
+  if(!k) return '';
+  const a = absI(k);
+  return sgnStr(k) + (a===1 ? 'x' : (a+'x'));
+}
+
+// constante signée : "+ 5", "− 12" ; si 0 → ""
+function cstSigned(c){
+  if(!c) return '';
+  return sgnStr(c) + absI(c);
+}
+
+// tête quadratique : a x^2 (a=±1 → "x^2" / "−x^2")
+function quadHead(a){
+  if(a===1)  return 'x^2';
+  if(a===-1) return UMINUS+'x^2';
+  return String(a)+'x^2';
+}
+
+// f(x) = ax^2 + bx + c sans 1x/1x^2 ni 0-termes
+function polyNice(a,b,c){
+  return joinParts(
+    quadHead(a),
+    linSigned(b),
+    cstSigned(c)
+  );
+}
+
+// a(x±…)(x±…) pour l’intitulé (gère a=±1)
+// signe joli
+
+// (x−r) mais si r=0 → "x" (sans parenthèses)
+function factorParen(r){
+  if(r === 0) return 'x';
+  const s = (r < 0 ? '+' : UMINUS) + Math.abs(r);
+  return `(x${s})`;
+}
+
+// a(x−r1)(x−r2) sans (x−0) ; a=±1 → "−" ou rien
+function texFactor(a, r1, r2){
+  const aTex = (Math.abs(a)===1 ? (a===-1?UMINUS:'') : String(a));
+  return `${aTex}${factorParen(r1)}${factorParen(r2)}`;
+}
+
+// supprime tout (x−0) résiduel (avec − unicode ou tiret ASCII, avec/ sans \big)
+function fixXminus0(root){
+  const RE1 = /\(x\s*[−-]\s*0\)/g;                  // (x-0) → x
+  const RE2 = /\\big\(x\s*[−-]\s*0\\big\)/g;         // \big(x-0\big) → x
+  const RE3 = /x\s*[−-]\s*0(?=\s*=)/g;               // x-0 = ... → x = ...
+  (root || document).querySelectorAll('#host, #res, .steps').forEach(el=>{
+    el.innerHTML = el.innerHTML
+      .replace(RE1,'x')
+      .replace(RE2,'x')
+      .replace(RE3,'x');
+  });
+}
+
+
+
+function buildQ1TableHTML(a, x1, x2, b, c){
+function pushRowUnique(rows, leftHtml, rightTex){
+  // n'ajoute pas si le "rightTex" est identique à la dernière ligne
+  const last = rows[rows.length-1];
+  if(!last || last[2] !== rightTex){
+    rows.push([leftHtml, '=', rightTex]);
+  }
+}
+
+  // « deux termes en x »
+  const t1 = -x1, t2 = -x2;  // coefficients devant x (peuvent valoir 0)
+  const S  = x1 + x2;
+
+  const facLatex = texFactor(a, x1, x2);
+
+// r1, r2 sont tes racines (x - r1)(x - r2)
+// ORDRE VOULU : x(x - r2) + (-r1)(x - r2)  ⇒  x^2  − r2 x  − r1 x  + r1 r2
+const tX = -x2;  // terme en x issu du développement par x en premier
+const tC = -x1;  // terme en x issu du développement par (−r1) ensuite
+const P  = x1 * x2;
+
+const inside_step1 = joinParts(
+  'x^2',
+  linSigned(tX),   // 1er : −r2 x  (développement par x)
+  linSigned(tC),   // 2e : −r1 x  (développement par −r1)
+  cstSigned(P)     // + r1 r2 (absent si 0)
+);
+
+
+ const inside_step2 = joinParts(
+   'x^2',
+   linSigned(-S),  // ✅ bon : coefficient de x = −(r1+r2)
+   cstSigned(P)
+ );
+
+  const step3 = polyNice(a,b,c);  // propre, sans 1x/1x²/0-termes
+  const step4 = `f(x)`;
+
+// aTex pour l’affichage de a devant les parenthèses quand nécessaire
+const aTexNum  = (Math.abs(a)===1 ? '' : String(a));     // '' si ±1, sinon 'k'
+const aTexSign = (a===-1 ? '−' : (a===1 ? '' : ''));     // '−' si -1, sinon ''
+
+const facLeft = '<strong>1) </strong>\\( \\) \\( '+texFactor(a, x1, x2)+'\\)';
+
+// Étapes internes déjà propres (ordre : x puis −r1)
+const right1_noParens = `\\(${inside_step1}\\)`;                                               // SANS () autour (cas a=1)
+const right1_parens   = `\\(${aTexNum? aTexNum+'\\,': aTexSign}\\big(${inside_step1}\\big)\\)`; // AVEC () si a≠1 ou a=-1
+const right2_parens   = `\\(${aTexNum? aTexNum+'\\,': aTexSign}\\big(${inside_step2}\\big)\\)`;
+const right3          = `\\(${step3}\\)`;
+const right4          = `\\(${step4}\\)`;
+
+// Anti-doublons
+function pushRowUnique(rows, leftHtml, rightTex){
+  const last = rows[rows.length-1];
+  if(!last || last[2] !== rightTex){ rows.push([leftHtml, '=', rightTex]); }
+}
+
+// ===== Construction des lignes selon a =====
+let rows = [];
+
+if(a === 1){
+  // Cas demandé : pas de () à la 1ʳᵉ ligne et on SUPPRIME la ligne de regroupement
+  pushRowUnique(rows, facLeft, right1_noParens); // ex: x^2 − 2x − 3x + 6
+  pushRowUnique(rows, '',      right3);          // ex: x^2 − 5x + 6
+  pushRowUnique(rows, '',      right4);          // f(x)
+}
+else if(a === -1){
+  // On garde les deux lignes internes, avec le signe « −( … ) »
+  pushRowUnique(rows, facLeft, right1_parens);   // −( x^2 − … )
+  pushRowUnique(rows, '',      right2_parens);   // −( x^2 − Sx + P )
+  pushRowUnique(rows, '',      right3);          // −x^2 + …
+  pushRowUnique(rows, '',      right4);
+}
+else{
+  // Cas général |a|>1 : a·( … ) puis regroupement
+  pushRowUnique(rows, facLeft, right1_parens);   // a( x^2 − … )
+  pushRowUnique(rows, '',      right2_parens);   // a( x^2 − Sx + P )
+  pushRowUnique(rows, '',      right3);          // ax^2 + bx + c
+  pushRowUnique(rows, '',      right4);
+}
+
+// — rendu du tableau (inchangé)
+return [
+  '<table style="border-collapse:collapse;width:auto;margin:.2rem 0">',
+    '<colgroup><col style="width:auto"><col style="width:24px"><col style="width:auto"></colgroup>',
+    '<tbody>',
+      rows.map(r =>
+        '<tr>'
+        + '<td style="border:none;padding:2px 8px 2px 0;text-align:left">'+ r[0] +'</td>'
+        + '<td style="border:none;padding:2px 4px;text-align:center;font-weight:600">=</td>'
+        + '<td style="border:none;padding:2px 0 2px 8px;text-align:left">'+ r[2] +'</td>'
+        + '</tr>'
+      ).join('')
+    + '</tbody>',
+  '</table>'
+].join('');
+
+
+
+
+}
+
+
+
+/* ====== Exo aléatoire ====== */
+// ====== Exo aléatoire ======
+const exo = {
+  id:'bilan2d_rand',
+  title:'Application bilan 2ᵈ degré',
+  gen(){
+    const A=[-3,-2,-1,1,2,3];
+    const a=choice(A);
+    let x1=rint(-5,5), x2=rint(-5,5); while(x2===x1) x2=rint(-5,5);
+    const rmin=Math.min(x1,x2), rmax=Math.max(x1,x2); x1=rmin; x2=rmax;
+    const b=-a*(x1+x2), c=a*(x1*x2);
+    const alpha=(x1+x2)/2, beta=a*(alpha-x1)*(alpha-x2);
+    const aTex=(Math.abs(a)===1?(a===-1?'-':''):String(a));
+const cmp = '≤';   // valeur par défaut
+    return {a,b,c,x1,x2,alpha,beta,alphaTex:toFrac(alpha),betaTex:toFrac(beta),aTex, cmp}; // ← +cmp
+  },
+
+
+  render(host,st){
+    const {a,b,c,x1,x2,alphaTex,betaTex,aTex}=st;
+	const tex = `f(x)= ${polyString(a,b,c)}`;
+
+const wantsIdRem = (st.c !== 0 && st.b === 0);
+
+// nombre d’inputs (sans placeholder)
+const nbFact =
+  (st.c === 0) ? 2 :
+  (wantsIdRem ? (st.a === 1 ? 2 : 3) :
+                (st.a === 1 ? 3 : 4));
+
+const factInputs = Array.from({ length: nbFact }, (_, i) =>
+  `<input class="fact" data-step="${i+1}" type="text"
+          style="width:320px;margin-top:${i?'.35rem':'0'}">`
+).join('<br>');
+
+// — colonne de gauche : titre + remarque (si b=0) + expression alignée à droite
+const leftDev = `
+  <div class="left-dev">
+    <span class="lbl">Développement :</span>
+    <span class="fact-latex">\\(${factorizedString(st.a, st.x1, st.x2)}=\\)</span>
+  </div>
+  ${wantsIdRem ? '<div class="hint-idrem">Pensez à utiliser une identité remarquable</div>' : ''}
+`;
+
+// — colonne de droite : uniquement les champs
+const rightDev = `<div class="dev-inputs">${factInputs}</div>`;
+
+
+
+
+    host.innerHTML = [
+  `<div>Soit la fonction définie sur ℝ par ${L(tex)}.</div>`,
+  '<ol style="margin:.4rem 0 .2rem 1.1rem">',
+    `<li>Montrer que \\(f(x)=${factorizedString(a,x1,x2)}\\).</li>`,
+    `<li>Résoudre \\(f(x)=0\\).</li>`,
+    '<li>a) Donner l’allure de la courbe représentative, son sommet et son axe de symétrie.<br>b) En déduire le tableau de <em>variations</em>.</li>',
+    `<li>
+       a) Dresser le tableau de <em>signes</em> complet.<br>
+        b) En déduire 
+  \\( f(x) \\) 
+    <select class="cmp" style="margin-left:.5rem">
+    <option value="<">&lt 0</option>
+    <option value="≤" selected>≤ 0</option>
+    <option value=">">&gt 0</option>
+    <option value="≥">≥ 0</option>
+  </select>
+</li>`,
+  '</ol>',
+  `<div> <br> </div>`,
+
+
+`<table class="table tbl-main">
+  <colgroup>
+    <col class="col-left">
+    <col class="col-right">
+  </colgroup>
+  <thead>
+    <tr><th>Élément</th><th>Réponse (à compléter)</th></tr>
+  </thead>
+  <tbody>
+`,
+
+`<tr class="row-dev">
+  <td>${leftDev}</td>
+  <td>${rightDev}      <div class="pdf-expand"></div>   <!-- ← spacer visible en PDF seulement -->
+</td>
+
+</tr>`,  `<tr class="row-dev"><td>Équation \\(f(x)=0\\)</td><td><input class="roots" type="text" style="width:220px" placeholder=""><div class="pdf-expand"></div></td></tr>`,
+        `<tr><td>Ouverture</td><td><select class="open"><option></option><option>vers le haut</option><option>vers le bas</option></select></td></tr>`,
+        `<tr><td>Sommet</td><td><input class="sommet" type="text" style="width:220px" placeholder=""><div class="pdf-expand"></div></td></tr>`,
+        `<tr><td>Axe de symétrie</td><td><input class="axe" type="text" style="width:160px" placeholder=""></td></tr>`,
+             `<tr><td>Inéquation : \\( f(x) \\) <span id="cmp-view">≤</span> \\( 0 \\)</td><td><input class="ineq" type="text" style="width:160px" placeholder=""></td></tr>`,
+
+	 '</tbody></table>',
+
+      '<div style="margin:.4rem 0">Tableau de variations :</div>',
+      '<div id="var-host"></div>',
+
+   
+      '<div style="margin:.6rem 0 .2rem">Tableau de signes détaillé :</div>',
+      '<div id="sign-host"></div>',
+
+
+`<div> <br> </div>`,
+      '<div id="res" class="steps small"></div>'
+    ].join('');
+
+   // rendu des autres blocs
+renderVariationTable($('#var-host',host), a, st.alphaTex, st.betaTex);
+$('#sign-host',host).innerHTML = buildSignTableHTML(st);
+
+// écouteur du sélecteur : met à jour le placeholder + le rendu LaTeX
+const cmpSel = $('.cmp',host);
+function ineqPlaceholderFor({a,x1,x2,cmp}){
+  const inside   = `]${x1};${x2}[`;
+  const insideC  = `[${x1};${x2}]`;
+  const outsideO = `]-∞;${x1}[ ∪ ]${x2};+∞[`;
+  const outsideC = `]-∞;${x1}] ∪ [${x2};+∞[`;
+  if(a>0){
+    if(cmp==='<')  return inside;
+    if(cmp==='≤')  return insideC;
+    if(cmp==='>')  return outsideO;
+    return outsideC; // ≥
+  }else{
+    if(cmp==='<')  return outsideO;
+    if(cmp==='≤')  return outsideC;
+    if(cmp==='>')  return inside;
+    return insideC; // ≥
+  }
+}
+function updateIneqUI(){
+  st.cmp = cmpSel.value;
+  host.dataset.state = JSON.stringify(st);
+  $('#cmp-view',host).textContent = st.cmp;
+  const ineqInput = $('.ineq',host);
+  if(ineqInput) ineqInput.placeholder = ineqPlaceholderFor(st);
+  typesetAll(host);
+}
+cmpSel.addEventListener('change', updateIneqUI);
+
+// ticks neutres + cleanup + typeset
+host.querySelectorAll('input,select').forEach(el=>ensureTickAfter(el));
+cleanTextNodes(host);
+typesetAll(host);
+  },
+
+ correct(host, st){
+  const {a,b,c,x1,x2,alphaTex,betaTex} = st;
+
+  // ————— Utils locaux —————
+  const UMINUS = '−';
+  const sOut = (a>0? '+':'−');     // signe de f(x) à l'extérieur des racines
+  const sIn  = (a>0? '−':'+');     // signe de f(x) entre les racines
+
+  const get = sel => (host.querySelector(sel));
+  const valTrim = el => (el?.value||'').replace(/\u2212/g,'-').trim();
+  const setTick = (el, state) => {
+    if(!el) return;
+    let t = el.nextElementSibling;
+    if(!t || !t.classList?.contains('tick')){
+      t = document.createElement('span'); t.className='tick nu';
+      el.insertAdjacentElement('afterend', t);
+    }
+    t.className = 'tick ' + state; // nu | ok | ko
+  };
+
+  // Compte un item seulement si au moins un champ du groupe est rempli
+  function gradeGroup(els, isGood){
+    const any = els.some(e => valTrim(e) || (e.tagName==='SELECT' && e.value!==''));
+    if(!any) return {counted:false, ok:false};
+    const good = !!isGood();
+    els.forEach(e => setTick(e, good?'ok':'ko'));
+    if(!good){ /* on montre KO sur tout le groupe */ }
+    return {counted:true, ok:good};
+  }
+
+  // Normalisation "ensemble" pour l'inéquation
+  function normSet(s){
+    return String(s||'')
+      .replace(/\s+/g,'')
+      .replace(/∞/g,'+∞')
+      .replace(/\+\+∞/g,'+∞')
+      .replace(/[()]/g, m => m==='('?'[':']')      // tolère () au lieu de []
+      .replace(/\u222a|U/gi,'∪');                  // unions
+  }
+  function variants(s){
+    // Quelques variantes acceptées (',' au lieu de ';', () au lieu de [])
+    const base = normSet(s);
+    const alts = new Set([base]);
+    alts.add(base.replaceAll(';',',')); // ; <-> ,
+    return alts;
+  }
+
+  // Attendus inéquation selon a et cmp
+  function expectedSets({a,x1,x2,cmp}){
+    function V(s){ return [...variants(s)]; }
+    if(a>0){
+      if(cmp==='<')  return V(`]${x1};${x2}[`);
+      if(cmp==='≤')  return V(`[${x1};${x2}]`);
+      if(cmp==='>')  return V(`]-∞;${x1}[∪]${x2};+∞[`);
+      /* ≥ */        return V(`]-∞;${x1}]∪[${x2};+∞[`);
+    }else{
+      if(cmp==='<')  return V(`]-∞;${x1}[∪]${x2};+∞[`);
+      if(cmp==='≤')  return V(`]-∞;${x1}]∪[${x2};+∞[`);
+      if(cmp==='>')  return V(`]${x1};${x2}[`);
+      /* ≥ */        return V(`[${x1};${x2}]`);
+    }
+  }
+
+  // ————— Début correction —————
+  let ok = 0, tot = 0;
+
+// --- Début NOUVEAU bloc "Développement" dans correct(...) ---
+(function(){
+  const els = Array.from(host.querySelectorAll('.fact'));
+  if(!els.length) return;
+
+  const a = st.a, x1 = st.x1, x2 = st.x2, b = st.b, c = st.c;
+  const S = x1 + x2;                   // r1 + r2
+  const P = x1 * x2;                   // r1 * r2
+  const wantsIdRem = (c !== 0 && b === 0);
+  const R = Math.abs(x1), R2 = R*R;    // b=0 ⇒ x2 = −x1
+
+  // Helpers
+  const X2 = '(?:x\\^?2|x²)';          // "x^2" ou "x²"
+  const norm = s => String(s||'').replace(/\u2212|−/g,'-').replace(/\s+/g,'').toLowerCase();
+  const parseSignedInt = s => (s===''||s==='+')? 1 : (s==='-'? -1 : parseInt(s,10));
+  function parseLinTerm(s){ const m = s.match(/^([+\-]?)(\d*)x$/i); if(!m) return null;
+    const sgn = m[1] || '+'; return parseSignedInt(sgn + (m[2]||'1')); }
+
+  // ---- VALIDATEURS POUR LES DIFFÉRENTS CAS ----
+
+  // Cas général — Étape 1 : deux termes en x (dans ou hors parenthèses selon a)
+  function isStep1_general(txt){
+    const t = norm(txt);
+    if(a === 1){
+      const re = new RegExp(`^${X2}([+\\-]?\\d*x)([+\\-]?\\d*x)([+\\-]?\\d+)?$`,'i');
+      const m = t.match(re); if(!m) return false;
+      const k1 = parseLinTerm(m[1]), k2 = parseLinTerm(m[2]); if(k1===null||k2===null) return false;
+      const C  = m[3] ? parseInt(m[3],10) : 0;
+      const okLin = ((k1===-x2 && k2===-x1) || (k1===-x1 && k2===-x2));
+      const okC   = (C===P) || (P===0 && m[3]===undefined);
+      return okLin && okC;
+    }
+    if(a === -1){
+      const re = new RegExp(`^-${'\\('}${X2}([+\\-]?\\d*x)([+\\-]?\\d*x)([+\\-]?\\d+)?\\)$`,'i');
+      const m = t.match(re); if(!m) return false;
+      const k1 = parseLinTerm(m[1]), k2 = parseLinTerm(m[2]); if(k1===null||k2===null) return false;
+      const C  = m[3] ? parseInt(m[3],10) : 0;
+      const okLin = ((k1===-x2 && k2===-x1) || (k1===-x1 && k2===-x2));
+      const okC   = (C===P) || (P===0 && m[3]===undefined);
+      return okLin && okC;
+    }
+    const re = new RegExp(`^([+\\-]?\\d+)\\(${X2}([+\\-]?\\d*x)([+\\-]?\\d*x)([+\\-]?\\d+)?\\)$`,'i');
+    const m = t.match(re); if(!m) return false;
+    const A  = parseInt(m[1],10); if(A!==a) return false;
+    const k1 = parseLinTerm(m[2]), k2 = parseLinTerm(m[3]); if(k1===null||k2===null) return false;
+    const C  = m[4] ? parseInt(m[4],10) : 0;
+    const okLin = ((k1===-x2 && k2===-x1) || (k1===-x1 && k2===-x2));
+    const okC   = (C===P) || (P===0 && m[4]===undefined);
+    return okLin && okC;
+  }
+
+  // Cas général — Étape 2 : regroupement OU distribution par a (déjà prévu)
+  function isStep2_general(txt){
+    const t = norm(txt);
+    // (a) forme regroupée a(x^2 - Sx + P)
+    let okGrouped = false;
+    if(a === -1){
+      const reG = new RegExp(`^-${'\\('}${X2}([+\\-]?\\d*)x([+\\-]?\\d+)?\\)$`,'i');
+      const m = t.match(reG);
+      if(m){
+        const kx = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+        const C  = m[2] ? parseInt(m[2],10) : 0;
+        okGrouped = (kx === -S) && (C === P || (P===0 && m[2]===undefined));
+      }
+    } else {
+      const reG = new RegExp(`^([+\\-]?\\d+)\\(${X2}([+\\-]?\\d*)x([+\\-]?\\d+)?\\)$`,'i');
+      const m = t.match(reG);
+      if(m){
+        const A  = parseInt(m[1],10);
+        const kx = (m[2]===''||m[2]==='+') ? 1 : (m[2]==='-' ? -1 : parseInt(m[2],10));
+        const C  = m[3] ? parseInt(m[3],10) : 0;
+        okGrouped = (A===a) && (kx === -S) && (C === P || (P===0 && m[3]===undefined));
+      }
+    }
+    // (b) distribution par a sur l’étape 1
+    let okDistrib = false;
+    {
+      const reD = new RegExp(`^([+\\-]?\\d*)${X2}([+\\-]?\\d*x)([+\\-]?\\d*x)([+\\-]?\\d+)?$`,'i');
+      const m = t.match(reD);
+      if(m){
+        const A  = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+        const k1 = parseLinTerm(m[2]), k2 = parseLinTerm(m[3]);
+        const Cc = m[4] ? parseInt(m[4],10) : 0;
+        if(k1!==null && k2!==null && A===a){
+          const at1 = a * (-x2), at2 = a * (-x1), aP = a * P;
+          const okLin = ((k1===at1 && k2===at2) || (k1===at2 && k2===at1));
+          const okC   = (Cc===aP) || (aP===0 && m[4]===undefined);
+          okDistrib = okLin && okC;
+        }
+      }
+    }
+    return okGrouped || okDistrib;
+  }
+
+  // Cas général — Étape 3 : forme développée ax^2 + bx + c
+  function isStep3_general(txt){
+    const t = norm(txt);
+    if(a === 1){
+      const re = new RegExp(`^${X2}([+\\-]?\\d*)x([+\\-]?\\d+)?$`,'i');
+      const m = t.match(re); if(!m) return false;
+      const kx = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+      const Cc = m[2] ? parseInt(m[2],10) : 0;
+      return (kx===b) && (Cc===c || (c===0 && m[2]===undefined));
+    }
+    if(a === -1){
+      const re = new RegExp(`^-${X2}([+\\-]?\\d*)x([+\\-]?\\d+)?$`,'i');
+      const m = t.match(re); if(!m) return false;
+      const kx = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+      const Cc = m[2] ? parseInt(m[2],10) : 0;
+      return (kx===b) && (Cc===c || (c===0 && m[2]===undefined));
+    }
+    const re = new RegExp(`^([+\\-]?\\d*)${X2}([+\\-]?\\d*)x([+\\-]?\\d+)?$`,'i');
+    const m = t.match(re); if(!m) return false;
+    const A  = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+    const kx = (m[2]===''||m[2]==='+') ? 1 : (m[2]==='-' ? -1 : parseInt(m[2],10));
+    const Cc = m[3] ? parseInt(m[3],10) : 0;
+    return (A===a) && (kx===b) && (Cc===c || (c===0 && m[3]===undefined));
+  }
+
+  // ---- CAS SPÉCIAL b = 0 (identité remarquable) ----
+
+  // Étape 1 (b=0) : accepter x^2 − 25 OU x^2 − 5^2 (ou 5²), avec a éventuel
+function isStep1_b0(txt){
+  const t = String(txt).replace(/\u2212|−/g, '-').replace(/\s+/g, ''); // normalise
+  const R  = Math.abs(st.x1);              // racines opposées : ±R
+  const R2 = R * R;
+  const X2 = '(?:x\\^?2|x²)';              // x^2 ou x²
+  const SQ = `(?:\\(?${R}\\)?\\^2|${R}²|${R2})`;  // 5^2 OU 5² OU 25
+
+  if (st.a === 1) {
+    // x^2 - (5^2|5²|25)
+    return new RegExp(`^${X2}-${SQ}$`, 'i').test(t);
+  }
+  if (st.a === -1) {
+    // -(x^2 - …)  ou  -x^2-…
+    return new RegExp(`^-(?:\\(${X2}-${SQ}\\)|${X2}-${SQ})$`, 'i').test(t);
+  }
+  // a(x^2 - …)
+  return new RegExp(`^${st.a}\\(${X2}-${SQ}\\)$`, 'i').test(t);
+}
+
+
+  // Étape 2 (b=0, a≠1) : ax^2 + c  (pas de terme en x)
+  function isStep2_b0_poly(txt){
+    const t = norm(txt);
+    if(a === -1){
+      const re = new RegExp(`^-${X2}([+\\-]?\\d+)?$`,'i');
+      const m = t.match(re); if(!m) return false;
+      const Cc = m[1] ? parseInt(m[1],10) : 0;
+      return (Cc===c || (c===0 && m[1]===undefined));
+    }
+    const re = new RegExp(`^([+\\-]?\\d*)${X2}([+\\-]?\\d+)?$`,'i');
+    const m = t.match(re); if(!m) return false;
+    const A  = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : parseInt(m[1],10));
+    const Cc = m[2] ? parseInt(m[2],10) : 0;
+    return (A===a) && (Cc===c || (c===0 && m[2]===undefined));
+  }
+
+  // Étape finale
+  const isFx = txt => /^\s*f\s*\(\s*x\s*\)\s*$/i.test(txt||'');
+
+  // Sélection des validateurs selon (c, b, a)
+  const validators =
+    (c === 0)                ? [isStep3_general, isFx] :
+    (wantsIdRem
+       ? (a === 1 ? [isStep1_b0, isFx] : [isStep1_b0, isStep2_b0_poly, isFx])
+       : (a === 1 ? [isStep1_general, isStep3_general, isFx] : [isStep1_general, isStep2_general, isStep3_general, isFx])
+    );
+
+  // Application champ par champ
+  els.forEach((el, i) => {
+    const raw = el.value||'';
+    if(!raw.trim()){ setTick(el,'nu'); return; }  // vide → neutre
+    tot++;
+    const okStep = (validators[i] || (()=>false))(raw);
+    setTick(el, okStep ? 'ok' : 'ko');
+    if(okStep) ok++;
+  });
+})();
+// --- Fin du bloc ---
+
+
+
+
+  // 2) Ouverture (sélecteur)
+  (function(){
+    const el = get('.open');
+    const v = el?.value;
+    if(!v) return;
+    tot++;
+    const good = (a>0 ? v==='vers le haut' : v==='vers le bas');
+    setTick(el, good?'ok':'ko'); if(good) ok++;
+  })();
+
+  // 3) Sommet S(α;β) — acceptons "S(…)" ou "(…)" ; virgule ou point-virgule
+  (function(){
+    const el = get('.sommet');
+    const raw = valTrim(el);
+    if(!raw) return;
+    tot++;
+    const canon = raw.replace(/\s+/g,'')
+                     .replace(/^s\(/i,'(')
+                     .replace(/,/g,';');
+    const want = `(${alphaTex};${betaTex})`;
+    const good = (canon===want);
+    setTick(el, good?'ok':'ko'); if(good) ok++;
+  })();
+
+  // 4) Axe x = α
+  (function(){
+    const el = get('.axe');
+    const raw = valTrim(el);
+    if(!raw) return;
+    tot++;
+    const canon = raw.replace(/\s+/g,'');
+    const good = (canon===`x=${alphaTex}`);
+    setTick(el, good?'ok':'ko'); if(good) ok++;
+  })();
+
+  // 5) Variations (flèches et β au bon endroit)
+  (function(){
+    // Flèches
+    const L = get('.d-L'), R = get('.d-R');
+    const g1 = gradeGroup([L], () => (a>0 ? L.value==='↘' : L.value==='↗'));
+    const g2 = gradeGroup([R], () => (a>0 ? R.value==='↗' : R.value==='↘'));
+    if(g1.counted){ tot++; if(g1.ok) ok++; }
+    if(g2.counted){ tot++; if(g2.ok) ok++; }
+
+    // α au milieu
+    (function(){
+      const el = get('.alpha-in');
+      const raw = valTrim(el);
+      if(!raw) return;
+      tot++;
+      const good = (raw===alphaTex);
+      setTick(el, good?'ok':'ko'); if(good) ok++;
+    })();
+
+    // β : top = max, bot = min
+    (function(){
+      const top = get('.d-beta-top'), bot = get('.d-beta-bot');
+      const topV = valTrim(top), botV = valTrim(bot);
+      if(!topV && !botV) return;
+      tot++;
+      const expectTop = (a<0) ? betaTex : '';     // a<0 → maximum en haut
+      const expectBot = (a>0) ? betaTex : '';     // a>0 → minimum en bas
+      const good = (topV===expectTop && botV===expectBot);
+      setTick(top, good?'ok':'ko');
+      setTick(bot, good?'ok':'ko');
+      if(good) ok++;
+    })();
+  })();
+
+// 6) Racines (accepte "S={2;5}", "{2;5}", "2;5", dans n'importe quel ordre ; ou ,)
+(function(){
+  const el = $('.roots', host);
+  let raw = (el?.value || '').trim();
+  if(!raw) return;             // pas de sanction si vide
+  tot++;
+
+  // Normalisations tolérantes
+  let s = raw.replace(/\u2212/g,'-')      // "−" → "-"
+           .replace(/\s+/g,'')            // supprime les espaces
+           .replace(/^S=/i,'')            // enlève "S="
+           .replace(/^[\{\(\[]/,'')       // enlève { ( ou [
+           .replace(/[\}\)\]]$/,'');      // enlève } ) ou ]
+
+  const parts = s.split(/[;,]/).filter(Boolean);
+
+  const good = (parts.length === 2) && (
+    (parts[0] === String(x1) && parts[1] === String(x2)) ||
+    (parts[0] === String(x2) && parts[1] === String(x1))
+  );
+
+  setTick(el, good ? 'ok' : 'ko');
+  if(good) ok++;
+})();
+
+
+  // 7) Tableau de signes — entête (r1, r2)
+  (function(){
+    const r1 = get('#hdr_r1'), r2 = get('#hdr_r2');
+    const g = gradeGroup([r1, r2], () => (Number(valTrim(r1))===x1 && Number(valTrim(r2))===x2));
+    if(g.counted){ tot++; if(g.ok) ok++; }
+  })();
+
+  // 8) Ligne "a" (si |a|≠1) : signe constant partout
+  if(a!==1){
+    const AL=get('#A_L'), AM=get('#A_M'), AR=get('#A_R');
+    const g = gradeGroup([AL,AM,AR], () =>
+      (AL.value===sOut && AM.value===sOut && AR.value===sOut)
+    );
+    if(g.counted){ tot++; if(g.ok) ok++; }
+  }
+
+  // 9) Ligne (x − r1) : (− | 0 | + |  | +)
+  (function(){
+    const L=get('#R1_L'), Z1=get('#R1_Z1'), M=get('#R1_M'), Z2=get('#R1_Z2'), R=get('#R1_R');
+    const g = gradeGroup([L,Z1,M,Z2,R], () =>
+      (L.value==='−' && Z1.value==='0' && M.value==='+' && Z2.value==='' && R.value==='+')
+    );
+    if(g.counted){ tot++; if(g.ok) ok++; }
+  })();
+
+  // 10) Ligne (x − r2) : (− |  | − | 0 | +)
+  (function(){
+    const L=get('#R2_L'), Z1=get('#R2_Z1'), M=get('#R2_M'), Z2=get('#R2_Z2'), R=get('#R2_R');
+    const g = gradeGroup([L,Z1,M,Z2,R], () =>
+      (L.value==='−' && Z1.value==='' && M.value==='−' && Z2.value==='0' && R.value==='+')
+    );
+    if(g.counted){ tot++; if(g.ok) ok++; }
+  })();
+
+  // 11) Ligne produit f(x) : sOut | 0 | sIn | 0 | sOut
+  (function(){
+    const L=get('#F_L'), Z1=get('#F_Z1'), M=get('#F_M'), Z2=get('#F_Z2'), R=get('#F_R');
+    const g = gradeGroup([L,Z1,M,Z2,R], () =>
+      (L.value===sOut && Z1.value==='0' && M.value===sIn && Z2.value==='0' && R.value===sOut)
+    );
+    if(g.counted){ tot++; if(g.ok) ok++; }
+  })();
+
+// 12) Inéquation (lié au sélecteur .cmp) — accepte -oo/+oo/oo, U/∪, S= optionnel
+(function(){
+  const el = $('.ineq', host);
+  let raw = (el?.value || '');
+  if(!raw.trim()) return;   // pas de sanction si vide
+  tot++;
+
+  // Normalisation robuste
+  function normSet(s){
+    s = String(s)
+      .replace(/\u2212|−/g, '-')          // tous les "−" → '-'
+      .replace(/\s+/g, '');               // supprime espaces
+    s = s.replace(/^[sS]\s*=\s*/, '');    // enlève "S=" si présent
+
+    // Parenthèses → crochets
+    s = s.replace(/[()]/g, m => (m==='(' ? '[' : ']'));
+
+    // Unions : U, u, ∪ → ∪
+    s = s.replace(/[\u222aUu]/g, '∪');
+
+    // Infinis :
+    // 1) -∞ variantes
+    s = s.replace(/-\s*∞/g, '-∞');        // "- ∞" → "-∞"
+    s = s.replace(/-oo/gi, '-∞');         // "-oo" → "-∞"
+    // 2) +∞ variantes
+    s = s.replace(/\+\s*∞/g, '+∞');       // "+ ∞" → "+∞"
+    s = s.replace(/\+oo/gi, '+∞');        // "+oo" → "+∞"
+    // 3) "oo" sans signe → "+∞"
+    s = s.replace(/(^|[^+\-])oo/gi, (_,p1)=> `${p1}+∞`);
+    // 4) "∞" nu en début/sans signe explicite → "+∞"
+    s = s.replace(/(^|[^+\-])∞/g, (_,p1)=> `${p1}+∞`);
+
+    return s;
+  }
+
+  // Attendus selon a et cmp (mêmes formes que l’UI)
+  function expectedSets({a,x1,x2,cmp}){
+    const forms = [];
+    if(a>0){
+      if(cmp==='<')  forms.push(`]${x1};${x2}[`);
+      else if(cmp==='≤') forms.push(`[${x1};${x2}]`);
+      else if(cmp==='>') forms.push(`]-∞;${x1}[∪]${x2};+∞[`);
+      else               forms.push(`]-∞;${x1}]∪[${x2};+∞[`);
+    }else{
+      if(cmp==='<')  forms.push(`]-∞;${x1}[∪]${x2};+∞[`);
+      else if(cmp==='≤') forms.push(`]-∞;${x1}]∪[${x2};+∞[`);
+      else if(cmp==='>') forms.push(`]${x1};${x2}[`);
+      else               forms.push(`[${x1};${x2}]`);
+    }
+    // variantes avec virgules à la place des ;
+    return forms.flatMap(f => [f, f.replaceAll(';', ',')]);
+  }
+
+  const want = expectedSets(st).map(normSet);
+  const got  = normSet(raw);
+
+  const good = want.includes(got);
+  setTick(el, good ? 'ok' : 'ko');
+  if(good) ok++;
+})();
+
+}
+,
+
+
+
+
+  solution(host, st){
+  const {a,b,c,x1,x2,alpha,beta,alphaTex,betaTex,aTex}=st;
+  const UMINUS='−';
+  const sOut = a>0?'+':'−';
+  const sIn  = a>0?'−':'+';
+function wrapIfNeg(s){
+  // Parenthèse uniquement si le facteur est négatif (−k ou \dfrac{−...}{...})
+  return (/^−/.test(s) || /\\dfrac\{−/.test(s)) ? String.raw`\big(${s}\big)` : s;
+}
+function texMulChain(parts){
+  // Supprime les facteurs vides et "1"; gère le signe '−' de a=-1
+  const v = parts.filter(s => s && s !== '1');
+  if(v.length && v[0] === '−'){
+    return '− ' + v.slice(1).map(wrapIfNeg).join(String.raw` \times `);
+  }
+  return v.map(wrapIfNeg).join(String.raw` \times `);
+}
+function eqFactorToZero(r){
+  // r entier : (x - r) = 0  mais si r = 0 ⇒ x = 0
+  if(r === 0) return String.raw`x=0`;
+  return String.raw`x${r<0?'+':UMINUS}${Math.abs(r)}=0`;
+}
+
+  // helpers d’affichage
+  const sum = x1+x2, prod = x1*x2;
+  const bx  = (b>=0?`+ ${Math.abs(b)}x`:`${UMINUS} ${Math.abs(b)}x`);
+  const cst = (c>0?`+ ${c}`:(c<0?`${UMINUS} ${Math.abs(c)}`:''));
+  const poly = `${aTex? aTex+'x^2':'x^2'} ${b? ' '+bx:''} ${c? ' '+cst:''}`.trim().replace(/\s+/g,' ');
+  const fac  = `${aTex}(x${x1<0?'+':UMINUS}${Math.abs(x1)})(x${x2<0?'+':UMINUS}${Math.abs(x2)})`
+                .replace('(x'+UMinusZero()+')','x');
+  function UMinusZero(){return UMINUS+'0';}
+  function lab(r){ return r===0? 'x' : `x${r<0?'+':UMINS}${Math.abs(r)}`; }
+  const lab1 = (x1===0?'x':`x${x1<0?'+':UMINUS}${Math.abs(x1)}`);
+  const lab2 = (x2===0?'x':`x${x2<0?'+':UMINUS}${Math.abs(x2)}`);
+const {p:pa, q:qa} = alphaRat(x1, x2);             // α = pa/qa
+
+// Détails des deux parenthèses
+const D1 = parenDiffDetail_alpha_minus_int(pa, qa, x1);   // (α − x1)
+const D2 = parenDiffDetail_alpha_minus_int(pa, qa, x2);   // (α − x2)
+
+// signe/coef de a pour l'affichage devant les produits
+const aHead = (Math.abs(a)===1 ? (a===-1?UMINUS:'') : String(a));
+// aHead déjà défini: '' | '−' | 'k' (k>1)
+const betaProduct = texMulChain([aHead, D1.result, D2.result]);
+
+const betaLine = String.raw`$\beta \;=\; f(\alpha)
+= \; ${aHead}\,\Big( ${frac(pa,qa)} ${x1<0?'+':UMINUS} ${Math.abs(x1)} \Big)\,\Big( ${frac(pa,qa)} ${x2<0?'+':UMINUS} ${Math.abs(x2)} \Big)
+= \; ${betaProduct}
+= \; ${frac(...(function(){
+  const n1 = pa - x1*qa, n2 = pa - x2*qa;
+  let N = a * n1 * n2, Q = qa * qa;
+  const d = gcd(N,Q); N/=d; Q/=d;
+  return [String(N), String(Q)];
+})())}$`;
+
+  // Tableau de signes détaillé (LaTeX)
+  const signTable = (a>0
+    ? String.raw`\[
+\begin{array}{c|ccccc}
+x&-\infty&${x1}&&${x2}&+\infty\\\hline
+${a===1?'':(a===-1?'-1':'a')} & + &  & + &  & +\\\hline
+${lab1}& - & 0 & + &  & +\\\hline
+${lab2}& - &  & - & 0 & +\\\hline
+f(x)& + & 0 & - & 0 & +
+\end{array}\]`
+    : String.raw`\[
+\begin{array}{c|ccccc}
+x&-\infty&${x1}&&${x2}&+\infty\\\hline
+${a===-1?'-1':(a===1?'': 'a')} & - &  & - &  & -\\\hline
+${lab1}& - & 0 & + &  & +\\\hline
+${lab2}& - &  & - & 0 & +\\\hline
+f(x)& - & 0 & + & 0 & -
+\end{array}\]`
+  );
+
+  // Variations (petit tableau propre)
+const varLatex = (a>0
+  ? String.raw`\[
+\begin{array}{c|ccc}
+x&-\infty&${alphaTex}&+\infty\\\hline
+f&\searrow&\begin{array}{c}\\[2pt]\textstyle ${betaTex}\end{array}&\nearrow
+\end{array}\]`
+  : String.raw`\[
+\begin{array}{c|ccc}
+x&-\infty&${alphaTex}&+\infty\\\hline
+f&\nearrow&\begin{array}{c}\textstyle ${betaTex}\\[2pt]\end{array}&\searrow
+\end{array}\]`
+);
+
+
+// --- Remplacement du bloc q1 dans solution(...) ---
+let q1;
+if (b === 0 && c !== 0){
+  const R = Math.abs(x1);
+  const R2 = R * 2 ? (R*R) : 0;  // juste R*R ; ligne sûre même si R=0
+  const rows = [];
+  const left0 = `\\( ${texFactor(a, x1, x2)} \\)`;  // ← 1ʳᵉ colonne visible
+
+  const head = (Math.abs(a)===1 ? (a===-1 ? '−' : '') : String(a));
+  // 1) identité remarquable avec le carré simplifié : x^2 − 16 (pas 4^2)
+  const right1 = (a === 1)
+    ? `\\( x^2 − ${R*R} \\)`
+    : `\\( ${head}\\big(x^2 − ${R*R}\\big) \\)`;
+
+  rows.push([left0, '=', right1]);  // ligne 1
+
+  // 2) ax^2 + c (uniquement si a≠1)
+  if (a !== 1){
+    rows.push(['', '=', `\\( ${polyNice(a, 0, c)} \\)`]);
+  }
+
+  // 3) f(x)
+  rows.push(['', '=', `\\( f(x) \\)`]);
+
+  q1 = [
+    '<table style="border-collapse:collapse;width:auto;margin:.2rem 0">',
+      '<colgroup><col style="width:auto"><col style="width:24px"><col style="width:auto"></colgroup>',
+      '<tbody>',
+        rows.map(r =>
+          `<tr>
+            <td style="border:none;padding:2px 8px 2px 0;text-align:left">${r[0]}</td>
+            <td style="border:none;padding:2px 4px;text-align:center;font-weight:600">${r[1]}</td>
+            <td style="border:none;padding:2px 0 2px 8px;text-align:left">${r[2]}</td>
+          </tr>`
+        ).join('')
+      + '</tbody>',
+    '</table>'
+  ].join('');
+}else{
+  q1 = buildQ1TableHTML(a, x1, x2, b, c);
+}
+
+
+  // Étapes de f(x)=0
+  const eq0 = [
+    String.raw`$${fac}=0$`,
+String.raw`$\iff ${eqFactorToZero(x1)}\;\text{ ou }\;${eqFactorToZero(x2)}$`,
+    String.raw`$\iff x=${x1}\;\text{ ou }\;x=${x2}$`,
+    String.raw`$S=\{${x1}\;;\;${x2}\}$`
+  ].map(s=>`<div class="step">${s}</div>`).join('');
+
+  // Sommet & axe (avec calculs détaillés)
+  const som = [
+      a>0?`La parabole est tournée <b>vers le haut</b> car \\(a>0\\).`:`La parabole est tournée <b>vers le bas</b> car \\(a<0\\).`,
+    String.raw`$\alpha=\dfrac{x_1+x_2}{2}=\dfrac{${x1}+${x2}}{2}=${alphaTex}$`,
+   betaLine,
+
+ String.raw`$\text{Sommet : }S(${alphaTex}\;;\;${betaTex})$`,
+	String.raw`$\text{Axe de symétrie : }x=${alphaTex}$`
+  ].map(s=>`<div class="step">${s}</div>`).join('');
+
+  // Inéquation
+ const ineq = (function(){
+  const {a,x1,x2,cmp} = st;
+  if(a>0){
+    if(cmp==='<')  return String.raw`$\,f(x)<0\iff x\in]${x1}\;;\;${x2}[\,$`;
+    if(cmp==='≤')  return String.raw`$\,f(x)\le 0\iff x\in[${x1}\;;\;${x2}]\,$`;
+    if(cmp==='>')  return String.raw`$\,f(x)>0\iff x\in]-\infty\;;\;${x1}[\,\cup\,]${x2}\;;\;+\infty[\,$`;
+                   return String.raw`$\,f(x)\ge 0\iff x\in]-\infty\;;\;${x1}]\,\cup\,[${x2}\;;\;+\infty[\,$`;
+  }else{
+    if(cmp==='<')  return String.raw`$\,f(x)<0\iff x\in]-\infty\;;\;${x1}[\,\cup\,]${x2}\;;\;+\infty[\,$`;
+    if(cmp==='≤')  return String.raw`$\,f(x)\le 0\iff x\in]-\infty\;;\;${x1}]\,\cup\,[${x2}\;;\;+\infty[\,$`;
+    if(cmp==='>')  return String.raw`$\,f(x)>0\iff x\in]${x1}\;;\;${x2}[\,$`;
+                   return String.raw`$\,f(x)\ge 0\iff x\in[${x1}\;;\;${x2}]\,$`;
+  }
+})();
+const setS = (function(){
+  const {a,x1,x2,cmp} = st;
+  if(a>0){
+    if(cmp==='<')  return String.raw`$S=]${x1}\;;\;${x2}[$`;
+    if(cmp==='≤')  return String.raw`$S=[${x1}\;;\;${x2}]$`;
+    if(cmp==='>')  return String.raw`$S=]-\infty\;;\;${x1}[\;\cup\;]${x2}\;;\;+\infty[$`;
+                   return String.raw`$S=]-\infty\;;\;${x1}]\;\cup\;[${x2}\;;\;+\infty[$`;
+  }else{
+    if(cmp==='<')  return String.raw`$S=]-\infty\;;\;${x1}[\;\cup\;]${x2}\;;\;+\infty[$`;
+    if(cmp==='≤')  return String.raw`$S=]-\infty\;;\;${x1}]\;\cup\;[${x2}\;;\;+\infty[$`;
+    if(cmp==='>')  return String.raw`$S=]${x1}\;;\;${x2}[$`;
+                   return String.raw`$S=[${x1}\;;\;${x2}]$`;
+  }
+})();
+
+  const tableHTML = signTableHTML_solution(st.a, st.x1, st.x2);   // ← VRAI TABLEAU HTML
+const tableVAR=pdfVarTableHTML(st.a, st.alphaTex, st.betaTex)
+
+  $('#res',host).innerHTML = `
+    <div class="steps">
+      ${q1}
+      <div class="step"><b>2) Résoudre</b> \\(f(x)=0\\)</div>
+      ${eq0}
+      <div class="step"><b>3a) Allure, sommet, axe</b></div>
+      ${som}
+      <div class="step"><b>3b) Tableau de variations</b> : ${tableVAR}</div>
+      <div class="step"><b>4a) Tableau de signes détaillé</b> :       ${tableHTML}</div>
+<div class="step"><b>4b) Inéquation : </b> ${ineq}</div>
+<div class="step" style="margin-left:2.2em">${setS}</div>
+
+    </div>`;
+  // nettoyage cosmétique des signes ++/--, puis typeset
+cleanTextNodes(host);
+fixXminus0(host);
+    typesetAll($('#res',host));
+
+	  
+  },
+
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+/* ===== Registre & UI ===== */
+const REGISTRY=[exo];
+// Rendre la liste visible globalement pour le kit PDF :
+
+  // 1) Exposer au kit
+  window.REGISTRY = REGISTRY;
+
+  // 2) Attendre que le kit soit vraiment chargé (anti “not defined”)
+  (function waitExoPDF(){
+    if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+      ExoPDF.init({
+        title: '1STI2D – Application bilan (2ᵈ degré)',
+		      mountAfterSelector: '.card.small',
+
+        // allowIds: ['bilan2d_rand'],    // optionnel
+        leadByDefId: { 'bilan2d_rand': '' }, // optionnel
+      });
+    } else {
+      setTimeout(waitExoPDF, 50);
+    }
+  })();
+
+
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  scoreOK=0; scoreTot=0;
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st); scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){ const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ const def=getDefById($("#exo-select").value), host=$("#host"); def.reset(host); scoreOK=0; scoreTot=0; updateScore(); }
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+})();
+  </script>
 </body>
 </html>

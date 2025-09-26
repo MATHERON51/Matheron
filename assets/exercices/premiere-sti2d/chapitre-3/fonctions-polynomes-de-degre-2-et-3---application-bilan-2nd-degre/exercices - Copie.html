@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1STI2D – Fonctions polynômes (deg 2 & 3) — Application bilan (2ᵈ degré)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .table{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .table th,.table td{border:1px solid #e5e5e5;padding:6px 8px;vertical-align:top}
+  .table th{background:#f3f3f6;text-align:left}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .pdf-mask{display:block;height:14px;background:#000;border-radius:2px}
+  @media print{ .controls{display:none !important;} }
+
+  /* Variation simple (x, flèches, valeur max/min au centre) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:120px;text-align:center}
+  table.var tr > td:nth-child(2), table.var tr > th:nth-child(2){ border-right:none; }
+  table.var tr > td:nth-child(3), table.var tr > th:nth-child(3){ border-left:none; border-right:none; }
+  table.var tr > td:nth-child(4), table.var tr > th:nth-child(4){ border-left:none; }
+
+  /* Tableau de signes (slim) */
+  .sign-table{
+    width:100%;
+    border:2px solid #000;
+    border-collapse:separate;
+    border-spacing:0;
+    table-layout:fixed;
+    --zeroW: 120px;
+  }
+  .sign-table col.col-lbl{ width: 110px; }
+  .sign-table col.col-zero{ width: var(--zeroW); }
+  .sign-table col.col-int{ width:auto; }
+  .sign-table th, .sign-table td{
+    padding:10px 12px; text-align:center; vertical-align:middle;
+    border-top:1px solid #000; border-bottom:1px solid #000;
+    border-right:none; border-left:none;
+  }
+  .sign-table .lbl{
+    font-weight:600; border-right:2px solid #000; white-space:nowrap;
+  }
+  .sign-table .cap-left{ text-align:left; padding-left:8px; }
+  .sign-table .cap-right{ text-align:right; padding-right:8px; }
+  .sign-table .sel, .sign-table .root{
+    width: var(--zeroW); height: 40px; font-size: 16px;
+    padding: 6px 8px; border:1px solid #cbd5e1; border-radius:8px;
+    text-align:center; box-sizing:border-box; margin:0 auto; display:block; background:#fff;
+  }
+  .sign-table .sel{ appearance:none; text-align-last:center; }
+
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+  .cell-inline .tick{ margin-left:.4rem; }
+
+  /* PDF helper */
+  .pdf-only{display:none}
+  @media print{ .pdf-only{display:block} }
+  table.pdf-tbl{border-collapse:separate;border-spacing:0;border:none;margin:.4rem 0}
+  table.pdf-tbl th,table.pdf-tbl td{border:none;padding:4px 6px;text-align:center;vertical-align:middle}
+  table.pdf-tbl th{background:#f3f3f6}
+  table.pdf-tbl tr:first-child>*{border-top:1.5px solid #000}
+  table.pdf-tbl tr:last-child>*{border-bottom:1.5px solid #000}
+  table.pdf-tbl tr>*:first-child{border-left:1.5px solid #000}
+  table.pdf-tbl tr>*:last-child{border-right:1.5px solid #000}
+  table.pdf-tbl thead tr>*:first-child, table.pdf-tbl tbody tr>*:first-child{border-right:1.5px solid #000}
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true,macros:{frac:['\\dfrac{#1}{#2}',2]}},options:{skipHtmlTags:['script','noscript','style','textarea']},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1STI2D — Fonctions polynômes (deg 2 & 3) — Application bilan (2ᵈ degré)</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie (format accepté)</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Écrire les factorisations en <em>LaTeX clavier</em> : <code>-2(x-1)(x+2)</code>, <code>(x-1)(x+2)</code>…</li>
+        <li>Sommet : <code>S(α;β)</code> ou <code>(α;β)</code> ; axe : <code>x=α</code>.</li>
+        <li>Tableau de variations : flèches ↗/↘ ; valeur au centre : <code>β</code>.</li>
+        <li>Racines : liste ordonnée (séparateur <code>;</code> ou <code>,</code>) — ex. <code>-2;1</code>. Écrire <code>∅</code> s’il n’y en a pas.</li>
+        <li>Tableau de signes : choisir les signes <code>+</code>/<code>−</code> et placer les <code>0</code> en face de r₁, r₂.</li>
+        <li>Inégalité : utiliser les intervalles — ex. <code>[-2;+∞[ ∪ [1;+∞[</code>.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- Dépendances (si présentes sur ton site) -->
+  <script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+  <script src="../../../../js/exo-pdf-kit.multiplicatif-latex.js" defer></script>
+  <script src="../../../../js/math-kbd.js" defer></script>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== Helpers ===== */
+const $=(s,r)=> (r||document).querySelector(s);
+const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+String(s).replace(/\\u2212/g,'-')+' \\)';}
+function typesetAll(root){const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){MathJax.startup.promise.then(run);} else {const t=setInterval(()=>{if(MathJax?.typesetPromise){clearInterval(t); run();}},60);} }
+function ensureTickAfter(el){ let s=el?.nextElementSibling; if(!s || !s.classList?.contains('tick')){ s=document.createElement('span'); s.className='tick nu'; el.insertAdjacentElement('afterend',s);} return s; }
+function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+function valTrim(el){ return (el?.value||'').replace(/\u2212/g,'-').trim(); }
+
+/* ====== Exercice unique — Bilan 2ᵈ degré (fixe) ====== */
+const exo = {
+  id:'bilan2d',
+  title:'Ex. — Bilan 2ᵈ degré (f(x) = −2x² − 2x + 4)',
+  // Données FIXES (comme sur ton screenshot)
+  gen(){
+    const a=-2, b=-2, c=4;
+    const alpha = -b/(2*a);      // -(-2)/(-4) = -1/2
+    const beta  = a*alpha*alpha + b*alpha + c; // 9/2
+    const r1=-2, r2=1;           // racines
+    return { a,b,c, alpha, beta, r1, r2 };
+  },
+
+  render(host,st){
+    const {a,b,c,alpha,beta,r1,r2} = st;
+    const tex = `f(x)= ${a}x^2 ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c}`;
+
+    host.innerHTML = [
+      `<div>Soit la fonction définie sur \\(\\mathbb{R}\\) par ${L(tex)}.</div>`,
+      '<ol style="margin:.4rem 0 .2rem 1.1rem">',
+        '<li>Montrer que \\(f\\) peut s’écrire : <strong>\\(f(x)=-2(x-1)(x+2)\\)</strong>.</li>',
+        '<li>',
+          'a) Donner l’allure de la courbe (ouverture), son sommet et son axe de symétrie.<br>',
+          'b) Donner le tableau de <em>variations</em> de \\(f\\).',
+        '</li>',
+        '<li>',
+          'a) Déterminer les solutions de \\(f(x)=0\\).<br>',
+          'b) Dresser le tableau de <em>signes</em> de \\(f(x)\\).<br>',
+          'c) En déduire l’ensemble des solutions de l’inéquation \\(f(x)\\le 0\\).',
+        '</li>',
+      '</ol>',
+
+      // Réponses
+      '<table class="table"><thead><tr><th>Élément</th><th>Réponse (à compléter)</th></tr></thead><tbody>',
+        `<tr><td>Factorisation de \\(f(x)\\)</td><td><input class="fact" type="text" style="width:280px" placeholder="-2(x-1)(x+2)"></td></tr>`,
+        `<tr><td>Ouverture</td><td><select class="open"><option value=""></option><option>vers le haut</option><option>vers le bas</option></select></td></tr>`,
+        `<tr><td>Sommet</td><td><input class="sommet" type="text" style="width:220px" placeholder="S(-1/2; 9/2)"></td></tr>`,
+        `<tr><td>Axe de symétrie</td><td><input class="axe" type="text" style="width:160px" placeholder="x = -1/2"></td></tr>`,
+      '</tbody></table>',
+
+      '<div style="margin:.4rem 0">Tableau de variations :</div>',
+      '<div id="var-host"></div>',
+
+      '<div style="margin:.6rem 0 .2rem">Équation \\(f(x)=0\\)</div>',
+      `<div><input class="roots" type="text" style="width:220px" placeholder="-2 ; 1"></div>`,
+
+      '<div style="margin:.6rem 0 .2rem">Tableau de signes (ligne des signes seulement) :</div>',
+      '<div id="sign-host"></div>',
+
+      '<div style="margin:.6rem 0 .2rem">Inéquation \\(f(x)\\le 0\\)</div>',
+      `<div><input class="ineq" type="text" style="width:320px" placeholder="]-∞;-2] ∪ [1;+∞["></div>`,
+
+      '<div id="res" class="steps small"></div>'
+    ].join('');
+
+    // Variation (↗ puis ↘ car a<0, max = 9/2 au centre)
+    $('#var-host',host).innerHTML = [
+      '<div class="var-wrap"><table class="var">',
+      '<thead><tr><th>\\(x\\)</th><td>\\(−∞\\)</td><td style="text-align:center"><input class="alpha-in" type="text" value="-1/2"></td><td>\\(+∞\\)</td></tr></thead>',
+      '<tbody>',
+      '<tr>',
+        '<th rowspan="3">\\(f\\)</th>',
+        '<td class="bigsel" rowspan="3"><select class="d-L"><option></option><option>↘</option><option selected>↗</option></select></td>',
+        '<td style="text-align:center"><input class="d-beta-top" type="text" placeholder="maximum"></td>',
+        '<td class="bigsel" rowspan="3"><select class="d-R"><option></option><option selected>↘</option><option>↗</option></select></td>',
+      '</tr>',
+      '<tr><td style="border:none;height:6px"></td></tr>',
+      '<tr><td style="text-align:center"><input class="d-beta-bot" type="text" value="9/2" placeholder="minimum"></td></tr>',
+      '</tbody></table></div>'
+    ].join('');
+
+    // Sign table (slim)
+    $('#sign-host',host).innerHTML = [
+      '<div class="signwrap">',
+      '<table class="sign-table" aria-label="Tableau de signes">',
+        '<colgroup>',
+          '<col class="col-lbl"><col class="col-int"><col class="col-zero"><col class="col-int"><col class="col-zero"><col class="col-int">',
+        '</colgroup>',
+        '<tbody>',
+          '<tr>',
+            '<th class="lbl">\\(x\\)</th>',
+            '<td class="int cap-left">\\(−∞\\)</td>',
+            '<td class="zero"><div class="cell-inline"><input id="r1" class="root" placeholder="r₁ (−2)"><span class="tick nu"></span></div></td>',
+            '<td class="int"><div class="cell-inline"><input id="alpha" class="root" value="-1/2"><span class="tick nu"></span></div></td>',
+            '<td class="zero"><div class="cell-inline"><input id="r2" class="root" placeholder="r₂ (1)"><span class="tick nu"></span></div></td>',
+            '<td class="int cap-right">\\(+∞\\)</td>',
+          '</tr>',
+          '<tr>',
+            '<th class="lbl">\\(f(x)\\)</th>',
+            '<td class="int"><div class="cell-inline"><select id="s1" class="sel"><option></option><option>+</option><option selected>−</option></select><span class="tick nu"></span></div></td>',
+            '<td class="zero"><div class="cell-inline"><select id="z1" class="sel"><option></option><option selected>0</option></select><span class="tick nu"></span></div></td>',
+            '<td class="int"><div class="cell-inline"><select id="s2" class="sel"><option></option><option selected>+</option><option>−</option></select><span class="tick nu"></span></div></td>',
+            '<td class="zero"><div class="cell-inline"><select id="z2" class="sel"><option></option><option selected>0</option></select><span class="tick nu"></span></div></td>',
+            '<td class="int"><div class="cell-inline"><select id="s3" class="sel"><option></option><option>+</option><option selected>−</option></select><span class="tick nu"></span></div></td>',
+          '</tr>',
+        '</tbody>',
+      '</table>',
+      '</div>'
+    ].join('');
+
+    // Préparer ticks (neutres)
+    $$('#host input, #host select').forEach(el=>ensureTickAfter(el));
+    typesetAll(host);
+  },
+
+  correct(host,st){
+    const {a,b,c,alpha,beta,r1,r2} = st;
+    let ok=0,tot=0;
+
+    // 1) Factorisation
+    const F = valTrim($('.fact',host));
+    if(F){ tot++; const good = /^-?2\s*\(\s*x\s*-\s*1\s*\)\s*\(\s*x\s*\+\s*2\s*\)$/.test(F.replace(/\s+/g,'')); setTick($('.fact',host), good?'ok':'ko'); if(good) ok++; }
+
+    // 2) Ouverture / Sommet / Axe
+    const O = $('.open',host).value; if(O){ tot++; const good = (O==='vers le bas'); setTick($('.open',host), good?'ok':'ko'); if(good) ok++; }
+    const S = valTrim($('.sommet',host)); if(S){ tot++; const good = /-?1\/2/.test(S) && /(9\/2|4\.5)/.test(S); setTick($('.sommet',host), good?'ok':'ko'); if(good) ok++; }
+    const X = valTrim($('.axe',host)).replace(/\s+/g,''); if(X){ tot++; const good = /^x=-?1\/2$/.test(X); setTick($('.axe',host), good?'ok':'ko'); if(good) ok++; }
+
+    // 3) Variations : ↗ puis ↘ ; centre = 9/2 ; α = -1/2
+    const Ld=$('.d-L',host).value, Rd=$('.d-R',host).value; 
+    if(Ld){ tot++; const good=(Ld==='↗'); setTick($('.d-L',host),good?'ok':'ko'); if(good) ok++; }
+    if(Rd){ tot++; const good=(Rd==='↘'); setTick($('.d-R',host),good?'ok':'ko'); if(good) ok++; }
+    const aIn=valTrim($('.alpha-in',host)); if(aIn){ tot++; const good=(aIn==='-1/2'); setTick($('.alpha-in',host),good?'ok':'ko'); if(good) ok++; }
+    const tTop=valTrim($('.d-beta-top',host)), tBot=valTrim($('.d-beta-bot',host));
+    if(tTop || tBot){ tot++; const good=(tBot==='9/2' && !tTop); setTick($('.d-beta-top',host),good?'ok':'ko'); setTick($('.d-beta-bot',host),good?'ok':'ko'); if(good) ok++; }
+
+    // 4) Racines f(x)=0
+    const R = valTrim($('.roots',host));
+    if(R){ 
+      tot++; 
+      const list = R.split(/[;,]/).map(s=>s.trim().replace(/\s/g,''));
+      const good = (list.length===2 && ((list[0]==='-2'&&list[1]==='1')||(list[0]==='1'&&list[1]==='-2')));
+      setTick($('.roots',host), good?'ok':'ko');
+      if(good) ok++;
+    }
+
+    // 5) Tableau de signes (− | 0 | + | 0 | −)
+    const s1=$('#s1',host).value, z1=$('#z1',host).value, s2=$('#s2',host).value, z2=$('#z2',host).value, s3=$('#s3',host).value;
+    const rL=valTrim($('#r1',host)), rR=valTrim($('#r2',host)), a0=valTrim($('#alpha',host));
+    if(s1||z1||s2||z2||s3||rL||rR||a0){
+      tot++;
+      const good = (s1==='−' && z1==='0' && s2==='+' && z2==='0' && s3==='−' && rL==='-2' && rR==='1' && a0==='-1/2');
+      ['#s1','#z1','#s2','#z2','#s3','#r1','#r2','#alpha'].forEach(sel=> setTick($(sel,host), good?'ok':'ko'));
+      if(good) ok++;
+    }
+
+    // 6) Inéquation f(x) ≤ 0 → ]−∞;−2] ∪ [1;+∞[
+    const I = valTrim($('.ineq',host)).replace(/\s+/g,'').replace(/∞/g,'+∞');
+    if(I){
+      tot++;
+      const variants = new Set([
+        ']-∞;-2]∪[1;+∞[',']-∞;-2]U[1;+∞[',']-oo;-2]∪[1;+oo[','(-∞,-2]∪[1,∞)'.replace(/\s/g,'')
+      ]);
+      const good = variants.has(I);
+      setTick($('.ineq',host), good?'ok':'ko');
+      if(good) ok++;
+    }
+
+    $('#res',host).innerHTML = `<div class="step">Résultat : <b>${ok} / ${tot}</b></div>`;
+    return {ok,total:tot};
+  },
+
+  solution(host,st){
+    const {a,b,c,alpha,beta,r1,r2} = st;
+    const latexVar = String.raw`
+\[
+\begin{array}{c|ccc}
+x & -\infty & -\dfrac{1}{2} & +\infty\\
+\hline
+f & \nearrow & \begin{array}{c} \ \\[2pt] \dfrac{9}{2} \end{array} & \searrow
+\end{array}
+\]`;
+    const latexSign = String.raw`
+\[
+\begin{array}{c|ccccc}
+x & -\infty & -2 & & 1 & +\infty\\
+\hline
+f(x) & - & 0 & + & 0 & -
+\end{array}
+\]`;
+    $('#res',host).innerHTML = `
+      <div class="steps">
+        <div class="step"><b>Factorisation</b> :
+          \\(-2x^2-2x+4 = -2(x^2+x-2) = -2(x-1)(x+2)\\).
+        </div>
+        <div class="step"><b>Sommet & axe</b> :
+          \\(\\alpha=-\\dfrac{b}{2a}=-\\dfrac{-2}{2\\cdot(-2)}=-\\dfrac{1}{2}\\),
+          \\(\\beta=f(\\alpha)=-2\\left(\\dfrac{1}{4}\\right)-2\\left(-\\dfrac{1}{2}\\right)+4=\\dfrac{9}{2}\\).<br>
+          Sommet \\(S(-\\tfrac{1}{2};\\tfrac{9}{2})\\), axe \\(x=-\\tfrac{1}{2}\\).
+          Comme \\(a=-2<0\\), la parabole est <em>ouverte vers le bas</em>.
+        </div>
+        <div class="step"><b>Tableau de variations</b> : ${latexVar}</div>
+        <div class="step"><b>Équation</b> :
+          \\(f(x)=0 \\iff -2(x-1)(x+2)=0 \\iff x\\in\\{-2,1\\}\\).
+        </div>
+        <div class="step"><b>Tableau de signes</b> : ${latexSign}</div>
+        <div class="step"><b>Inéquation</b> :
+          \\(f(x)\\le 0\\iff x\\in ]-\\infty;-2] \\cup [1;+\\infty[\\).
+        </div>
+      </div>`;
+    typesetAll($('#res',host));
+  },
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+/* ===== Registre & UI ===== */
+const REGISTRY=[exo];
+window.REGISTRY=REGISTRY;
+window.getDefById = id => REGISTRY.find(d=>d.id===id)||REGISTRY[0];
+
+function buildOne(){
+  const id=$("#exo-select").value;
+  const def=getDefById(id), host=$("#host");
+  const st=def.gen();
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  scoreOK=0; scoreTot=0;
+  const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st); scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){ const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+function resetAll(){ const def=getDefById($("#exo-select").value), host=$("#host"); def.reset(host); scoreOK=0; scoreTot=0; updateScore(); }
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+
+/* Init */
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+})();
+</script>
+</body>
+</html>

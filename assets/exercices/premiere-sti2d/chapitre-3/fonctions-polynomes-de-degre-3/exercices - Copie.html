@@ -121,6 +121,41 @@ function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick
 function valTrim(el){ return (el?.value||'').replace(/\u2212/g,'-').trim(); }
 const choice=a=>a[Math.floor(Math.random()*a.length)];
 const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+// ——— Inéquations cubiques à 3 racines simples ———
+function sort3(a,b,c){ const t=[a,b,c].sort((x,y)=>x-y); return {x1:t[0],x2:t[1],x3:t[2]}; }
+
+// Chaînes attendues (forme officielle, avec variantes ',' au lieu de ';')
+function expectedSetsCubic(a, r1, r2, r3, cmp){
+  const {x1,x2,x3} = sort3(r1,r2,r3);
+  const incl = (cmp==='≤' || cmp==='≥');
+
+  function V(s){ return [s, s.replaceAll(';',',')]; }
+
+  if(cmp==='<' || cmp==='≤'){           // f(x) < 0  /  ≤ 0
+    if(a>0){
+      return incl ? V(`]-∞;${x1}] ∪ [${x2};${x3}]`)
+                  : V(`]-∞;${x1}[ ∪ ]${x2};${x3}[`);
+    }else{
+      return incl ? V(`[${x1};${x2}] ∪ [${x3};+∞[`)
+                  : V(`]${x1};${x2}[ ∪ ]${x3};+∞[`);
+    }
+  }else{                                 // f(x) > 0  /  ≥ 0
+    if(a>0){
+      return incl ? V(`[${x1};${x2}] ∪ [${x3};+∞[`)
+                  : V(`]${x1};${x2}[ ∪ ]${x3};+∞[`);
+    }else{
+      return incl ? V(`]-∞;${x1}] ∪ [${x2};${x3}]`)
+                  : V(`]-∞;${x1}[ ∪ ]${x2};${x3}[`);
+    }
+  }
+}
+
+// Placeholder “exemple de forme attendue”
+function ineqPlaceholderForCubic(st){
+  // st.cmp, st.a, st.r1,r2,r3 supposés définis
+  const [form] = expectedSetsCubic(st.a, st.r1, st.r2, st.r3, st.cmp);
+  return form;
+}
 
 /* ——— affichages « propres » (jamais 1x, pas de (x−0)) ——— */
 const UMINUS='−';
@@ -240,23 +275,189 @@ function buildSignTableHTML_cubic(st){
     '</table>'
   ].join('');
 }
+function buildSignTableHTML_cubic_solution(st){
+  const U='−';
+  const lab = r => (r===0 ? '\\(x\\)' : `\\(x${r<0?'+':U}${Math.abs(r)}\\)`);
+  const sA = st.a>0?'+':'−';
+  const sLeft  = st.a>0?'−':'+';
+  const sRight = st.a>0?'+':'−';
+  const sMid1  = (sLeft==='+'? '−':'+');
+  const sMid2  = (sLeft==='+'? '+':'−');
+
+  return `
+  <div class="var-wrap">
+    <table class="sign-table" aria-label="Tableau de signes détaillé (solution)">
+      <colgroup>
+        <col class="col-lbl">
+        <col class="col-int"><col class="col-zero">
+        <col class="col-int"><col class="col-zero">
+        <col class="col-int"><col class="col-zero">
+        <col class="col-int">
+      </colgroup>
+      <tbody>
+        <tr>
+          <th class="lbl">\\(x\\)</th>
+          <td class="int cap-left">−∞</td>
+          <td class="zero">\\(${st.r1}\\)</td>
+          <td class="int"></td>
+          <td class="zero">\\(${st.r2}\\)</td>
+          <td class="int"></td>
+          <td class="zero">\\(${st.r3}\\)</td>
+          <td class="int cap-right">+∞</td>
+        </tr>
+        ${st.a!==1 ? `
+        <tr>
+          <th class="lbl">\\(${st.a}\\)</th>
+          <td class="int">${sA}</td><td class="zero"></td>
+          <td class="int">${sA}</td><td class="zero"></td>
+          <td class="int">${sA}</td><td class="zero"></td>
+          <td class="int">${sA}</td>
+        </tr>` : ''}
+
+        <tr>
+          <th class="lbl">${lab(st.r1)}</th>
+          <td class="int">−</td><td class="zero">0</td>
+          <td class="int">+</td><td class="zero"></td>
+          <td class="int">+</td><td class="zero"></td>
+          <td class="int">+</td>
+        </tr>
+        <tr>
+          <th class="lbl">${lab(st.r2)}</th>
+          <td class="int">−</td><td class="zero"></td>
+          <td class="int">−</td><td class="zero">0</td>
+          <td class="int">+</td><td class="zero"></td>
+          <td class="int">+</td>
+        </tr>
+        <tr>
+          <th class="lbl">${lab(st.r3)}</th>
+          <td class="int">−</td><td class="zero"></td>
+          <td class="int">−</td><td class="zero"></td>
+          <td class="int">−</td><td class="zero">0</td>
+          <td class="int">+</td>
+        </tr>
+
+        <tr>
+          <th class="lbl">\\(f(x)\\)</th>
+          <td class="int">${sLeft}</td><td class="zero">0</td>
+          <td class="int">${sMid1}</td><td class="zero">0</td>
+          <td class="int">${sMid2}</td><td class="zero">0</td>
+          <td class="int">${sRight}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
 
 // Normalise une chaîne pour comparer 2 lignes (suppression espaces, \big, virgules fines, etc.)
 // Normalise une saisie pour comparaison "texte à texte"
+// ----------- Normalisations ----------
 function canonDev(s){
-  return String(s || '')
-    .replace(/\u2212|−/g, '-')         // '−' → '-'
-    .replace(/\\\(|\\\)/g, '')         // supprime \( \)
-    .replace(/\\big/g, '')             // supprime \big
-    .replace(/\\,/g, '')               // supprime l’espace fine LaTeX
-    // normalise x²,x³ (et ¹) en x^2, x^3, x
-    .replace(/([A-Za-z])²/g, '$1^2')
-    .replace(/([A-Za-z])³/g, '$1^3')
-    .replace(/([A-Za-z])¹/g, '$1')
-    .replace(/(\b[A-Za-z])\^1\b/g, '$1') // x^1 -> x (au cas où)
-    .replace(/\s+/g, '')                // enlève tous les espaces
-    .replace(/^\((.*)\)$/,'$1');        // enlève parenthèses englobantes
+  return String(s||'')
+    .replace(/\u2212|−/g,'-')
+    .replace(/\\\(|\\\)/g,'')
+    .replace(/\\big/g,'')
+    .replace(/\\,/g,'')
+    .replace(/([A-Za-z])²/g,'$1^2').replace(/([A-Za-z])³/g,'$1^3')
+    .replace(/\s+/g,'')
+    .replace(/^\((.*)\)$/,'$1');
 }
+// Pour détection de "produit écrit" et comptages
+function normLight(s){
+  return String(s||'')
+    .replace(/\u2212|−/g,'-')
+    .replace(/([A-Za-z])²/g,'$1^2').replace(/([A-Za-z])³/g,'$1^3')
+    .replace(/\s+/g,'');
+}
+function countOcc(s, re){ const m = s.match(re); return m? m.length : 0; }
+
+// ----------- Équivalence numérique sûre (mais pas seule) -----------
+function normExprInput(s){
+  return String(s||'')
+    .replace(/\u2212|−/g,'-')
+    .replace(/×|·|⋅/g,'*')
+    .replace(/([0-9])\s*x/g,'$1*x')
+    .replace(/x\s*([0-9])/g,'x*$1')
+    .replace(/\)\s*\(/g,')*(')
+    .replace(/([0-9x])\s*\(/g,'$1*(')
+    .replace(/\)\s*([0-9x])/g,')*$1')
+    .replace(/([A-Za-z])²/g,'$1^2').replace(/([A-Za-z])³/g,'$1^3')
+    .replace(/\^/g,'**')
+    .replace(/\s+/g,'');
+}
+function isExprSafe(e){
+  return /^[0-9x+\-*/().^*]+$/.test(e.replace(/\*\*/g,'^'));
+}
+function evalExprAt(expr, x){
+  const e = normExprInput(expr);
+  if(!isExprSafe(e)) return NaN;
+  try{ const f = new Function('x', 'return ('+e+');'); const v=f(x); return Number.isFinite(v)?v:NaN; }
+  catch(_){ return NaN; }
+}
+function eqCubic(expr, a, r1, r2, r3){
+  const pts = [-4,-3,-2,-1,0,1,2,3,4];
+  for(const x of pts){
+    const tgt = a*(x-r1)*(x-r2)*(x-r3);
+    const val = evalExprAt(expr, x);
+    if(!Number.isFinite(val) || Math.abs(val-tgt) > 1e-6) return false;
+  }
+  return true;
+}
+function isFxLoose(s){ return canonDev(s).toLowerCase()==='f(x)'; }
+
+// ----------- Formes attendues par ligne -----------
+function shapeFlags(expr){
+  const raw = String(expr||'');
+  const lite = normLight(raw);
+  return {
+    hasParens: /[()]/.test(raw),
+    hasProductLook: /\)\s*\(/.test(raw) || /\)\*\(/.test(normExprInput(raw)), // …)(…
+    hasX3: /x\^?3/.test(lite),
+    x2count: countOcc(lite, /x\^?2/g),
+    xcount:  countOcc(lite.replace(/x\^?2/g,''), /x(?!\^)/g) // "x" hors x^2/x^3
+  };
+}
+
+// Renvoie la liste des parenthèses "facteurs" ( ( ... ) )
+function factorGroups(expr){
+  return (String(expr||'').match(/\([^()]*\)/g) || []);
+}
+// Un groupe ( ... ) est "linéaire" s'il contient x mais pas x^2, x^3, ...
+function isLinearGroup(s){
+  const t = String(s||'').replace(/\u2212|−/g,'-')
+                         .replace(/([A-Za-z])²/g,'$1^2')
+                         .replace(/([A-Za-z])³/g,'$1^3')
+                         .replace(/\s+/g,'');
+  return /x/.test(t) && !/x\^/.test(t);
+}
+// Produit de **trois facteurs linéaires** (ex: (-2x-6)(x+1)(x-4))
+// Produit de trois facteurs linéaires :
+//  - OK si ≥ 3 groupes ( … ) linéaires
+//  - OU si ≥ 2 groupes linéaires + au moins un facteur x "nu"
+function isTripleLinearProduct(expr){
+  const raw = String(expr||'');
+
+  // Tous les groupes "( … )"
+  const groups = (raw.match(/\([^()]*\)/g) || []);
+
+  // Un groupe est linéaire s'il contient x mais pas x^k (k≥2)
+  const linGroups = groups.filter(g=>{
+    const t = g.replace(/\u2212|−/g,'-')
+               .replace(/([A-Za-z])²/g,'$1^2')
+               .replace(/([A-Za-z])³/g,'$1^3')
+               .replace(/\s+/g,'');
+    return /x/.test(t) && !/x\^/.test(t);
+  });
+
+  // Squelette : remplace chaque "(…)" par "G", puis compte les x "nus"
+  let skel = raw;
+  groups.forEach(g => { skel = skel.replace(g, 'G'); });
+  skel = skel.replace(/\s+|\u2212|−|\*/g,''); // sans espaces/−/*
+
+  const bareX = (skel.match(/x(?!\^)/g) || []).length;
+
+  return (linGroups.length >= 3) || (linGroups.length >= 2 && bareX >= 1);
+}
+
 
 
 // ====== Fabrique les lignes de développement (droite) + l’en-tête (gauche) ======
@@ -384,7 +585,7 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
       '<ol style="margin:.4rem 0 .2rem 1.1rem">',
         `<li>Montrer que \\(f(x)=${fact}\\).</li>`,
         `<li>Résoudre \\(f(x)=0\\).</li>`,
-        '<li>a) Indiquer le sens de variation de \\(f\\) sur chacun des trois intervalles séparés par deux nombres \\(m_1\\) et \\(m_2\\) (points critiques).<br>b) Compléter le tableau de <em>variations</em> (flèches et nature des extremums).</li>',
+        '<li>Indiquer le sens de variations de \\(f\\) (sans se préoccuper des intervalles).</li>',
         `<li>
            a) Dresser le tableau de <em>signes</em> complet.<br>
            b) En déduire 
@@ -395,24 +596,54 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
                <option value=">">&gt; 0</option>
                <option value="≥">≥ 0</option>
              </select>
-             \\( 0 \\)
+             
            </li>`,
       '</ol>',
 
-      `<table class="table">
-        <thead><tr><th>Élément</th><th>Réponse (à compléter)</th></tr></thead>
-        <tbody>
-          <tr class="row-dev">
+     `<table class="table tbl-main3">
+  <colgroup>
+    <col class="col-left">
+    <col class="col-right">
+  </colgroup>
+  <thead>
+    <tr><th>Élément</th><th>Réponse (à compléter)</th></tr>
+  </thead>
+  <tbody>
+`,
+          `<tr class="row-dev">
   <td>${leftDev}</td>
   <td>${rightDev}<div class="pdf-expand"></div></td>
 </tr>
-          <tr><td>Équation \\(f(x)=0\\)</td><td><input class="roots" type="text" style="width:260px" placeholder="-3;-1;2"></td></tr>
-          <tr><td>Inéquation (<span id="cmp-view">≤</span> 0)</td><td><input class="ineq" type="text" style="width:320px" placeholder=""></td></tr>
+          <tr class="row-dev"><td>Équation \\(f(x)=0\\)<div class="pdf-expand"></td><td><input class="roots" type="text" style="width:260px" placeholder="-3;-1;2"></td></tr>
+          <tr class="row-variations">
+  <td>Variations</td>
+  <td>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select class="var-sel v1" style="min-width:70px;text-align-last:center">
+        <option value=""></option>
+        <option>↗</option>
+        <option>↘</option>
+      </select>
+      <select class="var-sel v2" style="min-width:70px;text-align-last:center">
+        <option value=""></option>
+        <option>↗</option>
+        <option>↘</option>
+      </select>
+      <select class="var-sel v3" style="min-width:70px;text-align-last:center">
+        <option value=""></option>
+        <option>↗</option>
+        <option>↘</option>
+      </select>
+    </div>
+  </td>
+</tr>
+
+		  
+		  <tr><td>Inéquation : \\( f(x) \\) <span id="cmp-view">≤</span> \\( 0 \\)</td><td><input class="ineq" type="text" style="width:320px" placeholder=""></td></tr>
         </tbody>
       </table>`,
 
-      '<div style="margin:.4rem 0">Tableau de variations :</div>',
-      '<div id="var-host"></div>',
+
 
       '<div style="margin:.6rem 0 .2rem">Tableau de signes détaillé :</div>',
       '<div id="sign-host"></div>',
@@ -420,7 +651,6 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
       '<div id="res" class="steps small"></div>'
     ].join('');
 
-    renderVariationTableCubic($('#var-host',host), st.a);
     $('#sign-host',host).innerHTML = buildSignTableHTML_cubic(st);
 
     // placeholder inéquation
@@ -441,13 +671,14 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
       const po = (wantPos.map(x=>({I1,I2,I3,I4}[x])).join(' ∪ '));
       return `${po} ∪ {${r1};${r2};${r3}}`;
     }
-    function updateIneqUI(){
-      st.cmp = cmpSel.value;
-      $('#cmp-view',host).textContent = st.cmp;
-      const ineqInput = $('.ineq',host);
-      if(ineqInput) ineqInput.placeholder = ineqPlaceholderFor(st);
-      typesetAll(host);
-    }
+function updateIneqUI(){
+  st.cmp = cmpSel.value;
+  host.dataset.state = JSON.stringify(st);
+  $('#cmp-view',host).textContent = st.cmp;
+  const ineqInput = $('.ineq',host);
+  typesetAll(host);
+}
+
     cmpSel.addEventListener('change', updateIneqUI);
     updateIneqUI();
 
@@ -462,22 +693,53 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
     let ok=0, tot=0;
 
     // --- Correction Développement (mêmes lignes que la solution) ---
-// --- Correction Développement (mêmes lignes que la solution) ---
+// --- Correction Développement : stricte par ligne, variantes autorisées ---
 (function(){
   const els = Array.from(host.querySelectorAll('.fact'));
   if(!els.length) return;
 
-  // on re-fabrique les lignes attendues avec la même logique que la solution
-  const dev = makeDevRows_cubic(st.a, st.r1, st.r2, st.r3); // <- même source que buildQ1
-  els.forEach((el, i) => {
-    const raw = (el.value || '').trim();
+  // même nombre d’inputs que de lignes de solution (dédup déjà gérée côté render)
+  els.forEach((el, i)=>{
+    const raw = (el.value||'').trim();
     if(!raw){ setTick(el,'nu'); return; }
     scoreTot++;
 
-    const want = dev.rows[i] || '';
-    const ok = (canonDev(raw) === canonDev(want));
-    setTick(el, ok ? 'ok' : 'ko');
-    if(ok) scoreOK++;
+    const eqOK = eqCubic(raw, st.a, st.r1, st.r2, st.r3);
+    const sh   = shapeFlags(raw);
+
+    // Garde-fous communs : on refuse la forme factorisée partout
+    // -> Sur les lignes 1–2, on n’accepte PAS de x^3 ; sur les 3–5 on EXIGE x^3.
+    let formOK = false;
+    if(i === 0){
+  // L1 doit être un produit "quadratique × linéaire" OU
+  // un produit de trois facteurs linéaires si a a été distribué dans le 1er facteur.
+  const patternQL = (!sh.hasX3 && sh.hasParens && sh.hasProductLook && sh.x2count >= 1);
+  const patternLLL = isTripleLinearProduct(raw);   // <-- NEW: (-2x-6)(x+1)(x-4) accepté
+  formOK = (patternQL || patternLLL);
+}
+else if(i === 1){
+      // L2 : idem L1 (ligne de regroupement) — on autorise les deux (selon le choix de l’élève)
+      formOK = (!sh.hasX3 && sh.hasParens && sh.hasProductLook && sh.x2count >= 1);
+    }else if(i === 2){
+      // L3 : "6 termes" (ou presque) : il doit y avoir x^3 ET AU MOINS deux x^2
+      // (si a=1, pas d’obligation de parenthèses ; si a≠1, on tolère a( … ))
+      formOK = (sh.hasX3 && sh.x2count >= 2);
+    }else if(i === 3){
+      // L4 : cubique REGROUPÉE : x^3 présent et exactement 1 x^2
+      // (avec ou sans a(…); si a=1, souvent identique à L5 → la dédup a déjà réduit le nb de lignes)
+      formOK = (sh.hasX3 && sh.x2count === 1);
+    }else if(i === 4){
+      // L5 : cubique DÉVELOPPÉE (a distribué) : x^3 présent, 1 seul x^2, et pas de produit explicite
+      // => pas de motif “)(” ; on tolère parenthèses englobantes inoffensives.
+      formOK = (sh.hasX3 && sh.x2count === 1 && !sh.hasProductLook);
+    }else{
+      // L6 (dernière) : f(x)
+      formOK = isFxLoose(raw);
+    }
+
+    const good = (i===els.length-1) ? formOK : (eqOK && formOK);
+    setTick(el, good ? 'ok' : 'ko');
+    if(good) scoreOK++;
   });
 })();
 
@@ -497,66 +759,141 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
     })();
 
     // Variations : flèches extrêmes (qualitatif)
-    (function(){
-      // Ici on ne note pas de champs : tableau montré en solution.
-    })();
+  // Variations : 3 sélecteurs ↗/↘ (qualitatif)
+(function(){
+  const s1 = $('.var-sel.v1', host),
+        s2 = $('.var-sel.v2', host),
+        s3 = $('.var-sel.v3', host);
+  if(!s1 || !s2 || !s3) return;
 
-    // Signes — entête des racines
-    (function(){
-      const r1 = Number(read('#hdr_r1')), r2=Number(read('#hdr_r2')), r3=Number(read('#hdr_r3'));
-      const any = (get('#hdr_r1').value || get('#hdr_r2').value || get('#hdr_r3').value);
-      if(!any) return;
-      tot++;
-      const good = (r1===st.r1 && r2===st.r2 && r3===st.r3);
-      setTick(get('#hdr_r1'),good?'ok':'ko'); setTick(get('#hdr_r2'),good?'ok':'ko'); setTick(get('#hdr_r3'),good?'ok':'ko');
-      if(good) ok++;
-    })();
+  const any = [s1,s2,s3].some(e => (e.value||'').trim());
+  if(!any) return;              // rien rempli → pas noté
 
-    // Ligne f(x) : alternance des signes (extérieur = signe de a)
-    (function(){
-      const L = get('#F_L'), Z1=get('#F_Z1'), M1=get('#F_M1'), Z2=get('#F_Z2'), M2=get('#F_M2'), Z3=get('#F_Z3'), R=get('#F_R');
-      const any = [L,Z1,M1,Z2,M2,Z3,R].some(e=>e?.value);
-      if(!any) return;
-      tot++;
-      const sOut = (st.a>0?'+':'−'), sMid1 = (st.a>0?'−':'+'), sMid2=(st.a>0?'+':'−');
-      const good = (L.value===sOut && Z1.value==='0' && M1.value===sMid1 && Z2.value==='0' && M2.value===sMid2 && Z3.value==='0' && R.value===sOut);
-      [L,Z1,M1,Z2,M2,Z3,R].forEach(e=>setTick(e, good?'ok':'ko'));
-      if(good) ok++;
-    })();
+  tot++;
 
-    // Inéquation — sans accolades (crochets sur les bornes)
-    (function(){
-      const el = $('.ineq', host);
-      const raw = (el?.value||'');
-      if(!raw.trim()) return; tot++;
+  // Cubique : a>0 ⇒ ↗,↘,↗ ; a<0 ⇒ ↘,↗,↘
+  const want = (st.a > 0) ? ['↗','↘','↗'] : ['↘','↗','↘'];
+  const good = (s1.value===want[0] && s2.value===want[1] && s3.value===want[2]);
 
-      function normSet(s){
-        s = String(s).replace(/\u2212|−/g,'-').replace(/\s+/g,'');
-        s = s.replace(/[()]/g,m=>m==='('?'[':']');         // tolère () → []
-        s = s.replace(/[\u222aUu]/g,'∪');                  // unions
-        s = s.replace(/-oo/gi,'-∞').replace(/\+oo/gi,'+∞').replace(/(^|[^+\-])∞/g,(_,p)=>p+'+∞');
-        s = s.replace(/^S=/,'');
-        return s;
-      }
+  [s1,s2,s3].forEach((el,i)=>{
+    const v = (el.value||'').trim();
+    setTick(el, v ? (v===want[i] ? 'ok' : 'ko') : 'nu');
+  });
 
-      const {a,r1,r2,r3,cmp} = st;
-      const want = (function(){
-        if(a>0){
-          if(cmp==='<')  return `]${r1};${r2}[∪]${r3};+∞[`;
-          if(cmp==='>')  return `]-∞;${r1}[∪]${r2};${r3}[`;
-          if(cmp==='≤')  return `[${r1};${r2}]∪[${r3};+∞[`;
-                          return `]-∞;${r1}]∪[${r2};${r3}]`; // ≥
-        }else{
-          if(cmp==='<')  return `]-∞;${r1}[∪]${r2};${r3}[`;
-          if(cmp==='>')  return `]${r1};${r2}[∪]${r3};+∞[`;
-          if(cmp==='≤')  return `]-∞;${r1}]∪[${r2};${r3}]`;
-                          return `[${r1};${r2}]∪[${r3};+∞[`;
-        }
-      })();
+  if(good) ok++;
+})();
 
-      const good = normSet(raw)===normSet(want);
-      setTick(el, good?'ok':'ko'); if(good) ok++;
-    })();
+
+    /* ====== Correction du tableau de signes (3 racines) ====== */
+// entête (r1,r2,r3)
+(function(){
+  const r1 = Number(valTrim(get('#hdr_r1'))),
+        r2 = Number(valTrim(get('#hdr_r2'))),
+        r3 = Number(valTrim(get('#hdr_r3')));
+  const filled = [get('#hdr_r1'), get('#hdr_r2'), get('#hdr_r3')].some(e => (e?.value||'').trim());
+  if(!filled) return;
+  tot++;
+  const good = (r1===st.r1 && r2===st.r2 && r3===st.r3);
+  [get('#hdr_r1'), get('#hdr_r2'), get('#hdr_r3')].forEach(e => setTick(e, good?'ok':'ko'));
+  if(good) ok++;
+})();
+
+// ligne 'a' si elle existe (signe constant)
+(function(){
+  const AL = get('#A_L'), AM1 = get('#A_M1'), AM2 = get('#A_M2'), AR = get('#A_R');
+  if(!AL || !AM1 || !AM2 || !AR) return;               // ligne a absente si a==1
+  const any = [AL,AM1,AM2,AR].some(e=>e.value);
+  if(!any) return;
+  tot++;
+  const sA = (st.a>0?'+':'−');
+  const good = (AL.value===sA && AM1.value===sA && AM2.value===sA && AR.value===sA);
+  [AL,AM1,AM2,AR].forEach(e=>setTick(e, good?'ok':'ko'));
+  if(good) ok++;
+})();
+
+// helpers pour lignes des facteurs
+function gradeFactorRow(prefix, pattern){
+  const L  = get(`#${prefix}_L`);
+  const Z1 = get(`#${prefix}_Z`);
+  const M1 = get(`#${prefix}_M1`);
+  const Z2 = get(`#${prefix}_Z2`);
+  const M2 = get(`#${prefix}_M2`);
+  const Z3 = get(`#${prefix}_Z3`);
+  const R  = get(`#${prefix}_R`);
+  const els = [L,Z1,M1,Z2,M2,Z3,R].filter(Boolean);
+  const any = els.some(e=>e.value);
+  if(!any) return;
+  tot++;
+  const good =
+    (!L  || L.value  === pattern.L)  &&
+    (!Z1 || Z1.value === (pattern.Z1||'')) &&
+    (!M1 || M1.value === pattern.M1) &&
+    (!Z2 || Z2.value === (pattern.Z2||'')) &&
+    (!M2 || M2.value === pattern.M2) &&
+    (!Z3 || Z3.value === (pattern.Z3||'')) &&
+    (!R  || R.value  === pattern.R);
+  els.forEach(e=>setTick(e, good?'ok':'ko'));
+  if(good) ok++;
+}
+
+// (x − r1) : [ − | 0 | + | + | + ]
+gradeFactorRow('R1', { L:'−', Z1:'0', M1:'+', M2:'+', R:'+' });
+// (x − r2) : [ − |   | − | 0 | + ]
+gradeFactorRow('R2', { L:'−',       M1:'−', Z2:'0', M2:'+', R:'+' });
+// (x − r3) : [ − |   |   |   | 0 | + ]
+gradeFactorRow('R3', { L:'−',       M1:'−',         M2:'−', Z3:'0', R:'+' });
+
+// ligne produit f(x) — degré impair ⇒ signes opposés à gauche/droite
+(function(){
+  const L  = get('#F_L'), Z1 = get('#F_Z1'), M1 = get('#F_M1'),
+        Z2 = get('#F_Z2'), M2 = get('#F_M2'), Z3 = get('#F_Z3'), R = get('#F_R');
+  const any = [L,Z1,M1,Z2,M2,Z3,R].some(e=>e?.value);
+  if(!any) return;
+  tot++;
+
+  const sRight = (st.a>0?'+':'−');           // +∞
+  const sLeft  = (st.a>0?'−':'+');           // −∞  (opposé car degré impair)
+  const sMid1  = (sLeft==='+'? '−' : '+');   // alternance
+  const sMid2  = (sLeft==='+'? '+' : '−');
+
+  const good = (L.value===sLeft && Z1.value==='0' &&
+                M1.value===sMid1 && Z2.value==='0' &&
+                M2.value===sMid2 && Z3.value==='0' &&
+                R.value===sRight);
+
+  [L,Z1,M1,Z2,M2,Z3,R].forEach(e=>setTick(e, good?'ok':'ko'));
+  if(good) ok++;
+})();
+
+
+   // 12) Inéquation (accepte -oo/+oo/oo, U/∪, () au lieu de [])
+(function(){
+  const el = $('.ineq', host);
+  let raw = (el?.value || '');
+  if(!raw.trim()) return;
+  tot++;
+
+  function normSet(s){
+    s = String(s)
+      .replace(/\u2212|−/g, '-')        // minus
+      .replace(/\s+/g, '')
+      .replace(/^[sS]=?/, '')           // enlève "S=" toléré
+      .replace(/[()]/g, m => m==='(' ? '[' : ']')
+      .replace(/[\u222aUu]/g, '∪')
+      .replace(/-oo/gi,'-∞').replace(/\+oo/gi,'+∞')
+      .replace(/(^|[^+\-])oo/gi, (_,$1)=> `${$1}+∞`)
+      .replace(/(^|[^+\-])∞/g, (_,$1)=> `${$1}+∞`);
+    return s;
+  }
+
+  const wants = expectedSetsCubic(st.a, st.r1, st.r2, st.r3, st.cmp).map(normSet);
+  const got   = normSet(raw);
+  const good  = wants.includes(got);
+
+  setTick(el, good ? 'ok' : 'ko');
+  if(good) ok++;
+})();
+
 
     scoreOK=ok; scoreTot=tot; updateScore();
     return {ok, total:tot};
@@ -578,29 +915,19 @@ const rightDev = `<div class="dev-inputs">${devInputs}</div>`;
       String.raw`$S=\{${st.r1}\;;\;${st.r2}\;;\;${st.r3}\}$`
     ].map(s=>`<div class="step">${s}</div>`).join('');
 
-    // 3) Variations — tableau qualitatif
-    const varHTML = (function(){
-      const L = (st.a>0? '↗':'↘'), R=(st.a>0? '↗':'↘');
-      return `
-      <div class="var-wrap">
-        <table class="var">
-          <thead>
-            <tr><th>\\(x\\)</th><td>\\(−∞\\)</td><td>\\(m_1\\)</td><td>\\(m_2\\)</td><td>\\(+∞\\)</td></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th rowspan="3">\\(f\\)</th>
-              <td class="bigsel" rowspan="3">${L}</td>
-              <td style="text-align:center">maximum local</td>
-              <td style="text-align:center">minimum local</td>
-              <td class="bigsel" rowspan="3">${R}</td>
-            </tr>
-            <tr class="gaprow"><td></td><td></td></tr>
-            <tr class="thin"><td style="text-align:center">en \\(x=m_1\\)</td><td style="text-align:center">en \\(x=m_2\\)</td></tr>
-          </tbody>
-        </table>
-      </div>`;
-    })();
+// 3) Variations — séquence attendue + justification par le signe de a
+const varSeq = (st.a > 0) ? '↗, ↘, ↗' : '↘, ↗, ↘';
+
+const varJustif = (st.a > 0)
+  ? String.raw`Comme \(a>0\) et que le degré est impair, on a  l'alternance \( \text{↗ } , \text{↘ } , \text{↗  } \).`
+  : String.raw`Comme \(a<0\) et que le degré est impair, on a l’alternance \( \text{↘  } , \text{↗ } , \text{↘ } \).`;
+
+const varBlock = `
+  <div class="step"><b>3) Variations :</b></div>
+  <div class="step" >${varJustif}</div>
+`;
+
+
 
     // 4) Tableau de signes — schéma LaTeX (en plus du tableau interactif)
     const sOut = (st.a>0?'+':'−'), sMid1=(st.a>0?'−':'+'), sMid2=(st.a>0?'+':'−');
@@ -610,18 +937,20 @@ x&-\infty&${st.r1}&&${st.r2}&&${st.r3}&+\infty\\\hline
 f(x)& ${sOut} & 0 & ${sMid1} & 0 & ${sMid2} & 0 & ${sOut}
 \end{array}\]`;
 
-    // 5) Inéquation — texte (sans accolades)
-    const I1=`]-\\infty;${st.r1}[`, I2=`]${st.r1};${st.r2}[`, I3=`]${st.r2};${st.r3}[`, I4=`]${st.r3};+\\infty[`;
-    const neg = (st.a>0? `${I2}\\cup${I4}` : `${I1}\\cup${I3}`);
-    const pos = (st.a>0? `${I1}\\cup${I3}` : `${I2}\\cup${I4}`);
-    const ineq =
-      (st.cmp==='<')? String.raw`$\,f(x)<0 \iff x\in ${neg}\,$` :
-      (st.cmp==='>')? String.raw`$\,f(x)>0 \iff x\in ${pos}\,$` :
-      (st.cmp==='≤')? String.raw`$\,f(x)\le 0 \iff x\in ${ (st.a>0? `[${st.r1};${st.r2}]\\cup[${st.r3};+\\infty[` : `]-\\infty;${st.r1}]\\cup[${st.r2};${st.r3}]`) }\,$` :
-                      String.raw`$\,f(x)\ge 0 \iff x\in ${ (st.a>0? `]-\\infty;${st.r1}]\\cup[${st.r2};${st.r3}]` : `[${st.r1};${st.r2}]\\cup[${st.r3};+\\infty[`) }\,$`;
+    const {a,r1,r2,r3} = st;
+  const {x1,x2,x3} = sort3(r1,r2,r3);
+  const cmp = st.cmp;
+
+  function texSet(a, r1, r2, r3, cmp){
+    const [form] = expectedSetsCubic(a, r1, r2, r3, cmp);    // forme "officielle"
+    return form.replaceAll(';','\\;;\\;');                   // un peu d’espace en TeX
+  }
+
+  const ineqLine = String.raw`$\,f(x)\,${cmp}\,0 \iff x \in ${texSet(a,r1,r2,r3,cmp)}\,$`;
+  const setLine  = String.raw`$S = ${texSet(a,r1,r2,r3,cmp)}$`;
 
     // Tableau de signes détaillé (HTML) – réutilise celui de l'énoncé pour « montrer » la solution
-    const signDetailHTML = buildSignTableHTML_cubic(st);
+const signDetailHTML = buildSignTableHTML_cubic_solution(st);
 
     $('#res',host).innerHTML = `
       <div class="steps">
@@ -632,17 +961,15 @@ f(x)& ${sOut} & 0 & ${sMid1} & 0 & ${sMid2} & 0 & ${sOut}
         <div class="step"><b>2) Résoudre</b> \\(f(x)=0\\)</div>
         ${eq0}
 
-        <div class="step"><b>3) Tableau de variations</b></div>
-        ${varHTML}
+    ${varBlock}
 
-        <div class="step"><b>4a) Tableau de signes (schéma)</b></div>
-        <div class="step">${signLatex}</div>
+     
 
-        <div class="step"><b>4a bis) Tableau de signes détaillé</b></div>
+        <div class="step"><b>4a)  Tableau de signes</b></div>
         <div class="step">${signDetailHTML}</div>
 
-        <div class="step"><b>4b) Inéquation</b></div>
-        <div class="step">${ineq}</div>
+    <div class="step"><b>4b) Inéquation :</b> ${ineqLine}</div>
+     <div class="step" style="margin-left:2.2em">${setLine}</div>
       </div>`;
 	  fixXminus0(host);
     typesetAll($('#res',host));

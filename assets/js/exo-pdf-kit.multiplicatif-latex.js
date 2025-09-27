@@ -722,8 +722,8 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
   .tbl-main col.col-right { width: 65% !important; }
 
  .tbl-main3{ table-layout: fixed; width: 100%; }
-  .tbl-main3 col.col-left  { width: 45% !important; }  /* ← ajuste 26–35% à ton goût */
-  .tbl-main3 col.col-right { width: 55% !important; }
+  .tbl-main3 col.col-left  { width: 50% !important; }  /* ← ajuste 26–35% à ton goût */
+  .tbl-main3 col.col-right { width: 50% !important; }
 </style>
 
 <style>

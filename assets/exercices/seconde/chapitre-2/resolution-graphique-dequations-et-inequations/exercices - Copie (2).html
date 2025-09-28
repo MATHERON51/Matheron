@@ -93,7 +93,7 @@
   vector-effect: non-scaling-stroke;
   stroke-linecap: butt;
 }
-</style>
+
 <style media="print">
   /* Réduit tous les SVG de courbe en PDF */
   .repere svg { width: 340px !important; height: 230px !important; }
@@ -102,7 +102,7 @@
   .repere .axis line, .repere .axis path { stroke-width: .8 !important; }
 </style>
 
-
+</style>
 <style>
 
 /* Widen columns for tables (notably Ex.4) */
@@ -110,10 +110,6 @@
 .tbl th, .tbl td { padding: 6px 10px; }
 .tbl td { min-width: 120px; }
 
-/* fond des étiquettes : plus opaque à l'impression */
-@media print {
-  .label-bg { fill-opacity: 1 !important; }
-}
 
 </style>
 <script>
@@ -192,13 +188,10 @@
     <div class="card small">
       <strong>Saisie & réponses acceptées :</strong>
       <ul style="margin:8px 0 0 18px">
-	          <li><b>ATTENTION : Le fichier n'est pas stable : il y a souvent des courbes non utilisables. Il faut alors appeler un nouvel énoncé.</b></li>
         <li><b>Ensemble de définition</b> : format <span class="code">[a ; b]</span> — ex. <span class="code">[−6 ; 6]</span>. Espaces facultatifs : <span class="code">[−6;6]</span> accepté.</li>
-        <li><b>Image : </b> nombre entier ou décimal — virgule <span class="code">2,5</span> ou point <span class="code">2.5</span> acceptés.</li>
-        <li><b>Solution d'une équation :</b> : liste séparée par points-virgules — ex. −4 ; 0 ; 3. L’ordre n’a pas d’importance. Vous pouvez mettre S={a;b}</li>
-              <li><b>Solution d'une inéquation :</b>  On peut obtenir des intervalles, des réunions d'intervalles (avec aussi des listes de nombres).</li>
- <li><b>Ensemble vide :</b>  Vous pouvez écrire : aucun/vide/∅ (disponible dans la clavier maths).</li>
-	  </ul>
+        <li><b>Image</b> (valeur de <span class="code">f(x)</span>) : nombre entier ou décimal — virgule <span class="code">2,5</span> ou point <span class="code">2.5</span> acceptés ; signe « − » normalisé.</li>
+        <li><b>Antécédent(s)</b> : liste séparée par points-virgules — ex. −4 ; 0 ; 3. L’ordre n’a pas d’importance.</li>
+      </ul>
     </div>
 
 
@@ -233,11 +226,8 @@ const fmtFR = n => FRfmt.format(n).replace('-', '−');                // 1,5 et
 const fmtNum = n => `<span class="num">${fmtFR(n)}</span>`;          // espaces auto autour
 const fmtUnit = (n,u)=> `${fmtNum(n)}&nbsp;${u||''}`;                 // espace insécable entre nombre et unité
 const parseNumFR = s => Number(String(s||'').replace(/\u2212/g,'-').replace(',','.').trim());
-const parseListFR = s =>
-  !s ? [] :
-  String(stripS(s)).replace(/[{}()[\]]/g,'')
-    .split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);
-	function MJ(el){ // re-typeset MathJax après injection
+const parseListFR = s => !s ? [] : String(s).replace(/[{}()[\]]/g,'').split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);
+function MJ(el){ // re-typeset MathJax après injection
   try{
     if (window.MathJax){
       if (MathJax.typesetPromise) MathJax.typesetPromise([el||document.body]).catch(()=>{});
@@ -245,62 +235,6 @@ const parseListFR = s =>
     }
   }catch(_){}
 }
-const stripS = s => String(s||'').replace(/^\s*s\s*=?\s*/i, ''); // enlève un éventuel "S=" (ou "S =")
-
-// ——— "Pas de solution" : tokens acceptés ———
-function isNoSolToken(str){
-  if(str==null) return false;
-  const s = stripS(String(str))
-              .replace(/\u2212/g,'-')     // minus Unicode → hyphen
-              .replace(/\s+/g,' ')        // espaces
-              .trim()
-              .toLowerCase();
-  return s==='aucun' || s==='vide' || s==='∅' || s==='{}' || s==='{ }';
-}
-
-// -- Helpers TeX (toujours produire du TeX et l'encadrer par \( … \))
-const tex = s => `\\(${s}\\)`;                       // met en mode math
-const fmtPointTeX = v => `\\{ ${fmtFR(v)} \\}`;      // {a}
-const fmtSetTeX = A => (A && A.length)               // {a ; b ; c} ou ∅
-  ? `\\{ ${A.map(fmtFR).join(' \\; ;\\; ')} \\}`
-  : '∅';
-
-// Union d’intervalles/points → TeX : ]a ; b[ ∪ {c} ∪ [d ; e]
-function unionFmtTeX(U){
-  if(!U || !U.length) return '∅';
-  const L = ch => ch==='[' ? '[' : ']';   // '(' -> ']'
-  const R = ch => ch===']' ? ']' : '[';   // ')' -> '['
-  return U.map(I=>{
-    if(I.a===I.b && I.left==='[' && I.right===']') return fmtPointTeX(I.a);
-    return `${L(I.left)}${fmtFR(I.a)}\\; ;\\; ${fmtFR(I.b)}${R(I.right)}`;
-  }).join(' \\cup ');
-}
-// Version "intelligente" : si l'union ne contient que des points -> {a ; b ; ...}
-// sinon, on affiche : (intervalles) ∪ {points}
-// Union → TeX avec tri global (points et intervalles mélangés)
-function unionFmtSmartTeX(U){
-  if(!U || !U.length) return '∅';
-
-  const L = ch => ch==='[' ? '[' : ']';  // '(' -> ']'
-  const R = ch => ch===']' ? ']' : '[';  // ')' -> '['
-
-  // on trie par borne gauche croissante ; à a égal, les points avant les intervalles
-  const parts = U.slice().sort((u,v)=>{
-    if(u.a !== v.a) return u.a - v.a;
-    const uPt = (u.a===u.b && u.left==='[' && u.right===']');
-    const vPt = (v.a===v.b && v.left==='[' && v.right===']');
-    return (uPt===vPt) ? ((u.b||0)-(v.b||0)) : (uPt ? -1 : 1);
-  });
-
-  return parts.map(I=>{
-    if(I.a===I.b && I.left==='[' && I.right===']'){
-      return `\\{ ${fmtFR(I.a)} \\}`;
-    }
-    return `${L(I.left)}${fmtFR(I.a)}\\; ;\\; ${fmtFR(I.b)}${R(I.right)}`;
-  }).join(' \\cup ');
-}
-
-
 /* ========= Amplitudes contrôlables (Exos 1,2,4) ========= */
 let AMP={ xmin:-5,xmax:6,ymin:-6,ymax:6 };
 function applyAMP(){
@@ -336,9 +270,7 @@ function buildRepereSVG(opts){
   const tri=document.createElementNS(svg.namespaceURI,'path'); tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
   defs.appendChild(marker); defs.appendChild(clip); svg.appendChild(defs);
 
-const axes = document.createElementNS(svg.namespaceURI,'g');
-axes.classList.add('axes');         // <-- AJOUT
-const plot = document.createElementNS(svg.namespaceURI,'g');
+  const axes=document.createElementNS(svg.namespaceURI,'g'); const plot=document.createElementNS(svg.namespaceURI,'g');
   plot.classList.add('plot'); plot.setAttribute('clip-path','url(#'+cid+')'); svg.appendChild(axes); svg.appendChild(plot);
 
   const X=x=>mLeft + (x-xmin)*W0/(xmax-xmin);
@@ -418,9 +350,7 @@ function buildRepereOrtho(opts){
   const tri=document.createElementNS(svg.namespaceURI,'path'); tri.setAttribute('d','M0,0 L6,3 L0,6 Z'); tri.setAttribute('fill','#111'); marker.appendChild(tri);
   defs.appendChild(marker); svg.appendChild(defs);
 
-  const axes=document.createElementNS(svg.namespaceURI,'g'); 
-  axes.classList.add('axes');         // <-- AJOUT
-  const plot=document.createElementNS(svg.namespaceURI,'g');
+  const axes=document.createElementNS(svg.namespaceURI,'g'); const plot=document.createElementNS(svg.namespaceURI,'g');
   plot.classList.add('plot'); svg.appendChild(axes); svg.appendChild(plot);
 
   const frame=document.createElementNS(svg.namespaceURI,'rect');
@@ -603,18 +533,19 @@ const pathFromGridSmooth = (rep, grid) => {
     }
   }
 
-  // soften globally and near forced points — **même facteur partout**
+  // soften globally and near forced points
+  const scale = 0.60;
   for(let i=0;i<n;i++){
     if(forced.has(i)){
       d[i] = 0;
       if(i>0) d[i-1] *= 0.4;
       if(i<n-1) d[i+1] *= 0.4;
     } else {
-      d[i] *= HERMITE_SCALE;
+      d[i] *= scale;
     }
   }
 
-  // Hermite -> cubic Bézier
+  // Hermite -> cubic Bézier segments
   let dstr = `M ${X(Xs[0])} ${Y(Ys[0])}`;
   for(let i=0;i<n-1;i++){
     const x0=Xs[i], x1=Xs[i+1], y0=Ys[i], y1=Ys[i+1], h=x1-x0; // h=1
@@ -624,7 +555,6 @@ const pathFromGridSmooth = (rep, grid) => {
   }
   return dstr;
 };
-
 
 function interpAtGrid(grid, x){
   const {Xs,Ys}=grid;
@@ -679,157 +609,6 @@ function antecedentsOfGrid(grid, y){
   return uniq(snapped, (a,b)=>Math.abs(a-b)<1e-9);
 
 }
-// ==== Résolution sur grille entière (mêmes valeurs que les antécédents) ====
-
-// racines entières de f(x)=y sur la grille (pas d'intersection à l'intérieur par construction)
-function rootsEqInt(grid, y){
-  return antecedentsOfGrid(grid, y)
-    .filter(x => Math.abs(x - Math.round(x)) < 1e-9)
-    .map(x => Math.round(x));
-}
-
-// évalue f (ou g) à x (entier ou demi-entier)
-const gridVal = (grid,x) => interpAtGrid(grid,x);
-
-// Union d’intervalles sur [xmin;xmax] obtenue par un prédicat vrai au milieu de chaque case (i,i+1)
-// et, si includeEqPoints=true, on ajoute les points entiers i où le prédicat est vrai.
-// add 4th param: splitAt = integers where we must split the run
-function unionFromPredicate(R, pred, includeEqPoints, splitAt){
-  const a=R.xmin, b=R.xmax;
-  const cells = new Set(), pts = new Set();
-  const splits = new Set(splitAt || []);
-
-  for(let i=a; i<b; i++) if (pred(i+0.5)) cells.add(i);
-  if (includeEqPoints){
-    for(let i=a; i<=b; i++) if (pred(i)) pts.add(i);
-  }
-
-  const U=[];
-  let i=a;
-  while(i<b){
-    if(!cells.has(i)){ i++; continue; }
-    let j=i+1;
-    while(j<=b-1 && cells.has(j)) j++;
-
-    // split inside [i, j] at any integer s that is in "splits"
-    let start = i;
-    for(let s=i+1; s<=j-1; s++){
-      if(splits.has(s)){
-        U.push({ a:start, b:s, left: pts.has(start)?'[':'(', right: pts.has(s)?']':')' });
-        start = s;
-      }
-    }
-    U.push({ a:start, b:j, left: pts.has(start)?'[':'(', right: pts.has(j)?']':')' });
-    i=j;
-  }
-
-  // isolated points (only when includeEqPoints === true)
-  for(const p of pts){
-    if( (p>a && cells.has(p-1)) || (p<b && cells.has(p)) ) continue;
-    U.push({a:p,b:p,left:'[',right:']'});
-  }
-
-  U.sort((u,v)=> u.a===v.a ? u.b-v.b : u.a-v.a);
-  return U;
-}
-
-
-// affichage FR : [a ; b] ∪ ...
-function unionFmtFR(U){
-  if(!U || !U.length) return '∅';
-
-  const L = ch => ch==='[' ? '[' : ']'; // '(' -> ']'
-  const R = ch => ch===']' ? ']' : '['; // ')' -> '['
-
-  return U.map(I=>{
-    // point isolé : {a}
-    if(I.a===I.b && I.left==='[' && I.right===']'){
-      return `{${fmtFR(I.a)}}`;
-    }
-    return `${L(I.left)}${fmtFR(I.a)} ; ${fmtFR(I.b)}${R(I.right)}`;
-  }).join(' ∪ ');
-}
-
-
-
-// parse « [a ; b] ∪ ]c ; d[ »  (accepte virgule ou point ; "∅"/"vide"/"aucun")
-// parse « [a ; b] ∪ ]c ; d[ » + {points} + listes simples ; accepte aussi S=... et « aucun/vide/∅ »
-function parseUnionFR(str){
-  let raw0 = String(str||'').trim();
-  let s = stripS(raw0)
-            .replace(/\u2212/g,'-')
-            .replace(/,/g,'.')
-            .toLowerCase().trim();
-
-  // explicites : "aucun", "vide", "∅"
-  if(s==='aucun' || s==='vide' || s==='∅') return [];
-
-  // autoriser () comme bornes ouvertes
-  s = s.replace(/\(/g,']').replace(/\)/g,'[');
-
-  const out = [];
-
-  // 1) intervalles
-  const re = /([\[\]])\s*([-+]?\d+(?:\.\d+)?)\s*[;:,]\s*([-+]?\d+(?:\.\d+)?)\s*([\[\]])/g;
-  let m;
-  while((m = re.exec(s))){
-    let a = Math.round(parseFloat(m[2]));
-    let b = Math.round(parseFloat(m[3]));
-    if(!Number.isFinite(a) || !Number.isFinite(b)) continue;
-    if(a>b) [a,b] = [b,a];
-    const left  = (m[1]==='[' ? '[' : '(');
-    const right = (m[4]===']' ? ']' : ')');
-    out.push({a,b,left,right});
-  }
-
-  // 2) points { … }
-  const rePts = /\{([^}]*)\}/g;
-  let ms;
-  while((ms = rePts.exec(s))){
-    const nums = String(ms[1]).split(/[;:,]/)
-      .map(t => Math.round(parseFloat(t))).filter(Number.isFinite);
-    nums.forEach(v => out.push({a:v,b:v,left:'[',right:']'}));
-  }
-
-  // 3) fallback : simple liste de nombres "a;b;c"
-  if(out.length===0){
-    const plain = s.replace(/[^0-9+.\-;:,]/g,'');
-    if(/^-?\d+(?:\.\d+)?(\s*[;:,]\s*-?\d+(?:\.\d+)?)*$/.test(plain)){
-      plain.split(/[;:,]/)
-        .map(t => Math.round(parseFloat(t)))
-        .filter(Number.isFinite)
-        .forEach(v => out.push({a:v,b:v,left:'[',right:']'}));
-    }
-  }
-
-  // 🔒 STRICT : si rien n’a été compris ET que ce n’est pas un token "aucun/vide/∅", on renvoie null (invalide)
-  if(out.length===0){
-    return null;
-  }
-  return out;
-}
-
-
-
-
-// comparaison "discrète" (par cases entières et points)
-function unionEqual(U1,U2){
-  const raster = (U)=>{
-    const cells=new Set(), pts=new Set();
-    for(const I of U){
-      for(let k=I.a; k<I.b; k++) cells.add(k);      // (k,k+1) — on ne gère pas l'ouverture ici, inutile sur grille entière
-      if(I.a===I.b && I.left==='[' && I.right===']') pts.add(I.a);
-      if(I.left==='[') pts.add(I.a);
-      if(I.right===']') pts.add(I.b);
-    }
-    return {cells,pts};
-  };
-  const A=raster(U1), B=raster(U2);
-  if(A.cells.size!==B.cells.size || A.pts.size!==B.pts.size) return false;
-  for(const k of A.cells) if(!B.cells.has(k)) return false;
-  for(const p of A.pts)   if(!B.pts.has(p))   return false;
-  return true;
-}
 
 /* ========== Vues génériques ========== */
 function mkRow(host,consigneHTML){
@@ -844,22 +623,9 @@ function mkRow(host,consigneHTML){
   try { __forceWordParenSpaces(form); __forceWordParenSpaces(st); } catch(e) {}
   return {row,st,form,res};
 }
-function showSteps(host, steps){
-  try{
-    let r = $('#res', host);
-    if(!r){
-      r = document.createElement('div');
-      r.id = 'res';
-      host.appendChild(r);
-    }
-  }catch(e){}
-
-  $('#res',host).innerHTML =
-    '<div class="steps">' + steps.map(s => '<div class="step">'+s+'</div>').join('') + '</div>';
-
-  try { __forceWordParenSpaces($('#res',host)); } catch(e) {}
-}
-
+function showSteps(host, steps){   try{ let r=$('#res',host); if(!r){ r=document.createElement('div'); r.id='res'; host.appendChild(r);} }catch(e){}
+$('#res',host).innerHTML = '<div class="steps">'+steps.map(s=>'<div class="step">'+s+'</div>').join('')+'</div>';
+  try { __forceWordParenSpaces($('#res',host)); } catch(e) {} }
 function clearMarks(host){ host.querySelectorAll('.qmark').forEach(m=>m.textContent=''); (function(){
       const inputs = Array.from(host.querySelectorAll('input[type="text"]'));
       const anyEmpty = inputs.some(i=>i.value.trim()==='');
@@ -881,13 +647,73 @@ function __forceWordParenSpaces(root){
   }
 }
 /* === Helpers manquants pour l’ex.1 : courbe secondaire + petite étiquette === */
-// ---- même facteur de lissage partout (tracé + contrôles) ----
-const HERMITE_SCALE = 0.56;   // 0.55–0.58 marche bien ; 0.56 = sûr
 
 /* ===== Helpers Hermite (mêmes pentes que pathFromGridSmooth) ===== */
 /* ===== Slopes Hermite identiques au lissage ===== */
+function _hermiteSlopes(Ys, forcedIdxSet, scale=0.55){
+  const n=Ys.length, s=new Array(n-1), d=new Array(n);
+  for(let i=0;i<n-1;i++) s[i]=Ys[i+1]-Ys[i];
+  d[0]=s[0]; d[n-1]=s[n-2];
+  for(let i=1;i<n-1;i++){
+    const s0=s[i-1], s1=s[i];
+    d[i]=(s0*s1<=0)?0:(Math.sign(s0)+Math.sign(s1))*Math.min(Math.abs(s0),Math.abs(s1),0.5*(Math.abs(s0)+Math.abs(s1)));
+  }
+  for(let i=0;i<n;i++){
+    if(forcedIdxSet && forcedIdxSet.has(i)){
+      d[i]=0; if(i>0) d[i-1]*=0.4; if(i<n-1) d[i+1]*=0.4;
+    }else d[i]*=scale;
+  }
+  return d;
+}
 
+/* ===== Test ultra-strict : aucun zéro Bezier interne =====
+   Sur [i,i+1], Δ(t) (en Bezier cubique) a des contrôles :
+   B0 = Δy0, B1 = Δy0 + Δm0/3, B2 = Δy1 - Δm1/3, B3 = Δy1.
+   Si B0..B3 ne sont pas tous du même signe (en ignorant zéro aux extrémités forcées), on REJette. */
+function _noInteriorZeroBezier(YsF, YsG, forcedIdx){
+  const n=YsF.length, Z=new Set(forcedIdx||[]);
+  const dF=_hermiteSlopes(YsF,Z,0.55), dG=_hermiteSlopes(YsG,Z,0.55);
 
+  const sameSign = (arr)=>{
+    let s=0;
+    for(const v of arr){
+      if(v===0) continue;
+      const sv=Math.sign(v);
+      if(s===0) s=sv;
+      else if(sv!==s) return false;
+    }
+    return s!==0; // au moins un strictement non nul
+  };
+
+  for(let i=0;i<n-1;i++){
+    const endIsRoot = (Z.has(i)||Z.has(i+1));
+    const dy0 = YsF[i]-YsG[i];
+    const dy1 = YsF[i+1]-YsG[i+1];
+    // Si extrémités non forcées et signes opposés, il y a déjà une racine → rejet
+    if(!endIsRoot && dy0*dy1<0) return false;
+
+    const dm0 = dF[i]-dG[i];
+    const dm1 = dF[i+1]-dG[i+1];
+    // Bezier controls of Δ
+    const B0 = dy0;
+    const B1 = dy0 + dm0/3;
+    const B2 = dy1 - dm1/3;
+    const B3 = dy1;
+
+    // si tous même signe (en ignorant les zéros), OK ; sinon → racine possible → rejet
+    if(!sameSign([B0,B1,B2,B3])){
+      // tolère zéro exactement au nœud forcé (contact entier), sinon on refuse
+      // si un seul zéro ET il correspond à B0 (i forcé) ou B3 (i+1 forcé) et le reste même signe → ok, sinon ko
+      const zeros = [B0,B1,B2,B3].map((v,k)=>({k,v})).filter(o=>o.v===0).map(o=>o.k);
+      const rest = [B0,B1,B2,B3].filter(v=>v!==0);
+      const endsForced = (Z.has(i) && zeros.includes(0)) || (Z.has(i+1) && zeros.includes(3));
+      if(!(endsForced && rest.length && rest.every(v=>Math.sign(v)===Math.sign(rest[0])))){
+        return false; // on refuse large : plus d’intersections non entières
+      }
+    }
+  }
+  return true;
+}
 
 function _evalHermite(Ys, d, i, t){ // t in [0,1]
   const y0=Ys[i], y1=Ys[i+1], m0=d[i], m1=d[i+1];
@@ -898,339 +724,35 @@ function _evalHermite(Ys, d, i, t){ // t in [0,1]
   const h11 =      t3 -    t2;
   return h00*y0 + h10*m0 + h01*y1 + h11*m1;
 }
-function __hermiteSlopesScaled(Ys, forcedIdxSet){
-  const n=Ys.length, s=new Array(n-1), d=new Array(n);
-  for(let i=0;i<n-1;i++) s[i]=Ys[i+1]-Ys[i];
-  d[0]=s[0]; d[n-1]=s[n-2];
-  for(let i=1;i<n-1;i++){
-    const s0=s[i-1], s1=s[i];
-    d[i]=(s0*s1<=0)?0:(Math.sign(s0)+Math.sign(s1)) * Math.min(Math.abs(s0),Math.abs(s1),0.5*(Math.abs(s0)+Math.abs(s1)));
-  }
-  for(let i=0;i<n;i++){
-    if(forcedIdxSet && forcedIdxSet.has(i)){
-      d[i]=0; if(i>0) d[i-1]*=0.4; if(i<n-1) d[i+1]*=0.4;
-    } else d[i]*=HERMITE_SCALE;          // **même facteur**
-  }
-  return d;
-}
-// Est-ce que y = k coupe la courbe UNIQUEMENT sur des nœuds entiers ?
-function levelHasOnlyIntegerSolutions(grid, k){
-  const Ys = grid.Ys, n = Ys.length;
-  const forced = new Set(grid.Forced||[]);
-  const d = __hermiteSlopesScaled(Ys, forced);   // mêmes pentes que le tracé
-
-  // il faut au moins un nœud égal à k
-  let hasNode=false;
-  for(let i=0;i<n;i++) if(Ys[i]===k) hasNode=true;
-  if(!hasNode) return false;
-
+/* contrôle robuste de l’absence de croisement interne */
+function _noInteriorCrossSmooth(YsF, YsG, forcedIdx){
+  const n = YsF.length, Z=new Set(forcedIdx||[]);
+  const dF=_hermiteSlopes(YsF,Z,0.55), dG=_hermiteSlopes(YsG,Z,0.55);
   for(let i=0;i<n-1;i++){
-    const a = Ys[i]   - k;
-    const b = Ys[i+1] - k;
-
-    // palier complet y=k sur [i,i+1] → on rejette (ça ferait un intervalle d’antécédents)
-    if(a===0 && b===0) return false;
-
-    // changement de signe aux bornes → racine intérieure non entière
-    if(a*b < 0) return false;
-
-    // ceinture + bretelles : on échantillonne l’Hermite à l’intérieur
-    const m = 16;
-    const s0 = Math.sign(a || b || 1);           // signe aux bornes (hors zéros)
-    for(let t=1;t<m;t++){
-      const y = _evalHermite(Ys, d, i, t/m);
-      const s = Math.sign(y - k);
-      if(s!==0 && s!==s0) return false;          // un changement de signe apparaît
+    if(Z.has(i)||Z.has(i+1)) continue;           // autorisé : égalité aux nœuds
+    const d0=YsF[i]-YsG[i], d1=YsF[i+1]-YsG[i+1];
+    if(d0===0 || d1===0) continue;
+    const s0=Math.sign(d0), s1=Math.sign(d1);
+    if(s0*s1<0) return false;                    // déjà opposés aux extrémités → croisement certain
+    for(let k=1;k<=7;k++){                       // échantillonnage interne (même Hermite)
+      const t=k/8;
+      const diff=_evalHermite(YsF,dF,i,t)-_evalHermite(YsG,dG,i,t);
+      if(Math.sign(diff) && Math.sign(diff)!==s0) return false;
     }
   }
   return true;
 }
 
-// renvoie une liste de niveaux k sûrs (parmi les entiers visibles qui EXISTENT sur des nœuds)
-function pickSafeLevelsEq(grid, R, count=1){
-  const present = new Set(grid.Ys);              // valeurs effectivement atteintes aux nœuds
-  const pool=[];
-  for(let y=R.ymin+1; y<=R.ymax-1; y++) if(present.has(y)) pool.push(y);
-  const safe = pool.filter(k => levelHasOnlyIntegerSolutions(grid, k));
-  return shuffle(safe).slice(0, count);
-}
-
-// Rejette si Δ(t) change de signe à l'intérieur d'un segment [i,i+1]
-// (échantillonnage dense + test sur les coefficients de Bezier).
-function noInteriorCross_STRICT(YsF, YsG, forcedIdx){
-  const n=YsF.length, Z=new Set(forcedIdx||[]);
-  const dF=__hermiteSlopesScaled(YsF,Z), dG=__hermiteSlopesScaled(YsG,Z);
-
-  for(let i=0;i<n-1;i++){
-    const endForced = Z.has(i) || Z.has(i+1);
-    const dy0 = YsF[i]-YsG[i];
-    const dy1 = YsF[i+1]-YsG[i+1];
-
-    // si pas forcé et déjà signes contraires aux bornes -> croisement certain
-    if(!endForced && dy0*dy1<0) return false;
-
-    // Bezier (Bernstein) de Δ : B0..B3
-    const dm0 = dF[i]-dG[i];
-    const dm1 = dF[i+1]-dG[i+1];
-    const B0=dy0, B1=dy0+dm0/3, B2=dy1-dm1/3, B3=dy1;
-
-    // tous même signe (en ignorant zéro aux extrémités forcées) ?
-    const sameSign = arr=>{
-      let sgn=0;
-      for(const v of arr){
-        if(v===0) continue;
-        const s=Math.sign(v);
-        if(sgn===0) sgn=s; else if(s!==sgn) return false;
-      }
-      return sgn!==0;
-    };
-    if(!sameSign([B0,B1,B2,B3])){
-      // tolérer le zéro seulement au nœud forcé
-      const zeros=[B0,B1,B2,B3].map((v,k)=>v===0?k:-1).filter(k=>k!==-1);
-      const endsOK = (Z.has(i) && zeros.includes(0)) || (Z.has(i+1) && zeros.includes(3));
-      if(!endsOK) return false;
-    }
-
-    // échantillonnage interne très dense (sécurité numérique)
-    const m=32;                           // 1/32 d’unité
-    const sign0 = Math.sign(dy0 || (endForced? (dy1||1) : 1));
-    for(let k=1;k<m;k++){
-      const t=k/m, t2=t*t, t3=t2*t;
-      const h00= 2*t3-3*t2+1, h10=t3-2*t2+t, h01=-2*t3+3*t2, h11=t3-t2;
-      const yF = h00*YsF[i] + h10*dF[i] + h01*YsF[i+1] + h11*dF[i+1];
-      const yG = h00*YsG[i] + h10*(dG[i]) + h01*YsG[i+1] + h11*(dG[i+1]);
-      const diff = yF - yG;
-      if(Math.sign(diff)!==0 && Math.sign(diff)!==Math.sign(sign0)) return false;
-    }
-  }
-  return true;
-}
-// abscisses entières où F et G coïncident (égalité sur nœuds)
-function intIntersections(F, G){
-  const out=[];
-  for(let i=0;i<F.Xs.length;i++){
-    if(F.Ys[i]===G.Ys[i]) out.push(F.Xs[i]);
-  }
-  return out;
-}
-
-// mêmes pentes Hermite que le tracé (déjà dans ton code)
-function _hermiteSlopes(Ys, forcedIdx){
-  return __hermiteSlopesScaled(Ys, new Set(forcedIdx||[])); // réutilise ta version
-}
-function _hermiteEval(Ys, d, i, t){ // t in [0,1]
-  const y0=Ys[i], y1=Ys[i+1], m0=d[i], m1=d[i+1];
-  const t2=t*t, t3=t2*t;
-  const h00=2*t3-3*t2+1, h10=t3-2*t2+t, h01=-2*t3+3*t2, h11=t3-t2;
-  return h00*y0 + h10*m0 + h01*y1 + h11*m1;
-}
-
-// racines réelles de f-g par bisection Hermite (tolérance ~1e-3)
-function realIntersectionsHermite(F, G, forcedIdx){
-  const n=F.Xs.length, Z=new Set(forcedIdx||[]);
-  const dF=_hermiteSlopes(F.Ys,Z), dG=_hermiteSlopes(G.Ys,Z);
-  const roots=[];
-  for(let i=0;i<n-1;i++){
-    const a=F.Ys[i]-G.Ys[i], b=F.Ys[i+1]-G.Ys[i+1];
-    // si égalité exactement au nœud : prends l’entier, pas besoin de bisection
-    if(a===0){ roots.push(F.Xs[i]); continue; }
-    if(b===0){ roots.push(F.Xs[i+1]); continue; }
-    // changement de signe → racine interne
-    if(a*b<0){
-      let lo=0, hi=1;
-      for(let it=0; it<32; it++){
-        const mid=(lo+hi)/2;
-        const yF=_hermiteEval(F.Ys,dF,i,mid);
-        const yG=_hermiteEval(G.Ys,dG,i,mid);
-        const s = (yF-yG);
-        const sa = ( (lo===0) ? a : (_hermiteEval(F.Ys,dF,i,lo)-_hermiteEval(G.Ys,dG,i,lo)) );
-        if(sa*s<=0) hi=mid; else lo=mid;
-      }
-      const x = F.Xs[i] + (lo+hi)/2;          // pas = 1
-      roots.push(x);
-    }
-  }
-  // dédoublonnage
-  const uniq=[]; roots.sort((u,v)=>u-v).forEach(r=>{
-    if(!uniq.length || Math.abs(r-uniq[uniq.length-1])>1e-6) uniq.push(r);
-  });
-  return uniq;
-}
-// f et g sont-ils "assez différents" ?
-// On exige qu'au moins 35% des cases (i+0.5) aient |f-g| ≥ 0.8
-// Are f and g far apart everywhere (no vertical overlap)?
-function hasVerticalOverlap(F, G, margin=0.5){
-  const minF = Math.min(...F.Ys), maxF = Math.max(...F.Ys);
-  const minG = Math.min(...G.Ys), maxG = Math.max(...G.Ys);
-  // overlap iff neither interval sits fully above the other
-  return !(maxF < minG + margin || maxG < minF + margin);
-}
-
-// Do we have at least one real crossing (or ≥2 integer-node crossings)?
-function haveCrossings(F, G){
-  const zi = intIntersections(F, G);
-  if (zi.length >= 2) return true;
-  const roots = realIntersectionsHermite(F, G, F.Forced || G.Forced || []);
-  return roots.length >= 1;
-}
-
-// Keep: already given previously
-function curvesDistinctEnough(R, F, G, gap=0.8, minShare=0.35){
-  const a=R.xmin, b=R.xmax;
-  let tot=0, sep=0;
-  for(let i=a;i<b;i++){
-    const f=gridVal(F,i+0.5), g=gridVal(G,i+0.5);
-    if(f==null || g==null) continue;
-    tot++; if(Math.abs(f-g) >= gap) sep++;
-  }
-  return tot>0 && (sep/tot >= minShare);
-}
-
-
-// ==== Courbe secondaire par "décalage par blocs" (2 intersections entières garanties) ====
-function genSecondaryGridPiecewiseShift(R, main, opts){
-  opts = opts || {};
-  const Xs  = main.Xs.slice();
-  const YsF = main.Ys.slice();
-  const n   = Xs.length;
-  const yMinIn = R.ymin + 1;
-  const yMaxIn = R.ymax - 1;
-  const gapMin = Math.max(2, opts.gapMin || 4);
-  const maxShiftCap = Number.isFinite(opts.maxShift) ? opts.maxShift : 999;
-
-  // marge disponible pour monter/descendre sur un bloc d’indices [lo..hi]
-  function marginBlock(lo, hi){
-    if (lo > hi) return { up: Infinity, down: Infinity, empty:true };
-    let up = Infinity, down = Infinity;
-    for (let k = lo; k <= hi; k++){
-      up   = Math.min(up,   yMaxIn - YsF[k]);
-      down = Math.min(down, YsF[k]  - yMinIn);
-    }
-    return { up, down, empty:false };
-  }
-
-  // choisit un décalage vertical (signe + amplitude) compatible avec la marge
-  function chooseShift(M){
-    if (M.empty) return { sign:+1, M: gapMin };
-    const cands = [];
-    if (M.up   >= gapMin) cands.push({ sign:+1, M: Math.min(M.up,   maxShiftCap) });
-    if (M.down >= gapMin) cands.push({ sign:-1, M: Math.min(M.down, maxShiftCap) });
-    if (!cands.length) return null;
-    return cands.length === 2 ? (Math.random() < .5 ? cands[0] : cands[1]) : cands[0];
-  }
-
-  // teste qu’il n’y a pas de croisement à l’intérieur des cases (i,i+1)
-  function noInteriorCross_STRICT(YsG, forcedIdx){
-    const n = YsF.length;
-    const Z = new Set(forcedIdx || []);
-    const dF = __hermiteSlopesScaled(YsF, Z);
-    const dG = __hermiteSlopesScaled(YsG, Z);
-
-    for (let i = 0; i < n - 1; i++){
-      const endForced = Z.has(i) || Z.has(i+1);
-      const dy0 = YsF[i]   - YsG[i];
-      const dy1 = YsF[i+1] - YsG[i+1];
-
-      if (!endForced && dy0 * dy1 < 0) return false; // changement de signe aux bornes
-
-      // Bézier de la différence pour renforcer le test
-      const dm0 = dF[i]   - dG[i];
-      const dm1 = dF[i+1] - dG[i+1];
-      const B0 = dy0, B1 = dy0 + dm0/3, B2 = dy1 - dm1/3, B3 = dy1;
-
-      const sameSign = (arr)=>{
-        let sgn = 0;
-        for (const v of arr){
-          if (v === 0) continue;
-          const s = Math.sign(v);
-          if (sgn === 0) sgn = s; else if (s !== sgn) return false;
-        }
-        return sgn !== 0;
-      };
-      if (!sameSign([B0,B1,B2,B3])){
-        const zeros = [B0,B1,B2,B3].map((v,k)=>v===0?k:-1).filter(k=>k!==-1);
-        const endsOK = (Z.has(i) && zeros.includes(0)) || (Z.has(i+1) && zeros.includes(3));
-        if (!endsOK) return false;
-      }
-
-      // échantillonnage interne
-      const m = 32;
-      const sign0 = Math.sign(dy0 || (endForced ? (dy1||1) : 1));
-      for (let k = 1; k < m; k++){
-        const t = k/m, t2 = t*t, t3 = t2*t;
-        const h00 =  2*t3 - 3*t2 + 1;
-        const h10 =      t3 - 2*t2 + t;
-        const h01 = -2*t3 + 3*t2;
-        const h11 =      t3 -    t2;
-        const yF = h00*YsF[i] + h10*dF[i] + h01*YsF[i+1] + h11*dF[i+1];
-        const yG = h00*YsG[i] + h10*dG[i] + h01*YsG[i+1] + h11*dG[i+1];
-        const diff = yF - yG;
-        if (Math.sign(diff) !== 0 && Math.sign(diff) !== Math.sign(sign0)) return false;
-      }
-    }
-    return true;
-  }
-
-  // essaie toutes les paires (i,j) bien espacées et construit G par blocs
-  const pairs = [];
-  for (let i = 1; i <= n - 2; i++){
-    for (let j = i + 2; j <= n - 2; j++){
-      pairs.push([i,j]);
-    }
-  }
-  pairs.sort((a,b)=> (b[1]-b[0]) - (a[1]-a[0])); // préférer grands espacements
-
-  for (const [i,j] of pairs){
-    const L = marginBlock(0,   i-1);
-    const M = marginBlock(i+1, j-1);
-    const Rr= marginBlock(j+1, n-1);
-
-    const sL = chooseShift(L);
-    const sM = chooseShift(M);
-    const sR = chooseShift(Rr);
-    if (!sL || !sM || !sR) continue;
-
-    // alternance : signe du bloc central, gauche/droite opposés
-    let sMsign = sM.sign;
-    let sLsign = -sMsign;
-    let sRsign = -sMsign;
-
-    // si les marges imposent un signe égal, on retourne tout
-    if (sL.sign === sMsign || sR.sign === sMsign){
-      sMsign *= -1; sLsign *= -1; sRsign *= -1;
-    }
-
-    // construit YsG avec amplitudes fixées (écarts forts partout sauf sur i,j)
-    const YsG = YsF.map((y, idx)=>{
-      if (idx === i || idx === j) return y;
-      if (idx < i)  return y + sLsign * sL.M;
-      if (idx > j)  return y + sRsign * sR.M;
-      return y + sMsign * sM.M;
-    });
-
-    const forced = [i,j];
-    const inside = YsG.every(y => yMinIn <= y && y <= yMaxIn);
-    if (!inside) continue;
-    if (!noInteriorCross_STRICT(YsG, forced)) continue;
-
-    return { Xs, Ys: YsG, Forced: forced };
-  }
-
-  // Fallback : miroir simple
-  const mid = Math.floor(n/2);
-  const YsG = YsF.map(y=>-y);
-  return { Xs, Ys: YsG, Forced: [Math.max(1, mid-2), Math.min(n-2, mid+2)] };
-}
-
-
-
-  
-
-
-
-
-
-
+/* ====================== genSecondaryGrid — V2 ====================== */
+/**
+ * Construit une grille entière pour Cg, obtenue par translation (dx,dy) puis symétrie d’axe des abscisses,
+ * telle que Cf et Cg aient **exactement 2** intersections **sur des abscisses entières**,
+ * sans autre croisement entre deux entiers.
+ *
+ * @param {Object} R     {xmin,xmax,ymin,ymax}
+ * @param {Object} main  {Xs, Ys} pour Cf (Xs entiers consécutifs)
+ * @param {Object} opts  {minK,maxK,preferK,maxDx,gapMin}
+ */
 function genSecondaryGrid(R, main, opts){
   opts = opts || {};
 const n = main.Xs.length;
@@ -1342,99 +864,6 @@ const validPair = (YsG, idx, gapMin)=>{
   return { Xs, Ys: YsG, Forced: forced };
 }
 
-// ==== Variante "équilibrée" pour Cg : vise ~50/50 de zones f≥g et f<g ====
-// - Essaie la grille par défaut (piecewise shift) ; si trop déséquilibrée,
-//   retente en miroir vertical de Cf, puis miroir autour de yMid.
-// - Retourne la version la plus "balance" (proche de 0.5).
-// ==== Génération "équilibrée" de Cg ====
-// Cherche une configuration où la proportion des cases (i+0.5) vérifiant f≥g
-// est proche de 50% (plus "mordant" pour les inéquations).
-function buildBalancedSecondary(R, main, opts){
-  const TARGET_MAX_IMBAL = 0.56;   // existant
-  const PREF_ALT_BIAS    = 0.95;   // existant
-  const GAP_BUMP         = 0.5;    // existant
-
-  function scoreBalance(F, G, onlyBetweenIJ){
-  const a = F.Xs[0], b = F.Xs[F.Xs.length-1];
-  let ge = 0, tot = 0;
-  const i1 = Math.min(...(G.Forced||[a+1])), i2 = Math.max(...(G.Forced||[b-1]));
-  for(let i=a; i<b; i++){
-    if (onlyBetweenIJ && !(i>=i1 && i<i2)) continue;
-    const x = i + 0.5;
-    const f = gridVal(F,x), g = gridVal(G,x);
-    if (f==null || g==null) continue;
-    tot++; if (f >= g) ge++;
-  }
-  return tot ? ge/tot : 0.5;
-}
-
-  function mirrorGridAround(grid, c){
-    return { Xs:grid.Xs.slice(), Ys:grid.Ys.map(y=>2*c - y), Forced:grid.Forced?.slice()||[] };
-  }
-  function makeCand(Fbase, addGap){
-    const opt2 = Object.assign({}, opts||{}, { gapMin: (opts?.gapMin||3) + (addGap? GAP_BUMP:0) });
-    const G = genSecondaryGridPiecewiseShift(R, Fbase, opt2);
-    return { F:Fbase, G,
-      pGlobal:  scoreBalance(Fbase, G, false),
-      pBetween: scoreBalance(Fbase, G, true)
-    };
-  }
-
-  // ===== nouvelles tentatives jusqu'à obtenir une vraie différence =====
-  const tries = [];
-  // v0 : original
-  tries.push(makeCand(main, false));
-
-  // variantes probables
-  const mid = (R.ymin + R.ymax)/2;
-  tries.push(makeCand(mirrorGridAround(main, 0),   true));
-  tries.push(makeCand(mirrorGridAround(main, mid), true));
-
-  // si besoin, répète avec un gapMin plus costaud
-  for(let bump=1; bump<=2; bump++){
-    tries.push(makeCand(main, true));
-  }
-
-  // trie d'abord par équilibre "entre racines", puis global
-  tries.sort((a,b)=>{
-    const da = Math.abs(a.pBetween-0.5), db = Math.abs(b.pBetween-0.5);
-    if(da!==db) return da-db;
-    return Math.abs(a.pGlobal-0.5) - Math.abs(b.pGlobal-0.5);
-  });
-
-  // prends la première qui est suffisamment distincte ; sinon refabrique en miroir dur
- // pick the first candidate that is: overlapping, crossing, and distinct
-  for (const t of tries){
-    if (hasVerticalOverlap(t.F, t.G, 0.5) &&
-        haveCrossings(t.F, t.G) &&
-        curvesDistinctEnough(R, t.F, t.G, 0.8, 0.35)) {
-      return t.G;
-    }
-  }
-
-  // FINAL fallback: réessaye jusqu’à obtenir overlap + croisement (borne dure)
-  for (let t = 0; t < 40; t++){
-    const retry = genSecondaryGridPiecewiseShift(
-      R, main,
-      { gapMin: Math.max(3, (opts?.gapMin || 3) + (t % 3)), maxShift: 999 }
-    );
-    if (hasVerticalOverlap(main, retry, 0.5) && haveCrossings(main, retry)) {
-      return retry;
-    }
-  }
-
-  // Dernière cartouche: comprimer autour du milieu puis regénérer (ça force l’overlap)
-  const squeeze = y => Math.round((y - mid) * 0.65 + mid);
-  const squeezedF = { Xs: main.Xs.slice(), Ys: main.Ys.map(squeeze), Forced: [] };
-  const last = genSecondaryGridPiecewiseShift(R, squeezedF, { gapMin: 3, maxShift: 999 });
-  // Si malgré tout ça reste séparé, on préfère encore renvoyer 'last' UNIQUEMENT s'il overlappe.
-  if (hasVerticalOverlap(main, last, 0.5) && haveCrossings(main, last)) return last;
-
-  // Si on arrive ici, on reprend la meilleure tentative antérieure (tries[0]) même si un poil déséquilibrée.
-  return tries[0].G;
-
-
-}
 
 
 
@@ -1451,73 +880,6 @@ function addText(g, x, y, txt, style){
   g.appendChild(t);
   return t;
 }
-/**
- * Place un label (texte) au voisinage d'un point de la courbe (grid),
- * choisi pour être lisible (pas trop près du bord).
- */
-function addCurveLabel(rep, R, grid, txt, color, opts = {}){
-  // — Choix de x : si demandé, positionner à x_min
-  let x;
-  if (opts.atXMin) {
-    x = R.xmin; // exactement x_min de l’amplitude
-  } else {
-    const cand = [];
-    for(let k=R.xmin+1; k<=Math.min(R.xmin+4, R.xmax-1); k++) cand.push(k);
-    cand.push(Math.round((R.xmin + R.xmax)/2));
-    x = cand.find(xx => {
-      const y = gridVal(grid, xx);
-      return y!=null && y > R.ymin+1 && y < R.ymax-1;
-    });
-    if(x == null) x = Math.round((R.xmin + R.xmax)/2);
-  }
-  const y = gridVal(grid, x);
-
-  const g = document.createElementNS(rep.svg.namespaceURI, 'g');
-  rep.plot.appendChild(g);
-
-  // Si on est collé au bord gauche, décale léger vers l’intérieur
-  const padIn = (opts.padIn != null ? opts.padIn : 8); // px
-  const px = rep.X(x) + (opts.atXMin ? padIn : 0);
-  const py = rep.Y(y);
-
-  // Texte
-  const t = document.createElementNS(rep.svg.namespaceURI, 'text');
-  t.setAttribute('x', px);
-  t.setAttribute('y', py);
-  t.textContent = txt;
-  t.setAttribute('fill', color);
-  t.setAttribute('font-size', opts.fontSize || 13);
-  t.setAttribute('font-weight', '700');
-  t.setAttribute('text-anchor', opts.atXMin ? 'start' : 'middle');   // ← important
-  t.setAttribute('dominant-baseline', 'central');
-  t.setAttribute('stroke', '#fff');
-  t.setAttribute('stroke-width', 3);
-  t.setAttribute('stroke-opacity', 0.9);
-  t.style.paintOrder = 'stroke';
-  g.appendChild(t);
-
-  // Fond arrondi semi-transparent
-  const bb = t.getBBox();
-  const padX = opts.padX ?? 6, padY = opts.padY ?? 2;
-  const r = document.createElementNS(rep.svg.namespaceURI, 'rect');
-  r.setAttribute('x', bb.x - padX);
-  r.setAttribute('y', bb.y - padY);
-  r.setAttribute('width',  bb.width  + 2*padX);
-  r.setAttribute('height', bb.height + 2*padY);
-  r.setAttribute('rx', opts.radius ?? 6);
-  r.setAttribute('ry', opts.radius ?? 6);
-  r.setAttribute('fill', opts.bg ?? '#fff');
-  r.setAttribute('fill-opacity', opts.bgOpacity ?? 0.65);
-  r.setAttribute('stroke', color);
-  r.setAttribute('stroke-opacity', 0.6);
-  r.setAttribute('stroke-width', 1);
-  r.setAttribute('class', 'label-bg');
-  g.insertBefore(r, t);
-
-  return g;
-}
-
-
 
 
 
@@ -1583,62 +945,25 @@ const ex1 = {
   },
 
   render(host,st){
-    const ui = mkRow(host);
+    const ui = mkRow(host,'Lecture graphique.');
 const rep = buildRepereSVG({ xmin:st.R.xmin, xmax:st.R.xmax, ymin:st.R.ymin, ymax:st.R.ymax, grid:true, arrows:true });
 
-let gridG = st.gridG || (st.gridG = buildBalancedSecondary(
-  st.R, st.grid, { gapMin: 3, maxShift: 999 }   // ← gapMin un peu plus fort = alternance visuelle plus nette
+// Cf (lissée) — on force la pente nulle aux nœuds d’intersection
+let gridG = st.gridG || (st.gridG = genSecondaryGrid(
+  st.R, st.grid,
+  { maxDx: 999, gapMin: 4 }   // ← écart vertical >= 4 hors nœuds
 ));
 
-// filet: si par malchance pas d'overlap/croisement, on regénère 6 fois max
-for (let t = 0;
-     t < 6 && (!hasVerticalOverlap(st.grid, gridG, 0.5) || !haveCrossings(st.grid, gridG));
-     t++){
-  gridG = buildBalancedSecondary(st.R, st.grid, { gapMin: 3 + (t % 2), maxShift: 999 });
-}
-st.gridG = gridG;
-
-
-const LVL_COLORS = ['#00897b','#ef6c00','#6a1b9a','#2e7d32','#ad1457','#283593'];
-
-// --- Choix des niveaux sûrs kF et kG (solutions uniquement entières) ---
-let kF = pickSafeLevelsEq(st.grid,  st.R, 1)[0];
-let kG = pickSafeLevelsEq(gridG,    st.R, 1)[0];
-
-// petits filets de sécurité si jamais la liste est vide
-if (kF == null) kF = (st.Yask || []).find(y => levelHasOnlyIntegerSolutions(st.grid,  y));
-if (kG == null) kG = (st.Yask || []).find(y => levelHasOnlyIntegerSolutions(gridG,    y));
-
-st.kEqF = kF;
-st.kEqG = kG;
-
-const safeG = pickSafeLevelsEq(gridG, st.R, 3).filter(y => y !== kG);
-const kLtG = safeG[0] != null ? safeG[0] : kG;   // pour g(x) < k
-const kGeG = safeG[1] != null ? safeG[1] : kG;   // pour g(x) ≥ k (si besoin)
-
-// lisser Cf et Cg avec pentes nulles aux 2 nœuds d’intersection
 const pathF = pathFromGridSmooth(rep, Object.assign({}, st.grid, { Forced: (gridG.Forced||[]) }));
-const pathG = pathFromGridSmooth(rep, Object.assign({}, gridG,    { Forced: (gridG.Forced||[]) }));
+const pathG = pathFromGridSmooth(rep, gridG);
 
 // Dessin
-// 1) phrase au-dessus du graphique
-const cap = document.createElement('div');
-cap.className = 'graph-caption';
-cap.innerHTML = 'On donne ci-dessous les courbes des fonctions : <br>\\(f\\) (en bleue) et \\(g\\) \\( \\) (en pointillés rouges).';
-ui.st.appendChild(cap);
-MJ(cap); // re-typeset MathJax pour ce noeud
+addPath(rep.plot, pathF, { stroke:'#1f6feb', 'stroke-width':3.2 });                                 // Cf
+addPath(rep.plot, pathG, { stroke:'#d62728', 'stroke-width':3.2, 'stroke-dasharray':'6 5' });       // Cg
 
-
-// 2) courbes
-addPath(rep.plot, pathF, { stroke:'#1f6feb', 'stroke-width':3.2 });                          // f
-addPath(rep.plot, pathG, { stroke:'#d62728', 'stroke-width':3.2, 'stroke-dasharray':'6 5' }); // g
-
-// 3) étiquettes “sur” la courbe
-addCurveLabel(rep, st.R, st.grid, 'Cf', '#1f6feb', { atXMin:true, padIn:8 });
-addCurveLabel(rep, st.R, gridG,   'Cg', '#d62728', { atXMin:true, padIn:8 });
-
-ui.st.appendChild(rep.svg);
-
+addText(rep.axes, rep.X(st.R.xmin)+10, rep.Y(st.R.ymax)+20, 'Cf', {fill:'#1f6feb'});
+addText(rep.axes, rep.X(st.R.xmin)+50, rep.Y(st.R.ymax)+20, 'Cg', {fill:'#d62728'});
+ ui.st.appendChild(rep.svg);
 
   // Énoncé 100% LaTeX (y compris les nombres)
   let html = `
@@ -1651,83 +976,16 @@ ui.st.appendChild(rep.svg);
     html += `
       <div class="qa">
         <div class="q">${i+2}.</div>
-        <div class="a">Image de \\(${fmtFR(x)}\\)&nbsp; par la fonction \\(f\\):&nbsp;<input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span></div>
+        <div class="a">Image de \\(${fmtFR(x)}\\)&nbsp;:&nbsp;<input id="aI${i}" type="text"><span id="aI${i}m" class="qmark"></span></div>
       </div>`;
   });
 
-// ==== Comparaisons f et g : exclusion par défaut si pas d'intersections entières ====
-// ==== Comparaisons f et g : bascule "flottant" si une seule intersection est non entière ====
-const F = st.grid, G = st.gridG;
-const forcedFG = (G.Forced || F.Forced || []);
-const Zint = intIntersections(F, G);              // égalités sur nœuds entiers
-
-// 1) y a-t-il un croisement à l’intérieur d’un intervalle [i,i+1] ?
-const hasInteriorCross = !noInteriorCross_STRICT(F.Ys, G.Ys, forcedFG);
-
-// 2) ou bien des racines réelles, mais pas toutes sur des abscisses entières ?
-const rootsFG = realIntersectionsHermite(F, G, forcedFG);
-const allRootsInteger = rootsFG.length > 0 && rootsFG.every(x => Math.abs(x - Math.round(x)) < 1e-6);
-
-// -> Mode "flottant" s’il n’y a aucune intersection entière OU si l’une d’elles est non entière
-const useFloatFG = (Zint.length === 0) || hasInteriorCross || !allRootsInteger;
-
-// si tu veux exclure ces questions quand c’est non entier, laisse false :
-const ALLOW_FLOAT_FG = false;
-  // ---- Bloc "Résoudre graphiquement" (réutilise les mêmes y que pour les antécédents) ----
-  const YsIneq = (st.Yask||[]).filter(y => Number.isFinite(y)).slice(0,4); // 3–4 valeurs
-  // garde en mémoire ce qu'on pose comme questions
-st.solverQ = [];
-
-// a) f(x)=kF
-if (st.kEqF != null) {
-  st.solverQ.push({
-    id: 'seF', kind: 'eqF', y: st.kEqF,
-    label: `Résoudre \\( f(x)=${fmtFR(st.kEqF)} \\)`
-  });
-}
-
-// b) g(x)=kG  (⚠️ le label utilisait par erreur kF)
-if (st.kEqG != null) {
-  st.solverQ.push({
-    id: 'seG', kind: 'eqG', y: st.kEqG,
-    label: `Résoudre \\( g(x)=${fmtFR(st.kEqG)} \\)`
-  });
-}
-
-// c) f(x)=g(x)
-// f(x) = g(x)
-if (!useFloatFG || ALLOW_FLOAT_FG){
-  st.solverQ.push({ id:'seFG', kind:'eqFG', floatOK:useFloatFG, label:`Résoudre \\( f(x)=g(x) \\)` });
-}
-
-  // inéquations avec les mêmes y
-  if (YsIneq[0]!=null) st.solverQ.push({ id:'sg1', kind:'geF', y:YsIneq[0], label:`Résoudre \\( f(x)\\ge ${fmtFR(YsIneq[0])} \\)` });
-  if (YsIneq[1]!=null) st.solverQ.push({ id:'slF', kind:'leF', y:YsIneq[1], label:`Résoudre \\( f(x)\\le ${fmtFR(YsIneq[1])} \\)` });
-  if (YsIneq[2]!=null) st.solverQ.push({ id:'slG', kind:'ltG', y:kLtG, label:`Résoudre \\( g(x)\\lt ${fmtFR(kLtG)} \\)` });
-  if (YsIneq[3]!=null) st.solverQ.push({ id:'sgG', kind:'geG', y:kGeG, label:`Résoudre \\( g(x)\\ge ${fmtFR(kGeG)} \\)` });
-
-  // comparaisons f et g
-if (!useFloatFG || ALLOW_FLOAT_FG){
-  st.solverQ.push({ id:'sFG1', kind:'geFG', floatOK:useFloatFG, label:`Résoudre \\( f(x)\\ge g(x) \\)` });
-}
-  
- if (!useFloatFG || ALLOW_FLOAT_FG){
-  st.solverQ.push({ id:'sFG2', kind:'ltFG', floatOK:useFloatFG, label:`Résoudre \\( f(x)\\lt g(x) \\)` });
-}
-
-  // UI
-  html += `<div style="margin:.6rem 0 .3rem;font-weight:700">Résoudre graphiquement :</div>`;
-  st.solverQ.forEach((q,ii)=>{
-    const idx = 2 + st.Ximg.length  + ii ;
-    const ph = (q.kind==='eqF'||q.kind==='eqG'||q.kind==='eqFG') ? 'ex. −4 ; 0 ; 3 ou « aucun »'
-             : 'ex. [−5 ; −2] ∪ [3 ; 6] ou « aucun »';
+  st.Yask.forEach((y,j)=>{
+    const k = 2 + st.Ximg.length + j;
     html += `
       <div class="qa">
-        <div class="q">${idx}.</div>
-        <div class="a">${q.label}&nbsp;:&nbsp;
-          <input id="${q.id}" type="text" placeholder="">
-          <span id="${q.id}m" class="qmark"></span>
-        </div>
+        <div class="q">${k}.</div>
+        <div class="a">Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:&nbsp;<input id="aA${j}" type="text"><span id="aA${j}m" class="qmark"></span></div>
       </div>`;
   });
 
@@ -1745,36 +1003,36 @@ if (!useFloatFG || ALLOW_FLOAT_FG){
     const paletteI = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e']; // images
     const paletteA = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f']; // antécédents
 
+    // Colorer « Image de \(x\) » en conservant le LaTeX
+    if (Array.isArray(st.Ximg)) st.Ximg.forEach((x,i)=>{
+      const input = host.querySelector('#aI'+i);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      // motif EXACT tel qu’écrit plus haut (avec &nbsp;)
+      const needle = `Image de \\(${fmtFR(x)}\\)&nbsp;:`;
+      const repl   = `Image de <span style="color:${paletteI[i%5]};font-weight:700">\\(${fmtFR(x)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
+    });
 
+    // Colorer « Antécédent(s) de \(y\) »
+    if (Array.isArray(st.Yask)) st.Yask.forEach((y,j)=>{
+      const input = host.querySelector('#aA'+j);
+      if (!input || !input.parentElement) return;
+      const a = input.parentElement;
+      const needle = `Antécédent(s) de \\(${fmtFR(y)}\\)&nbsp;:`;
+      const repl   = `Antécédent(s) de <span style="color:${paletteA[j%5]};font-weight:700">\\(${fmtFR(y)}\\)</span>&nbsp;:`;
+      a.innerHTML = a.innerHTML.replace(needle, repl);
+    });
   }catch(e){ /* silencieux */ }
-// Attribue une couleur aux questions y=k dans l’énoncé (AUCUNE droite tracée ici)
-const lvlQs = (st.solverQ||[]).filter(q => Number.isFinite(q.y));
-lvlQs.forEach((q, idx) => {
-  q.color = LVL_COLORS[idx % LVL_COLORS.length];
-  const input = host.querySelector('#' + q.id);
-  if (input && input.parentElement) {
-    const a = input.parentElement;
-    const needle = `${q.label}&nbsp;:&nbsp;`;
-    const repl   = `<span style="color:${q.color};font-weight:700">${q.label}</span>&nbsp;:&nbsp;`;
-    a.innerHTML = a.innerHTML.replace(needle, repl);
-  }
-});
-// → pas de addLine() / addText() ici
 
   // Typeset MathJax après injection et recoloration
   MJ(host);
   },
 
   solution(host,st){
-const rep = host.querySelector('svg.repere');
-if(!rep) return;                           // garde-fou
-const plot = rep.querySelector('.plot');
- if(!plot) return;
+    const rep = host.querySelector('svg.repere');
+    const plot = rep.querySelector('.plot');
     const frame = rep.querySelector('rect.frame');
-if(!frame) return;
-
-const axes = rep.querySelector('g.axes') || rep.querySelector('g'); // <-- AJOUT
-
     const mLeft = +frame.getAttribute('x');
     const mTop  = +frame.getAttribute('y');
     const W0    = +frame.getAttribute('width');
@@ -1785,126 +1043,43 @@ const axes = rep.querySelector('g.axes') || rep.querySelector('g'); // <-- AJOUT
     const hasXaxis = (st.R.ymin <= 0 && 0 <= st.R.ymax);
     const hasYaxis = (st.R.xmin <= 0 && 0 <= st.R.xmax);
 
+    // Traits d'aide (inchangé)
+    st.Ximg.forEach((x,i)=>{
+      const col = ['#1f77b4','#d62728','#2ca02c','#9467bd','#ff7f0e'][i%5];
+      const y  = interpAtGrid(st.grid, x);
+      addLine(plot, X(x), Y(y), X(x), hasXaxis ? Y(0) : Y(st.R.ymin),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+      addLine(plot, hasYaxis ? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+        { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+    });
 
-
-// --- Droites y = k : visibles UNIQUEMENT en mode solution ---
-const LVL_COLORS = ['#00897b','#ef6c00','#6a1b9a','#2e7d32','#ad1457','#283593'];
-
-// Nettoyer un éventuel affichage précédent de la solution
-plot.querySelectorAll('.lvl-line').forEach(n=>n.remove());
-rep.querySelectorAll('.lvl-label').forEach(n=>n.remove());
-
-// Questions de niveau (celles qui portent un nombre k)
-const lvlQs = (st.solverQ||[]).filter(q => Number.isFinite(q.y));
-
-lvlQs.forEach((q, idx) => {
-  q.color = LVL_COLORS[idx % LVL_COLORS.length];
-
-  // 1) droite horizontale y = k (dans le cadre)
-  const line = addLine(plot, X(st.R.xmin), Y(q.y), X(st.R.xmax), Y(q.y), {
-    stroke: q.color, 'stroke-width': 2, 'stroke-dasharray': '5 5', 'stroke-opacity': 0.9
-  });
-  line.classList.add('lvl-line');
-
-  // 2) étiquette "y = k" à droite
- // étiquette : utiliser "axes" au lieu de "rep.axes"
-const lbl = addText(axes, X(st.R.xmax) - 10, Y(q.y) - 4, `y=${fmtFR(q.y)}`, {
-  fill: q.color, 'text-anchor': 'end'
-});
-lbl.classList.add('lvl-label');
-});
-const colorize = (latex, q) =>
-  (q && q.color) ? `<span style="color:${q.color};font-weight:700">${latex}</span>` : latex;
-
+    st.Yask.forEach((y,j)=>{
+      const col = ['#17becf','#8c564b','#e377c2','#bcbd22','#7f7f7f'][j%5];
+      antecedentsOfGrid(st.grid, y).forEach(x=>{
+        addLine(plot, X(x), Y(y), X(x), hasXaxis ? Y(0) : Y(st.R.ymin),
+          { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+        addLine(plot, hasYaxis ? X(0) : X(st.R.xmin), Y(y), X(x), Y(y),
+          { stroke: col, 'stroke-width': 2.6, 'stroke-dasharray': '6 5', 'stroke-opacity': 0.95, 'class': 'helper-line' });
+      });
+    });
 
     // Étapes en LaTeX
-   // ——— Étapes en LaTeX (NUMÉROTÉES comme dans l’énoncé) ———
-const steps = [];
+    const steps = [
+      `Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`
+    ];
 
-// 1) Domaine
-steps.push(`1. Ensemble de définition : \\([${fmtFR(st.R.xmin)}\\; ;\\; ${fmtFR(st.R.xmax)}]\\)`);
+    st.Ximg.forEach(x=>{
+      const fx = fmtFR(interpAtGrid(st.grid,x));
+      steps.push(`\\( f(${fmtFR(x)}) = ${fx} \\)`);
+    });
 
-// 2..(1+nbImages) : images f(x)
-st.Ximg.forEach((x,i)=>{
-  const fx = fmtFR(interpAtGrid(st.grid,x));
-  steps.push(`${2+i}. \\( \\) \\( f(${fmtFR(x)}) = ${fx} \\)`);
-});
-
-// Suite : bloc “Résoudre graphiquement”
-const F = st.grid, G = st.gridG;
-const base = 2 + st.Ximg.length;  // même point de départ que dans render()
-
-(st.solverQ||[]).forEach((q,ii)=>{
-  const no = base + ii;
-
-  // Équations
-  if(q.kind==='eqF'){
-    const R = rootsEqInt(F, q.y);
-    const expr = `\\( \\)\\( f(x)=${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. \\( \\)${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\)${tex(fmtSetTeX(R))}`);
-  }
-  else if(q.kind==='eqG'){
-    const R = rootsEqInt(G, q.y);
-    const expr = `\\( \\)\\( g(x)=${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. \\( \\)${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\) ${tex(fmtSetTeX(R))}`);
-  }
-  else if(q.kind==='eqFG'){
-  let X;
-  if (q.floatOK){
-    X = realIntersectionsHermite(F, G, F.Forced||G.Forced||[]);
-  } else {
-    X = F.Xs.map((_,i)=> (F.Ys[i]===G.Ys[i])?F.Xs[i]:null).filter(x=>x!=null);
-  }
-  const S = q.floatOK
-    ? `\\{ ${X.map(v=>fmtFR(Math.round(v*10)/10)).join(' \\; ;\\; ')} \\}` // arrondi 0,1 en affichage
-    : fmtSetTeX(X);
-  steps.push(`${no}. \\( \\) \\( f(x)=g(x) \\) \\( \\): \\( \\)\\(S=\\) ${tex(S)}`);
-}
-  // Inéquations / comparaisons
-  else if(q.kind==='geF'){
-    const U = unionFromPredicate(st.R, x => gridVal(F,x) >= q.y, true);
-     const expr = `\\( \\)\\( f(x)\\ge ${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. ${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\) ${tex(unionFmtSmartTeX(U))}`);
-  }
-  else if(q.kind==='leF'){
-    const U = unionFromPredicate(st.R, x => gridVal(F,x) <= q.y, true);
-    const expr = `\\( \\)\\( f(x)\\le ${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. ${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\) ${tex(unionFmtSmartTeX(U))}`);
-  }
-  else if(q.kind==='ltG'){
-    const splits = st.gridG.Xs.filter((x,i)=> st.gridG.Ys[i] === q.y); // integers where g(x)=k
-  const U = unionFromPredicate(st.R, x => gridVal(st.gridG,x) < q.y, true, splits);
-    const expr = `\\( \\)\\( g(x)\\lt ${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. ${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\)  ${tex(unionFmtSmartTeX(U))}`);
-  }
-  else if(q.kind==='geG'){
-    const U = unionFromPredicate(st.R, x => gridVal(G,x) >= q.y, true);
-    const expr = `\\( \\)\\( g(x)\\ge ${fmtFR(q.y)} \\)`;
-   steps.push(`${no}. ${colorize(expr,q)} \\( \\): \\( \\)\\(S=\\) ${tex(unionFmtSmartTeX(U))}`);
-  }
- else if(q.kind==='geFG'){
-  let U;
-  if (q.floatOK){
-    U = unionFromPredicate(st.R, x => gridVal(F,x) >= gridVal(G,x), true, []); // pas de splits imposés
-  } else {
-    U = unionFromPredicate(st.R, x => gridVal(F,x) >= gridVal(G,x), true);
-  }
-  steps.push(`${no}. \\( \\) \\( f(x)\\ge g(x) \\) \\( \\): \\( \\)\\(S=\\) ${tex(unionFmtSmartTeX(U))}`);
-}
-  else if(q.kind==='ltFG'){
-  let U;
-  if (q.floatOK){
-    U = unionFromPredicate(st.R, x => gridVal(F,x) < gridVal(G,x), true, []);  // continu
-  } else {
-    const splits = F.Xs.filter((x,i)=> F.Ys[i] === G.Ys[i]);                    // entiers
-    U = unionFromPredicate(st.R, x => gridVal(F,x) < gridVal(G,x), true, splits);
-  }
-  steps.push(`${no}. \\( \\) \\( f(x)\\lt g(x) \\) \\( \\): \\( \\)\\(S=\\) ${tex(unionFmtSmartTeX(U))}`);
-}
-});
-
-
-
+    st.Yask.forEach(y=>{
+      const Aint = antecedentsOfGrid(st.grid,y)
+        .filter(v=>Math.abs(v - Math.round(v))<1e-9)
+        .map(v=>fmtFR(Math.round(v)));
+      const rhs = Aint.length ? Aint.map(v=>`\\(${v}\\)`).join(' ; ') : 'aucun';
+      steps.push(`Antécédent(s) de \\(${fmtFR(y)}\\) : ${rhs}`);
+    });
 
     showSteps(host, steps);
     MJ(host);
@@ -1941,18 +1116,6 @@ const base = 2 + st.Ximg.length;  // même point de départ que dans render()
       const anyEmpty = Array.from(host.querySelectorAll('input[type="text"]')).some(i=>i.value.trim()==='');
       const okFlag = true;
     })();
-	
-	function rootsIntEq(grid, k){
-  return grid.Xs.filter((x,i)=>grid.Ys[i]===k);
-}
-
-
-
-
-const solsF = rootsIntEq(st.grid,  st.kEqF);
-const solsG = rootsIntEq(st.gridG, st.kEqG);
-    // ---- contrôle du bloc "Résoudre" ----
-  
 
     return {ok:okAll,total:1};
   },
@@ -2092,68 +1255,6 @@ function check(){
       }
       mark('aA'+j+'m', ok); okAll &= ok; if(ok) okCount++;
     });
-	
-	// ===== Résoudre graphiquement (Q4…): coche à côté de chaque réponse =====
-(st.solverQ||[]).forEach(q=>{
-  const raw = ($('#'+q.id,host)?.value || '');
-  const t = normToken(stripS(raw));
-  if(!t) return;                    // vide = on ne compte pas
-  total++;
-
-  let ok = false;
-
-  if(q.kind==='eqF'){                          // f(x)=k (entiers)
-    const want = rootsEqInt(st.grid, q.y);     // entiers attendus
-const got  = isNoSolToken(t) ? [] : uniq(parseListFR(t)).map(v=>Math.round(v));
-    ok = (got.length===want.length) && got.every(v=>want.includes(v));
-  }
-  else if(q.kind==='eqG'){                     // g(x)=k (entiers)
-    const want = rootsEqInt(st.gridG, q.y);
-const got  = isNoSolToken(t) ? [] : uniq(parseListFR(t)).map(v=>Math.round(v));
-    ok = (got.length===want.length) && got.every(v=>want.includes(v));
-  }
-  else if(q.kind==='eqFG'){                    // f(x)=g(x)
-    if(q.floatOK){                             // cas non-entier : tolérance 0,2
-      const want = realIntersectionsHermite(st.grid, st.gridG, st.grid.Forced||st.gridG.Forced||[]);
-      if(isNoSolToken(t)){
-  ok = (want.length === 0);
-} else {
-  const got  = uniq(t.replace(/,/g,'.').split(/[;:,]/)
-                     .map(s=>parseFloat(s)).filter(Number.isFinite));
-  ok = approxEqualList(got, want, 0.2);
-}
-    }else{                                     // entiers
-      const want = st.grid.Xs.filter((x,i)=> st.grid.Ys[i]===st.gridG.Ys[i]);
-      const got  = uniq(parseListFR(t)).map(v=>Math.round(v));
-      ok = (got.length===want.length) && got.every(v=>want.includes(v));
-    }
-  }
-  else{
-    // Inéquations -> unions
-    let want=[];
-    if(q.kind==='geF')  want = unionFromPredicate(st.R, x=>gridVal(st.grid,  x) >= q.y, true);
-    if(q.kind==='leF')  want = unionFromPredicate(st.R, x=>gridVal(st.grid,  x) <= q.y, true);
-    if(q.kind==='ltG'){
-      const splits = st.gridG.Xs.filter((x,i)=> st.gridG.Ys[i] === q.y);
-      want = unionFromPredicate(st.R, x=>gridVal(st.gridG,x) < q.y, true, splits);
-    }
-    if(q.kind==='geG')  want = unionFromPredicate(st.R, x=>gridVal(st.gridG, x) >= q.y, true);
-    if(q.kind==='geFG') want = unionFromPredicate(st.R, x=>gridVal(st.grid,  x) >= gridVal(st.gridG,x), true);
-    if(q.kind==='ltFG'){
-      const splits = st.grid.Xs.filter((x,i)=> st.grid.Ys[i] === st.gridG.Ys[i]); // entiers où f=g
-      want = unionFromPredicate(st.R, x=>gridVal(st.grid,x) < gridVal(st.gridG,x), true, splits);
-    }
-    const got = parseUnionFR(t);
-ok = (got !== null) && unionEqual(got, want);
-
-  }
-
-  const mk = $('#'+q.id+'m',host);
-  mk.textContent = ok ? '✔' : '✘';
-  mk.style.color = ok ? '#14532d' : '#991b1b';
-  okAll &= ok; if(ok) okCount++;
-});
-
   } 
   else if (def.id === 'rg3') {
   // Q1 — mots attendus (tolérance accents/majuscules/pluriels/espaces)

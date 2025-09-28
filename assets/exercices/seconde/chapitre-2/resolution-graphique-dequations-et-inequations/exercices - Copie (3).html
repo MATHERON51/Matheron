@@ -93,7 +93,7 @@
   vector-effect: non-scaling-stroke;
   stroke-linecap: butt;
 }
-</style>
+
 <style media="print">
   /* Réduit tous les SVG de courbe en PDF */
   .repere svg { width: 340px !important; height: 230px !important; }
@@ -102,7 +102,7 @@
   .repere .axis line, .repere .axis path { stroke-width: .8 !important; }
 </style>
 
-
+</style>
 <style>
 
 /* Widen columns for tables (notably Ex.4) */
@@ -192,13 +192,10 @@
     <div class="card small">
       <strong>Saisie & réponses acceptées :</strong>
       <ul style="margin:8px 0 0 18px">
-	          <li><b>ATTENTION : Le fichier n'est pas stable : il y a souvent des courbes non utilisables. Il faut alors appeler un nouvel énoncé.</b></li>
         <li><b>Ensemble de définition</b> : format <span class="code">[a ; b]</span> — ex. <span class="code">[−6 ; 6]</span>. Espaces facultatifs : <span class="code">[−6;6]</span> accepté.</li>
-        <li><b>Image : </b> nombre entier ou décimal — virgule <span class="code">2,5</span> ou point <span class="code">2.5</span> acceptés.</li>
-        <li><b>Solution d'une équation :</b> : liste séparée par points-virgules — ex. −4 ; 0 ; 3. L’ordre n’a pas d’importance. Vous pouvez mettre S={a;b}</li>
-              <li><b>Solution d'une inéquation :</b>  On peut obtenir des intervalles, des réunions d'intervalles (avec aussi des listes de nombres).</li>
- <li><b>Ensemble vide :</b>  Vous pouvez écrire : aucun/vide/∅ (disponible dans la clavier maths).</li>
-	  </ul>
+        <li><b>Image</b> (valeur de <span class="code">f(x)</span>) : nombre entier ou décimal — virgule <span class="code">2,5</span> ou point <span class="code">2.5</span> acceptés ; signe « − » normalisé.</li>
+        <li><b>Antécédent(s)</b> : liste séparée par points-virgules — ex. −4 ; 0 ; 3. L’ordre n’a pas d’importance.</li>
+      </ul>
     </div>
 
 
@@ -236,8 +233,7 @@ const parseNumFR = s => Number(String(s||'').replace(/\u2212/g,'-').replace(',',
 const parseListFR = s =>
   !s ? [] :
   String(stripS(s)).replace(/[{}()[\]]/g,'')
-    .split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);
-	function MJ(el){ // re-typeset MathJax après injection
+    .split(/[;:,]/).map(parseNumFR).filter(Number.isFinite);function MJ(el){ // re-typeset MathJax après injection
   try{
     if (window.MathJax){
       if (MathJax.typesetPromise) MathJax.typesetPromise([el||document.body]).catch(()=>{});
@@ -277,29 +273,26 @@ function unionFmtTeX(U){
 }
 // Version "intelligente" : si l'union ne contient que des points -> {a ; b ; ...}
 // sinon, on affiche : (intervalles) ∪ {points}
-// Union → TeX avec tri global (points et intervalles mélangés)
 function unionFmtSmartTeX(U){
   if(!U || !U.length) return '∅';
 
-  const L = ch => ch==='[' ? '[' : ']';  // '(' -> ']'
-  const R = ch => ch===']' ? ']' : '[';  // ')' -> '['
+  const pts = [];
+  const ints = [];
+  for(const I of U){
+    if(I.a===I.b && I.left==='[' && I.right===']') pts.push(I.a);
+    else ints.push(I);
+  }
+  pts.sort((a,b)=>a-b);
 
-  // on trie par borne gauche croissante ; à a égal, les points avant les intervalles
-  const parts = U.slice().sort((u,v)=>{
-    if(u.a !== v.a) return u.a - v.a;
-    const uPt = (u.a===u.b && u.left==='[' && u.right===']');
-    const vPt = (v.a===v.b && v.left==='[' && v.right===']');
-    return (uPt===vPt) ? ((u.b||0)-(v.b||0)) : (uPt ? -1 : 1);
-  });
+  // seulement des points -> une seule accolade
+  if(ints.length===0) return fmtSetTeX(pts);
 
-  return parts.map(I=>{
-    if(I.a===I.b && I.left==='[' && I.right===']'){
-      return `\\{ ${fmtFR(I.a)} \\}`;
-    }
-    return `${L(I.left)}${fmtFR(I.a)}\\; ;\\; ${fmtFR(I.b)}${R(I.right)}`;
-  }).join(' \\cup ');
+  // mélange : intervalles ∪ {points}
+  const parts = [];
+  if(ints.length) parts.push(unionFmtTeX(ints));   // uniquement les intervalles
+  if(pts.length)  parts.push(fmtSetTeX(pts));      // les points groupés
+  return parts.join(' \\cup ');
 }
-
 
 /* ========= Amplitudes contrôlables (Exos 1,2,4) ========= */
 let AMP={ xmin:-5,xmax:6,ymin:-6,ymax:6 };
@@ -844,22 +837,9 @@ function mkRow(host,consigneHTML){
   try { __forceWordParenSpaces(form); __forceWordParenSpaces(st); } catch(e) {}
   return {row,st,form,res};
 }
-function showSteps(host, steps){
-  try{
-    let r = $('#res', host);
-    if(!r){
-      r = document.createElement('div');
-      r.id = 'res';
-      host.appendChild(r);
-    }
-  }catch(e){}
-
-  $('#res',host).innerHTML =
-    '<div class="steps">' + steps.map(s => '<div class="step">'+s+'</div>').join('') + '</div>';
-
-  try { __forceWordParenSpaces($('#res',host)); } catch(e) {}
-}
-
+function showSteps(host, steps){   try{ let r=$('#res',host); if(!r){ r=document.createElement('div'); r.id='res'; host.appendChild(r);} }catch(e){}
+$('#res',host).innerHTML = '<div class="steps">'+steps.map(s=>'<div class="step">'+s+'</div>').join('')+'</div>';
+  try { __forceWordParenSpaces($('#res',host)); } catch(e) {} }
 function clearMarks(host){ host.querySelectorAll('.qmark').forEach(m=>m.textContent=''); (function(){
       const inputs = Array.from(host.querySelectorAll('input[type="text"]'));
       const anyEmpty = inputs.some(i=>i.value.trim()==='');
@@ -1056,181 +1036,98 @@ function realIntersectionsHermite(F, G, forcedIdx){
   });
   return uniq;
 }
-// f et g sont-ils "assez différents" ?
-// On exige qu'au moins 35% des cases (i+0.5) aient |f-g| ≥ 0.8
-// Are f and g far apart everywhere (no vertical overlap)?
-function hasVerticalOverlap(F, G, margin=0.5){
-  const minF = Math.min(...F.Ys), maxF = Math.max(...F.Ys);
-  const minG = Math.min(...G.Ys), maxG = Math.max(...G.Ys);
-  // overlap iff neither interval sits fully above the other
-  return !(maxF < minG + margin || maxG < minF + margin);
-}
 
-// Do we have at least one real crossing (or ≥2 integer-node crossings)?
-function haveCrossings(F, G){
-  const zi = intIntersections(F, G);
-  if (zi.length >= 2) return true;
-  const roots = realIntersectionsHermite(F, G, F.Forced || G.Forced || []);
-  return roots.length >= 1;
-}
-
-// Keep: already given previously
-function curvesDistinctEnough(R, F, G, gap=0.8, minShare=0.35){
-  const a=R.xmin, b=R.xmax;
-  let tot=0, sep=0;
-  for(let i=a;i<b;i++){
-    const f=gridVal(F,i+0.5), g=gridVal(G,i+0.5);
-    if(f==null || g==null) continue;
-    tot++; if(Math.abs(f-g) >= gap) sep++;
-  }
-  return tot>0 && (sep/tot >= minShare);
-}
-
-
-// ==== Courbe secondaire par "décalage par blocs" (2 intersections entières garanties) ====
+// ==== Cg par "décalage par blocs" : énorme écart partout, 2 intersections entières ====
+// - on choisit deux nœuds entiers i<j (espacés) où Cg = Cf (intersections EXACTES)
+// - à gauche de i, entre i et j, et à droite de j : Cg = Cf ± M_bloc, avec M_bloc maximal
+// - M_bloc est choisi pour rester dans [ymin+1 ; ymax-1] et >= gapMin (=> fort écart)
+// - même lissage Hermite + pentes nulles aux nœuds forcés -> aucun croisement entre deux entiers
 function genSecondaryGridPiecewiseShift(R, main, opts){
   opts = opts || {};
   const Xs  = main.Xs.slice();
   const YsF = main.Ys.slice();
   const n   = Xs.length;
-  const yMinIn = R.ymin + 1;
-  const yMaxIn = R.ymax - 1;
-  const gapMin = Math.max(2, opts.gapMin || 4);
-  const maxShiftCap = Number.isFinite(opts.maxShift) ? opts.maxShift : 999;
+  const yMinIn = R.ymin + 1, yMaxIn = R.ymax - 1;
+  const gapMin = Math.max(2, opts.gapMin || 4);          // écart minimum souhaité
+  const maxShiftCap = opts.maxShift || 999;              // plafond de sécurité (optionnel)
 
-  // marge disponible pour monter/descendre sur un bloc d’indices [lo..hi]
-  function marginBlock(lo, hi){
-    if (lo > hi) return { up: Infinity, down: Infinity, empty:true };
-    let up = Infinity, down = Infinity;
-    for (let k = lo; k <= hi; k++){
-      up   = Math.min(up,   yMaxIn - YsF[k]);
-      down = Math.min(down, YsF[k]  - yMinIn);
+  function marginBlock(lo, hi){ // bloc: indices lo..hi inclus
+    if (lo>hi) return {up:Infinity, down:Infinity, empty:true};
+    let up=Infinity, down=Infinity;
+    for(let k=lo;k<=hi;k++){
+      up   = Math.min(up,   yMaxIn - YsF[k]);            // combien on peut monter sans sortir
+      down = Math.min(down, YsF[k]  - yMinIn);           // combien on peut descendre sans sortir
     }
-    return { up, down, empty:false };
+    return {up,down,empty:false};
+  }
+  function chooseShift(m){ // choisit le meilleur signe + amplitude pour un bloc
+    if (m.empty) return {sign:+1, M:gapMin};             // bloc vide => sans contrainte
+    const cand = [];
+    if (m.up   >= gapMin) cand.push({sign:+1, M:Math.min(m.up,   maxShiftCap)});
+    if (m.down >= gapMin) cand.push({sign:-1, M:Math.min(m.down, maxShiftCap)});
+    if (!cand.length) return null;
+    // on prend le PLUS grand écart possible
+    cand.sort((a,b)=>b.M - a.M);
+    return cand[0];
   }
 
-  // choisit un décalage vertical (signe + amplitude) compatible avec la marge
-  function chooseShift(M){
-    if (M.empty) return { sign:+1, M: gapMin };
-    const cands = [];
-    if (M.up   >= gapMin) cands.push({ sign:+1, M: Math.min(M.up,   maxShiftCap) });
-    if (M.down >= gapMin) cands.push({ sign:-1, M: Math.min(M.down, maxShiftCap) });
-    if (!cands.length) return null;
-    return cands.length === 2 ? (Math.random() < .5 ? cands[0] : cands[1]) : cands[0];
-  }
+  // paires (i,j) bien espacées, on préfère les grandes
+  const pairs=[];
+  for(let i=1;i<=n-2;i++) for(let j=i+2;j<=n-2;j++) pairs.push([i,j]);
+  pairs.sort((a,b)=> (b[1]-b[0]) - (a[1]-a[0]));
 
-  // teste qu’il n’y a pas de croisement à l’intérieur des cases (i,i+1)
-  function noInteriorCross_STRICT(YsG, forcedIdx){
-    const n = YsF.length;
-    const Z = new Set(forcedIdx || []);
-    const dF = __hermiteSlopesScaled(YsF, Z);
-    const dG = __hermiteSlopesScaled(YsG, Z);
-
-    for (let i = 0; i < n - 1; i++){
-      const endForced = Z.has(i) || Z.has(i+1);
-      const dy0 = YsF[i]   - YsG[i];
-      const dy1 = YsF[i+1] - YsG[i+1];
-
-      if (!endForced && dy0 * dy1 < 0) return false; // changement de signe aux bornes
-
-      // Bézier de la différence pour renforcer le test
-      const dm0 = dF[i]   - dG[i];
-      const dm1 = dF[i+1] - dG[i+1];
-      const B0 = dy0, B1 = dy0 + dm0/3, B2 = dy1 - dm1/3, B3 = dy1;
-
-      const sameSign = (arr)=>{
-        let sgn = 0;
-        for (const v of arr){
-          if (v === 0) continue;
-          const s = Math.sign(v);
-          if (sgn === 0) sgn = s; else if (s !== sgn) return false;
-        }
-        return sgn !== 0;
-      };
-      if (!sameSign([B0,B1,B2,B3])){
-        const zeros = [B0,B1,B2,B3].map((v,k)=>v===0?k:-1).filter(k=>k!==-1);
-        const endsOK = (Z.has(i) && zeros.includes(0)) || (Z.has(i+1) && zeros.includes(3));
-        if (!endsOK) return false;
-      }
-
-      // échantillonnage interne
-      const m = 32;
-      const sign0 = Math.sign(dy0 || (endForced ? (dy1||1) : 1));
-      for (let k = 1; k < m; k++){
-        const t = k/m, t2 = t*t, t3 = t2*t;
-        const h00 =  2*t3 - 3*t2 + 1;
-        const h10 =      t3 - 2*t2 + t;
-        const h01 = -2*t3 + 3*t2;
-        const h11 =      t3 -    t2;
-        const yF = h00*YsF[i] + h10*dF[i] + h01*YsF[i+1] + h11*dF[i+1];
-        const yG = h00*YsG[i] + h10*dG[i] + h01*YsG[i+1] + h11*dG[i+1];
-        const diff = yF - yG;
-        if (Math.sign(diff) !== 0 && Math.sign(diff) !== Math.sign(sign0)) return false;
-      }
-    }
-    return true;
-  }
-
-  // essaie toutes les paires (i,j) bien espacées et construit G par blocs
-  const pairs = [];
-  for (let i = 1; i <= n - 2; i++){
-    for (let j = i + 2; j <= n - 2; j++){
-      pairs.push([i,j]);
-    }
-  }
-  pairs.sort((a,b)=> (b[1]-b[0]) - (a[1]-a[0])); // préférer grands espacements
-
-  for (const [i,j] of pairs){
-    const L = marginBlock(0,   i-1);
+  function build(i,j){
+    const L = marginBlock(0, i-1);
     const M = marginBlock(i+1, j-1);
     const Rr= marginBlock(j+1, n-1);
 
-    const sL = chooseShift(L);
-    const sM = chooseShift(M);
-    const sR = chooseShift(Rr);
-    if (!sL || !sM || !sR) continue;
+    const sL = chooseShift(L), sM = chooseShift(M), sR = chooseShift(Rr);
+    if (!sL || !sM || !sR) return null;                 // pas assez de marge quelque part
 
-    // alternance : signe du bloc central, gauche/droite opposés
-    let sMsign = sM.sign;
-    let sLsign = -sMsign;
-    let sRsign = -sMsign;
-
-    // si les marges imposent un signe égal, on retourne tout
-    if (sL.sign === sMsign || sR.sign === sMsign){
-      sMsign *= -1; sLsign *= -1; sRsign *= -1;
-    }
-
-    // construit YsG avec amplitudes fixées (écarts forts partout sauf sur i,j)
-    const YsG = YsF.map((y, idx)=>{
-      if (idx === i || idx === j) return y;
-      if (idx < i)  return y + sLsign * sL.M;
-      if (idx > j)  return y + sRsign * sR.M;
-      return y + sMsign * sM.M;
+    const YsG = YsF.map((y,idx)=>{
+      if (idx===i || idx===j) return y;                 // intersections exactes
+      if (idx<i)         return y + sL.sign*sL.M;
+      if (idx>j)         return y + sR.sign*sR.M;
+                         return y + sM.sign*sM.M;        // i<idx<j
     });
 
-    const forced = [i,j];
-    const inside = YsG.every(y => yMinIn <= y && y <= yMaxIn);
-    if (!inside) continue;
-    if (!noInteriorCross_STRICT(YsG, forced)) continue;
+    // garde-fous : pas d’autre racine entre deux entiers
+    const forced=[i,j];
+   if(!noInteriorCross_STRICT(YsF, YsG, [i,j])) return null;
 
-    return { Xs, Ys: YsG, Forced: forced };
+    // sécurité cadre (devrait être OK par construction)
+    const inside = YsG.every(y => yMinIn<=y && y<=yMaxIn);
+    if (!inside) return null;
+
+    return { Xs, Ys:YsG, Forced: forced };
   }
 
-  // Fallback : miroir simple
-  const mid = Math.floor(n/2);
+  // essaie avec gapMin puis assouplit à 3,2 si nécessaire
+  for (const g of [gapMin, 3, 2]){
+    for (const [i,j] of pairs){
+      const r = build(i,j);
+      if (r) return r;
+    }
+  }
+
+  // Fallback (rare) : simple miroir en forçant 2 nœuds
+  const mid=Math.floor(n/2);
   const YsG = YsF.map(y=>-y);
-  return { Xs, Ys: YsG, Forced: [Math.max(1, mid-2), Math.min(n-2, mid+2)] };
+  return { Xs, Ys:YsG, Forced:[Math.max(1,mid-2), Math.min(n-2,mid+2)] };
 }
 
 
 
-  
-
-
-
-
-
-
+/* ====================== genSecondaryGrid — V2 ====================== */
+/**
+ * Construit une grille entière pour Cg, obtenue par translation (dx,dy) puis symétrie d’axe des abscisses,
+ * telle que Cf et Cg aient **exactement 2** intersections **sur des abscisses entières**,
+ * sans autre croisement entre deux entiers.
+ *
+ * @param {Object} R     {xmin,xmax,ymin,ymax}
+ * @param {Object} main  {Xs, Ys} pour Cf (Xs entiers consécutifs)
+ * @param {Object} opts  {minK,maxK,preferK,maxDx,gapMin}
+ */
 function genSecondaryGrid(R, main, opts){
   opts = opts || {};
 const n = main.Xs.length;
@@ -1342,99 +1239,6 @@ const validPair = (YsG, idx, gapMin)=>{
   return { Xs, Ys: YsG, Forced: forced };
 }
 
-// ==== Variante "équilibrée" pour Cg : vise ~50/50 de zones f≥g et f<g ====
-// - Essaie la grille par défaut (piecewise shift) ; si trop déséquilibrée,
-//   retente en miroir vertical de Cf, puis miroir autour de yMid.
-// - Retourne la version la plus "balance" (proche de 0.5).
-// ==== Génération "équilibrée" de Cg ====
-// Cherche une configuration où la proportion des cases (i+0.5) vérifiant f≥g
-// est proche de 50% (plus "mordant" pour les inéquations).
-function buildBalancedSecondary(R, main, opts){
-  const TARGET_MAX_IMBAL = 0.56;   // existant
-  const PREF_ALT_BIAS    = 0.95;   // existant
-  const GAP_BUMP         = 0.5;    // existant
-
-  function scoreBalance(F, G, onlyBetweenIJ){
-  const a = F.Xs[0], b = F.Xs[F.Xs.length-1];
-  let ge = 0, tot = 0;
-  const i1 = Math.min(...(G.Forced||[a+1])), i2 = Math.max(...(G.Forced||[b-1]));
-  for(let i=a; i<b; i++){
-    if (onlyBetweenIJ && !(i>=i1 && i<i2)) continue;
-    const x = i + 0.5;
-    const f = gridVal(F,x), g = gridVal(G,x);
-    if (f==null || g==null) continue;
-    tot++; if (f >= g) ge++;
-  }
-  return tot ? ge/tot : 0.5;
-}
-
-  function mirrorGridAround(grid, c){
-    return { Xs:grid.Xs.slice(), Ys:grid.Ys.map(y=>2*c - y), Forced:grid.Forced?.slice()||[] };
-  }
-  function makeCand(Fbase, addGap){
-    const opt2 = Object.assign({}, opts||{}, { gapMin: (opts?.gapMin||3) + (addGap? GAP_BUMP:0) });
-    const G = genSecondaryGridPiecewiseShift(R, Fbase, opt2);
-    return { F:Fbase, G,
-      pGlobal:  scoreBalance(Fbase, G, false),
-      pBetween: scoreBalance(Fbase, G, true)
-    };
-  }
-
-  // ===== nouvelles tentatives jusqu'à obtenir une vraie différence =====
-  const tries = [];
-  // v0 : original
-  tries.push(makeCand(main, false));
-
-  // variantes probables
-  const mid = (R.ymin + R.ymax)/2;
-  tries.push(makeCand(mirrorGridAround(main, 0),   true));
-  tries.push(makeCand(mirrorGridAround(main, mid), true));
-
-  // si besoin, répète avec un gapMin plus costaud
-  for(let bump=1; bump<=2; bump++){
-    tries.push(makeCand(main, true));
-  }
-
-  // trie d'abord par équilibre "entre racines", puis global
-  tries.sort((a,b)=>{
-    const da = Math.abs(a.pBetween-0.5), db = Math.abs(b.pBetween-0.5);
-    if(da!==db) return da-db;
-    return Math.abs(a.pGlobal-0.5) - Math.abs(b.pGlobal-0.5);
-  });
-
-  // prends la première qui est suffisamment distincte ; sinon refabrique en miroir dur
- // pick the first candidate that is: overlapping, crossing, and distinct
-  for (const t of tries){
-    if (hasVerticalOverlap(t.F, t.G, 0.5) &&
-        haveCrossings(t.F, t.G) &&
-        curvesDistinctEnough(R, t.F, t.G, 0.8, 0.35)) {
-      return t.G;
-    }
-  }
-
-  // FINAL fallback: réessaye jusqu’à obtenir overlap + croisement (borne dure)
-  for (let t = 0; t < 40; t++){
-    const retry = genSecondaryGridPiecewiseShift(
-      R, main,
-      { gapMin: Math.max(3, (opts?.gapMin || 3) + (t % 3)), maxShift: 999 }
-    );
-    if (hasVerticalOverlap(main, retry, 0.5) && haveCrossings(main, retry)) {
-      return retry;
-    }
-  }
-
-  // Dernière cartouche: comprimer autour du milieu puis regénérer (ça force l’overlap)
-  const squeeze = y => Math.round((y - mid) * 0.65 + mid);
-  const squeezedF = { Xs: main.Xs.slice(), Ys: main.Ys.map(squeeze), Forced: [] };
-  const last = genSecondaryGridPiecewiseShift(R, squeezedF, { gapMin: 3, maxShift: 999 });
-  // Si malgré tout ça reste séparé, on préfère encore renvoyer 'last' UNIQUEMENT s'il overlappe.
-  if (hasVerticalOverlap(main, last, 0.5) && haveCrossings(main, last)) return last;
-
-  // Si on arrive ici, on reprend la meilleure tentative antérieure (tries[0]) même si un poil déséquilibrée.
-  return tries[0].G;
-
-
-}
 
 
 
@@ -1583,22 +1387,12 @@ const ex1 = {
   },
 
   render(host,st){
-    const ui = mkRow(host);
+    const ui = mkRow(host,'Lecture graphique.');
 const rep = buildRepereSVG({ xmin:st.R.xmin, xmax:st.R.xmax, ymin:st.R.ymin, ymax:st.R.ymax, grid:true, arrows:true });
 
-let gridG = st.gridG || (st.gridG = buildBalancedSecondary(
-  st.R, st.grid, { gapMin: 3, maxShift: 999 }   // ← gapMin un peu plus fort = alternance visuelle plus nette
+let gridG = st.gridG || (st.gridG = genSecondaryGridPiecewiseShift(
+  st.R, st.grid, { gapMin: 4, maxShift: 999 }   // augmente/descends gapMin si tu veux
 ));
-
-// filet: si par malchance pas d'overlap/croisement, on regénère 6 fois max
-for (let t = 0;
-     t < 6 && (!hasVerticalOverlap(st.grid, gridG, 0.5) || !haveCrossings(st.grid, gridG));
-     t++){
-  gridG = buildBalancedSecondary(st.R, st.grid, { gapMin: 3 + (t % 2), maxShift: 999 });
-}
-st.gridG = gridG;
-
-
 const LVL_COLORS = ['#00897b','#ef6c00','#6a1b9a','#2e7d32','#ad1457','#283593'];
 
 // --- Choix des niveaux sûrs kF et kG (solutions uniquement entières) ---
@@ -1624,10 +1418,8 @@ const pathG = pathFromGridSmooth(rep, Object.assign({}, gridG,    { Forced: (gri
 // 1) phrase au-dessus du graphique
 const cap = document.createElement('div');
 cap.className = 'graph-caption';
-cap.innerHTML = 'On donne ci-dessous les courbes des fonctions : <br>\\(f\\) (en bleue) et \\(g\\) \\( \\) (en pointillés rouges).';
+cap.textContent = 'On donne ci-dessous les courbes des fonctions \\(f\\) (en bleue) et  \\(g\\)\\( \\) (en pointillés rouges).';
 ui.st.appendChild(cap);
-MJ(cap); // re-typeset MathJax pour ce noeud
-
 
 // 2) courbes
 addPath(rep.plot, pathF, { stroke:'#1f6feb', 'stroke-width':3.2 });                          // f

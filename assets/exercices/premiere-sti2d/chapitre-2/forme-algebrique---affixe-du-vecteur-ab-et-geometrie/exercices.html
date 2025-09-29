@@ -318,7 +318,37 @@ function randPointNum(min,max, existing=[]){
   while(existing.some(E=>sameAffix(E,P)));
   return P;
 }
+// Orchestrateur "pile ou face" : alternance en mode PDF, aléa normal en UI
 
+
+
+// Alternateur strict par exercice (e3/e4)
+const COIN = {
+  state: new Map(),    // valeur validée (boolean) du dernier tirage
+  pending: new Map(),  // valeur "souhaitée" pour le tirage en cours
+  // renvoie la valeur voulue pour ce tour sans la valider encore
+  want(tag){
+    if (this.pending.has(tag)) return this.pending.get(tag);
+    const last = this.state.get(tag) ?? false; // point de départ: false → premier tour sera true
+    const next = !last;                        // alterne strictement
+    this.pending.set(tag, next);
+    return next;
+  },
+  // à appeler quand la génération a réussi → on valide l’alternance
+  commit(tag){
+    if (!this.pending.has(tag)) return;
+    this.state.set(tag, this.pending.get(tag));
+    this.pending.delete(tag);
+  },
+  // si tu abandonnes le tirage courant, tu peux annuler (pas utile ici)
+  cancel(tag){ this.pending.delete(tag); }
+};
+function flip(tag){
+  if (!COIN.pdfMode) return Math.random() < 0.5; // UI : aléatoire
+  const n = COIN.count.get(tag) || 0;
+  COIN.count.set(tag, n+1);
+  return (n % 2 === 0); // true, false, true, false, ...
+}
 /* ====== Exercices ====== */
 const REGISTRY_MAP = {
 
@@ -414,7 +444,7 @@ solution(){
     gen(){
   const MIN=-4, MAX=4;
   const A = randPointNum(MIN,MAX);
-  let aligned = Math.random() < 0.5;
+let aligned = COIN.want('e3');
   let B,C,k=null;
 
   if (aligned){
@@ -435,6 +465,8 @@ solution(){
   }
 
   this.state={A,B,C,aligned,k};
+  COIN.commit('e3');
+
   setEqu(`<p>On considère les points \\(A\\), \\(B\\) et \\(C\\) d’affixes \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\), \\(z_C=${fmtZLaNum(C.a,C.b)}\\).</p> <p>Les points \\(A\\), \\(B\\) et \\(C\\) sont-ils alignés ?</p>`);
 },
     verify(){ const {aligned}=this.state; const r=stripAccents($('#ans',HOST).value); const ok=(aligned&&/^o(ui)?$/.test(r))||(!aligned&&/^n(on)?$/.test(r)); setFB(ok, ok?``:`Attendu : ${aligned?'oui':'non'}.`); return ok; },
@@ -523,7 +555,8 @@ e4 : {
     if (u.x===0 && u.y===0) return this.gen(); // ultra-sécurité
 
     // tirage parallèle / non-parallèle
-    const wantParallel = Math.random() < 0.5;
+// au lieu de: const wantParallel = Math.random() < 0.5;
+const wantParallel = COIN.want('e4');
     let C, D, k = 0;
 
     if (wantParallel){
@@ -554,6 +587,8 @@ e4 : {
     }
 
     this.state = { A,B,C,D, parallel: wantParallel, k };
+	COIN.commit('e4');
+
     setEqu(
       `<p>On considère les points \\(A\\), \\(B\\), \\(C\\) et \\(D\\) d’affixes
        \\(z_A=${fmtZLaNum(A.a,A.b)}\\), \\(z_B=${fmtZLaNum(B.a,B.b)}\\),
@@ -1179,21 +1214,29 @@ window.buildOneForPDFSync = function(defId){
     // 5) Premier affichage
     buildOne();
     updateScore();
+window.__PDF_CACHE__ = new Map();
 
-    // 6) ExoPDF
-    if (window.ExoPDF && ExoPDF.init){
-      ExoPDF.init({
-        mountAfterSelector: '.card.small',
-        title: 'Seconde – Affixes & géométrie complexes',
-        max: 50,
-       
-        // Clé : on donne l'HTML au kit
-        beforeRender(def, st, wantSolution){
-          const out = window.buildOneForPDFSync(def.id);
-          return wantSolution ? out.solution : out.statement;
-        }
-      });
+ExoPDF.init({
+  mountAfterSelector: '.card.small',
+  title: 'Seconde – Affixes & géométrie complexes',
+  max: 50,
+
+  beforeRender(def, st, wantSolution){
+    const key = def.id + '|' + (st && st.n != null ? st.n : 'no-seed');
+
+    if(!window.__PDF_CACHE__.has(key)){
+      // activer l’alternance stricte pendant la fabrication ENONCE+SOLUTION
+      COIN.pdfMode = true;
+      const pair = window.buildOneForPDFSync(def.id);
+      COIN.pdfMode = false;
+
+      window.__PDF_CACHE__.set(key, pair);
     }
+    const { statement, solution } = window.__PDF_CACHE__.get(key);
+    return wantSolution ? solution : statement;
+  }
+});
+
   });
 })();
 </script>

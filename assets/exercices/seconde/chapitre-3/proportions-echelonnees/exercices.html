@@ -1,12 +1,1208 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exercices — Chapitre 3 — Proportions échelonnées</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:24px}.muted{color:#666}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde – Proportions échelonnées (HTML + TeX + SVG)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.55}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{display:grid;grid-template-columns:1fr;grid-template-areas:'lab' 'inp' 'res';gap:10px;align-items:start}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .res{grid-area:res;padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+.tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
+.tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
+.tbl th{background:#f7f7f7}
+
+.steps{background:#f7f7f7;border:1px solid #e6e6e6;border-radius:10px;padding:10px}
+.steps .line{margin:.25rem 0;white-space:nowrap}
+.qno{display:inline-block;margin-right:.45em}
+
+svg{max-width:100%;height:auto;}
+
+.tick{display:inline-block;min-width:1.25em;margin-left:8px;font-weight:700;vertical-align:middle}
+.tick.ok{color:#059669}   /* ✓ vert */
+.tick.ko{color:#dc2626}   /* ✗ rouge */
+
+/* --- Arbre pondéré avec inputs sur les branches --- */
+.tree-wrap{
+  position:relative; width:640px; height:220px; margin:6px 0 10px;
+}
+.tree-wrap svg{
+  position:absolute; inset:0; width:100%; height:100%;
+}
+.branch-input{
+  position:absolute; width:58px; padding:2px 4px; font-size:12px;
+  border:1px solid #cbd5e1; border-radius:6px; text-align:center; background:#fff;
+}
+/* Arbre avec libellés entre segment et nœud */
+.tree-wrap{position:relative;width:640px;height:220px;margin:6px 0 10px}
+.tree-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+.branch-input{
+  position:absolute;width:58px;padding:2px 4px;font-size:12px;
+  border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:#fff
+}
+/* libellés posés dans la coupure du trait */
+.branch-label{
+  position:absolute;white-space:nowrap;padding:0 4px;background:#fff;
+  transform:translateY(-50%); /* centrage vertical sur la branche */
+  font:16px system-ui,Segoe UI,Roboto,Arial;color:#111
+}
+
+</style>
+
+<!-- MathJax (TeX inside \( ... \) or \[ ... \]) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
-  <h1>Seconde – Chapitre 3 — Proportions échelonnées</h1>
-  <p class="muted">La page d’exercices pour ce thème n’est pas encore prête. Placez votre fichier ici : <code>exercices.html</code>.</p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">Seconde – Proportions échelonnées (HTML + TeX + SVG)</h1>
+  </div>
+  <div class="wrap">
+
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select">
+        <option value="ex1">Ex. 1 — Pourcentages à l’unité (+ diagramme d’ensembles)</option>
+        <option value="ex2">Ex. 2 — Tableau à double entrée (entiers uniquement)</option>
+        <option value="ex3">Ex. 3 — Arbre pondéré (pourcentages entiers)</option>
+      </select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <div class="hint">Saisir vos réponses dans les zones prévues. Les formules sont en \LaTeX{} via MathJax.</div>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ===== Utilitaires ===== */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const rchoice = L => L[rnd(0,L.length-1)];
+const stripSign = s => String(s||'').replace(/−/g,'-');
+const parseNum = s => { s=stripSign(String(s||'').trim()).replace(',','.'); return /^[-+]?(\\d+(\\.\\d*)?|\\.\\d+)$/.test(s)?parseFloat(s):NaN; };
+const parsePct = s => { s=stripSign(String(s||'').trim()).replace(',','.'); if(/%$/.test(s)) s=s.slice(0,-1).trim(); const v=parseFloat(s); return Number.isFinite(v)?v:NaN; };
+const unaccent = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+// Normalisation "robuste" : sans accents, pas de tirets/apostrophes, minuscules, espaces compressés
+const NORM = s => unaccent(String(s||'').toLowerCase())
+  .replace(/[-’']/g,' ')
+  .replace(/\s+/g,' ')
+  .trim();
+
+// Stopwords FR pour ne garder que les mots "noyaux"
+const STOP = new Set([
+  'de','des','du','d','l','la','le','les','sur','en','au','aux','avec','pour','chez','dans',
+  'moins','ans','seconde','service','menu','tribune','equipe','pass','jours','mobile','mobiles','point','relais','rang','premium','3'
+]);
+
+const splitTokens = s => NORM(s).split(' ').filter(w => w && !STOP.has(w));
+
+// Enlever le préfixe "ensemble de(s)/du/d'..." (pour E)
+function stripEnsemble(s){
+  return NORM(s).replace(/^ensemble\s+(des|de|du|d|de la|de l)\s+/,'');
+}
+
+// Variantes singulier/pluriel très simples
+function sVariants(w){
+  const out = new Set([w]);
+  if (w.endsWith('s')) out.add(w.slice(0,-1));
+  else out.add(w+'s');
+  if (w.endsWith('x')) out.add(w.slice(0,-1));
+  return Array.from(out);
+}
+
+// Construit l’ensemble des formes acceptées pour une étiquette (E ou F)
+function buildAcceptSet(label, isE=false){
+  const set = new Set();
+  const base = NORM(label);
+  if (base) set.add(base);
+
+  if (isE && base.startsWith('ensemble ')) {
+    const rem = stripEnsemble(label);
+    if (rem) set.add(rem);
+  }
+
+  const tokens = splitTokens(label);
+  if (tokens.length){
+    // On accepte le 1er et le dernier "mot noyau" (couvre "touristes étrangers" ET "joueurs de tennis")
+    const first = tokens[0];
+    const last  = tokens[tokens.length-1];
+    [first,last].forEach(t => sVariants(t).forEach(v => set.add(v)));
+  }
+  return Array.from(set);
+}
+
+// test de présence "mot entier" (limites de mots)
+function hasWord(hay, needle){
+  const h = NORM(hay);
+  const n = NORM(needle);
+  if (!n) return false;
+  const esc = n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return new RegExp(`\\b${esc}\\b`).test(h);
+}
+
+/* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
+/* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
+const EX1_BANK = [
+  // 10 d'origine (A ⊂ F ⊂ E)
+  ()=>({theme:'camping', E:'ensemble des vacanciers', F:'touristes étrangers', A:'étrangers dormant sous une tente', pF:40, pAinF:60, asProportion:true}),
+  ()=>({theme:'bibliothèque', E:'ensemble des livres', F:'romans', A:'romans policiers', pF:rchoice([30,35,40,45]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'lycée', E:'ensemble des élèves', F:'élèves de seconde', A:'élèves de seconde demi-pensionnaires', pF:rchoice([25,30,35,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'ville', E:'ensemble des habitants', F:'habitants de moins de 25 ans', A:'moins de 25 ans étudiants', pF:rchoice([30,35,40,45]), pAinF:rchoice([50,60,70,80])}),
+  ()=>({theme:'usine', E:'ensemble des employés', F:'employés du service production', A:'production en horaires de nuit', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'site web', E:'ensemble des visiteurs', F:'visiteurs sur mobile', A:'visiteurs sur mobile réguliers', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'stade', E:'ensemble des spectateurs', F:'supporters de l’équipe A', A:'supporters A en tribune nord', pF:rchoice([35,40,45,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'parc', E:'ensemble des arbres', F:'conifères', A:'pins', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'club', E:'ensemble des membres', F:'joueurs de tennis', A:'tennis en compétition', pF:rchoice([25,30,35,40]), pAinF:rchoice([50,60,70])}),
+  ()=>({theme:'école', E:'ensemble des élèves', F:'demi-pensionnaires', A:'demi-pensionnaires prenant un menu végétarien', pF:rchoice([30,35,40,45]), pAinF:rchoice([40,50,60,70])}),
+
+  // 20 nouveaux (A clairement inclus dans F)
+  ()=>({theme:'supermarché', E:'ensemble des clients', F:'détenteurs de carte de fidélité', A:'détenteurs de carte ayant acheté des produits bio', pF:rchoice([35,40,45,50]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'entreprise', E:'ensemble des salariés', F:'salariés en télétravail', A:'salariés en télétravail au moins trois jours par semaine', pF:rchoice([25,30,35,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'université', E:'ensemble des étudiants', F:'étudiants en licence', A:'étudiants en licence inscrits en mathématiques', pF:rchoice([40,50,60]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'festival', E:'ensemble des visiteurs', F:'visiteurs munis d’un pass 3 jours', A:'visiteurs munis d’un pass 3 jours avec accès VIP', pF:rchoice([30,40,50]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'hôpital', E:'ensemble des patients', F:'patients en consultation', A:'patients en consultations de cardiologie', pF:rchoice([50,60,70]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'réseau social', E:'ensemble des utilisateurs', F:'utilisateurs actifs mensuels', A:'utilisateurs actifs ayant publié durant la dernière semaine', pF:rchoice([40,50,60,70]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'bibliothèque municipale', E:'ensemble des abonnés', F:'abonnés ayant emprunté ce mois-ci', A:'emprunteurs de romans graphiques', pF:rchoice([30,40,50]), pAinF:rchoice([25,35,45,55])}),
+  ()=>({theme:'métro', E:'ensemble des voyageurs', F:'voyageurs aux heures de pointe', A:'voyageurs aux heures de pointe titulaires d’un abonnement annuel', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'club de sport', E:'ensemble des adhérents', F:'adhérents pratiquant le fitness', A:'adhérents pratiquant le fitness en cours collectifs', pF:rchoice([30,40,50]), pAinF:rchoice([40,55,60,70])}),
+  ()=>({theme:'parc automobile', E:'ensemble des véhicules', F:'véhicules hybrides', A:'véhicules hybrides rechargeables', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'e-commerce', E:'ensemble des commandes', F:'commandes livrées en point relais', A:'commandes livrées en point relais payées par carte cadeau', pF:rchoice([30,40,50]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'tournoi', E:'ensemble des participants', F:'participants de moins de 18 ans', A:'participants de moins de 18 ans licenciés en club', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'restaurant', E:'ensemble des clients', F:'clients du service du midi', A:'clients du service du midi prenant un dessert', pF:rchoice([40,50,60]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'cinéma', E:'ensemble des spectateurs', F:'spectateurs de séances en 3D', A:'spectateurs de séances en 3D en rangs premium', pF:rchoice([20,25,30,35]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'ville (logement)', E:'ensemble des ménages', F:'ménages propriétaires', A:'propriétaires résidant en maison individuelle', pF:rchoice([40,50,60]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'collège', E:'ensemble des élèves', F:'demi-pensionnaires', A:'demi-pensionnaires avec menu sans porc', pF:rchoice([50,60,70]), pAinF:rchoice([10,20,30,40])}),
+  ()=>({theme:'musée', E:'ensemble des visiteurs', F:'visiteurs en visite guidée', A:'visiteurs en visite guidée en langue anglaise', pF:rchoice([20,30,40]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'association', E:'ensemble des membres', F:'bénévoles actifs', A:'bénévoles actifs présents le week-end', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'banque', E:'ensemble des clients', F:'clients titulaires d’un compte courant', A:'clients titulaires d’un compte courant avec découvert autorisé', pF:rchoice([60,70,80]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'jardin botanique', E:'ensemble des plantes', F:'plantes tropicales', A:'plantes tropicales en serre chaude', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])})
+];
+
+function ctxToHTML(ctx){
+  const pAF = ctx.asProportion
+    ? String((ctx.pAinF/100).toFixed(1)).replace('.',',')
+    : ctx.pAinF + '\\,\\%';
+
+  const map = {
+    // 10 d'origine
+    'camping':        `Dans un camping, \\(${ctx.pF}\\,\\%\\) des vacanciers sont étrangers ; parmi ces étrangers, la proportion qui dorment sous une tente est \\(${pAF}\\).`,
+    'bibliothèque':   `Dans une bibliothèque, \\(${ctx.pF}\\,\\%\\) des livres sont des romans ; parmi ces romans, \\(${ctx.pAinF}\\,\\%\\) sont des policiers.`,
+    'lycée':          `Au lycée, \\(${ctx.pF}\\,\\%\\) des élèves sont en seconde ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont demi-pensionnaires.`,
+    'ville':          `Dans une ville, \\(${ctx.pF}\\,\\%\\) des habitants ont moins de 25 ans ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont étudiants.`,
+    'usine':          `Dans une usine, \\(${ctx.pF}\\,\\%\\) des employés travaillent à la production ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont en horaires de nuit.`,
+    'site web':       `Sur un site web, \\(${ctx.pF}\\,\\%\\) des visiteurs sont sur mobile ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont des visiteurs réguliers.`,
+    'stade':          `Au stade, \\(${ctx.pF}\\,\\%\\) des spectateurs supportent l’équipe A ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont en tribune nord.`,
+    'parc':           `Dans un parc, \\(${ctx.pF}\\,\\%\\) des arbres sont des conifères ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont des pins.`,
+    'club':           `Dans un club, \\(${ctx.pF}\\,\\%\\) des membres jouent au tennis ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) font de la compétition.`,
+    'école':          `Dans une école, \\(${ctx.pF}\\,\\%\\) des élèves sont demi-pensionnaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) prennent le menu végétarien.`,
+
+    // 20 nouveaux (même style)
+    'supermarché':            `Dans un supermarché, \\(${ctx.pF}\\,\\%\\) des clients détiennent une carte de fidélité ; parmi ces clients, \\(${ctx.pAinF}\\,\\%\\) ont acheté des produits bio.`,
+    'entreprise':             `Dans une entreprise, \\(${ctx.pF}\\,\\%\\) des salariés sont en télétravail ; parmi ceux-ci, \\(${ctx.pAinF}\\,\\%\\) télétravaillent au moins trois jours par semaine.`,
+    'université':             `À l’université, \\(${ctx.pF}\\,\\%\\) des étudiants sont en licence ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont inscrits en mathématiques.`,
+    'festival':               `Lors d’un festival, \\(${ctx.pF}\\,\\%\\) des visiteurs ont un pass 3 jours ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) disposent d’un accès VIP.`,
+    'hôpital':                `À l’hôpital, \\(${ctx.pF}\\,\\%\\) des patients sont en consultation ; parmi ces consultations, \\(${ctx.pAinF}\\,\\%\\) sont de cardiologie.`,
+    'réseau social':          `Sur un réseau social, \\(${ctx.pF}\\,\\%\\) des utilisateurs sont actifs chaque mois ; parmi ces actifs, \\(${ctx.pAinF}\\,\\%\\) ont publié durant la dernière semaine.`,
+    'bibliothèque municipale':`Dans une bibliothèque municipale, \\(${ctx.pF}\\,\\%\\) des abonnés ont emprunté ce mois-ci ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) ont pris des romans graphiques.`,
+    'métro':                  `Dans le métro, \\(${ctx.pF}\\,\\%\\) des voyageurs circulent aux heures de pointe ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) possèdent un abonnement annuel.`,
+    'club de sport':          `Dans un club de sport, \\(${ctx.pF}\\,\\%\\) des adhérents pratiquent le fitness ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) suivent des cours collectifs.`,
+    'parc automobile':        `Dans un parc automobile, \\(${ctx.pF}\\,\\%\\) des véhicules sont hybrides ; parmi ceux-ci, \\(${ctx.pAinF}\\,\\%\\) sont rechargeables.`,
+    'e-commerce':             `Sur un site d’e-commerce, \\(${ctx.pF}\\,\\%\\) des commandes sont livrées en point relais ; parmi ces commandes, \\(${ctx.pAinF}\\,\\%\\) sont payées par carte cadeau.`,
+    'tournoi':                `Dans un tournoi, \\(${ctx.pF}\\,\\%\\) des participants ont moins de 18 ans ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont licenciés en club.`,
+    'restaurant':             `Dans un restaurant, \\(${ctx.pF}\\,\\%\\) des clients viennent au service du midi ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) prennent un dessert.`,
+    'cinéma':                 `Au cinéma, \\(${ctx.pF}\\,\\%\\) des spectateurs assistent à des séances en 3D ; parmi ces spectateurs, \\(${ctx.pAinF}\\,\\%\\) sont en rangs premium.`,
+    'ville (logement)':       `Dans une ville, \\(${ctx.pF}\\,\\%\\) des ménages sont propriétaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) résident en maison individuelle.`,
+    'collège':                `Dans un collège, \\(${ctx.pF}\\,\\%\\) des élèves sont demi-pensionnaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) choisissent un menu sans porc.`,
+    'musée':                  `Dans un musée, \\(${ctx.pF}\\,\\%\\) des visiteurs suivent une visite guidée ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) la suivent en langue anglaise.`,
+    'association':            `Dans une association, \\(${ctx.pF}\\,\\%\\) des membres sont bénévoles actifs ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) interviennent le week-end.`,
+    'banque':                 `Dans une banque, \\(${ctx.pF}\\,\\%\\) des clients détiennent un compte courant ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) disposent d’un découvert autorisé.`,
+    'jardin botanique':       `Dans un jardin botanique, \\(${ctx.pF}\\,\\%\\) des plantes sont tropicales ; parmi elles, \\(${ctx.pAinF}\\,\\%\\) sont en serre chaude.`
+  };
+
+  return map[ctx.theme];
+}
+
+
+/* ===== SVG — Diagramme A ⊂ F ⊂ E (compact, lignes calibrées) ===== */
+function vennSVG(){
+  return `
+  <svg viewBox="0 0 520 200" width="360" height="152" aria-label="Diagramme A inclus dans F inclus dans E">
+    <defs><style>
+      .r{fill:none;stroke:#6b7280;stroke-width:2}
+      .c{fill:#e5e7eb}
+      text{font:12px system-ui,Segoe UI,Roboto,Arial}
+    </style></defs>
+
+    <!-- Paramètres (centrés plus au milieu pour éloigner les boîtes) -->
+    <!-- E : centre (260,110), rx=190, ry=80  => bord gauche x=70, bord droit x=450 -->
+    <!-- F : centre (260,110), rx=130, ry=55  => bord droit de F : x=390 -->
+    <!-- A : centre (260,95),  rx=30,  ry=15  => bord gauche de A : x=230 -->
+
+    <!-- E et F -->
+    <ellipse class="r" cx="260" cy="110" rx="190" ry="80"></ellipse>
+    <ellipse class="r" cx="260" cy="110" rx="130" ry="55"></ellipse>
+
+    <!-- A -->
+    <ellipse class="c" cx="260" cy="95" rx="30" ry="15"></ellipse>
+    <ellipse class="r" cx="260" cy="95" rx="30" ry="15"></ellipse>
+
+    <!-- A : boîte bien à gauche, ne touche pas l'ellipse extérieure (bord ext = 70) -->
+    <rect class="r" x="20" y="84" width="26" height="22" rx="4"></rect>
+    <!-- Trait jusqu'au bord gauche de A (x=230) -->
+    <line class="r" x1="46" y1="95" x2="230" y2="95"></line>
+    <text x="28" y="100">A</text>
+
+    <!-- E : boîte plus haute, à distance du bord haut de E (y=30) -->
+    <rect class="r" x="247" y="0" width="26" height="22" rx="4"></rect>
+    <line class="r" x1="260" y1="22" x2="260" y2="30"></line>
+    <text x="254" y="15">E</text>
+
+    <!-- F : boîte très à droite, loin de l'ellipse extérieure (bord ext = 450) -->
+    <rect class="r" x="486" y="99" width="26" height="22" rx="4"></rect>
+    <!-- Trait HORIZONTAL jusqu'au bord droit de F (x=390, y=110) -->
+    <line class="r" x1="486" y1="110" x2="390" y2="110"></line>
+    <text x="494" y="114">F</text>
+  </svg>`;
+}
+const ucfirst = s => (s||'').slice(0,1).toUpperCase()+ (s||'').slice(1);
+
+// un entier avec pas (step)
+const rndStep = (min, max, step=1) => min + step * rnd(0, Math.floor((max-min)/step));
+
+// choisit N en fonction du thème
+function pickNForContext(C){
+  const S = EX2_NSPEC[C.t];
+  if(!S) return rchoice([24,28,30,32,36,40,44,48]); // fallback "classe"
+  if(S.pool)  return rchoice(S.pool);
+  if(S.range) return rndStep(S.range.min, S.range.max, S.range.step||1);
+  return rchoice([24,28,30,32,36,40,44,48]);
+}
+
+
+/* ===== Exercice 1 ===== */
+const ex1 = {
+  id:'ex1', title:"Ex. 1 — Sous-populations (A ⊂ F ⊂ E)",
+  gen(){ const ctx=rchoice(EX1_BANK)(); const pF=ctx.pF; const pAinF=ctx.pAinF/100; return {ctx,pF,pAinF}; },
+  render(host, st){
+    const root=document.createElement('div');
+    const intro = ctxToHTML(st.ctx);
+    const propText = st.ctx.asProportion ? String(st.pAinF.toFixed(1)).replace('.',',') : Math.round(st.pAinF*100)+'\\,\\%';
+    root.innerHTML = `
+      <div class="consigne"><span class="c-label">Exercice 1.</span> Sous-populations \\(A\\subset F\\subset E\\) — même contexte pour Q1 et Q2.</div>
+      <div class="row">
+        <div class="col-label">${intro}</div>
+        <div class="input-line">
+          ${vennSVG()}
+          <div style="margin:.5rem 0"><strong>Q1.</strong> On appelle \\(A\\) la population « ${st.ctx.A} ». À l’aide de la figure, définir \\(E\\) et \\(F\\).</div>
+          <div> \\(E :\\)<input id="boxE" type="text" placeholder="" style="width:100%;max-width:520px">
+          <span class="tick" id="tickE"></span></div>
+		  <div> \\(F :\\)<input id="boxF" type="text" placeholder="" style="width:100%;max-width:520px">
+<span class="tick" id="tickF"></span></div>
+          <div style="margin:.4rem 0"><strong>Q2.</strong> Calculer la proportion \\(p\\) de \\(A\\) dans \\(E\\) (en %).</div>
+          <div> \\(p=\\)<input type="text" id="pAE" placeholder="" style="max-width:220px">
+          <span class="tick" id="tickP"></span></div>
+        </div>
+        <div class="res" id="r1"></div>
+      </div>`;
+    host.innerHTML=''; host.appendChild(root);
+    if(window.MathJax) MathJax.typesetPromise();
+  },
+check(host, st){
+  let ok=0, tot=0;
+
+  const mark = (sel, state)=>{
+    const el = $(sel,host);
+    if(!el) return;
+    el.className = 'tick' + (state ? ' ' + (state==='ok'?'ok':'ko') : '');
+    el.textContent = state==='ok' ? '✓' : state==='ko' ? '✗' : '';
+  };
+
+  // ===== Q1 — E
+  const eVal = $('#boxE',host).value || '';
+  let eState = null; // nul = pas de sanction si vide
+  if (eVal.trim()!==''){
+    const Eacc = buildAcceptSet(st.ctx.E, /*isE=*/true);
+    eState = Eacc.some(term => hasWord(eVal, term)) ? 'ok' : 'ko';
+    tot++; if(eState==='ok') ok++;
+  }
+  mark('#tickE', eState);
+
+  // ===== Q1 — F
+  const fVal = $('#boxF',host).value || '';
+  let fState = null;
+  if (fVal.trim()!==''){
+    const Facc = buildAcceptSet(st.ctx.F, /*isE=*/false);
+    fState = Facc.some(term => hasWord(fVal, term)) ? 'ok' : 'ko';
+    tot++; if(fState==='ok') ok++;
+  }
+  mark('#tickF', fState);
+
+  // ===== Q2 — p(A dans E)
+  const pStr = $('#pAE',host).value || '';
+  let pState = null;
+  if (pStr.trim()!==''){
+    const p = parsePct(pStr);
+    const truePct = st.pF * (st.pAinF*100) / 100;
+    pState = (Number.isFinite(p) && Math.round(p)===Math.round(truePct)) ? 'ok' : 'ko';
+    tot += 1; if (pState==='ok') ok++;
+  }
+  mark('#tickP', pState);
+
+  // Résumé
+  $('#r1',host).textContent = `${ok}/${tot} éléments corrects`;
+  $('#r1',host).className = (ok===tot && tot>0) ? 'res res-ok' : 'res res-ko';
+  return {ok, tot};
+},
+
+  solution(host, st){
+    const truePct = st.pF * (st.pAinF*100) / 100;
+    const propText = st.ctx.asProportion ? String(st.pAinF.toFixed(1)).replace('.',',') : Math.round(st.pAinF*100)+'\\,\\%';
+    const L=[];
+    L.push(`<span class="qno">Q1</span>\\(E\\) : ${st.ctx.E}. \\(F\\) : ${st.ctx.F}. \\(A\\) : ${st.ctx.A}.`);
+    L.push(`<span class="qno">Q2</span>\\(p = ${st.pF}\\,\\% \\times ${propText} = ${Math.round(truePct)}\\,\\%\\).`);
+    $('#r1',host).innerHTML = '<div class="steps">'+L.map(t=>`<div class="line">${t}</div>`).join('')+'</div>';
+    $('#r1',host).className='res res-ok';
+    if(window.MathJax) MathJax.typesetPromise();
+  },
+  reset(host){ host.innerHTML=''; }
+};
+
+
+
+/* ====== Ex.2 — Banque de 30 contextes (avec nonA) ====== */
+/*
+Chaque contexte fournit :
+- U: description courte de l’univers
+- unit: nom du total N
+- col1 / col2: libellés colonnes (pluriel)
+- A: libellé court de la ligne « A »
+- nonA: libellé court naturel de la ligne « non A »
+- action: verbe/locution pour l’énoncé (« étudient l’anglais », …)
+*/
+const EX2_BANK = [
+  ()=>({t:'classe', U:'une classe', unit:'élèves', col1:'filles', col2:'garçons', A:'Anglais', nonA:'Pas anglais', action:'étudient l’anglais'}),
+  ()=>({t:'college', U:'un collège', unit:'élèves', col1:'élèves de 6e', col2:'élèves de 3e', A:'Chorale', nonA:'Hors chorale', action:'sont inscrits à la chorale'}),
+  ()=>({t:'lycee', U:'un lycée', unit:'élèves', col1:'externes', col2:'internes', A:'Section euro', nonA:'Hors section euro', action:'suivent la section européenne'}),
+  ()=>({t:'clubSportif', U:'un club sportif', unit:'adhérents', col1:'jeunes', col2:'adultes', A:'Compétition', nonA:'Loisir', action:'participent en compétition'}),
+  ()=>({t:'bibliotheque', U:'une bibliothèque', unit:'abonnés', col1:'jeunes', col2:'adultes', A:'Policiers', nonA:'Autres genres', action:'empruntent des romans policiers'}),
+  ()=>({t:'entrepriseCadres', U:'une entreprise', unit:'salariés', col1:'non-cadres', col2:'cadres', A:'Télétravail', nonA:'Sur site', action:'télétravaillent'}),
+  ()=>({t:'entrepriseTP', U:'une entreprise', unit:'salariés', col1:'temps partiel', col2:'temps plein', A:'Formation', nonA:'Sans formation', action:'suivent une formation'}),
+  ()=>({t:'universite', U:'une université', unit:'étudiants', col1:'licence', col2:'master', A:'Maths', nonA:'Autres disciplines', action:'sont inscrits en mathématiques'}),
+  ()=>({t:'festival', U:'un festival', unit:'visiteurs', col1:'pass 1 jour', col2:'pass 3 jours', A:'VIP', nonA:'Sans VIP', action:'disposent d’un accès VIP'}),
+  ()=>({t:'hopital', U:'un hôpital', unit:'séjours/visites', col1:'hospitalisations', col2:'consultations', A:'Cardiologie', nonA:'Autres spécialités', action:'concernent la cardiologie'}),
+  ()=>({t:'musee', U:'un musée', unit:'visiteurs', col1:'visite libre', col2:'visite guidée', A:'Audioguide', nonA:'Sans audioguide', action:'prennent un audioguide'}),
+  ()=>({t:'stade', U:'un stade', unit:'spectateurs', col1:'tribune sud', col2:'tribune nord', A:'Support A', nonA:'Autre / neutre', action:'supportent l’équipe A'}),
+  ()=>({t:'reseau', U:'un réseau social', unit:'utilisateurs', col1:'sur ordinateur', col2:'sur mobile', A:'Réguliers', nonA:'Occasionnels', action:'sont des utilisateurs réguliers'}),
+  ()=>({t:'supermarche', U:'un supermarché', unit:'clients', col1:'sans carte fidélité', col2:'avec carte fidélité', A:'Bio', nonA:'Non bio', action:'achètent des produits bio'}),
+  ()=>({t:'restaurant', U:'un restaurant', unit:'clients', col1:'service du soir', col2:'service du midi', A:'Dessert', nonA:'Sans dessert', action:'prennent un dessert'}),
+  ()=>({t:'cinema', U:'un cinéma', unit:'spectateurs', col1:'séances 2D', col2:'séances 3D', A:'Premium', nonA:'Standard', action:'sont placés en rangs premium'}),
+  ()=>({t:'ville', U:'une ville', unit:'habitants', col1:'périphérie', col2:'centre-ville', A:'Vélo', nonA:'Autres modes', action:'se déplacent à vélo'}),
+  ()=>({t:'transports', U:'les transports urbains', unit:'voyageurs', col1:'occasionnels', col2:'abonnés annuels', A:'Heures de pointe', nonA:'Heures creuses', action:'voyagent aux heures de pointe'}),
+  ()=>({t:'clubMusique', U:'un club de musique', unit:'adhérents', col1:'pianistes', col2:'guitaristes', A:'Ensemble', nonA:'Solo', action:'jouent en ensemble'}),
+  ()=>({t:'ecommerce', U:'un site d’e-commerce', unit:'commandes', col1:'livrées à domicile', col2:'livrées en point relais', A:'Carte cadeau', nonA:'Autre paiement', action:'sont payées par carte cadeau'}),
+  ()=>({t:'parcAuto', U:'un parc automobile', unit:'véhicules', col1:'essence', col2:'électriques', A:'Autopartage', nonA:'Usage privé', action:'sont en autopartage'}),
+  ()=>({t:'association', U:'une association', unit:'bénévoles', col1:'occasionnels', col2:'réguliers', A:'Week-end', nonA:'Hors week-end', action:'sont présents le week-end'}),
+  ()=>({t:'clubSport', U:'un club de sport', unit:'adhérents', col1:'natation', col2:'fitness', A:'Cours collectifs', nonA:'Individuel', action:'suivent des cours collectifs'}),
+  ()=>({t:'jardin', U:'un jardin botanique', unit:'plantes', col1:'tempérées', col2:'tropicales', A:'Serre chaude', nonA:'Extérieur', action:'se trouvent en serre chaude'}),
+  ()=>({t:'parc', U:'un parc', unit:'arbres', col1:'feuillus', col2:'conifères', A:'Étiquetés', nonA:'Non étiquetés', action:'sont étiquetés'}),
+  ()=>({t:'biblioMunicipale', U:'une bibliothèque municipale', unit:'abonnés', col1:'abonnement standard', col2:'abonnement premium', A:'Numérique', nonA:'Papier uniquement', action:'empruntent au format numérique'}),
+  ()=>({t:'serviceRH', U:'un service RH', unit:'employés', col1:'CDD', col2:'CDI', A:'Formation interne', nonA:'Sans formation interne', action:'suivent une formation interne'}),
+  ()=>({t:'marche', U:'un marché', unit:'commerçants', col1:'revendeurs', col2:'producteurs locaux', A:'Bio', nonA:'Non bio', action:'vendent des produits bio'}),
+  ()=>({t:'hotel', U:'un hôtel', unit:'clients', col1:'tourisme', col2:'affaires', A:'Petit-déjeuner', nonA:'Sans petit-déjeuner', action:'prennent le petit-déjeuner'}),
+  ()=>({t:'camping', U:'un camping', unit:'emplacements occupés', col1:'caravanes', col2:'tentes', A:'Électricité', nonA:'Sans électricité', action:'disposent d’une prise électrique'})
+];
+
+/* ====== Ex.2 — N réalistes par thème ====== */
+const EX2_NSPEC = {
+  // effectifs "classe"
+  classe:            { pool: [24,26,28,30,32,34,36] },
+
+  // établissements
+  college:           { range: {min: 400,  max: 900,   step: 20} },
+  lycee:             { range: {min: 600,  max: 1600,  step: 50} },
+  universite:        { range: {min: 5000, max: 40000, step: 500} },
+
+  // entreprises / RH
+  entrepriseCadres:  { range: {min: 80,   max: 1000,  step: 20} },
+  entrepriseTP:      { range: {min: 80,   max: 1000,  step: 20} },
+  serviceRH:         { range: {min: 80,   max: 4000,  step: 20} },
+
+  // culture / loisirs
+  bibliotheque:      { range: {min: 500,  max: 4000,  step: 100} }, // abonnés
+  biblioMunicipale:  { range: {min: 800,  max: 20000, step: 200} },
+  musee:             { range: {min: 500,  max: 5000,  step: 100} },
+  cinema:            { range: {min: 400,  max: 4000,  step: 100} },
+  festival:          { range: {min: 2000, max: 100000,step: 1000} },
+  stade:             { range: {min: 8000, max: 60000, step: 1000} },
+
+  // villes / transports / réseau
+  ville:             { range: {min: 20000,max: 300000,step: 5000} },
+  transports:        { range: {min: 50000,max: 1500000,step: 25000} },
+  reseau:            { range: {min: 20000,max: 2000000,step: 50000} },
+
+  // commerce / resto / hôtel / marché / e-commerce / supermarché
+  supermarche:       { range: {min: 600,  max: 6000,  step: 100} },  // clients période
+  restaurant:        { range: {min: 80,   max: 600,   step: 20} },   // clients jour
+  hotel:             { range: {min: 100,  max: 2000,  step: 50} },   // clients période
+  marche:            { range: {min: 80,   max: 800,   step: 10} },   // commerçants
+  ecommerce:         { range: {min: 500,  max: 50000, step: 500} },  // commandes période
+
+  // clubs / asso / sport / musique
+  clubSportif:       { range: {min: 120,  max: 800,   step: 20} },
+  clubSport:         { range: {min: 150,  max: 1500,  step: 25} },
+  clubMusique:       { range: {min: 40,   max: 300,   step: 10} },
+  association:       { range: {min: 30,   max: 800,   step: 10} },
+
+  // nature / inventaires
+  jardin:            { range: {min: 1000, max: 20000, step: 250} },  // plantes
+  parc:              { range: {min: 500,  max: 20000, step: 500} },  // arbres
+  parcAuto:          { range: {min: 100,  max: 5000,  step: 50} },   // véhicules
+
+  // mobilité / métro etc. (déjà dans transports)
+
+  // santé
+  hopital:           { range: {min: 300,  max: 3000,  step: 50} },   // séjours/visites
+
+  // divers
+  camping:           { range: {min: 80,   max: 1200,  step: 20} }
+};
+
+
+/* ===== Exercice 2 — Tableau ===== */
+function genTableState(){
+  const N = rchoice([24,28,30,32,36,40,44,48]);
+  const pB = rchoice([25,30,35,40,45,50,55]);
+  const B = Math.round(N*pB/100);
+  const F = N - B;
+  const pFg = rchoice([25,30,40,50,60,75]);
+  const pBg = rchoice([25,30,40,50,60,75]);
+  const EF = Math.round(F*pFg/100);
+  const EB = Math.round(B*pBg/100);
+  const NF = F - EF;
+  const NB = B - EB;
+  return {N,B,F,pFg,pBg,EF,EB,NF,NB};
+}
+
+/* ====== Ex.2 — Intros personnalisées (toutes en TeX) ====== */
+const pct = v => `\\(${v}\\,\\%\\)`;        // pourcentages en TeX
+const NT  = n => `\\(${n}\\)`;              // nombres en TeX
+
+const EX2_INTRO = {
+  classe: (C,st,pc2)=> `Dans ${C.U} formée de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`,
+  college:(C,st,pc2)=> `Dans un collège, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. Chez les ${C.col1}, ${pct(st.pFg)} ${C.action} ; chez les ${C.col2}, ${pct(st.pBg)} ${C.action}.`,
+  lycee:  (C,st,pc2)=> `Au lycée, l’effectif est de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  clubSportif:(C,st,pc2)=> `Dans ${C.U} de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  bibliotheque:(C,st,pc2)=> `À la bibliothèque, on a ${NT(st.N)} ${C.unit} au total, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  entrepriseCadres:(C,st,pc2)=> `Dans une entreprise, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`,
+  entrepriseTP:(C,st,pc2)=> `Dans une entreprise, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} travaillent à ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  universite:(C,st,pc2)=> `À l’université, on a ${NT(st.N)} ${C.unit} recensés, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} en ${C.col2}.`,
+  festival:(C,st,pc2)=> `Lors d'un festival, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} avec ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  hopital:(C,st,pc2)=> `À l’hôpital, on a ${NT(st.N)} ${C.unit} comptabilisés, dont ${pct(pc2)} sont des ${C.col2}. Parmi ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi ${C.col2}, ${pct(st.pBg)} ${C.action}.`,
+  musee:(C,st,pc2)=> `Au musée, on a ${NT(st.N)} ${C.unit} recensés, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  stade:(C,st,pc2)=> `Au stade, on a ${NT(st.N)} ${C.unit} présents, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  reseau:(C,st,pc2)=> `Sur un réseau social, on a ${NT(st.N)} ${C.unit} au total, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  supermarche:(C,st,pc2)=> `Au supermarché, on a ${NT(st.N)} ${C.unit} sur la période, dont ${pct(pc2)} avec ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  restaurant:(C,st,pc2)=> `Au restaurant, on a ${NT(st.N)} ${C.unit} servis, dont ${pct(pc2)} au ${C.col2}. ${pct(st.pFg)} du ${C.col1} ${C.action} ; ${pct(st.pBg)} du ${C.col2} ${C.action}.`,
+  cinema:(C,st,pc2)=> `Au cinéma, on a ${NT(st.N)} ${C.unit} sur l’intervalle, dont ${pct(pc2)} aux ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  ville:(C,st,pc2)=> `Dans une ville de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} de la ${C.col1} ${C.action} ; ${pct(st.pBg)} du ${C.col2} ${C.action}.`,
+  transports:(C,st,pc2)=> `Dans les transports urbains, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  clubMusique:(C,st,pc2)=> `Au club de musique, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  ecommerce:(C,st,pc2)=> `Sur un site d’e-commerce, on a ${NT(st.N)} ${C.unit} enregistrées, dont ${pct(pc2)} ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  parcAuto:(C,st,pc2)=> `Dans un parc automobile, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  association:(C,st,pc2)=> `Dans une association, on a ${NT(st.N)} ${C.unit} au total, dont ${pct(pc2)} ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action}, contre ${pct(st.pBg)} des ${C.col2}.`,
+  clubSport:(C,st,pc2)=> `Au club de sport, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} au ${C.col2}. ${pct(st.pFg)} de ${C.col1} ${C.action} ; ${pct(st.pBg)} de ${C.col2} ${C.action}.`,
+  jardin:(C,st,pc2)=> `Au jardin botanique, on a ${NT(st.N)} ${C.unit} répertoriées, dont ${pct(pc2)} ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  parc:(C,st,pc2)=> `Dans un parc, on a ${NT(st.N)} ${C.unit} au total, dont ${pct(pc2)} des ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  biblioMunicipale:(C,st,pc2)=> `À la bibliothèque municipale on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  serviceRH:(C,st,pc2)=> `Au service RH, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  marche:(C,st,pc2)=> `Au marché, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} des ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`,
+  hotel:(C,st,pc2)=> `À l’hôtel, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} « ${C.col2} ». ${pct(st.pFg)} du ${C.col1} ${C.action} ; ${pct(st.pBg)} du ${C.col2} ${C.action}.`,
+  camping:(C,st,pc2)=> `Au camping, on a ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} en ${C.col2}. ${pct(st.pFg)} des ${C.col1} ${C.action} ; ${pct(st.pBg)} des ${C.col2} ${C.action}.`
+};
+
+// Helper d’intro : garde ton ex2Intro(C,st) ou remplace par celui-ci
+function ex2Intro(C, st){
+  const pc2 = Math.round(100*st.B/st.N);
+  const fn = EX2_INTRO[C.t];
+  if (fn) return fn(C, st, pc2);
+  // fallback propre si un thème est manquant
+  return `Dans ${C.U} de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. `+
+         `Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`;
+}
+/* ====== Ex.2 — Question contextualisée par thème ====== */
+const EX2_Q = {
+  classe:              C => `Quel est le pourcentage d’${C.unit} de la classe qui ${C.action} ?`,
+  college:             C => `Quel est le pourcentage d’${C.unit} du collège qui ${C.action} ?`,
+  lycee:               C => `Quel est le pourcentage d’${C.unit} du lycée qui ${C.action} ?`,
+  clubSportif:         C => `Quel est le pourcentage d’${C.unit} du club sportif qui ${C.action} ?`,
+  bibliotheque:        C => `Quel est le pourcentage d’${C.unit} de la bibliothèque qui ${C.action} ?`,
+  entrepriseCadres:    C => `Quel est le pourcentage de ${C.unit} de l’entreprise qui ${C.action} ?`,
+  entrepriseTP:        C => `Quel est le pourcentage de ${C.unit} de l’entreprise qui ${C.action} ?`,
+  universite:          C => `Quel est le pourcentage d’${C.unit} de l’université qui ${C.action} ?`,
+  festival:            C => `Quel est le pourcentage de ${C.unit} du festival qui ${C.action} ?`,
+  hopital:             C => `Quel est le pourcentage des ${C.unit} de l’hôpital qui ${C.action} ?`,
+  musee:               C => `Quel est le pourcentage de ${C.unit} du musée qui ${C.action} ?`,
+  stade:               C => `Quel est le pourcentage d’${C.unit} du stade qui ${C.action} ?`,
+  reseau:              C => `Quel est le pourcentage d’${C.unit} du réseau social qui ${C.action} ?`,
+  supermarche:         C => `Quel est le pourcentage de ${C.unit} du supermarché qui ${C.action} ?`,
+  restaurant:          C => `Quel est le pourcentage de ${C.unit} du restaurant qui ${C.action} ?`,
+  cinema:              C => `Quel est le pourcentage de ${C.unit} du cinéma qui ${C.action} ?`,
+  ville:               C => `Quel est le pourcentage d’${C.unit} de la ville qui ${C.action} ?`,
+  transports:          C => `Quel est le pourcentage de ${C.unit} des transports urbains qui ${C.action} ?`,
+  clubMusique:         C => `Quel est le pourcentage d’${C.unit} du club de musique qui ${C.action} ?`,
+  ecommerce:           C => `Quel est le pourcentage de ${C.unit} du site d’e-commerce qui ${C.action} ?`,
+  parcAuto:            C => `Quel est le pourcentage de ${C.unit} du parc automobile qui ${C.action} ?`,
+  association:         C => `Quel est le pourcentage de ${C.unit} de l’association qui ${C.action} ?`,
+  clubSport:           C => `Quel est le pourcentage d’${C.unit} du club de sport qui ${C.action} ?`,
+  jardin:              C => `Quel est le pourcentage de ${C.unit} du jardin botanique qui ${C.action} ?`,
+  parc:                C => `Quel est le pourcentage de ${C.unit} du parc qui ${C.action} ?`,
+  biblioMunicipale:    C => `Quel est le pourcentage de ${C.unit} de la bibliothèque municipale qui ${C.action} ?`,
+  serviceRH:           C => `Quel est le pourcentage d’${C.unit} du service RH qui ${C.action} ?`,
+  marche:              C => `Quel est le pourcentage de ${C.unit} du marché qui ${C.action} ?`,
+  hotel:               C => `Quel est le pourcentage de ${C.unit} de l’hôtel qui ${C.action} ?`,
+  camping:             C => `Quel est le pourcentage d’${C.unit} du camping qui ${C.action} ?`
+};
+
+function ex2Question(C){
+  const fn = EX2_Q[C.t];
+  // Fallback générique si un thème est manquant
+  return fn ? fn(C) : `Quel est le pourcentage de ${C.unit} de ${C.U.replace(/^un |une /,'')} qui ${C.action} ?`;
+}
+
+/* ====== Ex.2 — Libellé de solution contextualisé ====== */
+const EX2_SOLN = {
+  classe:              C => `Pourcentage d’${C.unit} de la classe qui ${C.action}`,
+  college:             C => `Pourcentage d’${C.unit} du collège qui ${C.action}`,
+  lycee:               C => `Pourcentage d’${C.unit} du lycée qui ${C.action}`,
+  clubSportif:         C => `Pourcentage d’${C.unit} du club sportif qui ${C.action}`,
+  bibliotheque:        C => `Pourcentage d’${C.unit} de la bibliothèque qui ${C.action}`,
+  entrepriseCadres:    C => `Pourcentage d’${C.unit} de l’entreprise qui ${C.action}`,
+  entrepriseTP:        C => `Pourcentage d’${C.unit} de l’entreprise qui ${C.action}`,
+  universite:          C => `Pourcentage d’${C.unit} de l’université qui ${C.action}`,
+  festival:            C => `Pourcentage d’${C.unit} du festival qui ${C.action}`,
+  hopital:             C => `Pourcentage des ${C.unit} de l’hôpital qui ${C.action}`,
+  musee:               C => `Pourcentage d’${C.unit} du musée qui ${C.action}`,
+  stade:               C => `Pourcentage d’${C.unit} du stade qui ${C.action}`,
+  reseau:              C => `Pourcentage d’${C.unit} du réseau social qui ${C.action}`,
+  supermarche:         C => `Pourcentage d’${C.unit} du supermarché qui ${C.action}`,
+  restaurant:          C => `Pourcentage d’${C.unit} du restaurant qui ${C.action}`,
+  cinema:              C => `Pourcentage d’${C.unit} du cinéma qui ${C.action}`,
+  ville:               C => `Pourcentage d’${C.unit} de la ville qui ${C.action}`,
+  transports:          C => `Pourcentage de ${C.unit} des transports urbains qui ${C.action}`,
+  clubMusique:         C => `Pourcentage d’${C.unit} du club de musique qui ${C.action}`,
+  ecommerce:           C => `Pourcentage de ${C.unit} du site d’e-commerce qui ${C.action}`,
+  parcAuto:            C => `Pourcentage de ${C.unit} du parc automobile qui ${C.action}`,
+  association:         C => `Pourcentage de ${C.unit} de l’association qui ${C.action}`,
+  clubSport:           C => `Pourcentage d’${C.unit} du club de sport qui ${C.action}`,
+  jardin:              C => `Pourcentage de ${C.unit} du jardin botanique qui ${C.action}`,
+  parc:                C => `Pourcentage d’${C.unit} du parc qui ${C.action}`,
+  biblioMunicipale:    C => `Pourcentage d’${C.unit} de la bibliothèque municipale qui ${C.action}`,
+  serviceRH:           C => `Pourcentage d’${C.unit} du service RH qui ${C.action}`,
+  marche:              C => `Pourcentage de ${C.unit} du marché qui ${C.action}`,
+  hotel:               C => `Pourcentage d’${C.unit} de l’hôtel qui ${C.action}`,
+  camping:             C => `Pourcentage d’${C.unit} du camping qui ${C.action}`
+};
+
+function ex2AnswerLabel(C){
+  const f = EX2_SOLN[C.t];
+  return f ? f(C) : `Pourcentage de ${C.unit} de ${C.U.replace(/^un |une /,'')} qui ${C.action}`;
+}
+
+/* ====== Ex.2 — Q3 contextualisée : p(col1 | nonA) ====== */
+const EX2_Q3 = {
+  // libellés « lieu » spécifiques
+  classe:           (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de la catégorie « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (dans la classe) ?`,
+  college:          (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au collège) ?`,
+  lycee:            (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au lycée) ?`,
+  clubSport:        (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui pratiquent la ${C.col1} sachant qu’ils suivent des « ${nonA} » ?`, // ex. natation | cours individuels
+  clubSportif:      (C,nonA)=> `Quel est le pourcentage d’${C.unit} du club qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
+  bibliotheque:     (C,nonA)=> `Parmi les « ${nonA} » de la bibliothèque, quel pourcentage relèvent de « ${ucfirst(C.col1)} » ?`,
+  biblioMunicipale: (C,nonA)=> `Parmi les « ${nonA} » de la bibliothèque municipale, quel pourcentage relèvent de « ${ucfirst(C.col1)} » ?`,
+  entrepriseCadres: (C,nonA)=> `Dans l’entreprise, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
+  entrepriseTP:     (C,nonA)=> `Dans l’entreprise, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
+  universite:       (C,nonA)=> `À l’université, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
+  festival:         (C,nonA)=> `Au festival, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  hopital:          (C,nonA)=> `À l’hôpital, quel est le pourcentage des ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  musee:            (C,nonA)=> `Au musée, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  stade:            (C,nonA)=> `Au stade, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  reseau:           (C,nonA)=> `Sur le réseau social, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  supermarche:      (C,nonA)=> `Au supermarché, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  restaurant:       (C,nonA)=> `Au restaurant, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  cinema:           (C,nonA)=> `Au cinéma, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  ville:            (C,nonA)=> `Dans la ville, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  transports:       (C,nonA)=> `Dans les transports urbains, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  clubMusique:      (C,nonA)=> `Au club de musique, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  ecommerce:        (C,nonA)=> `Sur le site d’e-commerce, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  parcAuto:         (C,nonA)=> `Dans le parc automobile, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  association:      (C,nonA)=> `Dans l’association, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  jardin:           (C,nonA)=> `Au jardin botanique, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  parc:             (C,nonA)=> `Dans le parc, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  serviceRH:        (C,nonA)=> `Au service RH, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  marche:           (C,nonA)=> `Au marché, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  hotel:            (C,nonA)=> `À l’hôtel, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  camping:          (C,nonA)=> `Au camping, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`
+};
+
+function ex2Question3(C){
+  const nonA = C.nonA || ('Non ' + C.A);
+  const f = EX2_Q3[C.t];
+  return (f ? f(C, nonA) : `Quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`);
+}
+
+/* ====== Ex.2 — Libellé de solution Q3 contextualisé ====== */
+const EX2_SOLN3 = {
+  clubSport:  C => `Pourcentage d’${C.unit} qui pratiquent la ${C.col1} parmi ceux qui suivent des « ${C.nonA||('Non '+C.A)} »`,
+  default:    C => `Pourcentage d’${C.unit} de la catégorie « ${ucfirst(C.col1)} » parmi les « ${C.nonA||('Non '+C.A)} »`
+};
+function ex2AnswerLabel3(C){
+  return (EX2_SOLN3[C.t] || EX2_SOLN3.default)(C);
+}
+
+const ex2 = {
+  id:'ex2',
+  title:"Ex. 2 — Tableau à double entrée (entiers uniquement)",
+gen(){
+  const ctx = rchoice(EX2_BANK)();
+
+  // N adapté au thème
+  const N  = pickNForContext(ctx);
+
+  // part col2 (on garde une plage simple et polyvalente)
+  const pB = rchoice([25,30,35,40,45,50,55]);  // % pour la colonne 2 (ctx.col2)
+  const B  = Math.round(N*pB/100);
+  const F  = N - B;
+
+  // % "A" dans chaque colonne (entiers habituels)
+  const pFg = rchoice([25,30,40,50,60,75]);
+  const pBg = rchoice([25,30,40,50,60,75]);
+  const EF  = Math.round(F*pFg/100);
+  const EB  = Math.round(B*pBg/100);
+  const NF  = F - EF;
+  const NB  = B - EB;
+
+  return {ctx,N,B,F,pFg,pBg,EF,EB,NF,NB};
+},
+
+render(host, st){
+  const C = st.ctx;
+  const Arow = C.A;
+  const nonA = C.nonA || ('Non ' + Arow);
+
+  const root=document.createElement('div');
+  root.innerHTML = `
+    <div class="consigne"><span class="c-label">Exercice&nbsp;2.</span></div>
+   <div class="row">
+      <div class="col-label">${ex2Intro(C, st)}</div>
+      <div class="input-line">
+	     	  <div><strong>Q1.</strong> Compléter le tableau :</div>
+
+        <table class="tbl" id="t2">
+          <tr><th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th></tr>
+          <tr><th>${Arow}</th>
+            <td>
+              <input id="tEF" type="text" placeholder="">
+              <span class="tick" id="tickEF"></span>
+            </td>
+            <td>
+              <input id="tEB" type="text" placeholder="">
+              <span class="tick" id="tickEB"></span>
+            </td>
+            <td>
+              <input id="tEA" type="text" placeholder="">
+              <span class="tick" id="tickEA"></span>
+            </td>
+          </tr>
+          <tr><th>${nonA}</th>
+            <td>
+              <input id="tNF" type="text" placeholder="">
+              <span class="tick" id="tickNF"></span>
+            </td>
+            <td>
+              <input id="tNB" type="text" placeholder="">
+              <span class="tick" id="tickNB"></span>
+            </td>
+            <td>
+              <input id="tNE" type="text" placeholder="">
+              <span class="tick" id="tickNE"></span>
+            </td>
+          </tr>
+          <tr><th>Total</th>
+            <td>
+              <input id="tF" type="text" placeholder="">
+              <span class="tick" id="tickF"></span>
+            </td>
+            <td>
+              <input id="tB" type="text" placeholder="">
+              <span class="tick" id="tickB"></span>
+            </td>
+            <td>\\(${st.N}\\)</td>
+          </tr>
+        </table>
+
+        <div style="margin-top:8px">
+  <strong>Q2.</strong> ${ex2Question(C)}
+</div>
+<input type="text" id="tPct" placeholder="">
+<span class="tick" id="tickPct"></span>
+<div style="margin-top:10px">
+  <strong>Q3.</strong> ${ex2Question3(C)}
+  <div class="small">
+    Indice : \(p(\text{${ucfirst(C.col1)}}\mid \text{${C.nonA || ('Non '+C.A)}})=
+    \dfrac{\text{${C.nonA || ('Non '+C.A)} en ${ucfirst(C.col1)}}}{\text{${C.nonA || ('Non '+C.A)} total}}\times 100\,\%\).
+  </div>
+</div>
+<input type="text" id="tPctQ3" placeholder="">
+<span class="tick" id="tickPctQ3"></span>
+
+      </div>
+      <div class="res" id="r2"></div>
+    </div>`;
+  host.innerHTML=''; host.appendChild(root);
+  if(window.MathJax) MathJax.typesetPromise();
+},
+
+
+
+ check(host, st){
+  let ok=0, tot=0;
+
+  const mark = (id, state)=>{
+    const el = $(id,host);
+    if(!el) return;
+    el.className = 'tick' + (state ? ' ' + (state==='ok' ? 'ok' : 'ko') : '');
+    el.textContent = state==='ok' ? '✓' : state==='ko' ? '✗' : '';
+  };
+
+  // helper lecture int avec neutralité si vide
+  const checkInt = (inpSel, tickSel, expected) => {
+    const raw = String(($(inpSel,host)?.value)||'').replace(/−/g,'-').trim();
+    if(raw===''){ mark(tickSel, null); return; }        // neutre si vide
+    const v = parseInt(raw,10);
+    const good = Number.isInteger(v) && v===expected;
+    tot += 1; if(good) ok += 1;
+    mark(tickSel, good ? 'ok' : 'ko');
+  };
+
+  // Ligne A
+  checkInt('#tEF', '#tickEF', st.EF);
+  checkInt('#tEB', '#tickEB', st.EB);
+  checkInt('#tEA', '#tickEA', st.EF + st.EB);
+
+  // Ligne ¬A
+  checkInt('#tNF', '#tickNF', st.NF);
+  checkInt('#tNB', '#tickNB', st.NB);
+  checkInt('#tNE', '#tickNE', st.NF + st.NB);
+
+  // Totaux colonnes
+  checkInt('#tF',  '#tickF',  st.F);
+  checkInt('#tB',  '#tickB',  st.B);
+
+  // Question pourcentage
+  const pStr = ($('#tPct',host)?.value||'').trim();
+  if(pStr===''){
+    mark('#tickPct', null);
+  }else{
+    const p = parsePct(pStr);
+    const target = Math.round(100*(st.EF+st.EB)/st.N);
+    const good = Number.isFinite(p) && Math.round(p)===target;
+    tot += 1; if(good) ok += 1;
+    mark('#tickPct', good ? 'ok' : 'ko');
+  }
+// Q3 : p(col1 | nonA) = NF / (NF+NB)
+const p3Str = ($('#tPctQ3',host)?.value||'').trim();
+if(p3Str===''){
+  mark('#tickPctQ3', null);
+}else{
+  const p3 = parsePct(p3Str);
+  const target3 = Math.round(100 * st.NF / (st.NF + st.NB));
+  const good3 = Number.isFinite(p3) && Math.round(p3)===target3;
+  tot += 1; if(good3) ok += 1;
+  mark('#tickPctQ3', good3 ? 'ok' : 'ko');
+}
+
+  // Résumé
+  $('#r2',host).textContent = `${ok}/${tot} éléments corrects`;
+  $('#r2',host).className = (ok===tot && tot>0) ? 'res res-ok' : 'res res-ko';
+  return {ok, tot};
+},
+
+solution(host, st){
+  const C = st.ctx;
+  const nonA = C.nonA || ('Non ' + C.A);
+  const pct = Math.round(100*(st.EF+st.EB)/st.N);
+const apct=pct/100;
+  const pct3 = Math.round(100 * st.NF / (st.NF + st.NB));
+	  const apct3=pct3/100;
+  const html = `
+    <div class="steps">
+      <div style="overflow:auto">
+	  <span class="qno">Q1.</span>
+        <table class="tbl tbl-solution">
+          <tr>
+            <th></th>
+            <th>${ucfirst(C.col1)}</th>
+            <th>${ucfirst(C.col2)}</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <th>${C.A}</th>
+            <td>\\(${st.EF}\\)</td>
+            <td>\\(${st.EB}\\)</td>
+            <td>\\(${st.EF + st.EB}\\)</td>
+          </tr>
+          <tr>
+            <th>${nonA}</th>
+            <td>\\(${st.NF}\\)</td>
+            <td>\\(${st.NB}\\)</td>
+            <td>\\(${st.NF + st.NB}\\)</td>
+          </tr>
+          <tr>
+            <th>Total</th>
+            <td>\\(${st.F}\\)</td>
+            <td>\\(${st.B}\\)</td>
+            <td>\\(${st.N}\\)</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="line" style="margin-top:.35rem">
+        <span class="qno">Q2.</span>
+        ${ex2AnswerLabel(C)} :
+        \\(p=\\displaystyle \\frac{${st.EF+st.EB}}{${st.N}} =${apct} =${pct}\\,\\%\\).
+      </div>
+	
+  <div class="line" style="margin-top:.35rem">
+    <span class="qno">Q3.</span>
+    ${ex2AnswerLabel3(C)} :
+    \\(\\displaystyle p=\\frac{${st.NF}}{${st.NF+st.NB}} =${apct3}= ${pct3}\\,\\%\\).
+  </div>
+    </div>
+  `;
+
+  $('#r2',host).innerHTML = html;
+  $('#r2',host).className = 'res res-ok';
+  if (window.MathJax) MathJax.typesetPromise();
+},
+
+
+  reset(host){ host.innerHTML=''; }
+};
+
+
+/* ===== SVG — Arbre pondéré compact (à compléter) ===== */
+// ---- MARQUEUP de l'arbre (libellés HTML + lignes SVG) ----
+/* ===== SVG — Arbre pondéré compact (libellés AVANT les nœuds) ===== */
+function treeHTML(st){
+  return `
+  <div id="tree3" class="tree-wrap">
+    <svg viewBox="0 0 640 220" aria-label="Arbre pondéré">
+      <defs><style>
+        .e{stroke:#64748b;stroke-width:2;fill:none}
+        .t{font:16px system-ui,Segoe UI,Roboto,Arial}
+      </style></defs>
+
+      <!-- issues -->
+      <text class="t" x="528" y="44">Malades</text>
+      <text class="t" x="528" y="104">Non malades</text>
+      <text class="t" x="528" y="144">Non malades</text>
+      <text class="t" x="528" y="204">Malades</text>
+
+      <!-- Troupeau -->
+      <text class="t" x="24" y="114">Troupeau</text>
+
+      <!-- segment depuis Troupeau jusqu'au bord GAUCHE des libellés -->
+      <line id="seg_nv" class="e" x1="120" y1="110" x2="120" y2="110"/>
+      <line id="seg_v"  class="e" x1="120" y1="110" x2="120" y2="110"/>
+
+      <!-- nœuds (placés immédiatement APRÈS les libellés) -->
+      <circle id="nodeNV" cx="120" cy="110" r="2.5" fill="#64748b"></circle>
+      <circle id="nodeV"  cx="120" cy="110" r="2.5" fill="#64748b"></circle>
+
+      <!-- branches secondaires (partent DES nœuds) -->
+      <line id="nv_m" class="e" x1="120" y1="110" x2="520" y2="40"/>
+      <line id="nv_n" class="e" x1="120" y1="110" x2="520" y2="100"/>
+      <line id="v_n"  class="e" x1="120" y1="110" x2="520" y2="140"/>
+      <line id="v_m"  class="e" x1="120" y1="110" x2="520" y2="200"/>
+    </svg>
+
+    <!-- Libellés POSÉS sur la branche, AVANT le nœud -->
+    <span id="lblNV" class="branch-label">Non vaccinés</span>
+    <span id="lblV"  class="branch-label">Vaccinés</span>
+
+    <!-- Inputs -->
+    <input id="pNV"  class="branch-input">
+    <input id="pV"   class="branch-input">
+    <input id="pSnv" class="branch-input">
+    <input id="pNSnv"class="branch-input">
+    <input id="pNSv" class="branch-input">
+    <input id="pSv"  class="branch-input">
+  </div>`;
+}
+
+/* ---- LAYOUT : libellé → nœud → branches ---- */
+function layoutTree3(root, st){
+  const svg = root.querySelector('svg');
+
+  // Géométrie : angle plus "ouvert" + petit padding après libellé
+  const GEOM = {
+    armX: 240,       // distance horizontale avant le libellé
+    spreadY: 120,    // écart vertical (angle plus grand)
+    labelMidT: 0.60, // centre du libellé le long de la branche
+    pad: 6           // espace entre libellé et nœud
+  };
+
+  const R = { x:120, y:110 }; // racine à droite de "Troupeau"
+  const NVt = { x:R.x+GEOM.armX, y:R.y-GEOM.spreadY }; // direction Non vaccinés
+  const Vt  = { x:R.x+GEOM.armX, y:R.y+GEOM.spreadY }; // direction Vaccinés
+
+  const Mnv={x:540,y: 40}, Nnv={x:540,y:100};
+  const NvN={x:540,y:140}, NvM={x:540,y:200};
+
+  const lerp=(A,B,t)=>({x:A.x+(B.x-A.x)*t, y:A.y+(B.y-A.y)*t});
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const setLine=(id,A,B)=>{ const L=svg.querySelector('#'+id);
+    L.setAttribute('x1',A.x); L.setAttribute('y1',A.y);
+    L.setAttribute('x2',B.x); L.setAttribute('y2',B.y);
+  };
+  const setNode=(id,P)=>{ const C=svg.querySelector('#'+id);
+    C.setAttribute('cx',P.x); C.setAttribute('cy',P.y);
+  };
+  const placeInput=(sel,P)=>{ const el=root.querySelector(sel);
+    el.style.left=(P.x-29)+'px'; el.style.top=(P.y-11)+'px';
+  };
+
+  // Centre théorique des libellés
+  const LnvC = lerp(R, NVt, GEOM.labelMidT);
+  const LvC  = lerp(R, Vt,  GEOM.labelMidT);
+
+  const lblNV = root.querySelector('#lblNV');
+  const lblV  = root.querySelector('#lblV');
+
+  // (re)mesure
+  const wNV = lblNV.offsetWidth, wV = lblV.offsetWidth;
+
+  // Place visuellement le texte (centré sur la branche)
+  lblNV.style.left = (LnvC.x - wNV/2) + 'px';
+  lblNV.style.top  = (LnvC.y) + 'px';
+  lblV .style.left = (LvC.x  - wV/2 ) + 'px';
+  lblV .style.top  = (LvC.y)  + 'px';
+
+  // Paramètre t correspondant au bord GAUCHE du libellé
+  const tFromX = (tgt, x) => clamp((x - R.x) / (tgt.x - R.x), 0, 1);
+
+  const xLeftNV = (LnvC.x - wNV/2);
+  const xLeftV  = (LvC.x  - wV/2 );
+  const tNV_left = tFromX(NVt, xLeftNV);
+  const tV_left  = tFromX(Vt,  xLeftV);
+
+/* ---- 2) Points clés le long des branches (projection vectorielle) ---- */
+// vecteurs unitaires des deux branches depuis la racine
+const unit = (A,B)=>{
+  const dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy)||1;
+  return {x:dx/L, y:dy/L};
+};
+const uNV = unit(R, NVt);
+const uV  = unit(R, Vt);
+
+// demi-largeur + pad : combien on avance/recul le long de la branche
+const dNV = (wNV/2) + GEOM.pad;
+const dV  = (wV/2)  + GEOM.pad;
+
+// point "centre théorique" du libellé (déjà calculé)
+ // LnvC, LvC
+
+// fin du segment AVANT le libellé (centre - d * u)
+const Pnv_end = { x: LnvC.x - dNV*uNV.x, y: LnvC.y - dNV*uNV.y };
+const Pv_end  = { x:  LvC.x - dV *uV.x,  y:  LvC.y - dV *uV.y  };
+
+// nœud APRÈS le libellé (centre + d * u)
+const NV = { x: LnvC.x + dNV*uNV.x, y: LnvC.y + dNV*uNV.y };
+const V  = { x:  LvC.x + dV *uV.x,  y:  LvC.y + dV *uV.y  };
+
+
+  // 1) segments racine → avant-libellé
+  setLine('seg_nv', R, Pnv_end);
+  setLine('seg_v',  R, Pv_end);
+
+  // 2) nœuds juste après libellé
+  setNode('nodeNV', NV);
+  setNode('nodeV',  V);
+
+  // 3) branches secondaires qui PARTENT des nœuds (donc après le texte)
+  setLine('nv_m', NV, Mnv); setLine('nv_n', NV, Nnv);
+  setLine('v_n',  V,  NvN); setLine('v_m',  V,  NvM);
+
+  // 4) inputs placés au milieu de chaque branche
+  placeInput('#pNV',  lerp(R, NV, 0.24));
+  placeInput('#pV',   lerp(R, V,  0.24));
+  placeInput('#pSnv', lerp(NV,Mnv,0.50));
+  placeInput('#pNSnv',lerp(NV,Nnv,0.50));
+  placeInput('#pNSv', lerp(V, NvN,0.50));
+  placeInput('#pSv',  lerp(V, NvM,0.50));
+}
+
+
+
+
+/* ===== Exercice 3 ===== */
+function genTree(){ const N=rchoice([400,500,600,700,800,900,1000,1200]); const pV=rchoice([30,35,40,45,50,55,60]); const pS_v=rchoice([1,2,3,4,5]); const pS_nv=rchoice([20,25,30,35,40]); return {N,pV,pS_v,pS_nv}; }
+const ex3 = {
+  id:'ex3', title:"Ex. 3 — Arbre pondéré (pourcentages entiers)",
+  gen(){ return genTree(); },
+  render(host, st){
+  const root = document.createElement('div');
+  root.innerHTML = `
+    <div class="consigne"><span class="c-label">Exercice 3.</span> Compléter l’arbre puis répondre.</div>
+    <div class="row">
+      <div class="col-label">
+        Troupeau de <strong>\\(${st.N}\\)</strong> bovins.
+        \\(${st.pV}\\,\\%\\) ont été vaccinés.
+        Chez les non vaccinés, \\(${st.pS_nv}\\,\\%\\) tomberont malades ;
+        chez les vaccinés, \\(${st.pS_v}\\,\\%\\) tomberont malades.
+      </div>
+      <div class="input-line">
+        <div style="margin:6px 0"><em>Arbre pondéré (saisir les % sur chaque branche)</em></div>
+        ${treeHTML(st)}
+        <div style="margin-top:10px"><strong>Q2.</strong> Pourcentage estimé de bovins malades :
+          \\(p=p(V)p(S\\mid V)+p(\\overline V)p(S\\mid \\overline V)\\).</div>
+        <input id="pTot" type="text" placeholder="ex. 23 %" style="width:160px">
+        <div style="margin-top:10px"><strong>Q3.</strong> Nombre estimé de bovins malades :
+          \\(N\\times \\dfrac{p}{100}\\).</div>
+        <input id="nTot" type="text" placeholder="Entier (ex. 184)" style="width:160px">
+      </div>
+      <div class="res" id="r3"></div>
+    </div>
+  `;
+  host.innerHTML=''; host.appendChild(root);
+  // <<< calcul de la géométrie une fois dans le DOM
+const tree = document.querySelector('#tree3');
+layoutTree3(tree, st);
+requestAnimationFrame(()=>layoutTree3(tree, st)); // 2e passe après peinture
+window.addEventListener('resize', ()=>layoutTree3(tree, st));
+  if(window.MathJax) MathJax.typesetPromise();
+},
+
+
+  check(host, st){
+    let ok=0, tot=0;
+    const pV=parsePct($('#pV',host).value), pNV=parsePct($('#pNV',host).value), pSv=parsePct($('#pSv',host).value), pNSv=parsePct($('#pNSv',host).value), pSnv=parsePct($('#pSnv',host).value), pNSnv=parsePct($('#pNSnv',host).value);
+    const pct=x=>Number.isFinite(x)?Math.round(x):NaN;
+    const A=[pct(pV)===st.pV, pct(pNV)===100-st.pV, pct(pSv)===st.pS_v, pct(pNSv)===100-st.pS_v, pct(pSnv)===st.pS_nv, pct(pNSnv)===100-st.pS_nv];
+    tot+=A.length; ok+=A.filter(Boolean).length;
+
+    const pTot=parsePct($('#pTot',host).value);
+    const targetP = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
+    tot+=1; if(Number.isFinite(pTot) && Math.round(pTot)===Math.round(targetP)) ok++;
+
+    const nTot=parseInt(stripSign($('#nTot',host).value||'').trim(),10);
+    tot+=1; if(nTot===Math.round(st.N*targetP/100)) ok++;
+
+    $('#r3',host).textContent = `${ok}/${tot} éléments corrects`;
+    $('#r3',host).className = (ok===tot)?'res res-ok':'res res-ko';
+    return {ok,tot};
+  },
+  solution(host, st){
+    const pTot = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
+    const nTot = Math.round(st.N*pTot/100);
+    const L=[];
+    L.push(`<span class="qno">Arbre</span> \\(p(V)=${st.pV}\\,\\%\\), \\(p(S\\mid V)=${st.pS_v}\\,\\%\\), \\(p(S\\mid \\overline V)=${st.pS_nv}\\,\\%\\).`);
+    L.push(`<span class="qno">Q2</span> \\(p=${st.pV}\\cdot\\frac{${st.pS_v}}{100} + (100-${st.pV})\\cdot\\frac{${st.pS_nv}}{100} = ${Math.round(pTot)}\\,\\%\\).`);
+    L.push(`<span class="qno">Q3</span> \\(N\\times p/100 = ${st.N}\\times ${Math.round(pTot)}\\,\\% = ${nTot}\\).`);
+    $('#r3',host).innerHTML = '<div class="steps">'+L.map(t=>`<div class="line">${t}</div>`).join('')+'</div>';
+    $('#r3',host).className='res res-ok';
+    if(window.MathJax) MathJax.typesetPromise();
+  },
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ===== Glue ===== */
+const REGISTRY = [ex1,ex2];
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+function renderActive(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st = def.gen();
+  host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+}
+function state(){ try{ return JSON.parse($('#host').dataset.state||'{}'); }catch(e){ return {}; } }
+function check(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; const st=state(); const r=def.check(host,st)||{ok:0,tot:0}; scoreOK+=r.ok; scoreTot+=r.tot; updateScore(); }
+function showSolution(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; def.solution(host,state()); }
+function resetAll(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; scoreOK=0; scoreTot=0; updateScore(); def.reset(host); renderActive(); }
+
+document.addEventListener('DOMContentLoaded', function () {
+  renderActive(); 
+  updateScore();
+
+  // ➜ changer d'exercice = re-générer tout de suite
+  $('#exo-select').addEventListener('change', () => {
+    scoreOK = 0;
+    scoreTot = 0;
+    updateScore();
+    renderActive();            // recharge l'exo sélectionné
+  });
+
+  $('#btn-new').addEventListener('click', renderActive);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', showSolution);
+  $('#btn-reset').addEventListener('click', resetAll);
+
+  if (window.MathJax) MathJax.typesetPromise();
+});
+
+</script>
+
+<!-- JS clavier & kit PDF si besoin -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
 </body>
 </html>

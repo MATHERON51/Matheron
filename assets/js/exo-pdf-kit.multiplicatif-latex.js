@@ -769,7 +769,8 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
   .tree-wrap .tick.abs{
     display: none !important;
   }
-  
+    .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
+  .qmark{min-width:1.2em;text-align:center;font-weight:700}
 </style>
 
 <style>

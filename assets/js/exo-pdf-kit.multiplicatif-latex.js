@@ -724,6 +724,52 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
  .tbl-main3{ table-layout: fixed; width: 100%; }
   .tbl-main3 col.col-left  { width: 50% !important; }  /* ← ajuste 26–35% à ton goût */
   .tbl-main3 col.col-right { width: 50% !important; }
+  
+  svg{max-width:100%;height:auto;}
+
+.tree-wrap{
+  position:relative;
+  width:760px;         /* ou 640px, mais UNE seule valeur */
+  height:260px;
+  margin:6px 0 10px;
+}
+#tree3 svg{overflow:visible}
+.tree-wrap svg{position:absolute; inset:0; width:100%; height:100%}
+
+.branch-input{
+  position:absolute; width:58px; padding:2px 4px; font-size:12px;
+  border:1px solid #cbd5e1; border-radius:6px; text-align:center; background:#fff;
+}
+
+}
+/* libellés posés dans la coupure du trait */
+.branch-label{
+  position:absolute;white-space:nowrap;padding:0 4px;background:#fff;
+  transform:translateY(-50%); /* centrage vertical sur la branche */
+  font:16px system-ui,Segoe UI,Roboto,Arial;color:#111
+}
+
+/* Apparence en mode solution : les inputs deviennent des étiquettes */
+.branch-input.as-label{
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  font-weight: 600;
+  width: auto;          /* pour épouser le contenu */
+  padding: 0;
+  text-align: left;
+}
+   /* s'assurer que la zone de l'arbre ne rogne rien et garde ses positions absolues */
+  .tree-wrap{ position: relative !important; overflow: visible !important; }
+  #tree3 svg{ overflow: visible !important; }
+
+  /* les inputs/labels doivent rester visibles (le kit n'appliquera pas display:none) */
+  .branch-input, .branch-label{ visibility: visible !important; opacity: 1 !important; } 
+  .tree-wrap .branch-input,
+  .tree-wrap .tick.abs{
+    display: none !important;
+  }
+  
 </style>
 
 <style>

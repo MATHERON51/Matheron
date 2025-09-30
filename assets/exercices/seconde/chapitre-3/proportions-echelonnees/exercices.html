@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Seconde – Proportions échelonnées (HTML + TeX + SVG)</title>
+<title>Seconde – Proportions échelonnées</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-latex.css">
@@ -46,10 +46,7 @@ svg{max-width:100%;height:auto;}
 .tick.ok{color:#059669}   /* ✓ vert */
 .tick.ko{color:#dc2626}   /* ✗ rouge */
 
-/* --- Arbre pondéré avec inputs sur les branches --- */
-.tree-wrap{
-  position:relative; width:640px; height:220px; margin:6px 0 10px;
-}
+
 .tree-wrap svg{
   position:absolute; inset:0; width:100%; height:100%;
 }
@@ -57,19 +54,43 @@ svg{max-width:100%;height:auto;}
   position:absolute; width:58px; padding:2px 4px; font-size:12px;
   border:1px solid #cbd5e1; border-radius:6px; text-align:center; background:#fff;
 }
-/* Arbre avec libellés entre segment et nœud */
-.tree-wrap{position:relative;width:640px;height:220px;margin:6px 0 10px}
-.tree-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+.tree-wrap{
+  position:relative;
+  width:760px;         /* ou 640px, mais UNE seule valeur */
+  height:260px;
+  margin:6px 0 10px;
+}
+#tree3 svg{overflow:visible}
+.tree-wrap svg{position:absolute; inset:0; width:100%; height:100%}
+
 .branch-input{
   position:absolute;width:58px;padding:2px 4px;font-size:12px;
   border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:#fff
 }
 /* libellés posés dans la coupure du trait */
-.branch-label{
-  position:absolute;white-space:nowrap;padding:0 4px;background:#fff;
-  transform:translateY(-50%); /* centrage vertical sur la branche */
-  font:16px system-ui,Segoe UI,Roboto,Arial;color:#111
+
+/* Apparence en mode solution : les inputs deviennent des étiquettes */
+.branch-input.as-label{
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  font-weight: 600;
+  width: auto;          /* pour épouser le contenu */
+  padding: 0;
+  text-align: left;
 }
+/* Ticks absolus pour l'arbre (à côté des inputs) */
+.tick.abs{
+  position:absolute;
+  margin:0;
+  font-weight:700;
+  min-width:auto;
+  color:#059669; /* vert par défaut */
+  z-index:3;
+}
+.tick.abs.ko{color:#dc2626}
+
+
 
 </style>
 
@@ -87,10 +108,15 @@ svg{max-width:100%;height:auto;}
   };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<!-- JS clavier & kit PDF si besoin -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 </head>
 <body>
   <div class="header">
-    <h1 style="margin:0;font-size:1.05rem">Seconde – Proportions échelonnées (HTML + TeX + SVG)</h1>
+    <h1 style="margin:0;font-size:1.05rem">Seconde – Proportions échelonnées</h1>
   </div>
   <div class="wrap">
 
@@ -110,8 +136,9 @@ svg{max-width:100%;height:auto;}
 
     <div class="card" id="host"></div>
 
-    <div class="card small">
-      <div class="hint">Saisir vos réponses dans les zones prévues. Les formules sont en \LaTeX{} via MathJax.</div>
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <div class="hint">Saisir vos réponses dans les zones prévues. Pensez à mettre % quand c'est explicitement demandé</div>
     </div>
 
     <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
@@ -184,6 +211,200 @@ function hasWord(hay, needle){
   if (!n) return false;
   const esc = n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   return new RegExp(`\\b${esc}\\b`).test(h);
+}
+// % OBLIGATOIRE (ex: "12%" ou "12,5%") → retourne 12 ou 12.5
+function readPercentStrict(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(!/%$/.test(s)) return NaN;                // doit se terminer par %
+  s = s.slice(0,-1).trim().replace(',','.');
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+// Proportion souple: "12%" OU "0,12" (refuse "12")
+// → retourne la valeur en pourcents (12) pour comparer facilement
+function readProportionFlexible(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(/%$/.test(s)) return readPercentStrict(s);       // 12%
+  const v = parseNum(s);                               // 0.12 / 0,12
+  if(!Number.isFinite(v)) return NaN;
+  if(v < 0 || v > 1) return NaN;                       // refuse "12"
+  return v*100;                                        // 0.12 → 12
+}
+function svgAddPercentPlaceholders(svg, st, isSolution){
+  const NS = 'http://www.w3.org/2000/svg';
+  const makeG = () => svg.appendChild(document.createElementNS(NS,'g'));
+
+  // lis les coordonnées d’une ligne
+  const seg = id => {
+    const L = svg.querySelector('#'+id);
+    if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    return { x:(x1+x2)/2, y:(y1+y2)/2 };
+  };
+
+  // style commun
+  const font = '14px system-ui,Segoe UI,Roboto,Arial';
+
+  // fabrique un « input » SVG (énoncé) ou un label % (solution)
+  const drawBoxOrText = (P, value /* entier en % ou null */) => {
+    const g = makeG();
+    if(isSolution){
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', P.x);
+      t.setAttribute('y', P.y+5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('style', `font:${font}; fill:#111`);
+      t.textContent = `${Math.round(value)} %`;
+      g.appendChild(t);
+    }else{
+      const w=46, h=20, rx=4;
+      const r = document.createElementNS(NS,'rect');
+      r.setAttribute('x', P.x - w/2);
+      r.setAttribute('y', P.y - h/2);
+      r.setAttribute('width', w);
+      r.setAttribute('height', h);
+      r.setAttribute('rx', rx);
+      r.setAttribute('fill', '#fff');
+      r.setAttribute('stroke', '#cbd5e1');
+      g.appendChild(r);
+
+      // petit “%” grisé en guide
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', P.x + w/2 - 10);
+      t.setAttribute('y', P.y + 5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('style', `font:${font}; fill:#9ca3af`);
+      t.textContent = '%';
+      g.appendChild(t);
+    }
+  };
+
+  // points milieux des 6 segments (ids déjà dans ton SVG)
+  const M = {
+    // branches de niveau 1
+    pNV:  seg('seg_nv'),
+    pV:   seg('seg_v'),
+    // branches issues (ordre cohérent avec st.S / st.NS)
+    pSnv:  seg('nv_m'),
+    pNSnv: seg('nv_n'),
+    pNSv:  seg('v_n'),
+    pSv:   seg('v_m')
+  };
+
+  // si on est en solution → valeurs attendues
+  const values = {
+    pNV:   100 - st.pV,
+    pV:    st.pV,
+    pSv:   st.pS_v,
+    pNSv:  100 - st.pS_v,
+    pSnv:  st.pS_nv,
+    pNSnv: 100 - st.pS_nv
+  };
+
+  // dessiner
+  Object.entries(M).forEach(([k,P])=>{
+    if(!P) return;
+    drawBoxOrText(P, isSolution ? values[k] : null);
+  });
+}
+
+function svgAddPercentLabelsOffLine(svg, st, opts={}){
+  const NS = 'http://www.w3.org/2000/svg';
+  const font = opts.font || '14px system-ui,Segoe UI,Roboto,Arial';
+
+  // lit un segment par id → {x1,y1,x2,y2, mx,my, nx,ny}
+  const seg = id => {
+    const L = svg.querySelector('#'+id);
+    if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    // vecteur normal unitaire (perpendiculaire)
+    let vx=x2-x1, vy=y2-y1;
+    const len = Math.hypot(vx,vy) || 1;
+    const nx = -vy/len, ny = vx/len;
+    return { x1,y1,x2,y2, mx,my, nx,ny };
+  };
+
+  // place un texte à (mx,my) + d * (nx,ny) (au-dessus si s=+1, en dessous si s=-1)
+  const place = (S, value, sgn=+1, dist=opts.distance||14) => {
+    if(!S) return;
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', S.mx + sgn*dist*S.nx);
+    t.setAttribute('y', S.my + sgn*dist*S.ny + 5);     // +5 pour l’assise
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('style', `font:${font}; fill:#111`);
+    t.textContent = `${Math.round(value)} %`;
+    svg.appendChild(t);
+  };
+
+  // Segments (ids existants dans ton SVG)
+  const S = {
+    seg_nv : seg('seg_nv'),
+    seg_v  : seg('seg_v'),
+    nv_m   : seg('nv_m'),
+    nv_n   : seg('nv_n'),
+    v_n    : seg('v_n'),
+    v_m    : seg('v_m'),
+  };
+
+  // Valeurs attendues
+  const V = {
+    seg_nv : 100 - st.pV,
+    seg_v  : st.pV,
+    nv_m   : st.pS_nv,
+    nv_n   : 100 - st.pS_nv,
+    v_n    : 100 - st.pS_v,
+    v_m    : st.pS_v
+  };
+
+  // Choix des côtés : branches "hautes" → au-dessus (+1), "basses" → au-dessous (-1)
+  // seg_nv est la branche du haut, seg_v celle du bas (après layoutTree3).
+  const side = {
+    seg_nv : -1,
+    seg_v  : +1,
+    nv_n   : -1,   // issue haute de NV
+    nv_m   : +1,   // issue basse de NV
+    v_n    : -1,   // issue haute de V
+    v_m    : +1    // issue basse de V
+  };
+
+  // Dessin
+  Object.keys(S).forEach(k=>{
+    if(!S[k]) return;
+    place(S[k], V[k], side[k]);
+  });
+}
+
+// utilitaire robuste pour la largeur d'un <text> SVG
+function textWidth(t, svg){
+  // 1) getBBox (le plus fiable quand dispo)
+  try {
+    const bb = t.getBBox();
+    if (bb && isFinite(bb.width) && bb.width > 0) return bb.width;
+  } catch(_) {}
+
+  // 2) getComputedTextLength (souvent OK dans les moteurs "print")
+  if (typeof t.getComputedTextLength === 'function') {
+    const w = t.getComputedTextLength();
+    if (isFinite(w) && w > 0) return w;
+  }
+
+  // 3) boundingClientRect → re-projeter en unités viewBox
+  const r = svg.getBoundingClientRect?.();
+  const vb = svg.viewBox?.baseVal;
+  const br = t.getBoundingClientRect?.();
+  if (r && vb && br && r.width > 0) {
+    const sx = vb.width / r.width;
+    const w = br.width * sx;
+    if (isFinite(w) && w > 0) return w;
+  }
+
+  // 4) dernier recours : heuristique (8.5 px/char ~ 12–14px)
+  const n = (t.textContent || '').length;
+  return Math.max(10, n * 8.5);
 }
 
 /* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
@@ -387,9 +608,11 @@ check(host, st){
   const pStr = $('#pAE',host).value || '';
   let pState = null;
   if (pStr.trim()!==''){
-    const p = parsePct(pStr);
-    const truePct = st.pF * (st.pAinF*100) / 100;
-    pState = (Number.isFinite(p) && Math.round(p)===Math.round(truePct)) ? 'ok' : 'ko';
+// ex1.check → Q2
+const p = readPercentStrict(pStr);     // ← % OBLIGATOIRE
+const truePct = st.pF * (st.pAinF*100) / 100;
+pState = (Number.isFinite(p) && Math.round(p)===Math.round(truePct)) ? 'ok' : 'ko';
+
     tot += 1; if (pState==='ok') ok++;
   }
   mark('#tickP', pState);
@@ -404,8 +627,8 @@ check(host, st){
     const truePct = st.pF * (st.pAinF*100) / 100;
     const propText = st.ctx.asProportion ? String(st.pAinF.toFixed(1)).replace('.',',') : Math.round(st.pAinF*100)+'\\,\\%';
     const L=[];
-    L.push(`<span class="qno">Q1</span>\\(E\\) : ${st.ctx.E}. \\(F\\) : ${st.ctx.F}. \\(A\\) : ${st.ctx.A}.`);
-    L.push(`<span class="qno">Q2</span>\\(p = ${st.pF}\\,\\% \\times ${propText} = ${Math.round(truePct)}\\,\\%\\).`);
+    L.push(`<span class="qno"><strong>Q1. </strong></span>\\(E\\) : ${st.ctx.E}. \\(F\\) : ${st.ctx.F}. \\(A\\) : ${st.ctx.A}.`);
+    L.push(`<span class="qno"><strong>Q2. </strong></span>\\(p = ${st.pF}\\,\\% \\times ${propText} = ${Math.round(truePct)}\\,\\%\\).`);
     $('#r1',host).innerHTML = '<div class="steps">'+L.map(t=>`<div class="line">${t}</div>`).join('')+'</div>';
     $('#r1',host).className='res res-ok';
     if(window.MathJax) MathJax.typesetPromise();
@@ -742,7 +965,7 @@ render(host, st){
       <div class="input-line">
 	     	  <div><strong>Q1.</strong> Compléter le tableau :</div>
 
-        <table class="tbl" id="t2">
+        <table class="tbl pdfb" id="t2">
           <tr><th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th></tr>
           <tr><th>${Arow}</th>
             <td>
@@ -792,10 +1015,7 @@ render(host, st){
 <span class="tick" id="tickPct"></span>
 <div style="margin-top:10px">
   <strong>Q3.</strong> ${ex2Question3(C)}
-  <div class="small">
-    Indice : \(p(\text{${ucfirst(C.col1)}}\mid \text{${C.nonA || ('Non '+C.A)}})=
-    \dfrac{\text{${C.nonA || ('Non '+C.A)} en ${ucfirst(C.col1)}}}{\text{${C.nonA || ('Non '+C.A)} total}}\times 100\,\%\).
-  </div>
+
 </div>
 <input type="text" id="tPctQ3" placeholder="">
 <span class="tick" id="tickPctQ3"></span>
@@ -848,7 +1068,7 @@ render(host, st){
   if(pStr===''){
     mark('#tickPct', null);
   }else{
-    const p = parsePct(pStr);
+const p  = readPercentStrict(pStr);   // Q2
     const target = Math.round(100*(st.EF+st.EB)/st.N);
     const good = Number.isFinite(p) && Math.round(p)===target;
     tot += 1; if(good) ok += 1;
@@ -859,7 +1079,7 @@ const p3Str = ($('#tPctQ3',host)?.value||'').trim();
 if(p3Str===''){
   mark('#tickPctQ3', null);
 }else{
-  const p3 = parsePct(p3Str);
+const p3 = readPercentStrict(p3Str);  // Q3
   const target3 = Math.round(100 * st.NF / (st.NF + st.NB));
   const good3 = Number.isFinite(p3) && Math.round(p3)===target3;
   tot += 1; if(good3) ok += 1;
@@ -882,8 +1102,8 @@ const apct=pct/100;
   const html = `
     <div class="steps">
       <div style="overflow:auto">
-	  <span class="qno">Q1.</span>
-        <table class="tbl tbl-solution">
+	  <span class="qno"><strong>Q1. </strong></span>
+        <table class="tbl tbl-solution pdfb">
           <tr>
             <th></th>
             <th>${ucfirst(C.col1)}</th>
@@ -912,13 +1132,13 @@ const apct=pct/100;
       </div>
 
       <div class="line" style="margin-top:.35rem">
-        <span class="qno">Q2.</span>
+        <span class="qno"><strong>Q2. </strong></span>
         ${ex2AnswerLabel(C)} :
         \\(p=\\displaystyle \\frac{${st.EF+st.EB}}{${st.N}} =${apct} =${pct}\\,\\%\\).
       </div>
 	
   <div class="line" style="margin-top:.35rem">
-    <span class="qno">Q3.</span>
+    <span class="qno"><strong>Q3. </strong></span>
     ${ex2AnswerLabel3(C)} :
     \\(\\displaystyle p=\\frac{${st.NF}}{${st.NF+st.NB}} =${apct3}= ${pct3}\\,\\%\\).
   </div>
@@ -935,243 +1155,1090 @@ const apct=pct/100;
 };
 
 
-/* ===== SVG — Arbre pondéré compact (à compléter) ===== */
-// ---- MARQUEUP de l'arbre (libellés HTML + lignes SVG) ----
-/* ===== SVG — Arbre pondéré compact (libellés AVANT les nœuds) ===== */
+
+/* ===================== EX.3 — Banque de 30 contextes ===================== */
+// Tirages réalistes pour les issues négatives (sans protection) et protégées
+// Risques réalistes (sans protection)
+const RISK_POOL = {
+  low:  [8,10,12,14,16],          // événements rares
+  mid:  [10,12,14,16,18,20],      // un peu plus fréquents
+  high: [12,14,16,18,20,22]       // le plus élevé qu’on tolère ici
+};
+
+// plus simple: n'utiliser que des pV "sûrs" (donnent des Dmin petits)
+const PV_SAFE = [25,40,50,60,70,75]; 
+function pickPV(){ return rchoice(PV_SAFE); }
+
+// plus petit delta imposant pV*delta multiple de 100
+function gcd(a,b){ return b ? gcd(b, a%b) : Math.abs(a); }
+function deltaPoolFor(pV){
+  const Dmin = 100 / gcd(pV,100);                  // ex. pV=60 → Dmin=5
+  const CAND = [4,5,6,8,10,12,15,16,20];           // deltas plausibles
+  return CAND.filter(d => d % Dmin === 0);
+}
+
+// Tire pS_nv (sans protection) selon le niveau,
+// puis choisit un delta compatible pour garantir un p entier.
+function mkRisk(level, pV, floorV=2){
+  const pool = RISK_POOL[level] || RISK_POOL.mid;
+  let pS_nv = rchoice(pool);
+  let deltas = deltaPoolFor(pV).filter(d => d <= pS_nv - floorV);
+  // au cas où, on remonte un peu pS_nv pour avoir au moins un delta possible
+  if(!deltas.length){
+    pS_nv = Math.max(pS_nv, floorV + Math.min(...deltaPoolFor(pV)));
+    deltas = deltaPoolFor(pV).filter(d => d <= pS_nv - floorV);
+  }
+  const d = rchoice(deltas);
+  return { pS_nv, pS_v: pS_nv - d };               // garantie : p entier
+}
+
+
+const EX3_BANK = [
+  // 1. Cyclistes (casque) — rare → low
+  ()=>{ const N=rchoice([200,300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Club de cyclisme',
+          unit:'cyclistes',
+          Vlabel:'Avec casque', NVlabel:'Sans casque',
+          S:'Blessés à la tête', NS:'Non blessés',
+          N,pV,pS_v,pS_nv,
+          intro:`Dans un club de cyclisme de ${N} cyclistes, ${pV} % roulent avec un casque. Parmi ceux qui ne portent pas de casque, ${pS_nv} % subiront une blessure à la tête en cas de chute, alors que parmi les cyclistes casqués, cette proportion descend à ${pS_v} %.`
+        };
+  },
+
+  // 2. Collège (gilet réfléchissant) — low
+  ()=>{ const N=rchoice([300,400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Élèves du collège',
+          unit:'élèves',
+          Vlabel:'Avec gilet', NVlabel:'Sans gilet',
+          S:'Accident de trajet', NS:'Trajets sans incident',
+          N,pV,pS_v,pS_nv,
+          intro:`Au sein d’un collège de ${N} élèves, ${pV} % portent un gilet réfléchissant pour rentrer chez eux. Parmi ceux qui n’en portent pas, ${pS_nv} % connaîtront un accident de trajet, contre ${pS_v} % parmi les élèves équipés.`
+        };
+  },
+
+  // 3. Ski (casque) — low
+  ()=>{ const N=rchoice([200,300,400,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Groupe de skieurs',
+          unit:'skieurs',
+          Vlabel:'Avec casque', NVlabel:'Sans casque',
+          S:'Traumatisme crânien', NS:'Sans traumatisme',
+          N,pV,pS_v,pS_nv,
+          intro:`Un groupe de ${N} skieurs part en station. ${pV} % portent un casque. Sans casque, ${pS_nv} % subiront un traumatisme crânien lors d’une chute, alors qu’avec casque cette proportion tombe à ${pS_v} %.`
+        };
+  },
+
+  // 4. Plage (crème solaire) — low
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Journée à la plage',
+          unit:'baigneurs',
+          Vlabel:'Crème appliquée', NVlabel:'Sans crème',
+          S:'Coup de soleil', NS:'Pas de coup de soleil',
+          N,pV,pS_v,pS_nv,
+          intro:`Lors d’une journée à la plage réunissant ${N} personnes, ${pV} % appliquent de la crème solaire régulièrement. Parmi ceux qui n’en mettent pas, ${pS_nv} % attraperont un coup de soleil, contre ${pS_v} % parmi les personnes protégées.`
+        };
+  },
+
+  // 5. Randonnée (chaussures adaptées) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Sortie randonnée',
+          unit:'randonneurs',
+          Vlabel:'Chaussures adaptées', NVlabel:'Chaussures inadaptées',
+          S:'Entorse ou chute', NS:'Sans blessure',
+          N,pV,pS_v,pS_nv,
+          intro:`Un groupe de ${N} randonneurs part en montagne. ${pV} % portent des chaussures adaptées. Parmi ceux dont l’équipement est inadapté, ${pS_nv} % subiront une entorse ou une chute, contre ${pS_v} % chez les randonneurs bien équipés.`
+        };
+  },
+
+  // 6. Football (protège-tibias) — low
+  ()=>{ const N=rchoice([200,300,400,500,700,900]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Tournoi de football',
+          unit:'joueurs',
+          Vlabel:'Protège-tibias', NVlabel:'Sans protège-tibias',
+          S:'Contusion', NS:'Sans contusion',
+          N,pV,pS_v,pS_nv,
+          intro:`Un tournoi de football réunit ${N} joueurs. ${pV} % portent des protège-tibias. Sans cette protection, ${pS_nv} % subiront une contusion, contre ${pS_v} % parmi les joueurs équipés.`
+        };
+  },
+
+  // 7. Vélo urbain (éclairage) — low
+  ()=>{ const N=rchoice([300,400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Trajets à vélo en ville',
+          unit:'cyclistes',
+          Vlabel:'Éclairage actif', NVlabel:'Sans éclairage',
+          S:'Accrochage nocturne', NS:'Trajets sans accrochage',
+          N,pV,pS_v,pS_nv,
+          intro:`Sur ${N} trajets nocturnes à vélo, ${pV} % sont effectués avec un éclairage actif. Parmi les trajets sans éclairage, ${pS_nv} % se soldent par un accrochage, contre ${pS_v} % avec éclairage.`
+        };
+  },
+
+  // 8. Cuisine (gants anti-chaleur) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Atelier de cuisine',
+          unit:'participants',
+          Vlabel:'Gants anti-chaleur', NVlabel:'Sans gants',
+          S:'Brûlure', NS:'Pas de brûlure',
+          N,pV,pS_v,pS_nv,
+          intro:`Un atelier de cuisine regroupe ${N} participants. ${pV} % utilisent des gants anti-chaleur. Parmi ceux qui n’en portent pas, ${pS_nv} % se brûleront, contre ${pS_v} % chez les participants équipés.`
+        };
+  },
+
+  // 9. Laboratoire (lunettes) — mid (un peu plus “à risque” que les précédents)
+  ()=>{ const N=rchoice([200,300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Travaux pratiques de chimie',
+          unit:'élèves',
+          Vlabel:'Lunettes portées', NVlabel:'Sans lunettes',
+          S:'Projection dans les yeux', NS:'Sans incident',
+          N,pV,pS_v,pS_nv,
+          intro:`Pendant des travaux pratiques réunissant ${N} élèves, ${pV} % portent leurs lunettes de protection. Sans protection, ${pS_nv} % subissent une projection dans les yeux, contre ${pS_v} % avec lunettes.`
+        };
+  },
+
+  // 10. Bricolage (casque anti-bruit) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Atelier de bricolage',
+          unit:'bricoleurs',
+          Vlabel:'Casque anti-bruit', NVlabel:'Sans casque',
+          S:'Acouphènes', NS:'Pas d’acouphènes',
+          N,pV,pS_v,pS_nv,
+          intro:`Un atelier de bricolage réunit ${N} personnes. ${pV} % utilisent un casque anti-bruit. Parmi ceux qui travaillent sans casque, ${pS_nv} % développeront des acouphènes, contre ${pS_v} % chez les personnes protégées.`
+        };
+  },
+
+  // 11. Informatique (MFA) — mid
+  ()=>{ const N=rchoice([400,500,600,800,1000,1200,1500]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Comptes d’entreprise',
+          unit:'comptes',
+          Vlabel:'MFA activée', NVlabel:'Sans MFA',
+          S:'Compte compromis', NS:'Compte intact',
+          N,pV,pS_v,pS_nv,
+          intro:`Dans une entreprise gérant ${N} comptes, ${pV} % ont activé l’authentification multifacteur. Parmi les comptes sans MFA, ${pS_nv} % seront compromis, contre ${pS_v} % parmi les comptes protégés.`
+        };
+  },
+
+  // 12. Informatique (antivirus) — mid
+  ()=>{ const N=rchoice([400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Parc informatique',
+          unit:'ordinateurs',
+          Vlabel:'Antivirus à jour', NVlabel:'Antivirus obsolète',
+          S:'Infection', NS:'Sain',
+          N,pV,pS_v,pS_nv,
+          intro:`Un parc de ${N} ordinateurs est suivi par l’équipe IT. ${pV} % disposent d’un antivirus à jour. Parmi les machines mal protégées, ${pS_nv} % seront infectées, contre ${pS_v} % parmi celles à jour.`
+        };
+  },
+
+  // 13. Photos (sauvegardes) — mid
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Utilisateurs de photo',
+          unit:'utilisateurs',
+          Vlabel:'Sauvegardes actives', NVlabel:'Sans sauvegarde',
+          S:'Perte de données', NS:'Données conservées',
+          N,pV,pS_v,pS_nv,
+          intro:`Un service photo compte ${N} utilisateurs. ${pV} % ont activé des sauvegardes régulières. Sans sauvegarde, ${pS_nv} % perdront leurs clichés, contre ${pS_v} % chez les utilisateurs protégés.`
+        };
+  },
+
+  // 14. Appartement (détecteur) — mid
+  ()=>{ const N=rchoice([200,300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Immeuble résidentiel',
+          unit:'logements',
+          Vlabel:'Détecteur fonctionnel', NVlabel:'Sans détecteur',
+          S:'Début d’incendie non maîtrisé', NS:'Incident maîtrisé',
+          N,pV,pS_v,pS_nv,
+          intro:`Un immeuble compte ${N} logements. ${pV} % disposent d’un détecteur de fumée fonctionnel. Sans détecteur, ${pS_nv} % verront un début d’incendie dégénérer, contre ${pS_v} % avec détecteur.`
+        };
+  },
+
+  // 15. Hiver (parka) — low
+  ()=>{ const N=rchoice([300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Sortie scolaire sous la pluie',
+          unit:'élèves',
+          Vlabel:'Parka imperméable', NVlabel:'Veste légère',
+          S:'Rhume déclaré', NS:'Pas de rhume',
+          N,pV,pS_v,pS_nv,
+          intro:`Lors d’une sortie de ${N} élèves sous une pluie continue, ${pV} % portent une parka imperméable. Sans protection adaptée, ${pS_nv} % finiront enrhumés, contre ${pS_v} % parmi les élèves bien couverts.`
+        };
+  },
+
+  // 16. Chantier (casque) — mid
+  ()=>{ const N=rchoice([200,300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Chantier de construction',
+          unit:'ouvriers',
+          Vlabel:'Casque porté', NVlabel:'Sans casque',
+          S:'Blessure à la tête', NS:'Sans blessure',
+          N,pV,pS_v,pS_nv,
+          intro:`Sur un chantier réunissant ${N} ouvriers, ${pV} % portent un casque. Sans casque, ${pS_nv} % subiront une blessure à la tête, contre ${pS_v} % parmi les ouvriers équipés.`
+        };
+  },
+
+  // 17. Trottinette (casque) — low
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Usagers de trottinette',
+          unit:'usagers',
+          Vlabel:'Casque porté', NVlabel:'Sans casque',
+          S:'Traumatisme', NS:'Sans traumatisme',
+          N,pV,pS_v,pS_nv,
+          intro:`En ville, ${N} usagers de trottinette sont observés. ${pV} % portent un casque. Parmi ceux qui roulent tête nue, ${pS_nv} % subiront un traumatisme, contre ${pS_v} % chez les usagers protégés.`
+        };
+  },
+
+  // 18. Bureau (chaise) — mid
+  ()=>{ const N=rchoice([400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Plateau de bureaux',
+          unit:'salariés',
+          Vlabel:'Chaise ergonomique', NVlabel:'Chaise standard',
+          S:'Douleur lombaire', NS:'Sans douleur',
+          N,pV,pS_v,pS_nv,
+          intro:`Sur un plateau de ${N} salariés, ${pV} % disposent d’une chaise ergonomique. Sans cet équipement, ${pS_nv} % développeront une douleur lombaire, contre ${pS_v} % avec chaise adaptée.`
+        };
+  },
+
+  // 19. Concert (bouchons) — mid
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Public d’un concert',
+          unit:'spectateurs',
+          Vlabel:'Bouchons portés', NVlabel:'Sans bouchons',
+          S:'Sifflements persistants', NS:'Pas de sifflements',
+          N,pV,pS_v,pS_nv,
+          intro:`Un concert réunit ${N} spectateurs. ${pV} % portent des bouchons d’oreilles. Chez ceux qui n’en portent pas, ${pS_nv} % signaleront des sifflements persistants, contre ${pS_v} % parmi le public protégé.`
+        };
+  },
+
+  // 20. Jardinage (gants) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Atelier de jardinage',
+          unit:'participants',
+          Vlabel:'Gants solides', NVlabel:'Sans gants',
+          S:'Coupure', NS:'Pas de coupure',
+          N,pV,pS_v,pS_nv,
+          intro:`Un atelier de jardinage regroupe ${N} participants. ${pV} % utilisent des gants solides. Sans gants, ${pS_nv} % se couperont, contre ${pS_v} % chez les personnes équipées.`
+        };
+  },
+
+  // 21. Chaîne du froid — mid
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Livraisons de repas',
+          unit:'livraisons',
+          Vlabel:'Chaîne du froid respectée', NVlabel:'Chaîne rompue',
+          S:'Intoxication', NS:'Aucune intoxication',
+          N,pV,pS_v,pS_nv,
+          intro:`Un service effectue ${N} livraisons de repas. ${pV} % respectent strictement la chaîne du froid. Lorsque la chaîne est rompue, ${pS_nv} % entraînent une intoxication, contre ${pS_v} % lorsque la chaîne est respectée.`
+        };
+  },
+
+  // 22. Piscine (bonnet) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Cours de natation',
+          unit:'nageurs',
+          Vlabel:'Bonnet porté', NVlabel:'Sans bonnet',
+          S:'Otite', NS:'Pas d’otite',
+          N,pV,pS_v,pS_nv,
+          intro:`Pendant un cours de natation réunissant ${N} nageurs, ${pV} % portent un bonnet. Sans bonnet, ${pS_nv} % développeront une otite, contre ${pS_v} % chez les nageurs protégés.`
+        };
+  },
+
+  // 23. Pneus neige — mid
+  ()=>{ const N=rchoice([300,400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Trajets sur route enneigée',
+          unit:'véhicules',
+          Vlabel:'Pneus neige', NVlabel:'Pneus standards',
+          S:'Accident', NS:'Pas d’accident',
+          N,pV,pS_v,pS_nv,
+          intro:`Sur des routes enneigées, ${N} véhicules circulent. ${pV} % sont équipés de pneus neige. Sans cet équipement, ${pS_nv} % finiront en accident, contre ${pS_v} % avec pneus adaptés.`
+        };
+  },
+
+  // 24. Été (hydratation) — mid
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Marche sous forte chaleur',
+          unit:'marcheurs',
+          Vlabel:'Hydratation régulière', NVlabel:'Hydratation insuffisante',
+          S:'Coup de chaleur', NS:'Aucun malaise',
+          N,pV,pS_v,pS_nv,
+          intro:`Une marche rassemble ${N} personnes sous une forte chaleur. ${pV} % s’hydratent régulièrement. Parmi ceux qui boivent trop peu, ${pS_nv} % auront un coup de chaleur, contre ${pS_v} % chez les marcheurs vigilants.`
+        };
+  },
+
+  // 25. Moto (équipement renforcé) — mid
+  ()=>{ const N=rchoice([200,300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Sortie moto',
+          unit:'motards',
+          Vlabel:'Équipement renforcé', NVlabel:'Équipement léger',
+          S:'Blessure grave', NS:'Blessure mineure ou aucune',
+          N,pV,pS_v,pS_nv,
+          intro:`Une sortie réunit ${N} motards. ${pV} % portent un équipement renforcé. Avec un équipement léger, ${pS_nv} % subiront une blessure grave, contre ${pS_v} % parmi les motards mieux protégés.`
+        };
+  },
+
+  // 26. Escalade (assurage) — mid
+  ()=>{ const N=rchoice([200,300,400,500,600]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Séance d’escalade',
+          unit:'grimpeurs',
+          Vlabel:'Assurage rigoureux', NVlabel:'Assurage négligé',
+          S:'Chute avec blessure', NS:'Pas de blessure',
+          N,pV,pS_v,pS_nv,
+          intro:`Lors d’une séance d’escalade regroupant ${N} grimpeurs, ${pV} % appliquent un assurage rigoureux. Quand l’assurage est négligé, ${pS_nv} % chutent avec blessure, contre ${pS_v} % avec un assurage correct.`
+        };
+  },
+
+  // 27. Randonnée (bâtons) — low
+  ()=>{ const N=rchoice([200,300,400,500,600,800]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Montée raide en sentier',
+          unit:'randonneurs',
+          Vlabel:'Bâtons utilisés', NVlabel:'Sans bâtons',
+          S:'Glissade avec choc', NS:'Montée sans incident',
+          N,pV,pS_v,pS_nv,
+          intro:`Une montée raide réunit ${N} randonneurs. ${pV} % utilisent des bâtons. Sans bâtons, ${pS_nv} % glisseront et se blesseront, contre ${pS_v} % chez ceux qui sont équipés.`
+        };
+  },
+
+  // 28. Hôpital (lavage des mains) — high (un peu plus haut mais raisonnable)
+  ()=>{ const N=rchoice([400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('high', pV);
+        return {
+          rootLabel:'Service hospitalier',
+          unit:'soignants',
+          Vlabel:'Lavage systématique', NVlabel:'Lavage irrégulier',
+          S:'Transmission nosocomiale', NS:'Aucune transmission',
+          N,pV,pS_v,pS_nv,
+          intro:`Dans un service hospitalier de ${N} soignants, ${pV} % appliquent un lavage des mains systématique. Quand ce geste est irrégulier, ${pS_nv} % transmettent une infection nosocomiale, contre ${pS_v} % lorsqu’il est rigoureux.`
+        };
+  },
+
+  // 29. École (cartable) — low
+  ()=>{ const N=rchoice([300,400,500,600,800,1000]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('low', pV);
+        return {
+          rootLabel:'Trajets d’écoliers',
+          unit:'élèves',
+          Vlabel:'Cartable à roulettes', NVlabel:'Cartable porté',
+          S:'Douleur d’épaule', NS:'Aucune douleur',
+          N,pV,pS_v,pS_nv,
+          intro:`Des trajets quotidiens impliquent ${N} élèves. ${pV} % utilisent un cartable à roulettes. Parmi ceux qui portent le cartable sur l’épaule, ${pS_nv} % auront une douleur, contre ${pS_v} % chez les enfants équipés de roulettes.`
+        };
+  },
+
+  // 30. Open space (pauses actives) — mid
+  ()=>{ const N=rchoice([400,500,600,800,1000,1200]);
+     const pV = pickPV();
+        const {pS_nv,pS_v}=mkRisk('mid', pV);
+        return {
+          rootLabel:'Open space',
+          unit:'collaborateurs',
+          Vlabel:'Pauses actives régulières', NVlabel:'Pauses sédentaires',
+          S:'Tension musculaire', NS:'Confort maintenu',
+          N,pV,pS_v,pS_nv,
+          intro:`Un open space réunit ${N} collaborateurs. ${pV} % pratiquent des pauses actives régulières. Sans ces pauses, ${pS_nv} % ressentiront une forte tension musculaire, contre ${pS_v} % chez ceux qui bougent régulièrement.`
+        };
+  }
+];
+
+
+/* Sélection d’un contexte aléatoire */
+function genTreeFromBank(){ return rchoice(EX3_BANK)(); }
+
+function q2_ex3(st){
+  switch (st.rootLabel) {
+    case 'Club de cyclisme':
+      return 'Quel est le pourcentage de cyclistes qui sont blessés à la tête ?';
+    case 'Élèves du collège':
+      return 'Quel est le pourcentage d’élèves qui ont un accident de trajet ?';
+    case 'Groupe de skieurs':
+      return 'Quel est le pourcentage de skieurs qui subissent un traumatisme crânien ?';
+    case 'Journée à la plage':
+      return 'Quel est le pourcentage de baigneurs qui ont un coup de soleil ?';
+    case 'Sortie randonnée':
+      return 'Quel est le pourcentage de randonneurs qui font une entorse ou une chute ?';
+    case 'Tournoi de football':
+      return 'Quel est le pourcentage de joueurs qui subissent une contusion ?';
+    case 'Trajets à vélo en ville':
+      return 'Quel est le pourcentage de cyclistes qui ont un accrochage nocturne ?';
+    case 'Atelier de cuisine':
+      return 'Quel est le pourcentage de participants qui se brûlent ?';
+    case 'Travaux pratiques de chimie':
+      return 'Quel est le pourcentage d’élèves qui reçoivent une projection dans les yeux ?';
+    case 'Atelier de bricolage':
+      return 'Quel est le pourcentage de bricoleurs qui développent des acouphènes ?';
+    case 'Comptes d’entreprise':
+      return 'Quel est le pourcentage de comptes qui sont compromis ?';
+    case 'Parc informatique':
+      return 'Quel est le pourcentage d’ordinateurs qui sont infectés ?';
+    case 'Utilisateurs de photo':
+      return 'Quel est le pourcentage d’utilisateurs qui perdent leurs données ?';
+    case 'Immeuble résidentiel':
+      return 'Quel est le pourcentage de logements où un début d’incendie n’est pas maîtrisé ?';
+    case 'Sortie scolaire sous la pluie':
+      return 'Quel est le pourcentage d’élèves qui déclarent un rhume ?';
+    case 'Chantier de construction':
+      return 'Quel est le pourcentage d’ouvriers qui se blessent à la tête ?';
+    case 'Usagers de trottinette':
+      return 'Quel est le pourcentage d’usagers qui subissent un traumatisme ?';
+    case 'Plateau de bureaux':
+      return 'Quel est le pourcentage de salariés qui ressentent une douleur lombaire ?';
+    case 'Public d’un concert':
+      return 'Quel est le pourcentage de spectateurs qui signalent des sifflements persistants ?';
+    case 'Atelier de jardinage':
+      return 'Quel est le pourcentage de participants qui se coupent ?';
+    case 'Livraisons de repas':
+      return 'Quel est le pourcentage de livraisons qui entraînent une intoxication ?';
+    case 'Cours de natation':
+      return 'Quel est le pourcentage de nageurs qui développent une otite ?';
+    case 'Trajets sur route enneigée':
+      return 'Quel est le pourcentage de véhicules qui ont un accident ?';
+    case 'Marche sous forte chaleur':
+      return 'Quel est le pourcentage de marcheurs qui ont un coup de chaleur ?';
+    case 'Sortie moto':
+      return 'Quel est le pourcentage de motards qui subissent une blessure grave ?';
+    case 'Séance d’escalade':
+      return 'Quel est le pourcentage de grimpeurs qui chutent avec blessure ?';
+    case 'Montée raide en sentier':
+      return 'Quel est le pourcentage de randonneurs qui glissent avec choc ?';
+    case 'Service hospitalier':
+      return 'Quel est le pourcentage de soignants qui transmettent une infection nosocomiale ?';
+    case 'Trajets d’écoliers':
+      return 'Quel est le pourcentage d’élèves qui ont une douleur d’épaule ?';
+    case 'Open space':
+      return 'Quel est le pourcentage de collaborateurs qui ressentent une forte tension musculaire ?';
+    default:
+      // garde-fou générique
+      return `Quel est le pourcentage de ${st.unit} qui ${st.S.toLowerCase()} ?`;
+  }
+}
+
+function q3_ex3(st){
+  switch (st.rootLabel) {
+    case 'Club de cyclisme':
+      return `Parmi les ${st.N} cyclistes, combien seront blessés à la tête ?`;
+    case 'Élèves du collège':
+      return `Parmi les ${st.N} élèves, combien auront un accident de trajet ?`;
+    case 'Groupe de skieurs':
+      return `Parmi les ${st.N} skieurs, combien subiront un traumatisme crânien ?`;
+    case 'Journée à la plage':
+      return `Parmi les ${st.N} baigneurs, combien auront un coup de soleil ?`;
+    case 'Sortie randonnée':
+      return `Parmi les ${st.N} randonneurs, combien feront une entorse ou une chute ?`;
+    case 'Tournoi de football':
+      return `Parmi les ${st.N} joueurs, combien subiront une contusion ?`;
+    case 'Trajets à vélo en ville':
+      return `Parmi les ${st.N} cyclistes, combien auront un accrochage nocturne ?`;
+    case 'Atelier de cuisine':
+      return `Parmi les ${st.N} participants, combien se brûleront ?`;
+    case 'Travaux pratiques de chimie':
+      return `Parmi les ${st.N} élèves, combien recevront une projection dans les yeux ?`;
+    case 'Atelier de bricolage':
+      return `Parmi les ${st.N} bricoleurs, combien développeront des acouphènes ?`;
+    case 'Comptes d’entreprise':
+      return `Parmi les ${st.N} comptes, combien seront compromis ?`;
+    case 'Parc informatique':
+      return `Parmi les ${st.N} ordinateurs, combien seront infectés ?`;
+    case 'Utilisateurs de photo':
+      return `Parmi les ${st.N} utilisateurs, combien perdront leurs données ?`;
+    case 'Immeuble résidentiel':
+      return `Parmi les ${st.N} logements, dans combien un début d’incendie ne sera-t-il pas maîtrisé ?`;
+    case 'Sortie scolaire sous la pluie':
+      return `Parmi les ${st.N} élèves, combien déclareront un rhume ?`;
+    case 'Chantier de construction':
+      return `Parmi les ${st.N} ouvriers, combien se blesseront à la tête ?`;
+    case 'Usagers de trottinette':
+      return `Parmi les ${st.N} usagers, combien subiront un traumatisme ?`;
+    case 'Plateau de bureaux':
+      return `Parmi les ${st.N} salariés, combien ressentiront une douleur lombaire ?`;
+    case 'Public d’un concert':
+      return `Parmi les ${st.N} spectateurs, combien signaleront des sifflements persistants ?`;
+    case 'Atelier de jardinage':
+      return `Parmi les ${st.N} participants, combien se couperont ?`;
+    case 'Livraisons de repas':
+      return `Parmi les ${st.N} livraisons, combien entraîneront une intoxication ?`;
+    case 'Cours de natation':
+      return `Parmi les ${st.N} nageurs, combien développeront une otite ?`;
+    case 'Trajets sur route enneigée':
+      return `Parmi les ${st.N} véhicules, combien auront un accident ?`;
+    case 'Marche sous forte chaleur':
+      return `Parmi les ${st.N} marcheurs, combien auront un coup de chaleur ?`;
+    case 'Sortie moto':
+      return `Parmi les ${st.N} motards, combien subiront une blessure grave ?`;
+    case 'Séance d’escalade':
+      return `Parmi les ${st.N} grimpeurs, combien chuteront avec blessure ?`;
+    case 'Montée raide en sentier':
+      return `Parmi les ${st.N} randonneurs, combien glisseront avec choc ?`;
+    case 'Service hospitalier':
+      return `Parmi les ${st.N} soignants, combien transmettront une infection nosocomiale ?`;
+    case 'Trajets d’écoliers':
+      return `Parmi les ${st.N} élèves, combien auront une douleur d’épaule ?`;
+    case 'Open space':
+      return `Parmi les ${st.N} collaborateurs, combien ressentiront une forte tension musculaire ?`;
+    default:
+      return `Parmi les ${st.N} ${st.unit}, combien ${st.S.toLowerCase()} ?`;
+  }
+}
+
+
+
 function treeHTML(st){
   return `
   <div id="tree3" class="tree-wrap">
-    <svg viewBox="0 0 640 220" aria-label="Arbre pondéré">
-      <defs><style>
+<svg viewBox="0 0 640 260" width="760" height="260" aria-label="Arbre pondéré">      <defs><style>
         .e{stroke:#64748b;stroke-width:2;fill:none}
         .t{font:16px system-ui,Segoe UI,Roboto,Arial}
       </style></defs>
 
-      <!-- issues -->
-      <text class="t" x="528" y="44">Malades</text>
-      <text class="t" x="528" y="104">Non malades</text>
-      <text class="t" x="528" y="144">Non malades</text>
-      <text class="t" x="528" y="204">Malades</text>
+      <!-- Libellé racine -->
+      <text id="rootLabel" class="t" x="0" y="130">${st.rootLabel}</text>
+      <circle id="nodeRoot" cx="120" cy="130" r="2.5" fill="#64748b"></circle>
 
-      <!-- Troupeau -->
-      <text class="t" x="24" y="114">Troupeau</text>
-
-      <!-- segment depuis Troupeau jusqu'au bord GAUCHE des libellés -->
+      <!-- Segments principaux (depuis racine jusqu’avant libellé) -->
       <line id="seg_nv" class="e" x1="120" y1="110" x2="120" y2="110"/>
       <line id="seg_v"  class="e" x1="120" y1="110" x2="120" y2="110"/>
 
-      <!-- nœuds (placés immédiatement APRÈS les libellés) -->
+      <!-- Libellés de branches (DANS le SVG) -->
+      <text id="txt_lblNV" class="t" text-anchor="middle">${st.NVlabel}</text>
+      <text id="txt_lblV"  class="t" text-anchor="middle">${st.Vlabel}</text>
+
+      <!-- Nœuds juste après les libellés -->
       <circle id="nodeNV" cx="120" cy="110" r="2.5" fill="#64748b"></circle>
       <circle id="nodeV"  cx="120" cy="110" r="2.5" fill="#64748b"></circle>
 
-      <!-- branches secondaires (partent DES nœuds) -->
-      <line id="nv_m" class="e" x1="120" y1="110" x2="520" y2="40"/>
-      <line id="nv_n" class="e" x1="120" y1="110" x2="520" y2="100"/>
-      <line id="v_n"  class="e" x1="120" y1="110" x2="520" y2="140"/>
-      <line id="v_m"  class="e" x1="120" y1="110" x2="520" y2="200"/>
+      <!-- Branches secondaires -->
+      <line id="nv_m" class="e" x1="120" y1="110" x2="520" y2="34"/>
+      <line id="nv_n" class="e" x1="120" y1="110" x2="520" y2="94"/>
+      <line id="v_n"  class="e" x1="120" y1="110" x2="520" y2="134"/>
+      <line id="v_m"  class="e" x1="120" y1="110" x2="520" y2="194"/>
+
+      <!-- Libellés d’issues (déjà en SVG) -->
+      <text id="txt_nv_m" class="t">${st.S}</text>
+      <text id="txt_nv_n" class="t">${st.NS}</text>
+      <text id="txt_v_m"  class="t">${st.S}</text>
+      <text id="txt_v_n"  class="t">${st.NS}</text>
     </svg>
 
-    <!-- Libellés POSÉS sur la branche, AVANT le nœud -->
-    <span id="lblNV" class="branch-label">Non vaccinés</span>
-    <span id="lblV"  class="branch-label">Vaccinés</span>
-
-    <!-- Inputs -->
-    <input id="pNV"  class="branch-input">
-    <input id="pV"   class="branch-input">
-    <input id="pSnv" class="branch-input">
-    <input id="pNSnv"class="branch-input">
-    <input id="pNSv" class="branch-input">
-    <input id="pSv"  class="branch-input">
+    <!-- Inputs (inchangés) -->
+    <input id="pNV"  class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNV"></span>
+    <input id="pV"   class="branch-input" data-exo-keep><span class="tick abs" id="tick_pV"></span>
+    <input id="pSnv" class="branch-input" data-exo-keep><span class="tick abs" id="tick_pSnv"></span>
+    <input id="pNSnv"class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNSnv"></span>
+    <input id="pNSv" class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNSv"></span>
+    <input id="pSv"  class="branch-input" data-exo-keep><span class="tick abs" id="tick_pSv"></span>
   </div>`;
 }
 
-/* ---- LAYOUT : libellé → nœud → branches ---- */
+
+/* === LAYOUT : libellé → nœud → branches (segments qui collent AU TEXTE) === */
+
 function layoutTree3(root, st){
-  const svg = root.querySelector('svg');
+  return new Promise(resolve=>{
+    if (!root) return resolve();
+    const svg = root.querySelector('svg'); if (!svg) return resolve();
 
-  // Géométrie : angle plus "ouvert" + petit padding après libellé
-  const GEOM = {
-    armX: 240,       // distance horizontale avant le libellé
-    spreadY: 120,    // écart vertical (angle plus grand)
-    labelMidT: 0.60, // centre du libellé le long de la branche
-    pad: 6           // espace entre libellé et nœud
-  };
+    // textes
+    svg.querySelector('#rootLabel').textContent = st.rootLabel;
+    svg.querySelector('#txt_lblNV').textContent = st.NVlabel;
+    svg.querySelector('#txt_lblV' ).textContent = st.Vlabel;
+    svg.querySelector('#txt_nv_m').textContent = st.S;
+    svg.querySelector('#txt_v_m' ).textContent = st.S;
+    svg.querySelector('#txt_nv_n').textContent = st.NS;
+    svg.querySelector('#txt_v_n' ).textContent = st.NS;
 
-  const R = { x:120, y:110 }; // racine à droite de "Troupeau"
-  const NVt = { x:R.x+GEOM.armX, y:R.y-GEOM.spreadY }; // direction Non vaccinés
-  const Vt  = { x:R.x+GEOM.armX, y:R.y+GEOM.spreadY }; // direction Vaccinés
+    // constantes
+    const ARM_X=240, SPREAD_Y=80, DY_CHILD=30, RIGHT_X=660, PAD_BEFORE=6, PAD_AFTER=6, ROOT_PAD=8;
 
-  const Mnv={x:540,y: 40}, Nnv={x:540,y:100};
-  const NvN={x:540,y:140}, NvM={x:540,y:200};
+    const setLine=(id,A,B)=>{ const L=svg.querySelector('#'+id); if(!L) return;
+      L.setAttribute('x1',A.x); L.setAttribute('y1',A.y);
+      L.setAttribute('x2',B.x); L.setAttribute('y2',B.y);
+    };
+    const setNode=(id,P)=>{ const C=svg.querySelector('#'+id); if(!C) return;
+      C.setAttribute('cx',P.x); C.setAttribute('cy',P.y);
+    };
+    const placeIssueText=(id,P)=>{ const t=svg.querySelector('#'+id); if(!t) return;
+      t.setAttribute('x', P.x+8); t.setAttribute('y', P.y+4);
+    };
 
-  const lerp=(A,B,t)=>({x:A.x+(B.x-A.x)*t, y:A.y+(B.y-A.y)*t});
-  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-  const setLine=(id,A,B)=>{ const L=svg.querySelector('#'+id);
-    L.setAttribute('x1',A.x); L.setAttribute('y1',A.y);
-    L.setAttribute('x2',B.x); L.setAttribute('y2',B.y);
-  };
-  const setNode=(id,P)=>{ const C=svg.querySelector('#'+id);
-    C.setAttribute('cx',P.x); C.setAttribute('cy',P.y);
-  };
-  const placeInput=(sel,P)=>{ const el=root.querySelector(sel);
-    el.style.left=(P.x-29)+'px'; el.style.top=(P.y-11)+'px';
-  };
+    // root
+    const tRoot = svg.querySelector('#rootLabel');
+    const rootY = parseFloat(tRoot.getAttribute('y')||130);
+    const wRoot = textWidth(tRoot, svg);
+    const R = { x:(tRoot.getBBox?.().x ?? 0) + wRoot + ROOT_PAD, y: rootY };
+    setNode('nodeRoot', R);
 
-  // Centre théorique des libellés
-  const LnvC = lerp(R, NVt, GEOM.labelMidT);
-  const LvC  = lerp(R, Vt,  GEOM.labelMidT);
+    // positions des libellés de branches
+    const tNV = svg.querySelector('#txt_lblNV');
+    const tV  = svg.querySelector('#txt_lblV');
+    tNV.setAttribute('x', R.x + ARM_X); tNV.setAttribute('y', R.y - SPREAD_Y);
+    tV .setAttribute('x', R.x + ARM_X); tV .setAttribute('y', R.y + SPREAD_Y);
 
-  const lblNV = root.querySelector('#lblNV');
-  const lblV  = root.querySelector('#lblV');
+    const wNV = textWidth(tNV, svg);
+    const wV  = textWidth(tV , svg);
+    const NVc = { x:+tNV.getAttribute('x'), y:+tNV.getAttribute('y') };
+    const Vc  = { x:+tV .getAttribute('x'), y:+tV .getAttribute('y') };
 
-  // (re)mesure
-  const wNV = lblNV.offsetWidth, wV = lblV.offsetWidth;
+    // segments primaires
+    const Pnv_end = { x: NVc.x - wNV/2 - PAD_BEFORE, y: NVc.y };
+    const Pv_end  = { x:  Vc.x -  wV/2 - PAD_BEFORE, y:  Vc.y };
+    setLine('seg_nv', R, Pnv_end);
+    setLine('seg_v',  R, Pv_end);
 
-  // Place visuellement le texte (centré sur la branche)
-  lblNV.style.left = (LnvC.x - wNV/2) + 'px';
-  lblNV.style.top  = (LnvC.y) + 'px';
-  lblV .style.left = (LvC.x  - wV/2 ) + 'px';
-  lblV .style.top  = (LvC.y)  + 'px';
+    // noeuds après libellé
+    const NV = { x: NVc.x + wNV/2 + PAD_AFTER, y: NVc.y };
+    const V  = { x:  Vc.x +  wV/2 + PAD_AFTER, y:  Vc.y };
+    setNode('nodeNV', NV);
+    setNode('nodeV',  V);
 
-  // Paramètre t correspondant au bord GAUCHE du libellé
-  const tFromX = (tgt, x) => clamp((x - R.x) / (tgt.x - R.x), 0, 1);
+    // branches secondaires
+    const Nnv = { x: RIGHT_X, y: NV.y - DY_CHILD };
+    const Mnv = { x: RIGHT_X, y: NV.y + DY_CHILD };
+    const NvN = { x: RIGHT_X, y:  V.y - DY_CHILD };
+    const NvM = { x: RIGHT_X, y:  V.y + DY_CHILD };
+    setLine('nv_n', NV, Nnv);
+    setLine('nv_m', NV, Mnv);
+    setLine('v_n',  V,  NvN);
+    setLine('v_m',  V,  NvM);
 
-  const xLeftNV = (LnvC.x - wNV/2);
-  const xLeftV  = (LvC.x  - wV/2 );
-  const tNV_left = tFromX(NVt, xLeftNV);
-  const tV_left  = tFromX(Vt,  xLeftV);
+    // libellés d'issues
+    placeIssueText('txt_nv_n', Nnv);
+    placeIssueText('txt_nv_m', Mnv);
+    placeIssueText('txt_v_n',  NvN);
+    placeIssueText('txt_v_m',  NvM);
 
-/* ---- 2) Points clés le long des branches (projection vectorielle) ---- */
-// vecteurs unitaires des deux branches depuis la racine
-const unit = (A,B)=>{
-  const dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy)||1;
-  return {x:dx/L, y:dy/L};
-};
-const uNV = unit(R, NVt);
-const uV  = unit(R, Vt);
+  // 7) Inputs centrés sur chaque segment (convertit viewBox→px)
+    const INP_W = 58, INP_H = 22, TICK_GAP = 6;
+    const mapToCss=(x,y)=>{
+      const vb = svg.viewBox.baseVal;
+      const r  = svg.getBoundingClientRect();
+      const wrap = root.getBoundingClientRect();
+      const sx = r.width/vb.width, sy = r.height/vb.height;
+      return { x:(r.left-wrap.left)+x*sx, y:(r.top-wrap.top)+y*sy };
+    };
+    const mid = (A,B)=>({ x:(A.x+B.x)/2, y:(A.y+B.y)/2 });
+    const placeInput=(inpSel,tickSel,P)=>{
+      const p = mapToCss(P.x,P.y);
+      const inp = root.querySelector(inpSel), tk = root.querySelector(tickSel);
+      if(!inp) return;
+      inp.style.left = (p.x - INP_W/2) + 'px';
+      inp.style.top  = (p.y - INP_H/2) + 'px';
+      if(tk){ tk.style.left = (p.x + INP_W/2 + TICK_GAP) + 'px';
+              tk.style.top  = (p.y - 10) + 'px'; }
+    };
+    placeInput('#pNV',  '#tick_pNV',  mid(R, Pnv_end));
+    placeInput('#pV',   '#tick_pV',   mid(R, Pv_end));
+    placeInput('#pSnv', '#tick_pSnv', mid(NV, Mnv));
+    placeInput('#pNSnv','#tick_pNSnv',mid(NV, Nnv));
+    placeInput('#pNSv', '#tick_pNSv', mid(V,  NvN));
+    placeInput('#pSv',  '#tick_pSv',  mid(V,  NvM));
+    // élargissement si besoin
+    const ensureRoom=()=>{
+      const ids=['txt_nv_m','txt_nv_n','txt_v_n','txt_v_m'];
+      const rights = ids.map(id=>{
+        const t = svg.querySelector('#'+id);
+        const w = textWidth(t, svg);
+        const x = +t.getAttribute('x') || 0;
+        return x + w + 12;
+      });
+      const need = Math.max(...rights, 640);
+      const vb = svg.viewBox.baseVal;
+      if (need > vb.width){
+        svg.setAttribute('viewBox', `0 0 ${Math.ceil(need)} ${vb.height}`);
+        root.style.width = Math.ceil(need) + 'px';
+      }
+    };
+    ensureRoom();
 
-// demi-largeur + pad : combien on avance/recul le long de la branche
-const dNV = (wNV/2) + GEOM.pad;
-const dV  = (wV/2)  + GEOM.pad;
-
-// point "centre théorique" du libellé (déjà calculé)
- // LnvC, LvC
-
-// fin du segment AVANT le libellé (centre - d * u)
-const Pnv_end = { x: LnvC.x - dNV*uNV.x, y: LnvC.y - dNV*uNV.y };
-const Pv_end  = { x:  LvC.x - dV *uV.x,  y:  LvC.y - dV *uV.y  };
-
-// nœud APRÈS le libellé (centre + d * u)
-const NV = { x: LnvC.x + dNV*uNV.x, y: LnvC.y + dNV*uNV.y };
-const V  = { x:  LvC.x + dV *uV.x,  y:  LvC.y + dV *uV.y  };
-
-
-  // 1) segments racine → avant-libellé
-  setLine('seg_nv', R, Pnv_end);
-  setLine('seg_v',  R, Pv_end);
-
-  // 2) nœuds juste après libellé
-  setNode('nodeNV', NV);
-  setNode('nodeV',  V);
-
-  // 3) branches secondaires qui PARTENT des nœuds (donc après le texte)
-  setLine('nv_m', NV, Mnv); setLine('nv_n', NV, Nnv);
-  setLine('v_n',  V,  NvN); setLine('v_m',  V,  NvM);
-
-  // 4) inputs placés au milieu de chaque branche
-  placeInput('#pNV',  lerp(R, NV, 0.24));
-  placeInput('#pV',   lerp(R, V,  0.24));
-  placeInput('#pSnv', lerp(NV,Mnv,0.50));
-  placeInput('#pNSnv',lerp(NV,Nnv,0.50));
-  placeInput('#pNSv', lerp(V, NvN,0.50));
-  placeInput('#pSv',  lerp(V, NvM,0.50));
+    resolve(svg);
+  });
 }
 
+
+const rndi = x => Math.round(x);
+const pctStr = v => `${rndi(v)} %`;
+
+/* Remplit les 6 cases de l’arbre et les “fige” en étiquettes */
+function fillTreePercentsAsLabels(root, st){
+  const set = (sel, v)=>{
+    const el = root.querySelector(sel);
+    if(!el) return;
+    el.value = pctStr(v);
+    el.classList.add('as-label');
+    el.setAttribute('readonly','');
+    el.setAttribute('tabindex','-1');
+  };
+  set('#pV',   st.pV);
+  set('#pNV',  100 - st.pV);
+  set('#pSv',  st.pS_v);
+  set('#pNSv', 100 - st.pS_v);
+  set('#pSnv', st.pS_nv);
+  set('#pNSnv',100 - st.pS_nv);
+}
+
+
+const EX3_ANS_Q2 = {
+  'Club de cyclisme':         p => `Au total, ${p} % des cyclistes sont blessés à la tête.`,
+  'Élèves du collège':        p => `${p} % des élèves du collège ont un accident de trajet.`,
+  'Groupe de skieurs':        p => `${p} % des skieurs subissent un traumatisme crânien.`,
+  'Journée à la plage':       p => `${p} % des baigneurs attrapent un coup de soleil.`,
+  'Sortie randonnée':         p => `${p} % des randonneurs font une entorse ou une chute.`,
+  'Tournoi de football':      p => `${p} % des joueurs subissent une contusion.`,
+  'Trajets à vélo en ville':  p => `${p} % des trajets à vélo se soldent par un accrochage nocturne.`,
+  'Atelier de cuisine':       p => `${p} % des participants se brûlent.`,
+  'Travaux pratiques de chimie': p => `${p} % des élèves reçoivent une projection dans les yeux.`,
+  'Atelier de bricolage':     p => `${p} % des bricoleurs développent des acouphènes.`,
+  'Comptes d’entreprise':     p => `${p} % des comptes de l’entreprise sont compromis.`,
+  'Parc informatique':        p => `${p} % des ordinateurs du parc sont infectés.`,
+  'Utilisateurs de photo':    p => `${p} % des utilisateurs perdent leurs données.`,
+  'Immeuble résidentiel':     p => `Dans ${p} % des logements, un début d’incendie n’est pas maîtrisé.`,
+  'Sortie scolaire sous la pluie': p => `${p} % des élèves déclarent un rhume.`,
+  'Chantier de construction': p => `${p} % des ouvriers se blessent à la tête.`,
+  'Usagers de trottinette':   p => `${p} % des usagers de trottinette subissent un traumatisme.`,
+  'Plateau de bureaux':       p => `${p} % des salariés ressentent une douleur lombaire.`,
+  'Public d’un concert':      p => `${p} % des spectateurs signalent des sifflements persistants.`,
+  'Atelier de jardinage':     p => `${p} % des participants se coupent.`,
+  'Livraisons de repas':      p => `${p} % des livraisons entraînent une intoxication.`,
+  'Cours de natation':        p => `${p} % des nageurs développent une otite.`,
+  'Trajets sur route enneigée': p => `${p} % des véhicules ont un accident.`,
+  'Marche sous forte chaleur': p => `${p} % des marcheurs ont un coup de chaleur.`,
+  'Sortie moto':              p => `${p} % des motards subissent une blessure grave.`,
+  'Séance d’escalade':        p => `${p} % des grimpeurs chutent avec blessure.`,
+  'Montée raide en sentier':  p => `${p} % des randonneurs glissent et se blessent.`,
+  'Service hospitalier':      p => `${p} % des soignants transmettent une infection nosocomiale.`,
+  'Trajets d’écoliers':       p => `${p} % des élèves ont une douleur d’épaule.`,
+  'Open space':               p => `${p} % des collaborateurs ressentent une forte tension musculaire.`
+};
+const EX3_ANS_Q3 = {
+  'Club de cyclisme':         n => `Parmi le club, ${n} cyclistes sont blessés à la tête.`,
+  'Élèves du collège':        n => `${n} élèves du collège ont un accident de trajet.`,
+  'Groupe de skieurs':        n => `${n} skieurs subissent un traumatisme crânien.`,
+  'Journée à la plage':       n => `${n} baigneurs attrapent un coup de soleil.`,
+  'Sortie randonnée':         n => `${n} randonneurs font une entorse ou une chute.`,
+  'Tournoi de football':      n => `${n} joueurs subissent une contusion.`,
+  'Trajets à vélo en ville':  n => `${n} trajets se soldent par un accrochage nocturne.`,
+  'Atelier de cuisine':       n => `${n} participants se brûlent.`,
+  'Travaux pratiques de chimie': n => `${n} élèves reçoivent une projection dans les yeux.`,
+  'Atelier de bricolage':     n => `${n} bricoleurs développent des acouphènes.`,
+  'Comptes d’entreprise':     n => `${n} comptes sont compromis.`,
+  'Parc informatique':        n => `${n} ordinateurs sont infectés.`,
+  'Utilisateurs de photo':    n => `${n} utilisateurs perdent leurs données.`,
+  'Immeuble résidentiel':     n => `Dans ${n} logements, un début d’incendie n’est pas maîtrisé.`,
+  'Sortie scolaire sous la pluie': n => `${n} élèves déclarent un rhume.`,
+  'Chantier de construction': n => `${n} ouvriers se blessent à la tête.`,
+  'Usagers de trottinette':   n => `${n} usagers subissent un traumatisme.`,
+  'Plateau de bureaux':       n => `${n} salariés ressentent une douleur lombaire.`,
+  'Public d’un concert':      n => `${n} spectateurs signalent des sifflements persistants.`,
+  'Atelier de jardinage':     n => `${n} participants se coupent.`,
+  'Livraisons de repas':      n => `${n} livraisons entraînent une intoxication.`,
+  'Cours de natation':        n => `${n} nageurs développent une otite.`,
+  'Trajets sur route enneigée': n => `${n} véhicules ont un accident.`,
+  'Marche sous forte chaleur': n => `${n} marcheurs ont un coup de chaleur.`,
+  'Sortie moto':              n => `${n} motards subissent une blessure grave.`,
+  'Séance d’escalade':        n => `${n} grimpeurs chutent avec blessure.`,
+  'Montée raide en sentier':  n => `${n} randonneurs glissent et se blessent.`,
+  'Service hospitalier':      n => `${n} soignants transmettent une infection nosocomiale.`,
+  'Trajets d’écoliers':       n => `${n} élèves ont une douleur d’épaule.`,
+  'Open space':               n => `${n} collaborateurs ressentent une forte tension musculaire.`
+};
+
+
+function buildStaticTreeSVG(st){
+  // 1) on réutilise ton SVG + layout, mais on enlève inputs & ticks
+  const shell = document.createElement('div');
+  shell.innerHTML = treeHTML(st);                 // ← ta fonction existante
+  const treeWrap = shell.firstElementChild;       // .tree-wrap
+  const svg = treeWrap.querySelector('svg');
+
+  // Pose la géométrie
+  layoutTree3(treeWrap, st);
+
+  // Nettoyage: pas d'inputs/ticks → arbre figé
+  treeWrap.querySelectorAll('.branch-input,.tick.abs').forEach(n => n.remove());
+
+  // Ajoute les % (en texte SVG), pas de boîtes
+svgAddPercentLabelsOffLine(svg, st, { distance: 14 });
+
+  // Taille explicite (optionnel)
+  svg.setAttribute('width', '760');
+  svg.setAttribute('height','260');
+
+  // RENDU: on ne garde que le SVG (statique)
+  return svg;                                     // ← un vrai Element <svg/>
+}
+
+function buildStaticTreeSVGString(st){
+  const svg = buildStaticTreeSVG(st);
+  return svg.outerHTML; // une chaîne <svg …>…</svg>
+}
 
 
 
 /* ===== Exercice 3 ===== */
-function genTree(){ const N=rchoice([400,500,600,700,800,900,1000,1200]); const pV=rchoice([30,35,40,45,50,55,60]); const pS_v=rchoice([1,2,3,4,5]); const pS_nv=rchoice([20,25,30,35,40]); return {N,pV,pS_v,pS_nv}; }
+/* ====== Ex.3 — Générateur ====== */
 const ex3 = {
   id:'ex3', title:"Ex. 3 — Arbre pondéré (pourcentages entiers)",
-  gen(){ return genTree(); },
+gen(){ return genTreeFromBank(); },
   render(host, st){
   const root = document.createElement('div');
   root.innerHTML = `
     <div class="consigne"><span class="c-label">Exercice 3.</span> Compléter l’arbre puis répondre.</div>
     <div class="row">
-      <div class="col-label">
-        Troupeau de <strong>\\(${st.N}\\)</strong> bovins.
-        \\(${st.pV}\\,\\%\\) ont été vaccinés.
-        Chez les non vaccinés, \\(${st.pS_nv}\\,\\%\\) tomberont malades ;
-        chez les vaccinés, \\(${st.pS_v}\\,\\%\\) tomberont malades.
-      </div>
+<div class="col-label">
+  ${typeof st.intro === 'function' ? st.intro(st) : st.intro}
+           <div style="margin-top:10px"><strong>Q1.</strong> Compléter l'arbre</div>
+
+</div>
+
+
       <div class="input-line">
         <div style="margin:6px 0"><em>Arbre pondéré (saisir les % sur chaque branche)</em></div>
         ${treeHTML(st)}
-        <div style="margin-top:10px"><strong>Q2.</strong> Pourcentage estimé de bovins malades :
-          \\(p=p(V)p(S\\mid V)+p(\\overline V)p(S\\mid \\overline V)\\).</div>
-        <input id="pTot" type="text" placeholder="ex. 23 %" style="width:160px">
-        <div style="margin-top:10px"><strong>Q3.</strong> Nombre estimé de bovins malades :
-          \\(N\\times \\dfrac{p}{100}\\).</div>
-        <input id="nTot" type="text" placeholder="Entier (ex. 184)" style="width:160px">
+		
+         <div style="margin-top:10px"><strong>Q2.</strong> ${q2_ex3(st)}</div>
+
+<input id="pTot" type="text" placeholder="" style="width:160px">
+<span class="tick" id="tick_pTot"></span>         
+<div style="margin-top:10px"><strong>Q3.</strong> ${q3_ex3(st)}</div>
+<input id="nTot" type="text" placeholder="" style="width:160px">
+ <span class="tick" id="tick_nTot"></span>
       </div>
       <div class="res" id="r3"></div>
     </div>
   `;
   host.innerHTML=''; host.appendChild(root);
   // <<< calcul de la géométrie une fois dans le DOM
-const tree = document.querySelector('#tree3');
+// ✅ cible l’arbre **du bloc rendu** (on-screen OU off-screen)
+const tree = root.querySelector('#tree3');
 layoutTree3(tree, st);
-requestAnimationFrame(()=>layoutTree3(tree, st)); // 2e passe après peinture
+requestAnimationFrame(()=>layoutTree3(tree, st));
 window.addEventListener('resize', ()=>layoutTree3(tree, st));
-  if(window.MathJax) MathJax.typesetPromise();
+
+
+
+  if (window.MathJax) MathJax.typesetPromise();
 },
 
 
-  check(host, st){
-    let ok=0, tot=0;
-    const pV=parsePct($('#pV',host).value), pNV=parsePct($('#pNV',host).value), pSv=parsePct($('#pSv',host).value), pNSv=parsePct($('#pNSv',host).value), pSnv=parsePct($('#pSnv',host).value), pNSnv=parsePct($('#pNSnv',host).value);
-    const pct=x=>Number.isFinite(x)?Math.round(x):NaN;
-    const A=[pct(pV)===st.pV, pct(pNV)===100-st.pV, pct(pSv)===st.pS_v, pct(pNSv)===100-st.pS_v, pct(pSnv)===st.pS_nv, pct(pNSnv)===100-st.pS_nv];
-    tot+=A.length; ok+=A.filter(Boolean).length;
 
-    const pTot=parsePct($('#pTot',host).value);
-    const targetP = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
-    tot+=1; if(Number.isFinite(pTot) && Math.round(pTot)===Math.round(targetP)) ok++;
 
-    const nTot=parseInt(stripSign($('#nTot',host).value||'').trim(),10);
-    tot+=1; if(nTot===Math.round(st.N*targetP/100)) ok++;
+ check(host, st){
+  let ok=0, tot=0;
 
-    $('#r3',host).textContent = `${ok}/${tot} éléments corrects`;
-    $('#r3',host).className = (ok===tot)?'res res-ok':'res res-ko';
-    return {ok,tot};
-  },
-  solution(host, st){
-    const pTot = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
-    const nTot = Math.round(st.N*pTot/100);
-    const L=[];
-    L.push(`<span class="qno">Arbre</span> \\(p(V)=${st.pV}\\,\\%\\), \\(p(S\\mid V)=${st.pS_v}\\,\\%\\), \\(p(S\\mid \\overline V)=${st.pS_nv}\\,\\%\\).`);
-    L.push(`<span class="qno">Q2</span> \\(p=${st.pV}\\cdot\\frac{${st.pS_v}}{100} + (100-${st.pV})\\cdot\\frac{${st.pS_nv}}{100} = ${Math.round(pTot)}\\,\\%\\).`);
-    L.push(`<span class="qno">Q3</span> \\(N\\times p/100 = ${st.N}\\times ${Math.round(pTot)}\\,\\% = ${nTot}\\).`);
-    $('#r3',host).innerHTML = '<div class="steps">'+L.map(t=>`<div class="line">${t}</div>`).join('')+'</div>';
-    $('#r3',host).className='res res-ok';
-    if(window.MathJax) MathJax.typesetPromise();
-  },
+  const mark = (sel, state)=>{
+    const el = $(sel,host);
+    if(!el) return;
+    const keepAbs = el.classList.contains('abs');        // ← NE PAS perdre 'abs'
+    el.className = 'tick' + (keepAbs ? ' abs' : '') +    //   on la remet si présente
+                   (state ? (' ' + (state==='ok' ? 'ok' : 'ko')) : '');
+    el.textContent = state==='ok' ? '✓' : state==='ko' ? '✗' : '';
+  };
+
+  const pctRound = x => Number.isFinite(x) ? Math.round(x) : NaN;
+
+  // helper % avec neutralité si vide
+const checkPct = (inpSel, tickSel, expected)=>{
+  const raw = ($(inpSel,host)?.value||'').trim();
+  if(!raw){ mark(tickSel,null); return; }
+  const v = readPercentStrict(raw);              // ← % OBLIGATOIRE
+  const good = Number.isFinite(v) && Math.round(v)===Math.round(expected);
+  tot += 1; if(good) ok += 1;
+  mark(tickSel, good ? 'ok' : 'ko');
+};
+
+
+  // 6 pourcentages de l’arbre
+  checkPct('#pV',   '#tick_pV',    st.pV);
+  checkPct('#pNV',  '#tick_pNV',   100 - st.pV);
+  checkPct('#pSv',  '#tick_pSv',   st.pS_v);
+  checkPct('#pNSv', '#tick_pNSv',  100 - st.pS_v);
+  checkPct('#pSnv', '#tick_pSnv',  st.pS_nv);
+  checkPct('#pNSnv','#tick_pNSnv', 100 - st.pS_nv);
+
+  // Q2 : p total
+  const targetP = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100;
+  const pStr = ($('#pTot',host)?.value||'').trim();
+  if(!pStr){
+    mark('#tick_pTot', null);
+  }else{
+const p = readPercentStrict(pStr);               // ← % OBLIGATOIRE
+    const good = Number.isFinite(p) && p===Math.round(targetP);
+    tot += 1; if(good) ok += 1;
+    mark('#tick_pTot', good ? 'ok' : 'ko');
+  }
+
+  // Q3 : nombre total (entier)
+// Q3 : nombre total (ENTIER SANS %)
+
+  const raw = stripSign($('#nTot',host).value||'').trim();
+  if(!raw){
+    mark('#tick_nTot', null);
+  }else{
+    const badFormat = /%|[.,]/.test(raw) || !/^-?\d+$/.test(raw); // refuse % et décimaux
+    const n = badFormat ? NaN : parseInt(raw, 10);
+
+    const targetP = st.pV*st.pS_v/100 + (100-st.pV)*st.pS_nv/100; // déjà défini au-dessus
+    const want = Math.round(st.N * Math.round(targetP) / 100);
+
+    const good = Number.isInteger(n) && n === want;
+    tot += 1; if(good) ok += 1;
+    mark('#tick_nTot', good ? 'ok' : 'ko');
+  }
+
+
+
+  // Résumé
+  $('#r3',host).textContent = `${ok}/${tot} éléments corrects`;
+  $('#r3',host).className = (ok===tot && tot>0)?'res res-ok':'res res-ko';
+  return {ok, tot};
+},
+
+solution(host, st){
+  // --- Calculs Q2/Q3
+  const termV  = (st.pV/100) * st.pS_v;
+  const termNV = ((100 - st.pV)/100) * st.pS_nv;
+  const pTotR  = Math.round(termV + termNV);          // % total (entier)
+  const nTot   = Math.round(st.N * pTotR / 100);      // effectif
+
+  // --- Boîte de correction
+  const box = host.querySelector('#r3');
+  box.className = 'res res-ok';
+  box.innerHTML = ''; // on repart propre
+
+  // --- Conteneur unique capturé par le kit PDF
+  const steps = document.createElement('div');
+  steps.className = 'steps pdfb';
+
+  // --- 1) Arbre statique (SVG seul)
+  const svgStatic = buildStaticTreeSVG(st);
+  steps.appendChild(svgStatic);
+
+  // --- 2) Phrases + calculs (⚠️ pas de innerHTML += après appendChild)
+  const ansQ2 = (EX3_ANS_Q2[st.rootLabel] || (p => `${p} % au total.`))(pTotR);
+  const ansQ3 = (EX3_ANS_Q3[st.rootLabel] || (n => `${n} au total.`))(nTot);
+
+  steps.insertAdjacentHTML('beforeend', `
+    <div class="line" style="margin-top:.5rem">
+      <span class="qno"><strong>Q2.</strong></span> ${ansQ2}
+    </div>
+    <div class="line">
+      \\( p = \\dfrac{${100 - st.pV}}{100}\\times\\dfrac{${st.pS_nv}}{100}
+        + \\dfrac{${st.pV}}{100}\\times\\dfrac{${st.pS_v}}{100}
+        = ${pTotR}\\,\\% \\)
+    </div>
+    <div class="line" style="margin-top:.5rem">
+      <span class="qno"><strong>Q3.</strong></span> ${ansQ3}
+    </div>
+    <div class="line">
+      \\( N = ${st.N}\\times\\dfrac{${pTotR}}{100} = ${nTot} \\)
+    </div>
+  `);
+
+  // --- Injecte tout dans la boîte de résultat
+  box.appendChild(steps);
+
+  // --- TeX
+  if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+},
+
+
+
   reset(host){ host.innerHTML=''; }
 };
 
 /* ===== Glue ===== */
-const REGISTRY = [ex1,ex2];
+const REGISTRY = [ex1,ex2,ex3];
 let scoreOK=0, scoreTot=0;
 function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+let EXO_INSTANCE = 0;  // tout en haut du script (global)
+
 function renderActive(){
   const host=$('#host'); const sel=$('#exo-select');
   const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+
   const st = def.gen();
-  host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
-  def.render(host,st);
+  const key = (++EXO_INSTANCE);                // nouvelle instance
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(st);
+
+  def.render(host, st);
+
+
 }
+
 function state(){ try{ return JSON.parse($('#host').dataset.state||'{}'); }catch(e){ return {}; } }
 function check(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; const st=state(); const r=def.check(host,st)||{ok:0,tot:0}; scoreOK+=r.ok; scoreTot+=r.tot; updateScore(); }
 function showSolution(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; def.solution(host,state()); }
@@ -1199,10 +2266,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </script>
 
-<!-- JS clavier & kit PDF si besoin -->
-<script src="../../../../js/math-kbd.js" defer></script>
-<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
-<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
-<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script>
+(function(){
+  // ⇩ Mets ici le chemin *réel* vers ton fichier (vérifie qu’il ne 404 pas)
+  const KIT_URL = '../../../../js/exo-pdf-kit.multiplicatif-latex.js';
+
+  function boot(){
+    if(!window.ExoPDF){
+      console.error('[exo-pdf-kit] chargé mais ExoPDF introuvable'); 
+      return;
+    }
+    // Donne le registre d’exos au kit
+    window.REGISTRY = window.REGISTRY || (typeof REGISTRY!=='undefined' ? REGISTRY : []);
+    if(!Array.isArray(window.REGISTRY) || !window.REGISTRY.length){
+      console.warn('[exo-pdf-kit] REGISTRY vide : rien à générer');
+    }
+
+    // Init du panneau PDF
+   ExoPDF.init({
+  mountAfterSelector: '.card.small',
+  title: 'Seconde – Proportions échelonnées',
+  max: 50,
+
+  beforeRender(def, st, isSolution){
+  if (def.id === 'ex3' && isSolution) {
+    // petite pause de confort si tu as d’autres exos asynchrones
+    return new Promise(r => setTimeout(r, 0));
+  }
+  if (window.MathJax && MathJax.typesetPromise) {
+    try { MathJax.typesetPromise(); } catch(e){}
+  }
+  return null;
+}
+});
+}
+
+  // Si le kit est déjà présent, on démarre; sinon on l’injecte
+  if (window.ExoPDF) {
+    boot();
+  } else {
+    const s = document.createElement('script');
+    s.src = KIT_URL;
+    s.defer = true;
+    s.onload = boot;
+    s.onerror = () => console.error('[exo-pdf-kit] impossible de charger', KIT_URL);
+    document.head.appendChild(s);
+  }
+})();
+</script>
+
+
+
+
+
 </body>
 </html>

@@ -11,7 +11,7 @@ const DEFAULTS = {
   title: document.title.replace(/\s+–.+$/,'').trim() || 'Fiche d’exercices',
   lead: '',
   max: 50,
-  mountAfterSelector: '.controls.card',
+  mountAfterSelector: '.card.small',
   leadByDefId: null,
   beforeGen: null,
   beforeRender: null,
@@ -771,6 +771,9 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
   }
     .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
   .qmark{min-width:1.2em;text-align:center;font-weight:700}
+  
+  
+  
 </style>
 
 <style>

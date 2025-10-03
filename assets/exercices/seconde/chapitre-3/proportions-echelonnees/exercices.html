@@ -406,6 +406,16 @@ function textWidth(t, svg){
   const n = (t.textContent || '').length;
   return Math.max(10, n * 8.5);
 }
+// plus petit delta imposant pV*delta multiple de 100
+function gcd(a,b){ return b ? gcd(b, a%b) : Math.abs(a); }
+function deltaPoolFor(pV){
+  const Dmin = 100 / gcd(pV,100);                  // ex. pV=60 → Dmin=5
+  const CAND = [4,5,6,8,10,12,15,16,20];           // deltas plausibles
+  return CAND.filter(d => d % Dmin === 0);
+}
+// utilitaires arithmétiques
+function lcm(a,b){ return Math.abs(a*b) / gcd(a,b); }   // gcd existe déjà plus bas ; si besoin, remonte-le ici
+const denomFor = p => 100 / gcd(p,100);                 // ex. 30% -> besoin d'un multiple de 10
 
 /* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
 /* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
@@ -930,27 +940,87 @@ function ex2AnswerLabel3(C){
 const ex2 = {
   id:'ex2',
   title:"Ex. 2 — Tableau à double entrée (entiers uniquement)",
-gen(){
-  const ctx = rchoice(EX2_BANK)();
 
-  // N adapté au thème
-  const N  = pickNForContext(ctx);
+  gen(){
+    const ctx = rchoice(EX2_BANK)();
 
-  // part col2 (on garde une plage simple et polyvalente)
-  const pB = rchoice([25,30,35,40,45,50,55]);  // % pour la colonne 2 (ctx.col2)
-  const B  = Math.round(N*pB/100);
-  const F  = N - B;
+    // petits ensembles "propres" (déjà présents)
+    const P_COL2 = [25,30,35,40,45,50,55];        // % part de la colonne 2
+    const P_A    = [25,30,40,50,60,75];           // % "A" dans chaque colonne
 
-  // % "A" dans chaque colonne (entiers habituels)
-  const pFg = rchoice([25,30,40,50,60,75]);
-  const pBg = rchoice([25,30,40,50,60,75]);
-  const EF  = Math.round(F*pFg/100);
-  const EB  = Math.round(B*pBg/100);
-  const NF  = F - EF;
-  const NB  = B - EB;
+    // Essaie jusqu'à trouver un triple (pB,pFg,pBg) + N compatibles
+    for (let tries=0; tries<200; tries++){
+      const pB  = rchoice(P_COL2);   // % en colonne 2 (ctx.col2)
+      const pFg = rchoice(P_A);      // % de A dans col1
+      const pBg = rchoice(P_A);      // % de A dans col2
 
-  return {ctx,N,B,F,pFg,pBg,EF,EB,NF,NB};
-},
+      // 1) Contraintes pour que EF=F*pFg/100 et EB=B*pBg/100 soient entiers :
+      //    - B = N*pB/100 ∈ ℤ
+      //    - F = N*(100-pB)/100 ∈ ℤ
+      //    - EF entier => F multiple de denomFor(pFg)
+      //    - EB entier => B multiple de denomFor(pBg)
+      const needB_int   = 100 / gcd(pB,100);               // N multiple de ceci -> B entier
+      const needF_int   = 100 / gcd(100-pB,100);           // N multiple de ceci -> F entier
+      const mF          = denomFor(pFg);                   // F multiple de mF
+      const mB          = denomFor(pBg);                   // B multiple de mB
+
+      // Convertir "F multiple de mF" et "B multiple de mB" en contraintes sur N :
+      // B = N*pB/100 ≡ 0 mod mB  => N multiple de (100*mB)/gcd(pB,100*mB)
+      // F = N*(100-pB)/100 ≡ 0 mod mF => N multiple de (100*mF)/gcd(100-pB,100*mF)
+      const needB_multM = (100*mB) / gcd(pB, 100*mB);
+      const needF_multM = (100*mF) / gcd(100-pB, 100*mF);
+
+      // (bonus) Q2 pourcentage entier :
+      // pTot = ((100-pB)*pFg + pB*pBg)/100 doit être entier
+      const numerPTot = (100 - pB)*pFg + pB*pBg;
+      if (numerPTot % 100 !== 0) continue;     // change de triple si ce n’est pas /100
+
+      const stepN = lcm(lcm(needB_int, needF_int), lcm(needB_multM, needF_multM));
+
+      // 2) Choisir un N compatible avec le thème (pool ou range) ET multiple de stepN
+      let N = null;
+      const SPEC = EX2_NSPEC[ctx.t];
+      if (SPEC?.pool){
+        const poolOK = SPEC.pool.filter(n => n % stepN === 0);
+        if (!poolOK.length) continue;
+        N = rchoice(poolOK);
+      }else{
+        // range
+        const min = SPEC?.range?.min ?? 24, max = SPEC?.range?.max ?? 2000, baseStep = SPEC?.range?.step ?? 1;
+        const stride = lcm(stepN, baseStep);
+        const first  = Math.ceil(min/stride)*stride;
+        if (first>max) continue;
+        const kMax = Math.floor((max-first)/stride);
+        N = first + stride * rnd(0,kMax);
+      }
+
+      // 3) Tous les effectifs (entiers par construction)
+      const B  = (N * pB) / 100;
+      const F  = N - B;
+      const EF = (F * pFg) / 100;
+      const EB = (B * pBg) / 100;
+      const NF = F - EF;
+      const NB = B - EB;
+
+      // Sécurité (au cas où)
+      if (![B,F,EF,EB,NF,NB].every(Number.isInteger)) continue;
+      if (EF<0 || EB<0 || NF<0 || NB<0) continue;
+
+      return { ctx, N, B, F, pFg, pBg, EF, EB, NF, NB };
+    }
+
+    // Fallback ultra-robuste (au cas très improbable où 200 essais échouent) :
+    // on retombe sur l'ancien tirage puis on "corrige" N au plus proche multiple.
+    const ctx0 = rchoice(EX2_BANK)();
+    const pB0  = rchoice(P_COL2), pFg0 = rchoice(P_A), pBg0 = rchoice(P_A);
+    const stepN0 = 100; // simple et sûr
+    const SPEC0 = EX2_NSPEC[ctx0.t];
+    let N0 = pickNForContext({t:ctx0.t});
+    N0 = Math.round(N0/stepN0)*stepN0 || stepN0;
+    const B0  = (N0*pB0)/100, F0=N0-B0, EF0=(F0*pFg0)/100, EB0=(B0*pBg0)/100, NF0=F0-EF0, NB0=B0-EB0;
+    return { ctx:ctx0, N:N0, B:B0, F:F0, pFg:pFg0, pBg:pBg0, EF:EF0, EB:EB0, NF:NF0, NB:NB0 };
+  },
+
 
 render(host, st){
   const C = st.ctx;
@@ -1014,7 +1084,7 @@ render(host, st){
 <input type="text" id="tPct" placeholder="">
 <span class="tick" id="tickPct"></span>
 <div style="margin-top:10px">
-  <strong>Q3.</strong> ${ex2Question3(C)}
+  <strong>Q3.</strong> ${ex2Question3(C)} (Arrondir au % près)
 
 </div>
 <input type="text" id="tPctQ3" placeholder="">
@@ -1074,17 +1144,22 @@ const p  = readPercentStrict(pStr);   // Q2
     tot += 1; if(good) ok += 1;
     mark('#tickPct', good ? 'ok' : 'ko');
   }
-// Q3 : p(col1 | nonA) = NF / (NF+NB)
+// Q3 : p(col1 | nonA) = NF / (NF+NB)  → on DEMANDE l'arrondi à l’unité
 const p3Str = ($('#tPctQ3',host)?.value||'').trim();
-if(p3Str===''){
+if (p3Str === '') {
   mark('#tickPctQ3', null);
-}else{
-const p3 = readPercentStrict(p3Str);  // Q3
-  const target3 = Math.round(100 * st.NF / (st.NF + st.NB));
-  const good3 = Number.isFinite(p3) && Math.round(p3)===target3;
-  tot += 1; if(good3) ok += 1;
+} else {
+  // doit être un entier % : ex "42%"
+  const isIntPercent = /^\s*-?\d+\s*%$/.test(p3Str.replace('−','-'));
+  const p3 = readPercentStrict(p3Str);         // lit la valeur numérique (ex: "42%" -> 42)
+
+  const target3 = Math.round(100 * st.NF / (st.NF + st.NB)); // arrondi à l’unité attendu
+  const good3 = isIntPercent && Number.isFinite(p3) && p3 === target3;
+
+  tot += 1; if (good3) ok += 1;
   mark('#tickPctQ3', good3 ? 'ok' : 'ko');
 }
+
 
   // Résumé
   $('#r2',host).textContent = `${ok}/${tot} éléments corrects`;
@@ -1095,38 +1170,44 @@ const p3 = readPercentStrict(p3Str);  // Q3
 solution(host, st){
   const C = st.ctx;
   const nonA = C.nonA || ('Non ' + C.A);
+
+  // --- Q2 (comme avant)
   const pct = Math.round(100*(st.EF+st.EB)/st.N);
-const apct=pct/100;
-  const pct3 = Math.round(100 * st.NF / (st.NF + st.NB));
-	  const apct3=pct3/100;
+  const apct = pct/100;
+
+  // --- Q3 (nouveau format d'affichage)
+  const p3_prop = st.NF / (st.NF + st.NB);     // proportion exacte (0..1)
+  const p3_dec2 = Math.round(p3_prop * 100) / 100; // arrondi à 2 décimales (proportion)
+  const p3_pct  = 100 * p3_prop;               // pourcentage exact
+  const p3_pct_int = Math.round(p3_pct);       // pourcentage à l’unité
+
+  // signes = / ≈
+  const eq_dec  = (p3_prop === p3_dec2) ? '=' : '\\approx';
+  const eq_pct  = (p3_pct  === p3_pct_int) ? '=' : '\\approx';
+
+  // formats FR (virgule) + 2 décimales pour la proportion
+  const p3_dec2_str = p3_dec2.toFixed(2).replace('.', ',');  // ex: "0,42"
+  const p3_pct_int_str = String(p3_pct_int);                 // ex: "42"
+
   const html = `
     <div class="steps">
       <div style="overflow:auto">
-	  <span class="qno"><strong>Q1. </strong></span>
+        <span class="qno"><strong>Q1. </strong></span>
         <table class="tbl tbl-solution pdfb">
           <tr>
-            <th></th>
-            <th>${ucfirst(C.col1)}</th>
-            <th>${ucfirst(C.col2)}</th>
-            <th>Total</th>
+            <th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th>
           </tr>
           <tr>
             <th>${C.A}</th>
-            <td>\\(${st.EF}\\)</td>
-            <td>\\(${st.EB}\\)</td>
-            <td>\\(${st.EF + st.EB}\\)</td>
+            <td>\\(${st.EF}\\)</td><td>\\(${st.EB}\\)</td><td>\\(${st.EF + st.EB}\\)</td>
           </tr>
           <tr>
             <th>${nonA}</th>
-            <td>\\(${st.NF}\\)</td>
-            <td>\\(${st.NB}\\)</td>
-            <td>\\(${st.NF + st.NB}\\)</td>
+            <td>\\(${st.NF}\\)</td><td>\\(${st.NB}\\)</td><td>\\(${st.NF + st.NB}\\)</td>
           </tr>
           <tr>
             <th>Total</th>
-            <td>\\(${st.F}\\)</td>
-            <td>\\(${st.B}\\)</td>
-            <td>\\(${st.N}\\)</td>
+            <td>\\(${st.F}\\)</td><td>\\(${st.B}\\)</td><td>\\(${st.N}\\)</td>
           </tr>
         </table>
       </div>
@@ -1134,14 +1215,14 @@ const apct=pct/100;
       <div class="line" style="margin-top:.35rem">
         <span class="qno"><strong>Q2. </strong></span>
         ${ex2AnswerLabel(C)} :
-        \\(p=\\displaystyle \\frac{${st.EF+st.EB}}{${st.N}} =${apct} =${pct}\\,\\%\\).
+        \\( p = \\dfrac{${st.EF+st.EB}}{${st.N}} = ${apct} = ${pct}\\,\\% \\).
       </div>
-	
-  <div class="line" style="margin-top:.35rem">
-    <span class="qno"><strong>Q3. </strong></span>
-    ${ex2AnswerLabel3(C)} :
-    \\(\\displaystyle p=\\frac{${st.NF}}{${st.NF+st.NB}} =${apct3}= ${pct3}\\,\\%\\).
-  </div>
+
+      <div class="line" style="margin-top:.35rem">
+        <span class="qno"><strong>Q3. </strong></span>
+        ${ex2AnswerLabel3(C)} :
+        \\( p = \\dfrac{${st.NF}}{${st.NF+st.NB}} \\; ${eq_dec} \\; ${p3_dec2_str} \\; ${eq_pct} \\; ${p3_pct_int_str}\\,\\% \\).
+      </div>
     </div>
   `;
 
@@ -1149,6 +1230,7 @@ const apct=pct/100;
   $('#r2',host).className = 'res res-ok';
   if (window.MathJax) MathJax.typesetPromise();
 },
+
 
 
   reset(host){ host.innerHTML=''; }
@@ -1169,13 +1251,6 @@ const RISK_POOL = {
 const PV_SAFE = [25,40,50,60,70,75]; 
 function pickPV(){ return rchoice(PV_SAFE); }
 
-// plus petit delta imposant pV*delta multiple de 100
-function gcd(a,b){ return b ? gcd(b, a%b) : Math.abs(a); }
-function deltaPoolFor(pV){
-  const Dmin = 100 / gcd(pV,100);                  // ex. pV=60 → Dmin=5
-  const CAND = [4,5,6,8,10,12,15,16,20];           // deltas plausibles
-  return CAND.filter(d => d % Dmin === 0);
-}
 
 // Tire pS_nv (sans protection) selon le niveau,
 // puis choisit un delta compatible pour garantir un p entier.

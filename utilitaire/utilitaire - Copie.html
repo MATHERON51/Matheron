@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde — Générateurs (courbe, variations, signes, dérivée)</title>
+
+<link rel="stylesheet" href="../assets/css/math-kbd.css">
+<link rel="stylesheet" href="../assets/css/espace-latex.css">
+<link rel="stylesheet" href="../assets/css/espace-gras.css">
+<link rel="stylesheet" href="../assets/css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .small{font-size:.92rem;color:#555}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* tableaux imprimables style PDF */
+  table.pdf-tbl{ border-collapse:separate; border-spacing:0; border:none; margin:.4rem 0; }
+  table.pdf-tbl th, table.pdf-tbl td{ border:none; padding:4px 6px; text-align:center; vertical-align:middle; }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* tableaux interactifs (cadre uniquement) */
+  table.var{ border-collapse:separate; border-spacing:0; margin:.35rem auto }
+  table.var th, table.var td{ padding:4px 6px; border:none }
+  table.var tr:first-child > * { border-top:    1.5px solid #000; }
+  table.var tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.var tr > *:first-child { border-left:   1.5px solid #000; }
+  table.var tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.var tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+  table.var td.bigsel{ padding:0 }
+  table.var td.bigsel select{ display:block; width:100%; height:100%; background:transparent; padding:0; margin:0; text-align:center; text-align-last:center; appearance:none }
+  table.var input[type="text"]{ width:110px; text-align:center }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.repere{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  
+  /* Séparateur vertical après la 1re colonne, pour tous les tableaux interactifs */
+table.var tr > *:first-child{
+  border-left: 1.5px solid #000;   /* bord extérieur gauche (déjà présent) */
+  border-right: 1.5px solid #000;  /* ⇐ ajout : barre verticale après la 1re colonne */
+}
+/* 5) f' + variations — trait entre f'(x) et f (énoncé + PDF) */
+#dv-wrap table.var tbody tr:nth-child(2) > *,
+#dv-out  table.pdf-tbl tbody tr:nth-child(2) > * {
+  border-bottom: 1.5px solid #000;
+}
+/* 5) ENONCÉ : trait entre f'(x) et f */
+#dv-wrap table.var tbody tr:nth-child(2) > * {
+  border-bottom: 1.5px solid #000;
+}
+
+/* 5) SOLUTION (PDF) : trait entre f'(x) et f */
+#dv-out table.pdf-tbl tbody tr:first-child > * {
+  border-bottom: 1.5px solid #000;
+}
+/* Enlever fond/bordure sur les blocs de solution */
+#v-out.steps,
+#s1-out.steps,
+#sf-out.steps,
+#dv-out.steps,
+#curve-out-var.steps,
+#curve-out-sign.steps {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+#v-out .step, #s1-out .step, #sf-out .step,
+#dv-out .step, #curve-out-var .step, #curve-out-sign .step {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+/* Trait entre f'(x) et f dans la solution auto */
+#curve-out-deriv table.pdf-tbl tbody tr:first-child > *{
+  border-bottom: 1.5px solid #000;
+}
+
+/* Pas de fond gris pour cette sortie */
+#curve-out-deriv.steps { background: transparent !important; border:none !important; padding:0 !important; }
+#curve-out-deriv .step  { background: transparent !important; border:none !important; padding:0 !important; }
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src='../assets/js/math-kbd.js' defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde — Générateurs (courbe, variations, signes, dérivée)</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="tool-select"><strong>Générateur :</strong></label>
+      <select id="tool-select"></select>
+      <button id="btn-action" class="btn" style="display:none"></button>
+      <button id="btn-action2" class="btn" style="display:none"></button>
+      <button id="btn-make" class="btn" style="display:none">🧩 Créer le tableau</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Notes</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Les tableaux « créés » utilisent le gabarit PDF (<code>table.pdf-tbl</code>) prêt pour l'export.</li>
+        <li>Clavier math intégré ; Entrée ⇥ ne déclenche rien ici (pas d'évaluation).</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== Utilitaires génériques ===== */
+const $=(s,r)=> (r||document).querySelector(s);
+const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
+const UMIN='−';
+function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+
+/* ===== Repère & tracés (reprend l'esprit Ex.1/2) ===== */
+function buildRepereSVG(opts){
+  const Wmax=520, Hmax=300, mL=28, mT=8, mR=8, mB=28;
+  const {xmin,xmax,ymin,ymax}=opts;
+  const AR = Math.max(3.5, Math.min(8, opts.arrowSize||7));
+  const Rx=xmax-xmin, Ry=ymax-ymin, s=Math.min(Wmax/Rx,Hmax/Ry); const w=s*Rx, h=s*Ry;
+  const x0=mL+(Wmax-w)/2, y0=mT+(Hmax-h)/2; const W=mL+Wmax+mR, H=mT+Hmax+mB;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('class','repere');
+  const defs=document.createElementNS(svg.namespaceURI,'defs');
+  const mark=document.createElementNS(svg.namespaceURI,'marker');
+  mark.setAttribute('id','arrow'); mark.setAttribute('markerUnits','userSpaceOnUse');
+  mark.setAttribute('markerWidth',AR); mark.setAttribute('markerHeight',AR);
+  mark.setAttribute('viewBox',`0 0 ${AR} ${AR}`); mark.setAttribute('refX',AR); mark.setAttribute('refY',AR/2); mark.setAttribute('orient','auto');
+  const tri=document.createElementNS(svg.namespaceURI,'path'); tri.setAttribute('d',`M0 0 L${AR} ${AR/2} L0 ${AR} Z`); tri.setAttribute('fill','#111');
+  mark.appendChild(tri); defs.appendChild(mark);
+  const clip=document.createElementNS(svg.namespaceURI,'clipPath'); clip.setAttribute('id','clip-v1');
+  const crect=document.createElementNS(svg.namespaceURI,'rect'); crect.setAttribute('x',x0); crect.setAttribute('y',y0); crect.setAttribute('width',w); crect.setAttribute('height',h);
+  clip.appendChild(crect); defs.appendChild(clip); svg.appendChild(defs);
+  const axes=document.createElementNS(svg.namespaceURI,'g'); const plot=document.createElementNS(svg.namespaceURI,'g'); plot.classList.add('plot'); plot.setAttribute('clip-path','url(#clip-v1)');
+  svg.appendChild(axes); svg.appendChild(plot);
+  const X=x=>x0+(x-xmin)*s, Y=y=>y0+h-(y-ymin)*s;
+  const frame=document.createElementNS(svg.namespaceURI,'rect'); frame.setAttribute('x',x0); frame.setAttribute('y',y0); frame.setAttribute('width',w); frame.setAttribute('height',h); frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111'); frame.setAttribute('class','frame'); axes.appendChild(frame);
+  const yAxisY=Math.max(y0+10, Math.min(y0+h-10, Y(0))); const xAxisX=Math.max(x0+10, Math.min(x0+w-10, X(0)));
+  if(opts.grid){
+    const g=document.createElementNS(svg.namespaceURI,'g'); g.setAttribute('stroke','#000'); g.setAttribute('stroke-width','0.7');
+    const tx=document.createElementNS(svg.namespaceURI,'g'); const ty=document.createElementNS(svg.namespaceURI,'g');
+    const fmt=n=>String(n).replace('-',UMIN);
+    for(let xv=Math.ceil(xmin); xv<=xmax+1e-9; xv+=1){ const xx=X(xv); const l=document.createElementNS(svg.namespaceURI,'line'); l.setAttribute('x1',xx); l.setAttribute('y1',y0); l.setAttribute('x2',xx); l.setAttribute('y2',y0+h); g.appendChild(l);
+      const t=document.createElementNS(svg.namespaceURI,'text'); t.textContent=fmt(xv); t.setAttribute('x', Math.max(x0+5, Math.min(x0+w-5, xx))); t.setAttribute('y', Math.max(y0+2, Math.min(y0+h+12, yAxisY+14))); t.setAttribute('font-size','12'); t.setAttribute('text-anchor','middle'); tx.appendChild(t); }
+    for(let yv=Math.ceil(ymin); yv<=ymax+1e-9; yv+=1){ const yy=Y(yv); const l=document.createElementNS(svg.namespaceURI,'line'); l.setAttribute('x1',x0); l.setAttribute('y1',yy); l.setAttribute('x2',x0+w); l.setAttribute('y2',yy); g.appendChild(l);
+      const t=document.createElementNS(svg.namespaceURI,'text'); t.textContent=fmt(yv); t.setAttribute('x', Math.max(x0+6, Math.min(x0+w-8, xAxisX-6))); t.setAttribute('y', Math.max(y0+10, Math.min(y0+h-6, yy+4))); t.setAttribute('font-size','12'); t.setAttribute('text-anchor','end'); ty.appendChild(t); }
+    axes.appendChild(g); axes.appendChild(tx); axes.appendChild(ty);
+  }
+  const axX=document.createElementNS(svg.namespaceURI,'line'); axX.setAttribute('x1',x0); axX.setAttribute('x2',x0+w); axX.setAttribute('y1',yAxisY); axX.setAttribute('y2',yAxisY); axX.setAttribute('stroke','#111'); axX.setAttribute('stroke-width','2.2'); axX.setAttribute('stroke-linecap','butt'); if(opts.arrows) axX.setAttribute('marker-end','url(#arrow)'); axes.appendChild(axX);
+  const axY=document.createElementNS(svg.namespaceURI,'line'); axY.setAttribute('x1',xAxisX); axY.setAttribute('x2',xAxisX); axY.setAttribute('y1',y0+h); axY.setAttribute('y2',y0); axY.setAttribute('stroke','#111'); axY.setAttribute('stroke-width','2.2'); axY.setAttribute('stroke-linecap','butt'); if(opts.arrows) axY.setAttribute('marker-end','url(#arrow)'); axes.appendChild(axY);
+  const Xi=px=>xmin+(px-x0)/s, Yi=py=>ymin+(y0+h-py)/s;
+  const hit=document.createElementNS(svg.namespaceURI,'rect'); hit.setAttribute('x',x0); hit.setAttribute('y',y0); hit.setAttribute('width',w); hit.setAttribute('height',h); hit.setAttribute('fill','transparent'); hit.style.pointerEvents='all'; plot.appendChild(hit);
+  return {svg,plot,axes,X,Y,Xi,Yi,hit,xmin,xmax,ymin,ymax};
+}
+function addPath(g,d,st){ const p=document.createElementNS(g.namespaceURI,'path'); p.setAttribute('d',d); p.setAttribute('fill','none'); p.setAttribute('stroke',st?.stroke||'#111'); p.setAttribute('stroke-width',st?.['stroke-width']||2.4); p.setAttribute('stroke-linejoin','round'); p.setAttribute('stroke-linecap','round'); g.appendChild(p); return p; }
+function hermiteToBezier(P0,P1,m0,m1){ const [x0,y0]=P0,[x1,y1]=P1,h=x1-x0; return { C1:[x0+h/3, y0+m0*h/3], C2:[x1-h/3, y1-m1*h/3] }; }
+function pathFromKnots(rep,K){ const X=rep.X, Y=rep.Y; let d=''; for(let i=0;i<K.length-1;i++){ const A=K[i], B=K[i+1]; if(!isFinite(A.x)||!isFinite(A.y)||!isFinite(B.x)||!isFinite(B.y)) continue; if(d==='') d=`M ${X(A.x)} ${Y(A.y)}`; const {C1,C2}=hermiteToBezier([A.x,A.y],[B.x,B.y],A.m??0,B.m??0); d+=` C ${X(C1[0])} ${Y(C1[1])} ${X(C2[0])} ${Y(C2[1])} ${X(B.x)} ${Y(B.y)}`; } return d; }
+
+// === Helpers courbe (Hermite -> Bézier -> évaluation) ===
+// Évalue y(t) sur l'arc [P0,P1] défini par (x,y) et pentes m0,m1 (pentes en dy/dx)
+function hermiteY(P0,P1,m0,m1,t){
+  const y0=P0.y, y1=P1.y, h=(P1.x-P0.x);
+  const tt=t*t, t3=tt*t;
+  const h00=2*t3-3*tt+1, h10=t3-2*tt+t, h01=-2*t3+3*tt, h11=t3-tt;
+  return h00*y0 + h10*h*m0 + h01*y1 + h11*h*m1;
+}
+function hermiteX(P0,P1,t){ return P0.x + (P1.x-P0.x)*t; }
+
+// Racines de y'(t)=0 sur un arc Hermite : renvoie t∈(0,1)
+function hermiteExtremaT(P0,P1,m0,m1){
+  const y0=P0.y, y1=P1.y, h=(P1.x-P0.x);
+  // y'(t) = (6t^2-6t)*y0 + (3t^2-4t+1)*h m0 + (-6t^2+6t)*y1 + (3t^2-2t)*h m1
+  const A =  6*y0 + 3*h*m0 - 6*y1 + 3*h*m1;
+  const B = -6*y0 - 4*h*m0 + 6*y1 - 2*h*m1;
+  const C =  h*m0;
+  const T=[];
+  const eps=1e-12;
+  if(Math.abs(A) < 1e-12){
+    if(Math.abs(B) > 1e-12){
+      const t = -C/B; if(t>0 && t<1) T.push(t);
+    }
+  }else{
+    const D = B*B - 4*A*C;
+    if(D >= -1e-12){
+      const s = Math.sqrt(Math.max(0,D));
+      const t1 = (-B - s)/(2*A), t2 = (-B + s)/(2*A);
+      if(t1>0 && t1<1) T.push(t1);
+      if(t2>0 && t2<1) T.push(t2);
+    }
+  }
+  return T.sort((a,b)=>a-b);
+}
+
+// Évalue f(x) sur la courbe (liste de nœuds K)
+function valueOnCurve(K, x){
+  for(let i=0;i<K.length-1;i++){
+    const A=K[i], B=K[i+1];
+    if(x < A.x || x > B.x) continue;
+    const t=(x-A.x)/((B.x-A.x)||1);
+    return hermiteY(A,B,A.m||0,B.m||0,t);
+  }
+  return (x<=K[0].x)? K[0].y : K.at(-1).y;
+}
+
+// Racines y(t)=0 sur t∈[0,1] par subdivision + bissection
+function rootsOnArc(P0,P1,m0,m1){
+  const f = t => hermiteY(P0,P1,m0,m1,t);
+  const T = []; const N = 200; // échantillonnage fin
+  let tPrev=0, yPrev=f(0);
+  // détecte aussi les touches (y≈0 sans changement de signe)
+  const eps = 1e-6;
+  for(let i=1;i<=N;i++){
+    const t=i/N, y=f(t);
+    if (Math.abs(y) < eps){ T.push(t); }            // racine "touchée"
+    if (yPrev === 0) { T.push(tPrev); }             // précision sur point exact
+    if (yPrev*y < 0){                               // changement de signe -> bissection
+      let a=tPrev, b=t, fa=yPrev, fb=y;
+      for(let k=0;k<40;k++){
+        const c=(a+b)/2, fc=f(c);
+        if(Math.abs(fc)<1e-9) { a=b=c; break; }
+        if(fa*fc<=0){ b=c; fb=fc; } else { a=c; fa=fc; }
+      }
+      T.push((a+b)/2);
+    }
+    tPrev=t; yPrev=y;
+  }
+  // dédoublonne / range
+  T.sort((a,b)=>a-b);
+  const out=[];
+  for(const u of T){ if(out.length===0 || Math.abs(u-out[out.length-1])>1e-3) out.push(u); }
+  return out;
+}
+// Formattage jolis x (entiers → sans .0, sinon 2 décimales)
+// Affichage : entier si |x - round(x)| < 0.1, sinon arrondi au dixième
+function fmtX(x){
+  const r = Math.round(x);
+  if (Math.abs(x - r) < 0.1) return String(r);        // snap à l'entier
+  const v = Math.round(x * 10) / 10;                  // arrondi 0,1
+  return String(v).replace('.', ',');                 // virgule française
+}
+
+
+
+/* ===== 1) Générateur de courbe : placer points → tracer / enlever points ===== */
+const toolCurve = {
+  id:'curve', title:'Courbe : placer des points, tracer la courbe',
+  build(host){
+    host.innerHTML = `
+  <div class="small">Clique dans le repère pour placer/supprimer des points (accrochage aux entiers). Puis utilise les boutons.</div>
+  <div class="graph"></div>
+  <div class="row" style="margin-top:6px">
+    <label>Amplitude :</label>
+    <label>x ∈ [<input id="cxmin" type="number" value="-7" style="width:70px"> ; <input id="cxmax" type="number" value="7" style="width:70px">]</label>
+    <label>y ∈ [<input id="cymin" type="number" value="-6" style="width:70px"> ; <input id="cymax" type="number" value="6" style="width:70px">]</label>
+  </div>
+
+  <div class="row" style="margin-top:8px;gap:8px">
+  <button class="btn" id="btn-var-tab">📊 Tableau de variation</button>
+  <button class="btn" id="btn-sign-tab">➕/➖ Tableau de signe</button>
+  <button class="btn" id="btn-deriv-tab">f′(x) & variations de f</button> <!-- NEW -->
+</div>
+
+<div class="steps small" id="note"></div>
+<div class="steps" id="curve-out-var"></div>
+<div class="steps" id="curve-out-sign"></div>
+<div class="steps" id="curve-out-deriv"></div> <!-- NEW -->
+
+`;
+
+    this.makeRep(host);
+  },
+  makeRep(host){
+  const xmin=+$('#cxmin',host).value, xmax=+$('#cxmax',host).value, ymin=+$('#cymin',host).value, ymax=+$('#cymax',host).value;
+  const graph=$('.graph',host); graph.innerHTML='';
+  const rep=buildRepereSVG({xmin,xmax,ymin,ymax,grid:true,arrows:true}); graph.appendChild(rep.svg);
+const layerPts = document.createElementNS(rep.svg.namespaceURI,'g');
+const layerCur = document.createElementNS(rep.svg.namespaceURI,'g');
+rep.plot.appendChild(layerPts);
+rep.plot.appendChild(layerCur);
+
+// ⚠️ pour que le clic sur un point “traverse” et touche le rectangle 'hit'
+layerPts.style.pointerEvents = 'none';
+layerCur.style.pointerEvents = 'none';
+
+
+// points posés (conservés même si on "enlève" visuellement)
+const placed = [];
+let Klast = null;
+
+// état d’affichage des points
+let pointsHidden = false;
+
+// cache/affiche les points ET met à jour le libellé du bouton
+function setPointsHidden(h){
+  pointsHidden = !!h;
+  layerPts.style.display = pointsHidden ? 'none' : '';
+  if (!pointsHidden) redrawPts();
+  const b = $('#btn-action2');
+  if (b) b.textContent = pointsHidden ? '↩ Remettre les points' : '⨂ Enlever les points';
+}
+
+function redrawPts(){
+  if (pointsHidden) return;          // ne dessine pas si masqué
+  layerPts.innerHTML = '';
+  placed.forEach(p=>{
+    const c=document.createElementNS(rep.svg.namespaceURI,'circle');
+    c.setAttribute('cx',rep.X(p.x)); c.setAttribute('cy',rep.Y(p.y));
+    c.setAttribute('r',4.2); c.setAttribute('fill','#111');
+    layerPts.appendChild(c);
+  });
+}
+
+function togglePoint(p){
+  if(p.x<xmin||p.x>xmax||p.y<ymin||p.y>ymax) return;
+  const k = placed.findIndex(q=>q.x===p.x && q.y===p.y);
+  if(k>=0) placed.splice(k,1); else placed.push(p);
+  redrawPts();                       // affichage si non masqué
+}
+
+
+  function computeKnots(){
+  if(placed.length < 2) return null;
+  const sorted = [...placed].sort((a,b)=> a.x - b.x);
+
+  // Nœuds (x,y) + pente m
+  const K = sorted.map(p => ({ x:p.x, y:p.y, m:0 }));
+
+  // Pentes "douces" (cardinal) comme avant
+  for(let i=0;i<K.length;i++){
+    if(i===0){
+      const dx = (K[1].x - K[0].x) || 1;
+      K[i].m = (K[1].y - K[0].y) / dx * 0.9;
+    }else if(i===K.length-1){
+      const dx = (K[i].x - K[i-1].x) || 1;
+      K[i].m = (K[i].y - K[i-1].y) / dx * 0.9;
+    }else{
+      const dx = (K[i+1].x - K[i-1].x) || 1;
+      K[i].m = (K[i+1].y - K[i-1].y) / dx * 0.9;
+    }
+  }
+
+  // ⟵ NOUVEAU : impose m=0 aux points où la variation change (max/min discrets)
+  for(let i=1;i<K.length-1;i++){
+    const dyL = K[i].y - K[i-1].y;
+    const dyR = K[i+1].y - K[i].y;
+    if (dyL * dyR < 0) {
+      // changement de signe → extremum
+      K[i].m = 0;
+    }
+  }
+
+  return K;
+}
+
+
+  function drawCurve(useExisting=false){
+    // si useExisting et Klast dispo, on retrace sans recalcul
+    const K = useExisting && Klast ? Klast : computeKnots();
+    if(!K) return;
+    layerCur.innerHTML='';
+    addPath(layerCur, pathFromKnots(rep,K), {stroke:'#111','stroke-width':2.6});
+    Klast = K; // mémorise la courbe
+  }
+
+
+
+  function toSvgPoint(evt){ const pt=rep.svg.createSVGPoint(); pt.x=(evt.touches?evt.touches[0].clientX:evt.clientX); pt.y=(evt.touches?evt.touches[0].clientY:evt.clientY); return pt.matrixTransform(rep.svg.getScreenCTM().inverse()); }
+  function snap(svgPt){ return {x:Math.round(rep.Xi(svgPt.x)), y:Math.round(rep.Yi(svgPt.y))}; }
+  const onClick=e=>{ e.preventDefault(); togglePoint( snap(toSvgPoint(e)) ); };
+  rep.hit.addEventListener('click', onClick); rep.hit.addEventListener('touchstart', onClick, {passive:false});
+
+  // === Analyse depuis courbe (K) ===
+  function ensureCurve(){
+    if(Klast) return Klast;
+    const K = computeKnots();
+    if(K){ Klast=K; drawCurve(true); }
+    return Klast;
+  }
+
+  // Racines de f (toutes, non entières) depuis la courbe
+  function getAllRootsFromCurve(){
+    const K = ensureCurve(); if(!K) return [];
+    const roots=[];
+    for(let i=0;i<K.length-1;i++){
+      const P0=K[i], P1=K[i+1], m0=P0.m||0, m1=P1.m||0;
+      const Ts = rootsOnArc(P0,P1,m0,m1);
+      Ts.forEach(t=>{
+        const x = hermiteX(P0,P1,t);
+        const y = hermiteY(P0,P1,m0,m1,t);
+        // borne dans la fenêtre + y≈0
+        if(x>=xmin-1e-6 && x<=xmax+1e-6 && Math.abs(y)<1e-3) roots.push(x);
+      });
+    }
+    // tri + dédoublonnage
+    roots.sort((a,b)=>a-b);
+    const out=[];
+    for(const x of roots){ if(out.length===0 || Math.abs(x-out[out.length-1])>1e-3) out.push(x); }
+    return out;
+  }
+
+  // Variations depuis la courbe (échantillonnage pour repérer extremums)
+function analyzeVariationFromCurve(){
+  if(!Klast) return null;
+  const K = Klast;
+
+  // bornes "utiles"
+  const a2 = Math.max(+$('#cxmin',host).value + 1, K[0].x);
+  const b2 = Math.min(+$('#cxmax',host).value - 1, K.at(-1).x);
+
+  const crit = [];
+
+  // 1) Racines de y'(t) sur chaque arc (0<t<1)
+  for(let i=0;i<K.length-1;i++){
+    const A=K[i], B=K[i+1], m0=A.m||0, m1=B.m||0;
+    const Ts = hermiteExtremaT(A,B,m0,m1);
+    for(const t of Ts){
+      const x = hermiteX(A,B,t);
+      if(x>a2-1e-9 && x<b2+1e-9) crit.push(x);
+    }
+  }
+
+  // 2) Nœuds "extremums" : pente nulle au nœud + comparaison des voisins
+  const SLOPE_EPS = 1e-9;
+  for(let i=1;i<K.length-1;i++){
+    const L=K[i-1], M=K[i], R=K[i+1];
+    if(M.x<=a2 || M.x>=b2) continue;
+    const mi = M.m || 0;
+    const isZeroSlope = Math.abs(mi) < SLOPE_EPS;
+    const isMax = (M.y > L.y && M.y > R.y);
+    const isMin = (M.y < L.y && M.y < R.y);
+    if(isZeroSlope && (isMax || isMin)) crit.push(M.x);
+  }
+
+  // Dédup + tri
+  crit.sort((a,b)=>a-b);
+  const colsX = [a2];
+  for(const x of crit){
+    if(Math.abs(x - colsX.at(-1)) > 1e-3) colsX.push(x);
+  }
+  colsX.push(b2);
+
+  // Valeurs, flèches et étiquettes max/min
+  const colsY = colsX.map(x=> valueOnCurve(K,x));
+  const dirs = [];
+  for(let j=0;j<colsX.length-1;j++){
+    dirs.push( colsY[j+1] > colsY[j] ? '↗' : (colsY[j+1] < colsY[j] ? '↘' : '') );
+  }
+
+  const yMarks = colsX.map((xk,idx)=>{
+    if(idx===0 || idx===colsX.length-1) return {yM:'', ym:''};
+    const yL=colsY[idx-1], y0=colsY[idx], yR=colsY[idx+1];
+    if(y0>yL && y0>yR) return {yM:fmtX(y0), ym:''};   // max
+    if(y0<yL && y0<yR) return {yM:'', ym:fmtX(y0)};   // min
+    return {yM:'', ym:''};
+  });
+
+  return { colsX, colsY, dirs, yMarks };
+}
+
+
+  // === Sorties tableaux ===
+ function makeVarTable(){
+  // priorité aux points si Klast absent
+  if(!Klast){ const K=computeKnots(); if(K){ Klast=K; drawCurve(true); } }
+  const A = analyzeVariationFromCurve();
+  if(!A){ $('#curve-out-var',host).innerHTML='<div class="step small">Trace d’abord une courbe (≥ 2 points) pour extraire les variations.</div>'; return; }
+
+  const {colsX, colsY, dirs, yMarks}=A;
+
+  const head=['<tr><th>\\(x\\)</th>'];
+  colsX.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x).replace('-',UMIN)}\\)</td>`); if(j<colsX.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  function L(s){ return s? `\\(${String(s).replace('.',',').replace('-',UMIN)}\\)` : '&nbsp;'; }
+  function cellVal(v,top){ const up=top?L(v):'&nbsp;'; const dn=!top?L(v):'&nbsp;'; return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`; }
+
+  const body=['<tr><th>\\(f\\)</th>'];
+  for(let idx=0; idx<colsX.length; idx++){
+    if(idx===0){
+      const d=dirs[0];
+      if(d==='↗') body.push(cellVal(fmtX(colsY[0]),false));
+      else if(d==='↘') body.push(cellVal(fmtX(colsY[0]),true));
+      else body.push(cellVal('',true));
+    }else if(idx===colsX.length-1){
+      const d=dirs.at(-1);
+      if(d==='↗') body.push(cellVal(fmtX(colsY.at(-1)),true));
+      else if(d==='↘') body.push(cellVal(fmtX(colsY.at(-1)),false));
+      else body.push(cellVal('',true));
+    }else{
+      const {yM,ym}=yMarks[idx];
+      if(yM) body.push(cellVal(yM,true));
+      else if(ym) body.push(cellVal(ym,false));
+      else body.push(cellVal('',true));
+    }
+    if(idx<colsX.length-1) body.push(`<td>${dirs[idx]||''}</td>`);
+  }
+  body.push('</tr>');
+
+  $('#curve-out-var',host).innerHTML =
+    `<div class="step"><div><b>Tableau de variations (depuis la courbe) :</b></div>
+      <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table></div>
+    </div>`;
+  typesetAll($('#curve-out-var',host));
+}
+
+
+  function makeSignTable(){
+  if(!Klast){ const K=computeKnots(); if(K){ Klast=K; drawCurve(true); } }
+  const K = Klast;
+  if(!K){ $('#curve-out-sign',host).innerHTML='<div class="step small">Trace la courbe pour extraire le tableau de signes.</div>'; return; }
+
+  // mêmes bornes que variations : [max(xmin+1, x0) ; min(xmax-1, xN)]
+  const a2 = Math.max(+$('#cxmin',host).value + 1, K[0].x);
+  const b2 = Math.min(+$('#cxmax',host).value - 1, K.at(-1).x);
+
+  // Toutes les racines sur chaque arc, filtrées dans [a2,b2]
+  const roots=[];
+  for(let i=0;i<K.length-1;i++){
+    const A=K[i], B=K[i+1], m0=A.m||0, m1=B.m||0;
+    // réutilise la routine robustes (subdivision+bissection) que tu avais, ou celle-ci :
+    const Ts = rootsOnArc(A,B,m0,m1);
+    Ts.forEach(t=>{
+      const x = hermiteX(A,B,t);
+      const y = hermiteY(A,B,m0,m1,t);
+      if(x>=a2-1e-6 && x<=b2+1e-6 && Math.abs(y)<1e-3) roots.push(x);
+    });
+  }
+  // Après avoir rempli `roots` (toutes les racines de chaque arc)
+roots.sort((a,b)=>a-b);
+
+// dédoublonnage global (tolérance cohérente avec l’arrondi au dixième)
+const EPS = 0.05;             // la moitié d’un dixième
+const uniq = [];
+for (const x of roots) {
+  if (uniq.length === 0 || Math.abs(x - uniq[uniq.length-1]) > EPS) {
+    uniq.push(x);
+  }
+}
+
+// Construit les colonnes avec racines uniques
+const xCols = [a2, ...uniq, b2];
+
+
+  // Head x (avec intercalaires)
+  const head=['<tr><th>\\(x\\)</th>'];
+  xCols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x).replace('-',UMIN)}\\)</td>`); if(j<xCols.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // Signe par intervalle : on évalue f au milieu
+  const sgnInt=[];
+  for(let j=0;j<xCols.length-1;j++){
+    const mid=(xCols[j]+xCols[j+1])/2;
+    const y=valueOnCurve(K,mid);
+    sgnInt.push( y>0? '+' : (y<0? UMIN : '') );
+  }
+
+  // Ligne f(x) : 0 sous chaque racine (pas sous a2/b2)
+  let rowF='<tr><th>\\(f(x)\\)</th>';
+  for(let j=0;j<xCols.length;j++){
+    const isRootCol = (j>0 && j<xCols.length-1);
+    rowF += `<td style="font-weight:700;text-align:center">${isRootCol ? '0' : ''}</td>`;
+    if(j<xCols.length-1) rowF += `<td style="font-weight:700;text-align:center">${sgnInt[j]||''}</td>`;
+  }
+  rowF+='</tr>';
+
+  $('#curve-out-sign',host).innerHTML =
+    `<div class="step"><div><b>Tableau de signes (depuis la courbe) :</b> <span class="small">(racines ≈)</span></div>
+      <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowF}</tbody></table></div>
+    </div>`;
+  typesetAll($('#curve-out-sign',host));
+}
+function makeDerivVarTable(){
+  // Assure une courbe
+  if(!Klast){ const K=computeKnots(); if(K){ Klast=K; drawCurve(true); } }
+  const A = analyzeVariationFromCurve();
+  if(!A){ $('#curve-out-deriv',host).innerHTML = '<div class="step small">Trace d’abord une courbe (≥ 2 points) pour extraire f′ et les variations.</div>'; return; }
+
+  const { colsX, colsY, dirs, yMarks } = A;
+
+  // THEAD : ligne des x
+  const head = ['<tr><th>\\(x\\)</th>'];
+  colsX.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x).replace('-',UMIN)}\\)</td>`); if(j<colsX.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // Ligne f'(x) : 0 sur toutes les colonnes intérieures, signe entre colonnes
+  const signFromDir = d => d==='↗' ? '+' : (d==='↘' ? UMIN : '');
+  let rowFp = `<tr><th>\\(f'(x)\\)</th>`;
+  for(let j=0;j<colsX.length;j++){
+    const isInterior = (j>0 && j<colsX.length-1);
+    rowFp += `<td style="font-weight:700;text-align:center">${isInterior ? '0' : ''}</td>`;
+    if(j<colsX.length-1) rowFp += `<td style="font-weight:700;text-align:center">${signFromDir(dirs[j])}</td>`;
+  }
+  rowFp += '</tr>';
+
+  // Ligne f : mêmes règles que le tableau de variation
+  const L = s => s ? `\\(${String(s).replace('.',',').replace('-',UMIN)}\\)` : '&nbsp;';
+  const cellVal = (v,top)=> {
+    const up = top ? L(v) : '&nbsp;';
+    const dn = !top ? L(v) : '&nbsp;';
+    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+  };
+
+  const bodyF = ['<tr><th>\\(f\\)</th>'];
+  for(let i=0;i<colsX.length;i++){
+    if(i===0){
+      const d=dirs[0];
+      if(d==='↗') bodyF.push(cellVal(fmtX(colsY[0]),false));
+      else if(d==='↘') bodyF.push(cellVal(fmtX(colsY[0]),true));
+      else bodyF.push(cellVal('',true));
+    }else if(i===colsX.length-1){
+      const d=dirs.at(-1);
+      if(d==='↗') bodyF.push(cellVal(fmtX(colsY.at(-1)),true));
+      else if(d==='↘') bodyF.push(cellVal(fmtX(colsY.at(-1)),false));
+      else bodyF.push(cellVal('',true));
+    }else{
+      const {yM,ym} = yMarks[i];
+      if(yM) bodyF.push(cellVal(yM,true));
+      else if(ym) bodyF.push(cellVal(ym,false));
+      else bodyF.push(cellVal('',true));
+    }
+    if(i<colsX.length-1) bodyF.push(`<td>${dirs[i]||''}</td>`);
+  }
+  bodyF.push('</tr>');
+
+  $('#curve-out-deriv',host).innerHTML =
+    `<div class="step"><div><b>Tableau \\(f'(x)\\) et variations de \\(f\\) (depuis la courbe) :</b></div>
+       <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowFp}${bodyF.join('')}</tbody></table></div>
+     </div>`;
+  typesetAll($('#curve-out-deriv',host));
+}
+
+
+  // === API exposée (une seule fois) ===
+host._curve_api = {
+  trace: ()=> drawCurve(false),
+
+  // bascule "enlever/remettre" (utilisé par le bouton)
+  togglePts: ()=> setPointsHidden(!pointsHidden),
+
+  // alias si tu en as besoin ailleurs :
+  clearPts: ()=> setPointsHidden(true),
+  showPts : ()=> setPointsHidden(false),
+
+  // reset total
+  fullReset: ()=>{
+    placed.splice(0, placed.length);
+    layerPts.innerHTML = '';
+    layerCur.innerHTML = '';
+    Klast = null;
+    $('#note',host).textContent = '';
+    $('#curve-out-var',host).innerHTML  = '';
+    $('#curve-out-sign',host).innerHTML = '';
+
+    setPointsHidden(false); // rétablit libellé "⨂ Enlever les points"
+  },
+
+  remake: ()=> this.makeRep(host),
+
+  makeVarTable,
+  makeSignTable,
+  makeDerivVarTable
+};
+
+setPointsHidden(false); // état initial : points visibles + texte "⨂ Enlever les points"
+
+
+  // Boutons locaux (s’ils existent)
+  $('#btn-var-tab',host)?.addEventListener('click', ()=> host._curve_api.makeVarTable());
+  $('#btn-sign-tab',host)?.addEventListener('click', ()=> host._curve_api.makeSignTable());
+  	$('#btn-deriv-tab',host)?.addEventListener('click', ()=> host._curve_api.makeDerivVarTable());
+
+  
+}
+,
+  wireButtons(){
+    const host = $('#host');
+$('#btn-action').style.display='inline-block';
+$('#btn-action').textContent='✏️ Tracer la courbe';
+
+$('#btn-action2').style.display='inline-block';
+$('#btn-action2').textContent='⨂ Enlever les points';
+$('#btn-action2').onclick = ()=> host._curve_api?.togglePts();  // ⟵ bascule
+
+$('#btn-make').style.display='none';
+$('#btn-action').onclick = ()=> host._curve_api?.trace();
+
+// reconstruire le repère si amplitude change
+['cxmin','cxmax','cymin','cymax'].forEach(id=>{
+  $('#'+id).onchange = ()=> host._curve_api?.remake();
+});
+
+  },
+reset(){
+  const host = $('#host');
+  if(host && host._curve_api){
+    host._curve_api.fullReset();   // tout vider
+    host._curve_api.remake();      // reconstruire un repère propre
+  }
+}
+};
+
+/* ===== 2) Générateur de tableau de variations (n extrémums) ===== */
+const toolVar = {
+  id:'var', title:'Tableau de variations (inputs → tableau PDF)',
+  build(host){
+    host.innerHTML = `
+      <div class="row">
+        <label>Nombre d’extrémums :</label>
+        <input id="v-n" type="number" min="1" max="4" value="2" style="width:70px">
+        <button id="v-gen" class="btn">Générer la grille</button>
+      </div>
+      <div id="v-wrap" style="margin-top:.5rem"></div>
+      <div class="steps" id="v-out"></div>
+    `;
+    $('#v-gen',host).onclick=()=> this.makeGrid(host);
+  },
+  makeGrid(host){
+    const n=Math.min(4, Math.max(1, +$('#v-n',host).value||2));
+    const cols=['xmin', ...Array.from({length:n},(_,i)=>'x'+(i+1)), 'xmax'];
+    function xCell(role){ return `<td><input class="vx" data-role="${role}" type="text" placeholder="${role}"></td>`; }
+    function yBlock(role){ return `<td><div style="display:flex;flex-direction:column;gap:6px;align-items:center"><input class="vy-max" data-role="${role}" type="text" placeholder="max"><input class="vy-min" data-role="${role}" type="text" placeholder="min"></div></td>`; }
+    function arrowCell(i){ return `<td class="bigsel"><select class="vdir" data-i="${i}"><option></option><option>↘</option><option>↗</option></select></td>`; }
+// Ligne x — en-tête éditable
+let rowX = '<tr><th><input class="v-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{ 
+  rowX += xCell(c);                         // inchangé
+  if(j < cols.length-1) rowX += '<td></td>'; // séparateur d’intervalle
+});
+rowX += '</tr>';
+
+// Ligne f — en-tête éditable
+let rowF = '<tr><th><input class="v-hf" type="text" value="f" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{ 
+  rowF += yBlock(c);                        // bloc (max/min) inchangé
+  if(j < cols.length-1) rowF += arrowCell(j);
+});
+rowF += '</tr>';
+
+$('#v-wrap',host).innerHTML =
+  `<div class="var-wrap"><table class="var"><tbody>${rowX}${rowF}</tbody></table></div>`;
+$('#btn-make').style.display='inline-block';
+$('#btn-action').style.display='none';
+$('#btn-action2').style.display='none';
+typesetAll($('#v-wrap',host)); // pour les éventuels LaTeX saisis par l'utilisateur
+
+  },
+  makeTable(host){
+const clean = s => (s||'')
+  .replace(/^\\\(|\\\)$/g,'')     // retire \(...\) éventuels
+  .replace(/^\$+|\$+$/g,'')       // retire $...$ éventuels
+  .trim();
+const L = s => `\\(${s}\\)`;      // emballe en LaTeX
+
+// labels dynamiques
+const labelX = clean($('.v-hx',host)?.value || 'x');
+const labelF = clean($('.v-hf',host)?.value || 'f');
+
+    const N=$$('.vx',host).length; if(!N) return;
+    const roles=$$('.vx',host).map(inp=>inp.dataset.role);
+    const xs=$$('.vx',host).map(inp=>inp.value.trim().replace('\u2212','-'));
+    const dirs=$$('.vdir',host).map(sel=>sel.value||'');
+    const block=(role)=>{ const yM=$(`.vy-max[data-role="${role}"]`,host)?.value.trim()||''; const ym=$(`.vy-min[data-role="${role}"]`,host)?.value.trim()||''; return {yM,ym}; };
+    const vals=roles.map(r=>block(r));
+    // Compose lignes PDF (mêmes colonnes, flèches entre)
+// TÊTE du tableau PDF (ligne des x)
+const head = ['<tr><th>'+ L(labelX) +'</th>'];
+xs.forEach((x,j)=>{ head.push(`<td>\\(${x.replace('-',''+UMIN)}\\)</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+head.push('</tr>');
+
+// Corps (ligne f) — reprend aussi le label dynamique
+function cellVal(v,top){
+  const up = top ? (v? L(v) : '&nbsp;') : '&nbsp;';
+  const dn = !top ? (v? L(v) : '&nbsp;') : '&nbsp;';
+  return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+}
+
+const body = ['<tr><th>'+ L(labelF) +'</th>'];
+roles.forEach((r,idx)=>{
+  const {yM,ym}=vals[idx];
+  const isFirst = (idx===0), isLast=(idx===roles.length-1);
+  if(isFirst){
+    const d=dirs[0];
+    if(d==='↗') body.push(cellVal(ym||'',false));
+    else if(d==='↘') body.push(cellVal(yM||'',true));
+    else body.push(cellVal('',true));
+  } else if(isLast){
+    const d=dirs[dirs.length-1];
+    if(d==='↗') body.push(cellVal(yM||'',true));
+    else if(d==='↘') body.push(cellVal(ym||'',false));
+    else body.push(cellVal('',true));
+  } else {
+    if(yM) body.push(cellVal(yM,true));
+    else if(ym) body.push(cellVal(ym,false));
+    else body.push(cellVal('',true));
+  }
+  if(idx<roles.length-1) body.push(`<td>${dirs[idx]||''}</td>`);
+});
+body.push('</tr>');
+
+$('#v-out',host).innerHTML =
+  `<div class="step"><div><b>Tableau de variations :</b></div>
+    <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table></div>
+  </div>`;
+typesetAll($('#v-out',host));
+  },
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
+  reset(){ $('#v-out') && ($('#v-out').innerHTML=''); }
+};
+
+/* ===== 3) Tableau de signes (1 ligne) ===== */
+const toolSign1 = {
+  id:'sign1', title:'Tableau de signes (1 ligne)',
+  build(host){
+    host.innerHTML = `
+      <div class="row">
+        <label>Nombre de racines :</label>
+        <input id="s1-k" type="number" min="0" max="6" value="2" style="width:70px">
+        <button id="s1-gen" class="btn">Générer la grille</button>
+      </div>
+      <div id="s1-wrap" style="margin-top:.5rem"></div>
+      <div class="steps" id="s1-out"></div>`;
+    $('#s1-gen',host).onclick=()=> this.makeGrid(host);
+  },
+  makeGrid(host){
+    const k=Math.max(0, Math.min(6, +$('#s1-k',host).value||0));
+    const cols = ['xmin', ...Array.from({length:k},(_,i)=>'r'+(i+1)), 'xmax'];
+    function xCell(role){ return `<td><input class="s1x" data-role="${role}" type="text" placeholder="${role}"></td>`; }
+    function gapCell(i){ return `<td class="bigsel"><select class="s1sgn" data-i="${i}"><option></option><option value="+">+</option><option value="${UMIN}">${UMIN}</option></select></td>`; }
+function zeroCell(role){
+  return `<td class="bigsel">
+    <select class="s1z" data-role="${role}">
+      <option value=""></option>
+      <option value="0">0</option>
+      <option value="||">||</option>
+    </select>
+  </td>`;
+}
+// Ligne x (en-tête éditable)
+let rowX = '<tr><th><input class="s1-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{ rowX += xCell(c); if(j<cols.length-1) rowX+='<td></td>'; });
+rowX += '</tr>';
+
+// Ligne f(x) (en-tête éditable)
+let rowF = '<tr><th><input class="s1-hf" type="text" value="f(x)" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{
+  if(c==='xmin'||c==='xmax') rowF+=zeroCell(c);
+  else if(c[0]==='r') rowF+=zeroCell(c);
+  else rowF+='<td></td>';
+  if(j<cols.length-1) rowF+=gapCell(j);
+});
+rowF+='</tr>';
+    $('#s1-wrap',host).innerHTML = `<div class="var-wrap"><table class="var"><tbody>${rowX}${rowF}</tbody></table></div>`;
+    $('#btn-make').style.display='inline-block'; $('#btn-action').style.display='none'; $('#btn-action2').style.display='none';
+    typesetAll($('#v-wrap',host));        // ⟵ AJOUT
+
+  },
+  makeTable(host){
+    const xs=$$('.s1x',host).map(i=>i.value.trim());
+    const sgn=$$('.s1sgn',host).map(s=>s.value||'');
+const zmap = {};
+$$('.s1z',host).forEach(sel=>{
+  zmap[sel.dataset.role] = sel.value || '';
+});
+const clean = s => (s||'').replace(/^\\\(|\\\)$/g,'').replace(/^\$+|\$+$/g,'').trim();
+const L = s => `\\(${s}\\)`;
+
+const labelX = clean($('.s1-hx',host)?.value || 'x');
+const labelF = clean($('.s1-hf',host)?.value || 'f(x)');
+const head=['<tr><th>'+L(labelX)+'</th>'];
+xs.forEach((x,j)=>{ head.push(`<td>\\(${x.replace('-',''+UMIN)}\\)</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+head.push('</tr>');
+    const cols=['xmin', ...$$('.s1x',host).slice(1,-1).map((_,i)=>'r'+(i+1)), 'xmax']; // même ordre
+let rowF = '<tr><th>'+L(labelF)+'</th>';
+cols.forEach((c,j)=>{ rowF+=`<td style="font-weight:700">${zmap[c]||''}</td>`; if(j<cols.length-1) rowF+=`<td style="font-weight:700">${sgn[j]||''}</td>`; });
+rowF+='</tr>';
+    $('#s1-out',host).innerHTML = `<div class="step"><div><b>Tableau de signes :</b></div><div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowF}</tbody></table></div></div>`;
+    typesetAll($('#s1-out',host));
+  },
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
+  reset(){ $('#s1-out') && ($('#s1-out').innerHTML=''); }
+};
+
+/* ===== 4) Tableau de signes factorisé (plusieurs lignes) ===== */
+const toolSignFact = {
+  id:'signF', title:'Tableau de signes (forme factorisée, multi-lignes)',
+  build(host){
+    host.innerHTML = `
+      <div class="row">
+        <label>Nombre de racines :</label>
+        <input id="sf-k" type="number" min="0" max="6" value="2" style="width:70px">
+        <label>Valeur de a :</label>
+        <input id="sf-a" type="text" value="1" style="width:80px">
+        <label>Nombre de facteurs :</label>
+        <input id="sf-m" type="number" min="1" max="6" value="2" style="width:70px">
+        <button id="sf-gen" class="btn">Générer la grille</button>
+      </div>
+      <div id="sf-wrap" style="margin-top:.5rem"></div>
+      <div class="steps" id="sf-out"></div>`;
+    $('#sf-gen',host).onclick=()=> this.makeGrid(host);
+  },
+  makeGrid(host){
+  const k = Math.max(0, Math.min(6, +$('#sf-k',host).value || 0));   // nb de racines
+  const m = Math.max(1, Math.min(6, +$('#sf-m',host).value || 1));   // nb de facteurs
+  const showA = ($('#sf-a',host).value.trim() !== '1');               // afficher ligne "a" ?
+  const cols = ['xmin', ...Array.from({length:k}, (_,i)=> 'r'+(i+1)), 'xmax'];
+
+  // helpers cellules
+  const xCell = (role)=> `<td><input class="sf-x" data-role="${role}" type="text" placeholder="${role}"></td>`;
+  const signCell = (cls,i)=> `<td class="bigsel">
+    <select class="sf-sgn ${cls}" data-i="${i}">
+      <option></option><option>+</option><option>${UMIN}</option>
+    </select>
+  </td>`;
+  const zeroSelector = (f, role)=> `<td class="bigsel">
+    <select class="sfz" data-factor="${f}" data-role="${role}">
+      <option value=""></option>
+      <option value="0">0</option>
+      <option value="||">||</option>
+    </select>
+  </td>`;
+
+ 
+
+ // Ligne x
+let rowX = '<tr><th><input class="sf-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{ rowX += xCell(c); if(j<cols.length-1) rowX+='<td></td>'; });
+rowX+='</tr>';
+let rows=rowX;
+
+// Ligne a
+if(showA){
+  let r='<tr><th><input class="sf-ha" type="text" value="a" style="width:70px;text-align:center"></th>';
+  cols.forEach((_,j)=>{ r+='<td></td>'; if(j<cols.length-1) r+=signCell('sf-a',j); });
+  r+='</tr>'; rows+=r;
+}
+
+// Lignes Facteur i
+for(let f=1; f<=m; f++){
+  // (dans for f=1..m)
+let r = `<tr><th><input class="sf-hf" data-factor="${f}" type="text" value="" style="width:110px;text-align:center"></th>`;
+cols.forEach((c,j)=>{
+  // ⟵ désormais: sélecteur 0/|| sur xmin, r_i, xmax
+  if (c === 'xmin' || c === 'xmax' || c[0] === 'r') {
+    r += `<td class="bigsel">
+            <select class="sfz" data-factor="${f}" data-role="${c}">
+              <option value=""></option>
+              <option value="0">0</option>
+              <option value="||">||</option>
+            </select>
+          </td>`;
+  } else {
+    r += '<td></td>';
+  }
+  if (j < cols.length-1) {
+    r += `<td class="bigsel">
+            <select class="sf-sgn sf-f${f}" data-i="${j}">
+              <option></option><option>+</option><option>${UMIN}</option>
+            </select>
+          </td>`;
+  }
+});
+r += '</tr>';
+rows += r;
+
+}
+
+// Ligne f(x)
+// 4) Dernière ligne : f(x) — avec sélecteurs 0/||
+let rF = '<tr><th><input class="sf-hfx" type="text" value="f(x)" style="width:70px;text-align:center"></th>';
+cols.forEach((role, j) => {
+  rF += `<td class="bigsel">
+          <select class="sfz-fx" data-role="${role}">
+            <option value=""></option>
+            <option value="0">0</option>
+            <option value="||">||</option>
+          </select>
+        </td>`;
+  if (j < cols.length - 1) {
+    rF += `<td class="bigsel"><select class="sf-sgn-fx" data-i="${j}">
+             <option></option><option>+</option><option>${UMIN}</option>
+           </select></td>`;
+  }
+});
+rF += '</tr>';
+rows += rF;
+
+
+  // 5) Injection + UI + MathJax
+  $('#sf-wrap',host).innerHTML = `<div class="var-wrap"><table class="var"><tbody>${rows}</tbody></table></div>`;
+  $('#btn-make').style.display = 'inline-block';
+  $('#btn-action').style.display = 'none';
+  $('#btn-action2').style.display = 'none';
+  typesetAll($('#sf-wrap',host));
+},
+
+  makeTable(host){
+    const xs=$$('.sf-x',host).map(i=>i.value.trim());
+    const cols=xs.length;
+	// Récupère les 0/|| choisis pour chaque facteur et chaque colonne (xmin, r_i, xmax)
+const Z = {}; // Z[factorIndex][role] = "0" | "||" | ""
+$$('.sfz',host).forEach(sel => {
+  const f = +sel.dataset.factor; const role = sel.dataset.role;
+  if (!Z[f]) Z[f] = {};
+  Z[f][role] = sel.value || '';
+});
+// 0/|| choisis sur la dernière ligne f(x)
+const Zfx = {};  // Zfx[role] = "0" | "||" | ""
+$$('.sfz-fx', host).forEach(sel => {
+  Zfx[sel.dataset.role] = sel.value || '';
+});
+
+    const intervals=cols-1;
+    const signRows = [];
+    if($$('.sf-a',host).length){ signRows.push({label:'a', signs:$$('.sf-a',host).map(s=>s.value||'')}); }
+    let fIdx=1; while($$('.sf-f'+fIdx,host).length){ signRows.push({label:'Facteur '+fIdx, signs:$$('.sf-f'+fIdx,host).map(s=>s.value||'')}); fIdx++; }
+    const fx = $$('.sf-sgn-fx',host).map(s=>s.value||'');
+   const clean = s => (s||'').replace(/^\\\(|\\\)$/g,'').replace(/^\$+|\$+$/g,'').trim();
+const L = s => `\\(${s}\\)`;
+
+const labelX  = clean($('.sf-hx',host )?.value || 'x');
+const labelA  = clean($('.sf-ha',host )?.value || 'a');
+const labelFx = clean($('.sf-hfx',host)?.value || 'f(x)');
+
+const factLabels = $$('.sf-hf',host).map(inp=> clean(inp.value||'Facteur') );
+
+// En-tête x
+const head=['<tr><th>'+L(labelX)+'</th>'];
+xs.forEach((x,j)=>{ head.push(`<td>\\(${x.replace('-',''+UMIN)}\\)</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+head.push('</tr>');
+
+// Lignes a + Facteurs
+const body=[];
+if($$('.sf-a',host).length){
+  let tr='<tr><th>'+L(labelA)+'</th>';
+  for(let j=0;j<cols;j++){ tr+='<td></td>'; if(j<cols-1) tr+=`<td style="font-weight:700">${$$('.sf-a',host)[j]?.value||''}</td>`; }
+  tr+='</tr>'; body.push(tr);
+}
+// factLabels = labels des facteurs (déjà récupérés)
+factLabels.forEach((lab, idx)=>{
+  const f = idx + 1;  // numéro de facteur
+  let tr = '<tr><th>'+ L(lab) +'</th>';
+  for (let j=0; j<cols; j++){
+    const role = cols[j]; // 'xmin', 'r1', ..., 'xmax'
+    const z = (Z[f] && Z[f][role]) ? Z[f][role] : '';
+    tr += `<td style="text-align:center;font-weight:700">${z}</td>`;
+    if (j < cols-1) tr += `<td style="font-weight:700">${$$('.sf-f'+f,host)[j]?.value || ''}</td>`;
+  }
+  tr += '</tr>';
+  body.push(tr);
+});
+
+
+// Ligne f(x) — valeurs 0/|| sous colonnes + signes par intervalles
+let trF = '<tr><th>'+ L(labelFx) +'</th>';
+for (let j = 0; j < cols; j++) {
+  const role = xs[j] ? (j===0 ? 'xmin' : (j===cols-1 ? 'xmax' : 'r'+j)) : 'xmin'; // si tu as déjà `cols` = ['xmin', ... 'r_i', 'xmax'], utilise-le :
+  // 👉 si tu as défini plus haut: const colsArr = ['xmin', ... Array.from({length:k},(_,i)=>'r'+(i+1)), 'xmax'];
+  // alors ici: const role = colsArr[j];
+const colsArr = ['xmin', ...Array.from({length: cols-2}, (_,i)=> 'r'+(i+1)), 'xmax'];
+// puis dans la ligne f(x) :
+trF += `<td style="text-align:center;font-weight:700">${Zfx[colsArr[j]] || ''}</td>`;  if (j < cols - 1) {
+    trF += `<td style="font-weight:700">${fx[j] || ''}</td>`;
+  }
+}
+trF += '</tr>';
+body.push(trF);
+
+    $('#sf-out',host).innerHTML = `<div class="step"><div><b>Tableau de signes (forme factorisée) :</b></div><div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table></div></div>`;
+    typesetAll($('#sf-out',host));
+  },
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
+  reset(){ $('#sf-out') && ($('#sf-out').innerHTML=''); }
+};
+
+/* ===== 5) Tableau f' + variations ===== */
+const toolDerivVar = {
+  id:'deriv', title:"Tableau f' (signe) + variations de f",
+  build(host){
+    host.innerHTML = `
+      <div class="row">
+        <label>Nombre d’extrémums :</label>
+        <input id="dv-n" type="number" min="1" max="4" value="2" style="width:70px">
+        <button id="dv-gen" class="btn">Générer la grille</button>
+      </div>
+      <div id="dv-wrap" style="margin-top:.5rem"></div>
+      <div class="steps" id="dv-out"></div>`;
+    $('#dv-gen',host).onclick=()=> this.makeGrid(host);
+  },
+makeGrid(host){
+  const n = Math.min(4, Math.max(1, +$('#dv-n',host).value || 2));
+  const cols = ['xmin', ...Array.from({length:n}, (_,i)=> 'c'+(i+1)), 'xmax'];
+
+  const xCell   = role => `<td><input class="dvx" data-role="${role}" type="text" placeholder="${role}"></td>`;
+  const sCell   = i    => `<td class="bigsel"><select class="dvs" data-i="${i}"><option></option><option>+</option><option>${UMIN}</option></select></td>`;
+  const dirCell = i    => `<td class="bigsel"><select class="dvd" data-i="${i}"><option></option><option>↘</option><option>↗</option></select></td>`;
+  const yBlock  = role => `<td><div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+                             <input class="dvYmax" data-role="${role}" type="text" placeholder="max">
+                             <input class="dvYmin" data-role="${role}" type="text" placeholder="min">
+                           </div></td>`;
+  const zeroCell= role => `<td class="bigsel">
+      <select class="dvz" data-role="${role}">
+        <option value=""></option>
+        <option value="0">0</option>
+        <option value="||">||</option>
+      </select>
+    </td>`;
+
+  // Ligne x
+  let rX = '<tr><th>\\(x\\)</th>';
+  cols.forEach((c,j)=>{ rX += xCell(c); if(j<cols.length-1) rX += '<td></td>'; });
+  rX += '</tr>';
+
+  // Ligne f'(x) : 0/|| sous chaque colonne + signe sur chaque intervalle
+  let rS = `<tr><th>\\(f'(x)\\)</th>`;
+  cols.forEach((c,j)=>{ rS += zeroCell(c); if(j<cols.length-1) rS += sCell(j); });
+  rS += '</tr>';
+
+  // Ligne f : mêmes blocs que l’outil 2) + flèches ↘/↗
+  let rF = '<tr><th>\\(f\\)</th>';
+  cols.forEach((c,j)=>{ rF += yBlock(c); if(j<cols.length-1) rF += dirCell(j); });
+  rF += '</tr>';
+
+  $('#dv-wrap',host).innerHTML = `<div class="var-wrap"><table class="var"><tbody>${rX}${rS}${rF}</tbody></table></div>`;
+  $('#btn-make').style.display='inline-block';
+  $('#btn-action').style.display='none';
+  $('#btn-action2').style.display='none';
+  typesetAll($('#dv-wrap',host));
+},
+
+makeTable(host){
+  const xs   = $$('.dvx',host).map(i=> i.value.trim());
+  const sgn  = $$('.dvs',host).map(s=> s.value || '');      // signes de f'
+  let   dirs = $$('.dvd',host).map(s=> s.value || '');      // ↘/↗ pour f
+  if(dirs.every(v=>!v)) dirs = sgn.map(s=> s==='+' ? '↗' : (s ? '↘' : ''));
+
+  const cols = ['xmin', ...$$('.dvx',host).slice(1,-1).map((_,i)=> 'c'+(i+1)), 'xmax'];
+
+  // 0/|| sous chaque colonne de f'(x)
+  const zmap = {};
+  $$('.dvz',host).forEach(sel => { zmap[sel.dataset.role] = sel.value || ''; });
+
+  const L = s => `\\(${String(s).replace('-',''+UMIN)}\\)`;
+
+  // THEAD : ligne des x (valeur | (vide) | valeur | ...)
+  const head = ['<tr><th>\\(x\\)</th>'];
+  xs.forEach((x,j)=>{ head.push(`<td>${L(x)}</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // TBODY : f'(x) — 0/|| sur colonnes + signes sur intervalles
+  let rS = `<tr><th>\\(f'(x)\\)</th>`;
+  for(let j=0; j<xs.length; j++){
+    const role = cols[j]; // xmin, c1..cn, x_max
+    rS += `<td style="font-weight:700;text-align:center">${zmap[role]||''}</td>`;
+    if(j<xs.length-1) rS += `<td style="font-weight:700;text-align:center">${sgn[j]||''}</td>`;
+  }
+  rS += '</tr>';
+
+  // Collect max/min pour f (même logique que 2)
+  const getY = (role,cls)=> ($(`.${cls}[data-role="${role}"]`,host)?.value.trim() || '');
+  const roles = cols;
+  const vals = roles.map(r => ({ yM: getY(r,'dvYmax'), ym: getY(r,'dvYmin') }));
+
+  function cellVal(v,top){
+    const up = top ? (v? L(v) : '&nbsp;') : '&nbsp;';
+    const dn = !top ? (v? L(v) : '&nbsp;') : '&nbsp;';
+    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+  }
+
+  // TBODY : f — blocs max/min + flèches ↘/↗
+  let rF = '<tr><th>\\(f\\)</th>';
+  roles.forEach((r,idx)=>{
+    const {yM,ym} = vals[idx];
+    const isFirst = (idx===0), isLast = (idx===roles.length-1);
+    if(isFirst){
+      const d = dirs[0];
+      if(d==='↗') rF += cellVal(ym||'', false);
+      else if(d==='↘') rF += cellVal(yM||'', true);
+      else rF += cellVal('', true);
+    }else if(isLast){
+      const d = dirs[dirs.length-1];
+      if(d==='↗') rF += cellVal(yM||'', true);
+      else if(d==='↘') rF += cellVal(ym||'', false);
+      else rF += cellVal('', true);
+    }else{
+      if(yM) rF += cellVal(yM, true);
+      else if(ym) rF += cellVal(ym, false);
+      else rF += cellVal('', true);
+    }
+    if(idx<roles.length-1) rF += `<td>${dirs[idx]||''}</td>`;
+  });
+  rF += '</tr>';
+
+  $('#dv-out',host).innerHTML =
+    `<div class="step"><div><b>Tableau f' et variations de f :</b></div>
+      <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rS}${rF}</tbody></table></div>
+    </div>`;
+  typesetAll($('#dv-out',host));
+},
+
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
+  reset(){ $('#dv-out') && ($('#dv-out').innerHTML=''); }
+};
+
+/* ===== Registre outils ===== */
+const TOOLS=[toolCurve, toolVar, toolSign1, toolSignFact, toolDerivVar];
+
+function buildTool(){ const sel=$('#tool-select').value; const t=TOOLS.find(u=>u.id===sel)||TOOLS[0]; const host=$('#host'); t.build(host); typesetAll(host); t.wireButtons?.(); }
+function resetTool(){ const sel=$('#tool-select').value; const t=TOOLS.find(u=>u.id===sel)||TOOLS[0]; t.reset?.(); }
+
+// UI
+(function init(){
+  const sel = $('#tool-select');
+  sel.innerHTML = TOOLS.map((t,i)=>`<option value="${t.id}">${i+1} — ${t.title}</option>`).join('');
+  sel.onchange = buildTool;
+  // retire cette ligne :
+  // $('#btn-build').onclick = buildTool;
+  $('#btn-reset').onclick = resetTool;
+  sel.value = TOOLS[0].id;
+  buildTool();
+})();
+
+/* PDF kit (optionnel) */
+(function waitExoPDF(){
+  if(window.ExoPDF && typeof ExoPDF.init==='function'){
+    ExoPDF.init({ title:'Seconde — Générateurs (courbe, variations, signes, dérivée)', mountAfterSelector:'.card.small' });
+  } else setTimeout(waitExoPDF, 100);
+})();
+
+})();
+</script>
+</body>
+</html>

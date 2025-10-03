@@ -142,10 +142,6 @@ table.pdf-tbl td.dbar::after { left: calc(50% + 2px); }
 #sf-wrap table.var tbody tr.sf-row-fx > * {
   border-top: 1.5px solid #000;
 }
-/* Ligne après 'a' (si la ligne 'a' est affichée) */
-#sf-wrap table.var tbody tr.sf-row-a + tr.sf-row-factor > * {
-  border-top: 1.5px solid #000;
-}
 
 /* === 4) TABLEAU SIGNE FACTORISÉ — SOLUTION (PDF) === */
 /* traits entre 'a' / facteurs / 'f(x)' */
@@ -167,22 +163,6 @@ table.var td.zbar {
   border-bottom: 1.5px solid #000;
 }
 
-/* Gabarit SOLUTION (pdf-tbl) — aération modérée */
-.steps .pdf-tbl{
-  width: auto;             /* ne force pas 100% */
-  max-width: 100%;
-  table-layout: auto;
-}
-.steps .pdf-tbl th,
-.steps .pdf-tbl td{
-  padding: 5px 8px;        /* léger + que l'origine, moins qu'avant */
-}
-.steps .pdf-tbl tbody th{
-  min-width: 64px;         /* libellés (f, f', a, …) */
-}
-.steps .pdf-tbl td{
-  min-width: 30px;         /* colonnes x / intervalles */
-}
 
 
 </style>
@@ -200,44 +180,24 @@ table.var td.zbar {
   </div>
 
   <div class="wrap">
-<div class="controls card">
-  <label for="tool-select"><strong>Générateur :</strong></label>
-  <select id="tool-select"></select>
-  <button id="btn-action" class="btn" style="display:none"></button>
-  <button id="btn-action2" class="btn" style="display:none"></button>
-  <!-- AJOUTE ICI -->
-  <button class="btn" id="mc-label" style="display:none">Placer Cf sur la courbe</button>
-  <!-- /AJOUT -->
-  <button id="btn-make" class="btn" style="display:none">🧩 Créer le tableau</button>
-  <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
-</div>
-
+    <div class="controls card">
+      <label for="tool-select"><strong>Générateur :</strong></label>
+      <select id="tool-select"></select>
+      <button id="btn-action" class="btn" style="display:none"></button>
+      <button id="btn-action2" class="btn" style="display:none"></button>
+      <button id="btn-make" class="btn" style="display:none">🧩 Créer le tableau</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+    </div>
 
     <div class="card" id="host"></div>
 
     <div class="card small">
-  <strong>Notes</strong>
-
-  <div style="margin:.5rem 0 0 0">
-    <p><b>Dans le fichier 1 et 2 :</b></p>
-	<b>Pour tracer une courbe :</b>
-    <ul style="margin:.25rem 0 0 18px">
-      <li>Placer les points où vous voulez (coordonnées entières dans le fichier 1 et à 0,5 près dans le fichier 2).</li>
-      <li>Pour faire disparaitre un point déjà placé, il suffit de cliquer dessus.</li>
-      <li>Cliquer sur : <em>Tracer la courbe</em>.</li>
-      <li>Vous pouvez faire disparaitre/réapparaitre les points de construction en cliquant sur : <em>Enlever/Remettre les points</em>.</li>
-    </ul>
-
-    <p style="margin-top:.5rem"><b>Dans le deuxième fichier :</b></p>
-    <ul style="margin:.25rem 0 0 18px">
-      <li>Vous pouvez construire plusieurs courbes en cliquant sur les boutons de couleurs.</li>
-      <li>Vous pouvez placer/déplacer le nom des courbes sur le repère en cliquant sur : <em>Placer Cf sur la courbe</em>. 
-	  <br>Attention il faudra recliquer sur les boutons de couleurs Cf/Cg... pour pouvoir replacer des points.
-	  <br>Pour faire disparaitre le nom de la courbe, double-cliquez sur le nom.</li>
-    </ul>
-  </div>
-</div>
-
+      <strong>Notes</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Les tableaux « créés » utilisent le gabarit PDF (<code>table.pdf-tbl</code>) prêt pour l'export.</li>
+        <li>Clavier math intégré ; Entrée ⇥ ne déclenche rien ici (pas d'évaluation).</li>
+      </ul>
+    </div>
 
     <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
   </div>
@@ -405,18 +365,17 @@ function fmtX(x){
 }
 // Active/MAJ l'effet "double barre" en fonction de la valeur du <select>
 function wireBarCells(scope){
-  const sels = $$('.s1z,.sfz,.sfz-fx,.dvz,.vbar,.vfmark', scope || document);
+  const sels = $$('.s1z,.sfz,.sfz-fx,.dvz', scope || document);
   const update = sel => {
     const td = sel.closest('td');
     if(!td) return;
     td.classList.remove('sbar','zbar','dbar');
     if(sel.value === '||')      td.classList.add('dbar');  // ||
     else if(sel.value === '0')  td.classList.add('zbar');  // 0 + |
-    else                        td.classList.add('sbar');  // | par défaut (intérieur)
+    else                        td.classList.add('sbar');  // | (par défaut)
   };
   sels.forEach(sel=>{ sel.addEventListener('change', ()=>update(sel)); update(sel); });
 }
-
 
 // Fabrique la cellule "barre" pour la SOLUTION.
 // role = 'xmin'|'xmax'|'r1'...'c1'...
@@ -897,8 +856,7 @@ $('#btn-action').onclick = ()=> host._curve_api?.trace();
 ['cxmin','cxmax','cymin','cymax'].forEach(id=>{
   $('#'+id).onchange = ()=> host._curve_api?.remake();
 });
-const labBtn = $('#mc-label');
-  if (labBtn) labBtn.style.display = 'none';
+
   },
 reset(){
   const host = $('#host');
@@ -967,68 +925,22 @@ const toolMultiCurve = {
   let curves = [];                       // stockera jusqu'à 5 courbes
   let count  = Math.min(MAX, Math.max(1, +$('#mc-n',host).value || 2)); // nb visible
   let active = 0;                        // index courbe active
-let labelMode = false;                  // mode placement d'étiquettes
-
-let drag = { curveIdx:-1, labelIdx:-1 };
-
-function beginDrag(curveIdx, labelIdx, e, span){
-  e.preventDefault();
-  drag = { curveIdx, labelIdx };
-  span.style.cursor = 'grabbing';
-  window.addEventListener('mousemove', onDrag);
-  window.addEventListener('mouseup', endDrag);
-  window.addEventListener('touchmove', onDrag, {passive:false});
-  window.addEventListener('touchend', endDrag);
-}
-function onDrag(e){
-  if (drag.curveIdx < 0) return;
-  const c = curves[drag.curveIdx];
-  const pt = toSvgPoint(e.touches ? e.touches[0] : e);
-  const p  = snapPt(pt);            // accrochage 0,5 déjà en place
-  c.labels[drag.labelIdx] = { x:p.x, y:p.y };
-  redrawLabels(c);
-}
-function endDrag(){
-  drag = { curveIdx:-1, labelIdx:-1 };
-  window.removeEventListener('mousemove', onDrag);
-  window.removeEventListener('mouseup', endDrag);
-  window.removeEventListener('touchmove', onDrag);
-  window.removeEventListener('touchend', endDrag);
-}
-
-
-function setLabelMode(on){
-  labelMode = !!on;
-  const b = $('#mc-label',host);
-  if(!b) return;
-  b.classList.toggle('is-active', labelMode);
-  b.textContent = (labelMode ? '✓ ' : '') + 'Placer ' + curves[active].btn + ' sur la courbe';
-}
 
   // ====== Fabrique une courbe si elle n'existe pas encore ======
-function createCurve(i){
-  const layerPts=document.createElementNS(rep.svg.namespaceURI,'g');
-  const layerCur=document.createElementNS(rep.svg.namespaceURI,'g');
-  const layerLbl=document.createElementNS(rep.svg.namespaceURI,'g');   // ← nouveau
-  layerPts.style.pointerEvents='none';
-  layerCur.style.pointerEvents='none';
-  // labels: pas d'interaction → laisse pointerEvents par défaut
-  rep.plot.appendChild(layerPts);
-  rep.plot.appendChild(layerCur);
-  rep.plot.appendChild(layerLbl);                                     // ← nouveau
-  return {
-    i, name: labels[i], btn: btnLbl[i], color: colors[i],
-    placed: [], Klast:null, pointsHidden:false,
-    layerPts, layerCur, layerLbl,                                     // ← nouveau
-    labels: [],                                                        // ← nouveau
-    outs:{var:'',sign:'',deriv:''}
-  };
-}
-function ensureCurve(i){
-  if (!curves[i]) curves[i] = createCurve(i);
-  return curves[i];
-}
-
+  function createCurve(i){
+    const layerPts = document.createElementNS(rep.svg.namespaceURI,'g');
+    const layerCur = document.createElementNS(rep.svg.namespaceURI,'g');
+    layerPts.style.pointerEvents = 'none';
+    layerCur.style.pointerEvents = 'none';
+    rep.plot.appendChild(layerPts);
+    rep.plot.appendChild(layerCur);
+    return {
+      i, name: labels[i], btn: btnLbl[i], color: colors[i],
+      placed: [], Klast: null, pointsHidden: false,
+      layerPts, layerCur,
+      outs: { var:'', sign:'', deriv:'' }
+    };
+  }
 
   // ====== Rendu des onglets Cf/Cg/... & visibilité des calques ======
   function renderTabs(){
@@ -1049,10 +961,8 @@ function ensureCurve(i){
       tabs.appendChild(b);
 
       // calques affichés si i<count
-     c.layerCur.style.display = (i < count) ? '' : 'none';
-c.layerPts.style.display = (i < count) ? (c.pointsHidden ? 'none' : '') : 'none';
-c.layerLbl.style.display = (i < count) ? '' : 'none';   // ← nouveau
-
+      c.layerCur.style.display = (i < count) ? '' : 'none';
+      c.layerPts.style.display = (i < count) ? (c.pointsHidden ? 'none' : '') : 'none';
     }
   }
 
@@ -1095,48 +1005,6 @@ c.layerLbl.style.display = (i < count) ? '' : 'none';   // ← nouveau
     addPath(c.layerCur, pathFromKnots(rep, K), { stroke:c.color, 'stroke-width':2.6 });
     c.Klast = K;
   }
-function redrawLabels(c){
-  c.layerLbl.innerHTML = '';
-    if (c.labels.length > 1) c.labels = (s.labels || []).slice(0,1); // garde 1 seul
-
-  c.labels.forEach((lbl, idx)=>{
-    const fo = document.createElementNS(rep.svg.namespaceURI,'foreignObject');
-    fo.setAttribute('x', rep.X(lbl.x) + 4);
-    fo.setAttribute('y', rep.Y(lbl.y) - 14);
-    fo.setAttribute('width', 60);
-    fo.setAttribute('height', 24);
-    fo.style.overflow = 'visible';
-
-    const span = document.createElement('div');
-    span.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
-    span.style.fontSize = '14px';
-    span.style.lineHeight = '1';
-    span.style.color = c.color;
-    span.style.cursor = 'grab';
-    span.style.userSelect = 'none';
-    span.innerHTML = `\\(C_${c.name}\\)`;
-
-    // drag (souris + tactile)
-    span.addEventListener('mousedown', ev => beginDrag(c.i, idx, ev, span));
-    span.addEventListener('touchstart', ev => beginDrag(c.i, idx, ev, span), {passive:false});
-
-    // suppression: double-clic OU clic droit
-    span.addEventListener('dblclick', ev => { ev.preventDefault(); c.labels.splice(idx,1); redrawLabels(c); });
-    span.addEventListener('contextmenu', ev => { ev.preventDefault(); c.labels.splice(idx,1); redrawLabels(c); });
-
-    fo.appendChild(span);
-    c.layerLbl.appendChild(fo);
-    typesetAll(span);
-  });
-}
-
-
-function placeLabelAt(c, x, y){
-  if (c.labels.length === 0) c.labels.push({ x, y });
-  else                       c.labels[0] = { x, y }; // remplace / déplace l’unique label
-  redrawLabels(c);
-}
-
 
   // ====== Analyse variation / signe pour UNE courbe ======
   function valueOnCurveK(K, x){
@@ -1201,14 +1069,6 @@ function placeLabelAt(c, x, y){
     });
     // MAJ libellés boutons globaux
     const a = curves[active];
-const lb = $('#mc-label');
-if (lb){
-  const hasLabel = (a.labels && a.labels.length > 0);
-  const verb = hasLabel ? 'Replacer ' : 'Placer ';
-  lb.textContent = (labelMode ? '✓ ' : '') + verb + a.btn + ' sur la courbe';
-}
-
-
     $('#btn-action').textContent  = '✏️ Tracer '  + a.btn;
     $('#btn-action2').textContent = (a.pointsHidden? '↩ Remettre les points ' : '⨂ Enlever les points ') + a.btn;
 
@@ -1233,33 +1093,16 @@ function snapPt(svgPt){
   const q = v => Math.round(v * 2) / 2;   // pas = 0,5
   return { x: q(rep.Xi(svgPt.x)), y: q(rep.Yi(svgPt.y)) };
 }
- 
-function togglePointActive(p){
-  const c = ensureCurve(active);
-  if(p.x<xmin||p.x>xmax||p.y<ymin||p.y>ymax) return;
-  const k = c.placed.findIndex(q=> q.x===p.x && q.y===p.y);
-  if(k>=0) c.placed.splice(k,1); else c.placed.push(p);
-  redrawPts(c);
-}
-
-const onClick = e => {
-  e.preventDefault();
-  const pt = snapPt(toSvgPoint(e));
-  const c  = ensureCurve(active);
-  if (labelMode){
-  const c = curves[active];
-  if (c.labels.length === 0) placeLabelAt(c, pt.x, pt.y);   // première pose
-  else { c.labels[0] = { x: pt.x, y: pt.y }; redrawLabels(c); }  // déplace l’unique label
-  return;
-}
- else {
-    togglePointActive(pt);
+  function togglePointActive(p){
+    const c = curves[active];
+    if (p.x<xmin||p.x>xmax||p.y<ymin||p.y>ymax) return;
+    const k = c.placed.findIndex(q=> q.x===p.x && q.y===p.y);
+    if (k>=0) c.placed.splice(k,1); else c.placed.push(p);
+    redrawPts(c);
   }
-};
-
-rep.hit.addEventListener('click', onClick);
-rep.hit.addEventListener('touchstart', onClick, {passive:false});
-
+  const onClick = e => { e.preventDefault(); togglePointActive( snapPt(toSvgPoint(e)) ); };
+  rep.hit.addEventListener('click', onClick);
+  rep.hit.addEventListener('touchstart', onClick, {passive:false});
 
   // ====== API exposée ======
   function clampCount(k){ return Math.min(MAX, Math.max(1, k|0)); }
@@ -1292,16 +1135,14 @@ rep.hit.addEventListener('touchstart', onClick, {passive:false});
     remake: ()=>{
       // 1) snapshot
       const snap = {
-  count, active,
-  curves: curves.map(c=>({
-    placed: c.placed.map(p=>({x:p.x,y:p.y})),
-    pointsHidden: c.pointsHidden,
-    outs: {...c.outs},
-    labels: (c.labels||[]).map(L=>({x:L.x,y:L.y})),   // ← nouveau
-    color: c.color, name: c.name, btn: c.btn
-  }))
-};
-
+        count, active,
+        curves: curves.map(c=>({
+          placed: c.placed.map(p=>({x:p.x,y:p.y})),
+          pointsHidden: c.pointsHidden,
+          outs: {...c.outs},
+          color: c.color, name: c.name, btn: c.btn
+        }))
+      };
 
       // 2) nouvelles bornes
       const aX = +$('#mcxmin',host).value, bX = +$('#mcxmax',host).value,
@@ -1314,41 +1155,26 @@ rep.hit.addEventListener('touchstart', onClick, {passive:false});
 
       // 4) réinstaller calques pour toutes les courbes existantes
       curves.forEach((c,i)=>{
-  c.layerPts = document.createElementNS(rep.svg.namespaceURI,'g');
-  c.layerCur = document.createElementNS(rep.svg.namespaceURI,'g');
-  c.layerLbl = document.createElementNS(rep.svg.namespaceURI,'g');     // ← nouveau
-  c.layerPts.style.pointerEvents='none';
-  c.layerCur.style.pointerEvents='none';
-  rep.plot.appendChild(c.layerPts);
-  rep.plot.appendChild(c.layerCur);
-  rep.plot.appendChild(c.layerLbl);                                    // ← nouveau
-
-  const s = snap.curves[i] || {};
-  c.placed       = s.placed || [];
-  c.pointsHidden = !!s.pointsHidden;
-  c.outs         = s.outs || {var:'',sign:'',deriv:''};
-  c.labels       = s.labels || [];                                     // ← nouveau
-
-  redrawPts(c);
-  drawCurve(c, false);
-  redrawLabels(c);                                                     // ← nouveau
-});
-
+        c.layerPts = document.createElementNS(rep.svg.namespaceURI,'g');
+        c.layerCur = document.createElementNS(rep.svg.namespaceURI,'g');
+        c.layerPts.style.pointerEvents = 'none';
+        c.layerCur.style.pointerEvents = 'none';
+        rep.plot.appendChild(c.layerPts);
+        rep.plot.appendChild(c.layerCur);
+        // restaurer snapshot
+        const s = snap.curves[i] || {};
+        c.placed       = s.placed || [];
+        c.pointsHidden = !!s.pointsHidden;
+        c.outs         = s.outs || {var:'',sign:'',deriv:''};
+        // redraw
+        redrawPts(c);
+        drawCurve(c, false);
+      });
 
       // 5) reco des clics
-const onClick2 = e => {
-  e.preventDefault();
-  const pt = snapPt(toSvgPoint(e));
-  const c  = ensureCurve(active);
-  if (labelMode){
-    placeLabelAt(c, pt.x, pt.y);
-  } else {
-    togglePointActive(pt);
-  }
-};
-rep.hit.addEventListener('click', onClick2);
-rep.hit.addEventListener('touchstart', onClick2, {passive:false});
-
+      const onClick2 = e => { e.preventDefault(); togglePointActive( snapPt(toSvgPoint(e)) ); };
+      rep.hit.addEventListener('click', onClick2);
+      rep.hit.addEventListener('touchstart', onClick2, {passive:false});
 
       // 6) restaurer nombre et active
       count  = clampCount(snap.count);
@@ -1491,22 +1317,10 @@ rep.hit.addEventListener('touchstart', onClick2, {passive:false});
   };
 
   // ====== Brancher les boutons globaux ======
-// ====== Brancher les boutons globaux ======
-$('#btn-action').style.display = 'inline-block';
-$('#btn-action2').style.display = 'inline-block';
-$('#btn-action').onclick  = ()=> host._mc_api?.trace();
-$('#btn-action2').onclick = ()=> host._mc_api?.togglePts();
-
-// ⇩⇩⇩ bouton "Placer Cf sur la courbe"
-const lblBtn = $('#mc-label'); // PAS de ",host"
-if (lblBtn){
-  lblBtn.style.display = 'inline-block';
-  lblBtn.onclick = ()=> setLabelMode(!labelMode);
-  // libellé provisoire (paintTabs fera le bon libellé après renderTabs)
-  lblBtn.textContent = (labelMode ? '✓ ' : '') + 'Placer Cf sur la courbe';
-}
-
-
+  $('#btn-action').style.display='inline-block';
+  $('#btn-action2').style.display='inline-block';
+  $('#btn-action').onclick  = ()=> host._mc_api?.trace();
+  $('#btn-action2').onclick = ()=> host._mc_api?.togglePts();
 
   // Amplitude → remake préservé
   ['mcxmin','mcxmax','mcymin','mcymax'].forEach(id=>{
@@ -1567,6 +1381,7 @@ const toolVar = {
     const n=Math.min(4, Math.max(1, +$('#v-n',host).value||2));
     const cols=['xmin', ...Array.from({length:n},(_,i)=>'x'+(i+1)), 'xmax'];
     function xCell(role){ return `<td><input class="vx" data-role="${role}" type="text" placeholder="${role}"></td>`; }
+    function yBlock(role){ return `<td><div style="display:flex;flex-direction:column;gap:6px;align-items:center"><input class="vy-max" data-role="${role}" type="text" placeholder="max"><input class="vy-min" data-role="${role}" type="text" placeholder="min"></div></td>`; }
     function arrowCell(i){ return `<td class="bigsel"><select class="vdir" data-i="${i}"><option></option><option>↘</option><option>↗</option></select></td>`; }
 // Ligne x — en-tête éditable
 let rowX = '<tr><th><input class="v-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
@@ -1577,174 +1392,82 @@ cols.forEach((c,j)=>{
 rowX += '</tr>';
 
 // Ligne f — en-tête éditable
-function yBlock(role){
-  return `<div style="display:flex;flex-direction:column;gap:6px;align-items:center">
-            <input class="vy-max" data-role="${role}" type="text" placeholder="max">
-            <input class="vy-min" data-role="${role}" type="text" placeholder="min">
-          </div>`;
-}
-// cellule f avec sélecteur racine/|| + max/min
-function fCell(role){
-  return `<td>
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
-      <select class="vfmark" data-role="${role}">
-        <option value=""></option>
-        <option value="||">||</option>
-      </select>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
-        <input class="vy-max" data-role="${role}" type="text" placeholder="max">
-        <input class="vy-min" data-role="${role}" type="text" placeholder="min">
-      </div>
-    </div>
-  </td>`;
-}
-
-
 let rowF = '<tr><th><input class="v-hf" type="text" value="f" style="width:70px;text-align:center"></th>';
-cols.forEach((c,j)=>{
-  rowF += fCell(c);
-  if(j < cols.length-1) rowF += `<td class="bigsel"><select class="vdir" data-i="${j}"><option></option><option>↘</option><option>↗</option></select></td>`;
+cols.forEach((c,j)=>{ 
+  rowF += yBlock(c);                        // bloc (max/min) inchangé
+  if(j < cols.length-1) rowF += arrowCell(j);
 });
 rowF += '</tr>';
 
 $('#v-wrap',host).innerHTML =
   `<div class="var-wrap"><table class="var"><tbody>${rowX}${rowF}</tbody></table></div>`;
-wireBarCells($('#v-wrap',host));
-typesetAll($('#v-wrap',host));
 $('#btn-make').style.display='inline-block';
 $('#btn-action').style.display='none';
 $('#btn-action2').style.display='none';
-
 typesetAll($('#v-wrap',host)); // pour les éventuels LaTeX saisis par l'utilisateur
 
   },
-/* ========= 2) Tableau de variations — makeTable(host) ========= */
-/* ========= 2) Tableau de variations — makeTable(host) ========= */
-makeTable(host){
-  const clean = s => (s||'')
-    .replace(/^\\\(|\\\)$/g,'').replace(/^\$+|\$+$/g,'').trim();
-  const L = s => `\\(${s}\\)`;
+  makeTable(host){
+const clean = s => (s||'')
+  .replace(/^\\\(|\\\)$/g,'')     // retire \(...\) éventuels
+  .replace(/^\$+|\$+$/g,'')       // retire $...$ éventuels
+  .trim();
+const L = s => `\\(${s}\\)`;      // emballe en LaTeX
 
-  const labelX = clean($('.v-hx',host)?.value || 'x');
-  const labelF = clean($('.v-hf',host)?.value || 'f');
+// labels dynamiques
+const labelX = clean($('.v-hx',host)?.value || 'x');
+const labelF = clean($('.v-hf',host)?.value || 'f');
 
-  // rôles & entrées utilisateur
-  const roles = $$('.vx',host).map(inp => inp.dataset.role);                // ['xmin','x1',…,'xmax']
-  const xs    = $$('.vx',host).map(inp => inp.value.trim().replace('\u2212','-'));
-  const dirs  = $$('.vdir',host).map(sel => sel.value || '');               // entre colonnes
+    const N=$$('.vx',host).length; if(!N) return;
+    const roles=$$('.vx',host).map(inp=>inp.dataset.role);
+    const xs=$$('.vx',host).map(inp=>inp.value.trim().replace('\u2212','-'));
+    const dirs=$$('.vdir',host).map(sel=>sel.value||'');
+    const block=(role)=>{ const yM=$(`.vy-max[data-role="${role}"]`,host)?.value.trim()||''; const ym=$(`.vy-min[data-role="${role}"]`,host)?.value.trim()||''; return {yM,ym}; };
+    const vals=roles.map(r=>block(r));
+    // Compose lignes PDF (mêmes colonnes, flèches entre)
+// TÊTE du tableau PDF (ligne des x)
+const head = ['<tr><th>'+ L(labelX) +'</th>'];
+xs.forEach((x,j)=>{ head.push(`<td>${Lx(x)}</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+head.push('</tr>');
 
-  // valeurs "max/min" saisies par colonne
-  const vals = roles.map(r => ({
-    yM: $(`.vy-max[data-role="${r}"]`,host)?.value.trim() || '',
-    ym: $(`.vy-min[data-role="${r}"]`,host)?.value.trim() || ''
-  }));
+// Corps (ligne f) — reprend aussi le label dynamique
+function cellVal(v,top){
+  const up = top ? (v? Lx(v) : '&nbsp;') : '&nbsp;';
+  const dn = !top ? (v? Lx(v) : '&nbsp;') : '&nbsp;';
+  return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+}
 
-  // marquage (vide | '||')
-  const vmark = {};
-  $$('.vfmark', host).forEach(sel => { vmark[sel.dataset.role] = sel.value || ''; });
 
-  // --- préparation des affichages "classiques" (hors ||) ---
-  const topArr = new Array(roles.length).fill('');
-  const botArr = new Array(roles.length).fill('');
-
-  roles.forEach((r, idx) => {
-    const { yM, ym } = vals[idx];
-    const isFirst = (idx === 0), isLast = (idx === roles.length - 1);
-    if (isFirst){
-      const d = dirs[0] || '';
-      if      (d === '↗') botArr[idx] = ym || '';
-      else if (d === '↘') topArr[idx] = yM || '';
-    } else if (isLast){
-      const d = dirs.at(-1) || '';
-      if      (d === '↗') topArr[idx] = yM || '';
-      else if (d === '↘') botArr[idx] = ym || '';
-    } else {
-      if      (yM) topArr[idx] = yM;
-      else if (ym) botArr[idx] = ym;
-    }
-  });
-
-  // helper rendu
-  function cellValRaw(topText, bottomText){
-    const up = topText ? Lx(topText) : '&nbsp;';
-    const dn = bottomText ? Lx(bottomText) : '&nbsp;';
-    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+const body = ['<tr><th>'+ L(labelF) +'</th>'];
+roles.forEach((r,idx)=>{
+  const {yM,ym}=vals[idx];
+  const isFirst = (idx===0), isLast=(idx===roles.length-1);
+  if(isFirst){
+    const d=dirs[0];
+    if(d==='↗') body.push(cellVal(ym||'',false));
+    else if(d==='↘') body.push(cellVal(yM||'',true));
+    else body.push(cellVal('',true));
+  } else if(isLast){
+    const d=dirs[dirs.length-1];
+    if(d==='↗') body.push(cellVal(yM||'',true));
+    else if(d==='↘') body.push(cellVal(ym||'',false));
+    else body.push(cellVal('',true));
+  } else {
+    if(yM) body.push(cellVal(yM,true));
+    else if(ym) body.push(cellVal(ym,false));
+    else body.push(cellVal('',true));
   }
+  if(idx<roles.length-1) body.push(`<td>${dirs[idx]||''}</td>`);
+});
+body.push('</tr>');
 
-  // === NOUVEAU : modèle de colonnes "étendu" autour des || ===
-  // Chaque rôle produit: [limL?] + core + [limR?] puis (s’il n’est pas le dernier) un séparateur d’intervalle.
-  const exp = []; // {kind:'limL'|'core'|'limR'|'sep', idx, role}
-  roles.forEach((r, k) => {
-    const isBar = (vmark[r] === '||');
-    const isFirst = (k === 0), isLast = (k === roles.length - 1);
-
-    if (isBar && !isFirst) exp.push({ kind:'limL', idx:k, role:r });
-    exp.push({ kind:'core', idx:k, role:r });
-    if (isBar && !isLast)  exp.push({ kind:'limR', idx:k, role:r });
-
-    if (k < roles.length - 1) exp.push({ kind:'sep', idx:k });
-  });
-
-  // THEAD étendu (cases vides au-dessus des nouvelles colonnes)
-  const head = ['<tr><th>'+L(labelX)+'</th>'];
-  exp.forEach(e => {
-    if (e.kind === 'core') head.push(`<td>${Lx(xs[e.idx])}</td>`);
-    else                   head.push('<td></td>'); // limL/limR/sep
-  });
-  head.push('</tr>');
-
-  // TBODY — ligne f
-  let rowF = '<tr><th>'+L(labelF)+'</th>';
-  exp.forEach(e => {
-    if (e.kind === 'sep'){
-      rowF += `<td>${dirs[e.idx] || ''}</td>`;
-      return;
-    }
-    if (e.kind === 'core'){
-      if (vmark[roles[e.idx]] === '||') rowF += '<td class="dbar"></td>'; // la double barre seule
-      else rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
-      return;
-    }
-    // ---- colonne limite GAUCHE d'une double barre ----
-if (e.kind === 'limL') {
-  // priorité yM (max = limite gauche), sinon retombe sur ym pour dupliquer
-  const vRaw = vals[e.idx].yM || vals[e.idx].ym || '';
-  const dL   = dirs[e.idx - 1] || ''; // sens de l'intervalle de gauche
-  if (!vRaw) { rowF += '<td class="lim"></td>'; return; }
-  // ↗ (vers la barre) finit en HAUT à gauche ; ↘ finit en BAS à gauche
-  rowF += (dL === '↗') ? cellValRaw(vRaw, '') 
-       : (dL === '↘') ? cellValRaw('', vRaw)
-                      : cellValRaw(vRaw, '');  // défaut: en haut
-  return;
-}
-
-// ---- colonne limite DROITE d'une double barre ----
-if (e.kind === 'limR') {
-  // priorité ym (min = limite droite), sinon retombe sur yM pour dupliquer
-  const vRaw = vals[e.idx].ym || vals[e.idx].yM || '';
-  const dR   = dirs[e.idx] || ''; // sens de l'intervalle de droite
-  if (!vRaw) { rowF += '<td class="lim"></td>'; return; }
-  // ↗ (en repartant) démarre en BAS à droite ; ↘ démarre en HAUT à droite
-  rowF += (dR === '↗') ? cellValRaw('', vRaw)
-       : (dR === '↘') ? cellValRaw(vRaw, '')
-                      : cellValRaw('', vRaw);  // défaut: en bas
-  return;
-}
-
-  });
-  rowF += '</tr>';
-
-  // Injection
-  $('#v-out',host).innerHTML =
-    `<div class="step"><div><b>Tableau de variations :</b></div>
-       <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowF}</tbody></table></div>
-     </div>`;
-  typesetAll($('#v-out',host));
-}
-,
-
-  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; const labBtn = $('#mc-label');
-  if (labBtn) labBtn.style.display = 'none';},
+$('#v-out',host).innerHTML =
+  `<div class="step"><div><b>Tableau de variations :</b></div>
+    <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table></div>
+  </div>`;
+typesetAll($('#v-out',host));
+  },
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
   reset(){ $('#v-out') && ($('#v-out').innerHTML=''); }
 };
 
@@ -1824,8 +1547,7 @@ rowF += '</tr>';
     $('#s1-out',host).innerHTML = `<div class="step"><div><b>Tableau de signes :</b></div><div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowF}</tbody></table></div></div>`;
     typesetAll($('#s1-out',host));
   },
-  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; const labBtn = $('#mc-label');
-  if (labBtn) labBtn.style.display = 'none';},
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
   reset(){ $('#s1-out') && ($('#s1-out').innerHTML=''); }
 };
 
@@ -1980,20 +1702,11 @@ head.push('</tr>');
 
 // Lignes a + Facteurs
 const body=[];
-// Ligne a (SOLUTION PDF) : barres verticales entre les signes
-if ($$('.sf-a', host).length) {
-  let tr = '<tr class="sf-pdf-row-a"><th>' + L(labelA) + '</th>';
-  for (let j = 0; j < cols; j++) {
-    const isEdge = (j === 0 || j === cols - 1);
-    tr += isEdge ? '<td></td>' : '<td class="sbar"></td>'; // ← barre verticale
-    if (j < cols - 1) {
-      tr += `<td style="font-weight:700;text-align:center">${$$('.sf-a', host)[j]?.value || ''}</td>`;
-    }
-  }
-  tr += '</tr>';
-  body.push(tr);
+if($$('.sf-a',host).length){
+  let tr = '<tr class="sf-pdf-row-a"><th>'+L(labelA)+'</th>';
+  for(let j=0;j<cols;j++){ tr+='<td></td>'; if(j<cols-1) tr+=`<td style="font-weight:700">${$$('.sf-a',host)[j]?.value||''}</td>`; }
+  tr+='</tr>'; body.push(tr);
 }
-
 // factLabels = labels des facteurs (déjà récupérés)
 const roleSeq = ['xmin', ...Array.from({length: cols-2},(_,i)=>'r'+(i+1)), 'xmax'];
 
@@ -2026,8 +1739,7 @@ body.push(trF);
     $('#sf-out',host).innerHTML = `<div class="step"><div><b>Tableau de signes (forme factorisée) :</b></div><div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table></div></div>`;
     typesetAll($('#sf-out',host));
   },
-  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; const labBtn = $('#mc-label');
-  if (labBtn) labBtn.style.display = 'none';},
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
   reset(){ $('#sf-out') && ($('#sf-out').innerHTML=''); }
 };
 
@@ -2038,7 +1750,7 @@ const toolDerivVar = {
     host.innerHTML = `
       <div class="row">
         <label>Nombre d’extrémums :</label>
-        <input id="dv-n" type="number" min="0" max="6" value="2" style="width:70px">
+        <input id="dv-n" type="number" min="1" max="4" value="2" style="width:70px">
         <button id="dv-gen" class="btn">Générer la grille</button>
       </div>
       <div id="dv-wrap" style="margin-top:.5rem"></div>
@@ -2046,7 +1758,7 @@ const toolDerivVar = {
     $('#dv-gen',host).onclick=()=> this.makeGrid(host);
   },
 makeGrid(host){
-  const n = Math.min(6, Math.max(0, +$('#dv-n',host).value || 0));
+  const n = Math.min(4, Math.max(1, +$('#dv-n',host).value || 2));
   const cols = ['xmin', ...Array.from({length:n}, (_,i)=> 'c'+(i+1)), 'xmax'];
 
   const xCell   = role => `<td><input class="dvx" data-role="${role}" type="text" placeholder="${role}"></td>`;
@@ -2074,36 +1786,17 @@ makeGrid(host){
   cols.forEach((c,j)=>{ rS += zeroCell(c); if(j<cols.length-1) rS += sCell(j); });
   rS += '</tr>';
 
-function fCell(role){
-  return `<td>
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
-      <select class="vfmark" data-role="${role}">
-        <option value=""></option>
-        <option value="||">||</option>
-      </select>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
-        <input class="dvYmax" data-role="${role}" type="text" placeholder="max">
-        <input class="dvYmin" data-role="${role}" type="text" placeholder="min">
-      </div>
-    </div>
-  </td>`;
-}
+  // Ligne f : mêmes blocs que l’outil 2) + flèches ↘/↗
+  let rF = '<tr><th>\\(f\\)</th>';
+  cols.forEach((c,j)=>{ rF += yBlock(c); if(j<cols.length-1) rF += dirCell(j); });
+  rF += '</tr>';
 
-
-let rF = '<tr><th>\\(f\\)</th>';
-cols.forEach((c,j)=>{
-  rF += fCell(c);
-  if(j<cols.length-1) rF += `<td class="bigsel"><select class="dvd" data-i="${j}"><option></option><option>↘</option><option>↗</option></select></td>`;
-});
-rF += '</tr>';
-
-$('#dv-wrap',host).innerHTML = `<div class="var-wrap"><table class="var"><tbody>${rX}${rS}${rF}</tbody></table></div>`;
-wireBarCells($('#dv-wrap',host));
-typesetAll($('#dv-wrap',host));
-$('#btn-make').style.display='inline-block';
-$('#btn-action').style.display='none';
-$('#btn-action2').style.display='none';
-
+  $('#dv-wrap',host).innerHTML = `<div class="var-wrap"><table class="var"><tbody>${rX}${rS}${rF}</tbody></table></div>`;
+ wireBarCells($('#dv-wrap',host));
+ $('#btn-make').style.display='inline-block';
+  $('#btn-action').style.display='none';
+  $('#btn-action2').style.display='none';
+  typesetAll($('#dv-wrap',host));
 },
 
 makeTable(host){
@@ -2112,7 +1805,7 @@ makeTable(host){
   let   dirs = $$('.dvd',host).map(s=> s.value || '');      // ↘/↗ pour f
   if(dirs.every(v=>!v)) dirs = sgn.map(s=> s==='+' ? '↗' : (s ? '↘' : ''));
 
-  const roles = ['xmin', ...$$('.dvx',host).slice(1,-1).map((_,i)=> 'c'+(i+1)), 'xmax'];
+  const cols = ['xmin', ...$$('.dvx',host).slice(1,-1).map((_,i)=> 'c'+(i+1)), 'xmax'];
 
   // 0/|| sous chaque colonne de f'(x)
   const zmap = {};
@@ -2120,113 +1813,67 @@ makeTable(host){
 
   const L = s => `\\(${String(s).replace('-',''+UMIN)}\\)`;
 
-  // --- valeurs limites saisies dans la ligne f (max/min par colonne) ---
-  const vals = roles.map(r => ({
-    yM: $(`.dvYmax[data-role="${r}"]`,host)?.value.trim() || '',   // "max" = limite gauche
-    ym: $(`.dvYmin[data-role="${r}"]`,host)?.value.trim() || ''    // "min" = limite droite
-  }));
-  // marquage "||" sur f (dans la grille d’édition)
-  const vmarkF = {};
-  $$('.vfmark', host).forEach(sel => { vmarkF[sel.dataset.role] = sel.value || ''; });
+  // THEAD : ligne des x (valeur | (vide) | valeur | ...)
+const head = ['<tr><th>\\(x\\)</th>'];
+xs.forEach((x,j)=>{ head.push(`<td>${Lx(x)}</td>`); if(j<xs.length-1) head.push('<td></td>'); });
+head.push('</tr>');
 
-  // THEAD (x) — modèle étendu autour des || (sur f uniquement)
-  const exp = []; // {kind:'limL'|'core'|'limR'|'sep', idx}
-  roles.forEach((r,k)=>{
-    const isBar = (vmarkF[r] === '||');
-    const isFirst = (k === 0), isLast = (k === roles.length - 1);
-    if (isBar && !isFirst) exp.push({kind:'limL', idx:k});
-    exp.push({kind:'core', idx:k});
-    if (isBar && !isLast)  exp.push({kind:'limR', idx:k});
-    if (k < roles.length-1) exp.push({kind:'sep', idx:k});
-  });
+function cellVal(v,top){
+  const up = top ? (v? Lx(v) : '&nbsp;') : '&nbsp;';
+  const dn = !top ? (v? Lx(v) : '&nbsp;') : '&nbsp;';
+  return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+}
 
-  const head = ['<tr><th>\\(x\\)</th>'];
-  exp.forEach(e=>{
-    if (e.kind === 'core') head.push(`<td>${Lx(xs[e.idx])}</td>`); else head.push('<td></td>');
-  });
-  head.push('</tr>');
 
-  // ===== Ligne f'(x) : 0/|| sur colonnes "core", vide sur limL/limR, signe sur sep =====
-  let rowFp = `<tr><th>\\(f'(x)\\)</th>`;
-  exp.forEach(e=>{
-    if (e.kind === 'sep'){ rowFp += `<td style="font-weight:700;text-align:center">${sgn[e.idx]||''}</td>`; return; }
-    if (e.kind === 'core'){ rowFp += pdfBarCell(zmap[roles[e.idx]] || '', roles[e.idx]); return; }
-    // limL/limR : cellule vide (juste l’espace de la limite visuelle)
-    rowFp += `<td class="lim"></td>`;
-  });
-  rowFp += '</tr>';
+  // TBODY : f'(x) — 0/|| sur colonnes + signes sur intervalles
+let rS = `<tr><th>\\(f'(x)\\)</th>`;
+for (let j=0; j<xs.length; j++){
+  const role = cols[j];                         // 'xmin'|'c1'..|'xmax'
+  rS += pdfBarCell(zmap[role] || '', role);     // applique la règle xmin/xmax
+  if (j < xs.length-1) rS += `<td style="font-weight:700;text-align:center">${sgn[j]||''}</td>`;
+}
+rS += '</tr>';
 
-  // ===== Ligne f : même logique que l’exercice 2, avec colonnes étendues =====
-  // Préparation top/bottom “classique” (hors ||)
-  const topArr = new Array(roles.length).fill('');
-  const botArr = new Array(roles.length).fill('');
-  roles.forEach((r, idx) => {
-    const { yM, ym } = vals[idx];
-    const isFirst = (idx === 0), isLast = (idx === roles.length - 1);
-    if (isFirst){
-      const d = dirs[0] || '';
-      if      (d === '↗') botArr[idx] = ym || '';
-      else if (d === '↘') topArr[idx] = yM || '';
-    } else if (isLast){
-      const d = dirs.at(-1) || '';
-      if      (d === '↗') topArr[idx] = yM || '';
-      else if (d === '↘') botArr[idx] = ym || '';
-    } else {
-      if      (yM) topArr[idx] = yM;
-      else if (ym) botArr[idx] = ym;
+
+  // Collect max/min pour f (même logique que 2)
+  const getY = (role,cls)=> ($(`.${cls}[data-role="${role}"]`,host)?.value.trim() || '');
+  const roles = cols;
+  const vals = roles.map(r => ({ yM: getY(r,'dvYmax'), ym: getY(r,'dvYmin') }));
+
+
+
+  // TBODY : f — blocs max/min + flèches ↘/↗
+  let rF = '<tr><th>\\(f\\)</th>';
+  roles.forEach((r,idx)=>{
+    const {yM,ym} = vals[idx];
+    const isFirst = (idx===0), isLast = (idx===roles.length-1);
+    if(isFirst){
+      const d = dirs[0];
+      if(d==='↗') rF += cellVal(ym||'', false);
+      else if(d==='↘') rF += cellVal(yM||'', true);
+      else rF += cellVal('', true);
+    }else if(isLast){
+      const d = dirs[dirs.length-1];
+      if(d==='↗') rF += cellVal(yM||'', true);
+      else if(d==='↘') rF += cellVal(ym||'', false);
+      else rF += cellVal('', true);
+    }else{
+      if(yM) rF += cellVal(yM, true);
+      else if(ym) rF += cellVal(ym, false);
+      else rF += cellVal('', true);
     }
+    if(idx<roles.length-1) rF += `<td>${dirs[idx]||''}</td>`;
   });
+  rF += '</tr>';
 
-  function cellValRaw(topText, bottomText){
-    const up = topText ? Lx(topText) : '&nbsp;';
-    const dn = bottomText ? Lx(bottomText) : '&nbsp;';
-    return `<td class="lim"><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
-  }
-
-  let rowF = '<tr><th>\\(f\\)</th>';
-  exp.forEach(e=>{
-    if (e.kind === 'sep'){ rowF += `<td>${dirs[e.idx]||''}</td>`; return; }
-    if (e.kind === 'core'){
-      // colonne principale : soit la double barre seule, soit la valeur normale
-      if (vmarkF[roles[e.idx]] === '||') rowF += '<td class="dbar"></td>';
-      else rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
-      return;
-    }
-    // Colonnes limites (autour d'une ||) — duplication si une seule limite
-    const k = e.idx, isLeft = (e.kind==='limL'), isRight = !isLeft;
-    if (isLeft){
-      // priorité yM (limite gauche), sinon duplique ym
-      const v = vals[k].yM || vals[k].ym || '';
-      const dL = dirs[k-1] || '';
-      if (!v){ rowF += '<td class="lim"></td>'; return; }
-      rowF += (dL==='↗') ? cellValRaw(v,'')    // finit en haut à gauche
-           : (dL==='↘') ? cellValRaw('',v)    // finit en bas à gauche
-                         : cellValRaw(v,'');
-      return;
-    }
-    if (isRight){
-      // priorité ym (limite droite), sinon duplique yM
-      const v = vals[k].ym || vals[k].yM || '';
-      const dR = dirs[k] || '';
-      if (!v){ rowF += '<td class="lim"></td>'; return; }
-      rowF += (dR==='↗') ? cellValRaw('',v)    // démarre en bas à droite
-           : (dR==='↘') ? cellValRaw(v,'')    // démarre en haut à droite
-                         : cellValRaw('',v);
-      return;
-    }
-  });
-  rowF += '</tr>';
-
-  // Injection + rendu
   $('#dv-out',host).innerHTML =
     `<div class="step"><div><b>Tableau f' et variations de f :</b></div>
-      <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowFp}${rowF}</tbody></table></div>
+      <div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rS}${rF}</tbody></table></div>
     </div>`;
   typesetAll($('#dv-out',host));
 },
 
-  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none';const labBtn = $('#mc-label');
-  if (labBtn) labBtn.style.display = 'none'; },
+  wireButtons(){ $('#btn-make').onclick=()=> this.makeTable($('#host')); $('#btn-action').style.display='none'; $('#btn-action2').style.display='none'; },
   reset(){ $('#dv-out') && ($('#dv-out').innerHTML=''); }
 };
 

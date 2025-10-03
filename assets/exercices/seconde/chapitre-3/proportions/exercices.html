@@ -229,6 +229,69 @@ function parsePercentStrict(s){
 }
 
 function sameFloat(a,b,eps=1e-6){ return Math.abs(a-b) <= eps; }
+function parsePercentRequireSign(s){
+  const raw = String(s||'').trim();
+  if (!/%/.test(raw)) return NaN;        // refuse si pas de symbole %
+  const v = parsePercent(raw);           // -> en points de %
+  return Number.isFinite(v) ? v : NaN;
+}
+
+// Entier strict : uniquement chiffres (et signe) — refuse "12%", "12.0", "12a"
+function parseIntStrict(s){
+  s = stripSignUnicode(String(s||'').trim());
+  if (!/^-?\d+$/.test(s)) return NaN;
+  return parseInt(s,10);
+}
+
+// Décimal FR strict (sans %) ni fraction — refuse "3/4", "12 %"
+function parseNumberStrictFR(s){
+  s = stripSignUnicode(String(s||'').trim());
+  if (/%/.test(s) || /\//.test(s)) return NaN;
+  if (!/^-?\d+(?:[.,]\d+)?$/.test(s)) return NaN;
+  return parseFloat(s.replace(',', '.'));
+}
+
+// Fraction "a/b" strictement irréductible
+function parseIrreducibleFraction(s){
+  s = stripSignUnicode(String(s||'').trim());
+  const m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+  if(!m) return null;
+  const a = parseInt(m[1],10), b = parseInt(m[2],10);
+  if(!Number.isInteger(a) || !Number.isInteger(b) || b<=0) return null;
+  return (gcd(a,b)===1) ? {a,b} : null;
+}
+// ===== Accord FR : articles & pluriels =====
+const GROUP_GENDER = {
+  'classe':'f',
+  'groupe d’atelier':'m','groupe d\'atelier':'m',
+  'équipe':'f',
+  'chorale':'f',
+  'groupe de stage':'m',
+  'club de lecture':'m',
+  'groupe de randonneurs':'m',
+  'promo':'f',
+  'groupe d’élèves':'m','groupe d\'élèves':'m',
+  'groupe de bénévoles':'m'
+};
+function groupGender(name){ return GROUP_GENDER[name] || 'm'; }
+function startsWithVowelLike(s){
+  const V='aâàäeéèêëiîïoôöuùûüyhAÂÀÄEÉÈÊËIÎÏOÔÖUÙÛÜYH';
+  s = String(s||'').trim(); return s && V.includes(s[0]);
+}
+// Déterminant défini "le/la/l’" collé au nom (ex: "l’équipe", "la classe", "le groupe …")
+function defDet(name){
+  const g = groupGender(name);
+  if (startsWithVowelLike(name)) return "l’"+name;
+  return (g==='f' ? "la " : "le ") + name;
+}
+// Déterminant indéfini "Un/Une" (ex: "Une classe", "Un groupe …")
+function indefDet(name){
+  const g = groupGender(name);
+  return (g==='f' ? "Une " : "Un ") + name;
+}
+// Pluriel/singulier
+function s(n, one, many){ return Math.abs(n)===1 ? one : many; }
+function vAvoir(n){ return Math.abs(n)===1 ? 'a' : 'ont'; }     // a/ont
 
 /* ================== Fractions & égalité/approx ================== */
 const gcd = (a,b)=> b ? gcd(b, a%b) : Math.abs(a);
@@ -247,6 +310,25 @@ function minTerminatingDecimals(n,d){
 }
 function eqOrApproxSymbol(n,d,digits){ return (minTerminatingDecimals(n,d) <= digits) ? '=' : '≈'; }
 function eqOrApproxPercentSymbol(n,d,digits){ return eqOrApproxSymbol(n*100, d, digits); }
+
+// Retourne la fraction irréductible de (a/b) avec a,b entiers
+// (tu as déjà gcd/reduceRat ; je les réutilise)
+function toIrreducible(a, b){
+  const r = reduceRat(a, b);  // {n,d}
+  // force signes "propres" (ici tout est positif dans l’exo 7)
+  return { n: r.n, d: r.d };
+}
+
+// Parse strict "a/b" ET vérifie irréductible
+function parseIrreducibleFraction(s){
+  s = stripSignUnicode(String(s||'').trim());
+  const m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+  if(!m) return null;
+  const a = parseInt(m[1],10), b = parseInt(m[2],10);
+  if(!Number.isInteger(a) || !Number.isInteger(b) || b<=0) return null;
+  if(gcd(a,b)!==1) return null;           // doit être irréductible
+  return {a,b};
+}
 
 /* ================== === LaTeX helpers (nouveau) ================== */
 const L = s => `\\(${s}\\)`;                  // inline math wrapper
@@ -288,19 +370,49 @@ function Q(n, sub){
   return `<span class="qno">${s})</span>`;
 }
 
-/* ====== Chaînes "fraction = décimal = pourcentage" (LaTeX) ====== */
+// --- helper : rationnel exact de (num / den) même si num/den ont des décimales
+function ratFromQuot(num, den){
+  const a = intRat(String(num).replace(',', '.')); // {n,d} pour num
+  const b = intRat(String(den).replace(',', '.')); // {n,d} pour den
+  // num/den = (a.n/a.d) / (b.n/b.d) = (a.n*b.d) / (a.d*b.n)
+  return reduceRat(a.n * b.d, a.d * b.n);
+}
+
+
+function chainFracToDec(num, den, decDigits=4){
+  const r = reduceRat(num, den);         // {n,d} irréductible
+  const exact = (minTerminatingDecimals(r.n, r.d) <= decDigits);
+  const REL = exact ? '=' : '\\approx';
+  const frac = texFrac(num, den);
+  const dec  = tidyDecFR(num/den, decDigits);
+  return L(`${frac} ${REL} ${dec}`);
+}
+
 function chainFracDecPct(numDisplay, denDisplay, digitsPct){
   const decDigits = digitsPct + 2;
+
+  // valeurs numériques pour l’affichage décimal/% (FR)
   const numVal = parseFloat(String(numDisplay).replace(',', '.'));
   const denVal = parseFloat(String(denDisplay).replace(',', '.'));
-  const {n,d} = intRat(numDisplay, denVal);
-  const sDec = symTex(eqOrApproxSymbol(n, d, decDigits));
-  const sPct = symTex(eqOrApproxPercentSymbol(n, d, digitsPct));
+
+  // forme rationnelle exacte de num/den
+  let {n, d} = ratFromQuot(numVal, denVal);        // n/d est la fraction irréductible
+
+  // exactitudes (décimal et %)
+  const exactDec = (minTerminatingDecimals(n, d) <= decDigits);
+  const exactPct = (minTerminatingDecimals(n*100, d) <= digitsPct);
+
+  // règle : s'il y a la moindre approx, utiliser "≈" partout (aucun "=")
+  const REL = (exactDec && exactPct) ? '=' : '\\approx';
+
+  // affichages
   const frac = texFrac(String(numDisplay).replace('.',','), String(denDisplay));
   const dec  = texNum(numVal/denVal, decDigits);
   const pct  = texPct(100*numVal/denVal, digitsPct);
-  return L(`${frac} ${sDec} ${dec} ${sPct} ${pct}`);
+
+  return L(`${frac} ${REL} ${dec} ${REL} ${pct}`);
 }
+
 
 /* ================== Rendu des rangées ================== */
 function renderRow(host, consigneText, labelHTML, hasInput=true, placeholder=''){
@@ -446,9 +558,9 @@ function validateOneInput(inp, st, exId){
   const valRaw = (inp.value||'').trim();
   if(valRaw==='') return null;
 
-  function asInt(s){ s = stripSignUnicode(String(s||'').trim()); const n=parseInt(s,10); return Number.isInteger(n)?n:NaN; }
+  function asInt(s){ return parseIntStrict(s);  const n=parseInt(s,10); return Number.isInteger(n)?n:NaN; }
   const id = inp.id||'';
-  const valPct = parsePercentStrict(valRaw); // pour les champs % stricts
+  const valPct = parsePercentRequireSign(valRaw); // pour les champs % stricts
   const valNum = parseNumberFR(valRaw);
 
   switch(exId){
@@ -461,20 +573,28 @@ function validateOneInput(inp, st, exId){
       if(ident.startsWith('p')){ expected = (JSON.parse($("#host").dataset.state).P)[+ident.slice(1)].sol; }
       else{                      expected = (JSON.parse($("#host").dataset.state).Q)[+ident.slice(1)].sol; }
       if(kind==='dec'){
-        const v = parseNumberFR_noPct(valRaw);
+        const v = parseNumberStrictFR(valRaw);
         return isFinite(v) && sameFloat(v, expected, 1e-3);
       } else {
-        const v=parsePercentStrict(valRaw); return isFinite(v)&&sameFloat(v, expected, 1e-3);
+        const v=parsePercentRequireSign(valRaw); return isFinite(v)&&sameFloat(v, expected, 1e-3);
       }
     }
 
     /* ===== Ex.2 : deux % ===== */
     case 'frac_to_pct':{
-      const A = st.A, B = st.B;
-      if(id==='q1'){ const p = parsePercentStrict(valRaw); return Number.isFinite(p) && sameFloat(p, A.pct, 1e-3); }
-      if(id==='q2'){ const p = parsePercentStrict(valRaw); return Number.isFinite(p) && sameFloat(p, B.pct, 1e-3); }
-      return false;
-    }
+  if(id==='q1'){
+    const p = parsePercentRequireSign(valRaw);          // % OBLIGATOIRE
+    const exp = st.A.pct;                               // 100 * num/den
+    return Number.isFinite(p) && (Math.round(p*100) === Math.round(exp*100)); // ← à 0,01 %
+  }
+  if(id==='q2'){
+    const p = parsePercentRequireSign(valRaw);
+    const exp = st.B.pct;
+    return Number.isFinite(p) && (Math.round(p*100) === Math.round(exp*100)); // ← à 0,01 %
+  }
+  return false;
+}
+
 
     /* ===== Ex.3 : proportion libre + entier ===== */
     case 'sondage':{
@@ -493,17 +613,13 @@ function validateOneInput(inp, st, exId){
 
     /* ===== Ex.4 : p libre + deux entiers ===== */
     case 'souspop':{
-      if(id==='r1'){
-        let v=NaN; const m=valRaw.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
-        if(m){ v=parseInt(m[1],10)/parseInt(m[2],10); }
-        else {
-          const d=parseNumberFR(valRaw); v=Number.isFinite(d)?d:(Number.isFinite(parsePercent(valRaw))?parsePercent(valRaw)/100:NaN);
-        }
-        const tgt = st.nA1/st.nE1;
-        const okExact = Number.isFinite(v) && sameFloat(v, tgt, 1e-6);
-        const okRounded = Number.isFinite(v) && (Math.round(v*1000)===Math.round(tgt*1000));
-        return okExact || okRounded;
-      }
+     if(id==='r1'){
+  const v = parseNumberStrictFR(valRaw);    // décimal strict : pas de %, pas de fraction
+  if(!Number.isFinite(v)) return false;
+  const tgt = st.nA1 / st.nE1;
+  return Math.round(v*1000) === Math.round(tgt*1000); // à 0,001 près
+}
+
       if(id==='r2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nA2; }
       if(id==='r3'){ const n=asInt(valRaw); return Number.isInteger(n) && n===st.nE3; }
       return false;
@@ -513,7 +629,7 @@ function validateOneInput(inp, st, exId){
     case 'masses':{
       if(id==='m1'){
         const exp=100*st.c1/st.M;
-        const p = parsePercentStrict(valRaw);
+        const p = parsePercentRequireSign(valRaw);
         return Number.isFinite(p) && (Math.round(p*100)===Math.round(exp*100));
       }
       if(id==='m2'){ const n=asInt(valRaw); return Number.isInteger(n) && n===Math.round(st.q2); }
@@ -529,10 +645,10 @@ function validateOneInput(inp, st, exId){
       if(id==='q2a'){ const n=asInt(valRaw); const exp=(st.gAsk==='H'?st.TOT_H:st.TOT_F); return Number.isInteger(n)&&n===exp; }
       if(id==='q2b'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CT; }
       if(id==='q2c'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.CH; }
-      if(id==='q3a'){ const p=parsePercentStrict(valRaw); const exp=Math.round(100*(st.gAsk==='H'?st.TOT_H:st.TOT_F)/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
-      if(id==='q3b'){ const p=parsePercentStrict(valRaw); const exp=Math.round(100*st.CT/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
-      if(id==='q4a'){ const p=parsePercentStrict(valRaw); const exp=Math.round(100*st.CH/st.TOT_H); return Number.isFinite(p)&&Math.round(p)===exp; }
-      if(id==='q4b'){ const p=parsePercentStrict(valRaw); const exp=Math.round(100*st.CF/st.TOT_F); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q3a'){ const p=parsePercentRequireSign(valRaw); const exp=Math.round(100*(st.gAsk==='H'?st.TOT_H:st.TOT_F)/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q3b'){ const p=parsePercentRequireSign(valRaw); const exp=Math.round(100*st.CT/st.TOT); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4a'){ const p=parsePercentRequireSign(valRaw); const exp=Math.round(100*st.CH/st.TOT_H); return Number.isFinite(p)&&Math.round(p)===exp; }
+      if(id==='q4b'){ const p=parsePercentRequireSign(valRaw); const exp=Math.round(100*st.CF/st.TOT_F); return Number.isFinite(p)&&Math.round(p)===exp; }
       return false;
     }
 
@@ -548,13 +664,13 @@ function validateOneInput(inp, st, exId){
       function samePct2(a,b){return Math.round(a*100)===Math.round(b*100);}
 
       if(id==='b1a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G/st.N); }
-      if(id==='b1b'){ const p=parsePercentStrict(valRaw); return Number.isFinite(p) && samePct2(p, 100*st.G/st.N); }
+      if(id==='b1b'){ const p=parsePercentRequireSign(valRaw); return Number.isFinite(p) && samePct2(p, 100*st.G/st.N); }
       if(id==='b2a'){ const v=parsePropFlexible(valRaw); return Number.isFinite(v) && sameDec4(v, st.G17/st.G); }
-      if(id==='b2b'){ const p=parsePercentStrict(valRaw); return Number.isFinite(p) && samePct2(p, 100*st.G17/st.G); }
+      if(id==='b2b'){ const p=parsePercentRequireSign(valRaw); return Number.isFinite(p) && samePct2(p, 100*st.G17/st.G); }
       if(id==='b3'){ const a=valRaw.toLowerCase().replace(/\s+/g,' ').trim(); return a.includes(st.group.split(' ')[0].toLowerCase()) && a.includes('fille'); }
       if(id==='b4a'){ const n=asInt(valRaw); return Number.isInteger(n)&&n===st.n18; }
       if(id==='b4b'){
-        const p=parsePercentStrict(valRaw);
+        const p=parsePercentRequireSign(valRaw);
         const exp = 100 - Math.round(100*st.N17/st.N) - st.U18;
         return Number.isFinite(p) && Math.round(p*100)===Math.round(exp*100);
       }
@@ -585,6 +701,17 @@ function allInputsFilled(host){
     if((inp.value||'').trim()==='') ok=false;
   });
   return ok;
+}
+// Détecte voyelle ou h muet pour l'élision (même logique que pour l/la/l’)
+function startsWithVowelLike(s){
+  const V = 'aâàäeéèêëiîïoôöuùûüyhAÂÀÄEÉÈÊËIÎÏOÔÖUÙÛÜYH';
+  s = String(s||'').trim();
+  return s && V.includes(s[0]);
+}
+// "de" → "d’" si besoin
+function deElide(word){
+  word = String(word||'').trim();
+  return startsWithVowelLike(word) ? "d’"+word : "de "+word;
 }
 
 /* ================== EXERCICES ================== */
@@ -624,7 +751,7 @@ if(!Q.some(x=>x.v===v)){
     function buildRow(arr, showWhat){
       return arr.map((cell,i)=>{
         if(showWhat==='given') return '<td>'+cell.label+'</td>';
-        return '<td><input class="ans" data-kind="'+cell.want+'" data-i="'+showWhat+String(i)+'" type="text" placeholder="'+(cell.want==='dec'?'0,41':'41 %')+'"></td>';
+        return '<td><input class="ans" data-kind="'+cell.want+'" data-i="'+showWhat+String(i)+'" type="text" placeholder="'+'"></td>';
       }).join('');
     }
     const tbl1 = '<table class="tbl"><tbody><tr>'+buildRow(st.P,'given')+'</tr><tr>'+buildRow(st.P,'p')+'</tr></tbody></table>';
@@ -644,10 +771,10 @@ if(!Q.some(x=>x.v===v)){
       const raw = (inp.value||'').trim();
       let good=false;
       if(kind==='dec'){
-        const v = parseNumberFR_noPct(raw);
+        const v = parseNumberStrictFR(raw);
         good = isFinite(v) && sameFloat(v, expected, 1e-3);
       }else{
-        const v=parsePercentStrict(raw);
+        const v=parsePercentRequireSign(raw);
         good = isFinite(v) && sameFloat(v, expected, 1e-3);
       }
       if(!good) ok=false;
@@ -682,27 +809,27 @@ const ex2={
       return {num, den, pct: 100*num/den};
     }
     const ctxA = choice([
-      {who:'les footballeurs', where:'dans un club amateur'},
-      {who:'les lecteurs assidus', where:'dans une bibliothèque'},
-      {who:'les élèves inscrits à l’atelier théâtre', where:'dans un lycée'},
-      {who:'les voyageurs abonnés', where:'dans un bus'},
-      {who:'les supporters munis d’un drapeau', where:'au stade'},
-      {who:'les licenciés en judo', where:'au club omnisports'},
-      {who:'les abonnés internet fibre', where:'dans un immeuble'},
-      {who:'les joueurs d’échecs', where:'dans une salle des fêtes'},
-      {who:'les cyclistes casqués', where:'sur une randonnée'},
-      {who:'les votants', where:'dans une assemblée'}
+      {who:'Les footballeurs', where:'dans un club amateur'},
+      {who:'Les lecteurs assidus', where:'dans une bibliothèque'},
+      {who:'Les élèves inscrits à l’atelier théâtre', where:'dans un lycée'},
+      {who:'Les voyageurs abonnés', where:'dans un bus'},
+      {who:'Les supporters munis d’un drapeau', where:'au stade'},
+      {who:'Les licenciés en judo', where:'au club omnisports'},
+      {who:'Les abonnés internet fibre', where:'dans un immeuble'},
+      {who:'Les joueurs d’échecs', where:'dans une salle des fêtes'},
+      {who:'Les cyclistes casqués', where:'sur une randonnée'},
+      {who:'Les votants', where:'dans une assemblée'}
     ]);
     const ctxB = choice([
-      {who:'les footballeurs', where:'dans un club amateur'},
-      {who:'les lecteurs assidus', where:'dans une bibliothèque'},
-      {who:'les élèves inscrits à l’atelier théâtre', where:'dans un lycée'},
-      {who:'les voyageurs abonnés', where:'dans un bus'},
-      {who:'les supporters munis d’un drapeau', where:'au stade'},
-      {who:'les licenciés en judo', where:'au club omnisports'},
-      {who:'les abonnés internet fibre', where:'dans un immeuble'},
-      {who:'les joueurs d’échecs', where:'dans une salle des fêtes'},
-      {who:'les cyclistes casqués', where:'sur une randonnée'},
+      {who:'Les footballeurs', where:'dans un club amateur'},
+      {who:'Les lecteurs assidus', where:'dans une bibliothèque'},
+      {who:'Les élèves inscrits à l’atelier théâtre', where:'dans un lycée'},
+      {who:'Les voyageurs abonnés', where:'dans un bus'},
+      {who:'Les supporters munis d’un drapeau', where:'au stade'},
+      {who:'Les licenciés en judo', where:'au club omnisports'},
+      {who:'Les abonnés internet fibre', where:'dans un immeuble'},
+      {who:'Les joueurs d’échecs', where:'dans une salle des fêtes'},
+      {who:'Les cyclistes casqués', where:'sur une randonnée'},
       {who:'les votants', where:'dans une assemblée'}
     ]);
     return {A:makeCase(), B:makeCase(), ctxA, ctxB};
@@ -710,28 +837,33 @@ const ex2={
   text(st){
     const fA = L(`${texFrac(st.A.num, st.A.den)}`);
     const fB = L(`${texFrac(st.B.num, st.B.den)}`);
-    return '<div>1) '+st.ctxA.who+' représentent '+fA+' '+st.ctxA.where+'. Donner le pourcentage correspondant.</div>'+
-           '<div style="margin-top:6px">2) '+st.ctxB.who+' représentent '+fB+' '+st.ctxB.where+'. Donner le pourcentage correspondant.</div>';
+    return '<div>1) '+st.ctxA.who+' représentent '+fA+' '+st.ctxA.where+'. Donner le pourcentage correspondant (<em>à 0,01% près, si nécessaire</em>).</div>'+
+           '<div style="margin-top:6px">2) '+st.ctxB.who+' représentent '+fB+' '+st.ctxB.where+'. Donner le pourcentage correspondant (<em>à 0,01% près, si nécessaire</em>).</div>';
   },
   render(host, st){
     renderRowsUnderQuestions(host,
       'Convertir une proportion en pourcentage (écrire éventuellement avec une virgule) :',
       [
-        { labelHTML: '1) '+st.ctxA.who+' représentent '+L(`${texFrac(st.A.num, st.A.den)}`)+' '+st.ctxA.where+'. Donner le pourcentage correspondant.',
-          id:'q1', placeholder:'ex. 68,75 %' },
-        { labelHTML: '2) '+st.ctxB.who+' représentent '+L(`${texFrac(st.B.num, st.B.den)}`)+' '+st.ctxB.where+'. Donner le pourcentage correspondant.',
-          id:'q2', placeholder:'ex. 85 %' }
+        { labelHTML: '1) '+st.ctxA.who+' représentent '+L(`${texFrac(st.A.num, st.A.den)}`)+' '+st.ctxA.where+'. Donner le pourcentage correspondant (<em>à 0,01% près, si nécessaire</em>).',
+          id:'q1'},
+        { labelHTML: '2) '+st.ctxB.who+' représentent '+L(`${texFrac(st.B.num, st.B.den)}`)+' '+st.ctxB.where+'. Donner le pourcentage correspondant (<em>à 0,01% près, si nécessaire</em>).',
+          id:'q2'}
       ]
     );
   },
-  correct(host, st){
-    const v1 = parsePercentStrict($('#q1',host).value);
-    const v2 = parsePercentStrict($('#q2',host).value);
-    const ok = isFinite(v1)&&sameFloat(v1, st.A.pct, 1e-3) && isFinite(v2)&&sameFloat(v2, st.B.pct, 1e-3);
-    $('#res',host).innerHTML = ok? '✔' : '✘ Attendu : '+fmtDecFR(st.A.pct,2)+' % et '+fmtDecFR(st.B.pct,2)+' %';
-    $('#res',host).className= ok ? 'res-ok' : 'res-ko';
-    return {ok,total:1};
-  },
+correct(host, st){
+  const p1 = parsePercentRequireSign($('#q1',host).value);
+  const p2 = parsePercentRequireSign($('#q2',host).value);
+  const ok = Number.isFinite(p1) && Number.isFinite(p2)
+          && (Math.round(p1*100) === Math.round(st.A.pct*100))
+          && (Math.round(p2*100) === Math.round(st.B.pct*100));
+  $('#res',host).innerHTML = ok
+    ? '✔'
+    : '✘';
+  $('#res',host).className = ok ? 'res-ok' : 'res-ko';
+  return {ok,total:1};
+},
+
   solution(host, st){
     const L1 = `${Q(1)} ${chainFracDecPct(st.A.num, st.A.den, 2)}`;
     const L2 = `${Q(2)} ${chainFracDecPct(st.B.num, st.B.den, 2)}`;
@@ -769,10 +901,10 @@ const ex3={
         'Un sondage portant sur '+NI(st.N)+' '+st.who+' indique que '+NI(st.have)+' possèdent '+st.own
         +' et que '+PCT(st.usbPct,1)+' utilisent régulièrement '+st.use+'.<br>'
         +'1) Quelle est la proportion des '+st.who+' possédant '+st.own+' ?',
-        id:'p1', placeholder:'ex. 31/40 ou 0,775 ou 77,5 %' },
+        id:'p1'},
       { labelHTML:
-        '2) Combien de '+st.who+' utilisent régulièrement '+st.use+' ?',
-        id:'p2', placeholder:'entier' }
+  '2) Combien ' + deElide(st.who) + ' utilisent régulièrement ' + st.use + ' ?',
+  id:'p2'}
     ]
   );
 },
@@ -825,50 +957,41 @@ const ex4={
 + `\\(n_E\\) celui de \\(E\\) et \\(p\\) la proportion de \\(A\\) dans \\(E\\).`;
 
 renderRowsUnderQuestions(host,
-  'Répondre : p en proportion (fraction / décimal / %), et n en entier :',
+  '',
   [
     { labelHTML:intro },
 
     { labelHTML:
         `${Q(1)}On donne ${L(`n_A = ${st.nA1}`)} et ${L(`n_E = ${st.nE1}`)}. `
       + `Calculer ${L('p')} (arrondir à ${L('0{,}001')} près).`,
-      id:'r1', placeholder:'ex. 3/8 ou 0,375 ou 37,5 %' },
+      id:'r1' },
 
     { labelHTML:
         `${Q(2)}On donne ${L(`p = ${fmtDecFR(st.p2,3)}`)} et ${L(`n_E = ${st.nE2}`)}. `
       + `Calculer ${L('n_A')}.`,
-      id:'r2', placeholder:'entier' },
+      id:'r2' },
 
     { labelHTML:
         `${Q(3)}On donne ${L(`n_A = ${st.nA3}`)} et ${L(`p = ${fmtDecFR(st.p3,3)}`)}. `
       + `Calculer ${L('n_E')}.`,
-      id:'r3', placeholder:'entier' }
+      id:'r3'}
   ]
 );
 
   },
   correct(host, st){
     const s1 = ($('#r1',host).value||'').trim();
-    let v1 = NaN; const m = s1.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
-    if(m){ v1=parseInt(m[1],10)/parseInt(m[2],10); } else {
-      const d=parseNumberFR(s1); if(isFinite(d)) v1=d; else { const p=parsePercent(s1); if(isFinite(p)) v1=p/100; }
-    }
-    const target = st.nA1 / st.nE1;
-    const okExact   = isFinite(v1) && sameFloat(v1, target, 1e-6);
-    const okRounded = isFinite(v1) && (Math.round(v1*1000) === Math.round(target*1000));
-    const ok1 = okExact || okRounded;
-    const r2 = parseInt(stripSignUnicode($('#r2',host).value||'').trim(),10);
+  const v1 = parseNumberStrictFR($('#r1',host).value);
+const target = st.nA1 / st.nE1;
+const ok1 = Number.isFinite(v1) && (Math.round(v1*1000) === Math.round(target*1000));
+
+const r2 = parseIntStrict($('#r2',host).value);
     const ok2 = Number.isInteger(r2) && r2===st.nA2;
-    const r3 = parseInt(stripSignUnicode($('#r3',host).value||'').trim(),10);
+const r3 = parseIntStrict($('#r3',host).value);
     const ok3 = Number.isInteger(r3) && r3===st.nE3;
     const ok = ok1 && ok2 && ok3;
     $('#res',host).innerHTML = ok? '✔' :
-    '✘ Attendu : '
-  + L(`p = ${tidyDecFR(st.nA1/st.nE1,3)}`)
-  + ' (ou '
-  + L(`\\dfrac{n_A}{n_E} = \\dfrac{${st.nA1}}{${st.nE1}}`)
-  + ' ou ' + PCT(100*st.nA1/st.nE1,2) + ')'
-  + ' ; ' + L(`n_A = ${st.nA2}`) + ' ; ' + L(`n_E = ${st.nE3}`) + '.';
+    '✘';
     $('#res',host).className= ok? 'res-ok':'res-ko';
     return {ok,total:1};
   },
@@ -919,20 +1042,21 @@ const intro = `On considère des ${st.ctx.thing} de ${NI(st.M)} ${st.ctx.unit}. 
       [
         { labelHTML: intro },
         { labelHTML:
-  '1) Il y a '+N(st.c1,1)+' '+st.ctx.unit+' de '+st.ctx.c1+'. '
-+ 'Quel est le pourcentage correspondant&nbsp;?<br><small>(arrondir à 0,01&nbsp;% près)</small>',
-  id:'m1', placeholder:'ex. 15,26 %' },
+  '1) Il y a '+N(st.c1,1)+' '+st.ctx.unit+' ' + deElide(st.ctx.c1) + '. ' +
+  'Quel est le pourcentage correspondant&nbsp;?<br><small>(arrondir à 0,01&nbsp;% près)</small>',
+  id:'m1'},
 
 { labelHTML:
-  '2) Il y a '+PCT(st.p2,1)+' de '+st.ctx.c2+'. '
-+ 'Quelle est la quantité (en '+st.ctx.unit+') de '+st.ctx.c2+' ?<br><small>(arrondir à l’unité)</small>',
-  id:'m2', placeholder:'entier (arrondi)' }
+  '2) Il y a '+PCT(st.p2,1)+' ' + deElide(st.ctx.c2) + '. ' +
+  'Quelle est la quantité (en '+st.ctx.unit+') ' + deElide(st.ctx.c2) + ' ?<br><small>(arrondir à l’unité)</small>',
+  id:'m2'}
+
 
       ]
     );
   },
   correct(host, st){
-    const pUser = parsePercentStrict($('#m1',host).value);
+    const pUser = parsePercentRequireSign($('#m1',host).value);
     const qUser = parseNumberFR($('#m2',host).value);
     const pExp  = 100*st.c1/st.M;
     const ok1 = Number.isFinite(pUser) && (Math.round(pUser*100) === Math.round(pExp*100));
@@ -1008,9 +1132,9 @@ const ex6 = {
   '<div>Le tableau ci-dessous indique la répartition des '+who+' '+st.ctx.where+'.</div>'+
   '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>Hommes</th><th>Femmes</th><th>Total</th></tr></thead>'+
   '<tbody>'+
-  '<tr><td>'+st.ctx.r1+'</td><td>'+NI(st.CH)+'</td><td>'+NI(st.CF)+'</td><td><input class="c-ans" data-k="CT" type="text" placeholder="?"></td></tr>'+
-  '<tr><td>'+st.ctx.r2+'</td><td><input class="c-ans" data-k="TH" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TF" type="text" placeholder="?"></td><td><input class="c-ans" data-k="TT" type="text" placeholder="?"></td></tr>'+
-  '<tr><td>Total</td><td>'+NI(st.TOT_H)+'</td><td><input class="c-ans" data-k="TOT_F" type="text" placeholder="?"></td><td>'+NI(st.TOT)+'</td></tr>'+
+  '<tr><td>'+st.ctx.r1+'</td><td>'+NI(st.CH)+'</td><td>'+NI(st.CF)+'</td><td><input class="c-ans" data-k="CT" type="text" placeholder=""></td></tr>'+
+  '<tr><td>'+st.ctx.r2+'</td><td><input class="c-ans" data-k="TH" type="text" placeholder=""></td><td><input class="c-ans" data-k="TF" type="text" placeholder=""></td><td><input class="c-ans" data-k="TT" type="text" placeholder=""></td></tr>'+
+  '<tr><td>Total</td><td>'+NI(st.TOT_H)+'</td><td><input class="c-ans" data-k="TOT_F" type="text" placeholder=""></td><td>'+NI(st.TOT)+'</td></tr>'+
   '</tbody></table>';
 
 
@@ -1023,45 +1147,47 @@ const ex6 = {
       'Compléter le tableau puis répondre (entiers pour les effectifs ; pourcentages <strong>arrondis au % près</strong>) :',
       [
         { labelHTML: tableHTML, rightHTML:'' },
-        { labelHTML: '2a) Combien y a-t-il '+deG+' ?', id:'q2a', placeholder: LibGCap+' (entier)' },
-        { labelHTML: '2b) Combien de '+st.ctx.r1+' ?',   id:'q2b', placeholder: st.ctx.r1+' (entier)' },
-        { labelHTML: '2c) Combien de '+st.ctx.r1+' hommes ?', id:'q2c', placeholder: st.ctx.r1+' hommes (entier)' },
-        { labelHTML: '3a) Quelle est la proportion '+propG+' ? (en %, <em>arrondir au % près</em>)', id:'q3a', placeholder:'% '+libG },
-        { labelHTML: '3b) Quelle est la proportion des '+st.ctx.r1+' ? (en %, <em>arrondir au % près</em>)', id:'q3b', placeholder:'% '+st.ctx.r1.toLowerCase() },
-        { labelHTML: '4a) Parmi les hommes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4a', placeholder:'%' },
-        { labelHTML: '4b) Parmi les femmes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4b', placeholder:'%' }
+        { labelHTML: '2a) Combien y a-t-il '+deG+' ?', id:'q2a' },
+       { labelHTML: '2b) Combien ' + deElide(st.ctx.r1.toLowerCase()) + ' ?',
+  id:'q2b' },
+{ labelHTML: '2c) Combien ' + deElide(st.ctx.r1.toLowerCase()) + ' hommes ?',
+  id:'q2c'},
+        { labelHTML: '3a) Quelle est la proportion '+propG+' ? (<em>au % près</em>)', id:'q3a'},
+        { labelHTML: '3b) Quelle est la proportion des '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q3b'},
+        { labelHTML: '4a) Parmi les hommes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4a' },
+        { labelHTML: '4b) Parmi les femmes, quel est le pourcentage de '+st.ctx.r1+' ? (<em>au % près</em>)', id:'q4b'}
       ]
     );
   },
   correct(host, st){
     const expect = {CT:st.CT, TH:st.TH, TF:st.TF, TT:st.TT, TOT_F:st.TOT_F};
     let okTable = true;
-    $$('.c-ans',host).forEach(inp=>{
-      const k = inp.dataset.k;
-      const v = parseInt(stripSignUnicode((inp.value||'').trim()),10);
-      if(!Number.isInteger(v) || v!==expect[k]) okTable=false;
-    });
+   $$('.c-ans',host).forEach(inp=>{
+  const k = inp.dataset.k;
+  const v = parseIntStrict((inp.value||'').trim());
+  if(!Number.isInteger(v) || v!==expect[k]) okTable=false;
+});
 
-    const v2a = parseInt(stripSignUnicode(($('#q2a',host).value||'').trim()),10);
+const v2a = parseIntStrict(($('#q2a',host).value||'').trim());
     const totG = (st.gAsk==='H') ? st.TOT_H : st.TOT_F;
     const ok2a = Number.isInteger(v2a) && v2a===totG;
 
     const ok2b = parseInt(stripSignUnicode(($('#q2b',host).value||'').trim()),10) === st.CT;
     const ok2c = parseInt(stripSignUnicode(($('#q2c',host).value||'').trim()),10) === st.CH;
 
-    const p3a = parsePercentStrict($('#q3a',host).value);
+    const p3a = parsePercentRequireSign($('#q3a',host).value);
     const exp3a = Math.round(100 * ((st.gAsk==='H') ? st.TOT_H : st.TOT_F) / st.TOT);
     const ok3a = Number.isFinite(p3a) && Math.round(p3a) === exp3a;
 
-    const p3b = parsePercentStrict($('#q3b',host).value);
+    const p3b = parsePercentRequireSign($('#q3b',host).value);
     const exp3b = Math.round(100 * st.CT / st.TOT);
     const ok3b = Number.isFinite(p3b) && Math.round(p3b) === exp3b;
 
-    const p4a = parsePercentStrict($('#q4a',host).value);
+    const p4a = parsePercentRequireSign($('#q4a',host).value);
     const exp4a = Math.round(100 * st.CH / st.TOT_H);
     const ok4a = Number.isFinite(p4a) && Math.round(p4a) === exp4a;
 
-    const p4b = parsePercentStrict($('#q4b',host).value);
+    const p4b = parsePercentRequireSign($('#q4b',host).value);
     const exp4b = Math.round(100 * st.CF / st.TOT_F);
     const ok4b = Number.isFinite(p4b) && Math.round(p4b) === exp4b;
 
@@ -1095,13 +1221,13 @@ const S2a = `${Q(2,'a')} D’après le tableau, il y a ${NI(totG)} ${libG}.`;
 const S2b = `Il y a ${NI(st.CT)} ${r1low}.`;
 const S2c = `${Q(2,'c')}D’après le tableau, il y a ${NI(st.CH)} ${r1low} hommes.`;
 
-const L3a = `${Q(3,'a')} ${chain(totG, st.TOT)}`;
+const L3a = `${Q(3,'a')} ${chainFracDecPct(totG, st.TOT, 0)}`;
 const S3a = `La proportion ${propG} est ${PCT(Math.round(100*totG/st.TOT),0)}.`;
-const L3b = `${Q(3,'b')} ${chain(st.CT, st.TOT)}`;
+const L3b = `${Q(3,'b')} ${chainFracDecPct(st.CT, st.TOT, 0)}`;
 const S3b = `La proportion des ${r1low} est ${PCT(Math.round(100*st.CT/st.TOT),0)}.`;
-const L4a = `${Q(4,'a')} ${chain(st.CH, st.TOT_H)}`;
+const L4a = `${Q(4,'a')} ${chainFracDecPct(st.CH, st.TOT_H, 0)}`;
 const S4a = `Parmi les hommes, le pourcentage de ${r1low} est ${PCT(Math.round(100*st.CH/st.TOT_H),0)}.`;
-const L4b = `${Q(4,'b')} ${chain(st.CF, st.TOT_F)}`;
+const L4b = `${Q(4,'b')} ${chainFracDecPct(st.CF, st.TOT_F, 0)}`;
 const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${PCT(Math.round(100*st.CF/st.TOT_F),0)}.`;
 
     $('#res',host).innerHTML = `
@@ -1120,53 +1246,80 @@ const S4b = `Parmi les femmes, le pourcentage de ${r1low} est ${PCT(Math.round(1
 };
 
 /* 7 — Bilan (groupe) */
+/* 7 — Bilan (groupe) */
 const ex7 = {
   id:'bilan',
   title:'Bilan (groupe : filles/âges)',
   gen(){
-    const group = choice([
-      'classe','groupe d’atelier','équipe','chorale','groupe de stage',
-      'club de lecture','groupe de randonneurs','promo','groupe d’élèves','groupe de bénévoles'
-    ]);
-    const N = choice([28,30,32,34,36]);
-    const G = rnd(Math.ceil(N*0.4), Math.ceil(N*0.75));
-    const N17 = rnd(Math.ceil(N*0.3), Math.ceil(N*0.7));
-    const G17 = rnd(Math.max(0, N17-(N-G)), Math.min(G, N17));
-    const U18 = choice([10,12.5,20,25,30,40,50]);
-    const n18 = Math.round(N*U18/100);
-    return {group,N,G,N17,G17,U18,n18};
-  },
-  render(host, st){
-    const intro =
-  '<div>Un '+st.group+' compte '+NI(st.N)+' élèves, dont '+NI(st.G)+' filles. '
-+ 'Parmi les '+NI(st.N17)+' élèves de 17 ans, on dénombre '+NI(st.G17)+' filles.</div>';
+  const group = choice([
+    'classe','groupe d’atelier','équipe','chorale','groupe de stage',
+    'club de lecture','groupe de randonneurs','promo','groupe d’élèves','groupe de bénévoles'
+  ]);
 
-    renderRowsInputRight(host,
-      'Répondre : proportions (fraction/décimal/%) et entiers quand demandé. '+
-      'Pour les <strong>pourcentages, arrondir à 0,01&nbsp;% près</strong> (donc décimaux à 4&nbsp;décimales).',
-      [
-        { labelHTML: intro, rightHTML:'' },
+  const N = choice([28,30,32,34,36]);
 
-        { labelHTML: '1a) Proportion de filles dans le '+st.group+' ? (<em>à 0,0001 près</em>)',
-          id:'b1a', placeholder:'ex. 0,4321' },
-        { labelHTML: '1b) Pourcentage de filles dans le '+st.group+' ? (<em>à 0,01&nbsp;% près</em>)',
-          id:'b1b', placeholder:'% deux décimales' },
+  // 1) Choisir U18 tel que n18 = N*U18/100 est ENTIER et n18 ≤ N-2 (=> il restera ≥1 élève "ni 17 ni 18")
+  const U18_ALL = [10,12.5,20,25,30,40,50];
+  const U18_OK = U18_ALL.filter(p => Number.isInteger(N*p/100) && (N*p/100) <= (N-2));
+  const U18 = choice(U18_OK.length ? U18_OK : U18_ALL.filter(p => Number.isInteger(N*p/100))); // repli sûr
+  const n18 = N * U18 / 100; // entier exact
 
-        { labelHTML: '2a) Proportion de filles de 17 ans parmi les filles ? (<em>à 0,0001 près</em>)',
-          id:'b2a', placeholder:'ex. 0,1234' },
-        { labelHTML: '2b) Pourcentage correspondant ? (<em>à 0,01&nbsp;% près</em>)',
-          id:'b2b', placeholder:'% deux décimales' },
+  // 2) Tirer N17 avec 1 ≤ N17 ≤ N - n18 - 1  (=> "ni 17 ni 18" ≥ 1)
+  const N17_max_soft = Math.ceil(N*0.7);
+  const hardMax = Math.max(4, N - n18 - 4);
+  const N17_hi = Math.min(N17_max_soft, hardMax);
+  const N17_lo = 4; // jamais 0 pour éviter 100% en 4b
+  const N17 = rnd(N17_lo, N17_hi);
 
-        { labelHTML: '3) Populations considérées en 1) et 2) ?', id:'b3', placeholder:'ex. '+st.group+' ; filles' },
+  // 3) Filles : garde vos bornes
+  const G = rnd(Math.ceil(N*0.4), Math.ceil(N*0.75));
 
-        { labelHTML: '4a) Avec '+fmtDecFR(st.U18,1)+' % d’élèves de 18 ans : combien d’élèves de 18 ans ?', id:'b4a', placeholder:'entier' },
+  // 4) Filles de 17 ans : 0 ≤ G17 ≤ min(G, N17) et cohérence avec les garçons
+  const G17_min = Math.max(0, N17 - (N - G));
+  const G17_max = Math.min(G, N17);
+  const G17 = rnd(Math.max(0, G17_min), Math.max(0, G17_max));
 
-        { labelHTML: '4b) % d’élèves n’ayant ni 17 ans ni 18 ans ? (<em>à 0,01&nbsp;% près</em>). '+
-                     'On arrondit d’abord le % des 17&nbsp;ans au % près.',
-          id:'b4b', placeholder:'% deux décimales' }
-      ]
-    );
-  },
+  return {group,N,G,N17,G17,U18,n18};
+}
+,
+
+
+render(host, st){
+  const intro =
+    '<div>'+indefDet(st.group)+
+    ' compte '+NI(st.N)+' élèves, dont '+NI(st.G)+' filles. '+
+    'Parmi les '+NI(st.N17)+' élèves de 17 ans, on dénombre '+NI(st.G17)+' filles.</div>';
+
+  const defGroup = defDet(st.group); // "la classe", "le groupe …", "l’équipe", ...
+
+  renderRowsInputRight(host,
+    'Répondre : proportions (fraction/décimal/%) et entiers quand demandé. '+
+    'Pour les <strong>pourcentages, arrondir à 0,01&nbsp;% près</strong> (donc décimaux à 4&nbsp;décimales).',
+    [
+      { labelHTML: intro, rightHTML:'' },
+
+      // ⬇️ corrigé : article accordé
+      { labelHTML: `1a) Quelle est la proportion de filles dans ${defGroup} ? (<em> en fraction irréductible</em>)`,
+        id:'b1a' },
+
+      // ⬇️ corrigé : article accordé + espace insécable avant %
+      { labelHTML: `1b) En déduire le pourcentage de filles dans ${defGroup} ? (<em>à 0,01&nbsp;% près</em>)`,
+        id:'b1b' },
+
+      { labelHTML: '2a) Quelle est la proportion de filles de 17 ans parmi les filles ? (<em> en fraction irréductible</em>)',
+        id:'b2a' },
+      { labelHTML: '2b) En déduire le pourcentage de filles de 17 ans parmi les filles ? (<em>à 0,01&nbsp;% près</em>)',
+        id:'b2b'},
+
+      { labelHTML: '3) Quelles sont les populations considérées en 1) et 2) ?', id:'b3'},
+
+      { labelHTML: `4a) Il y a  ${fmtDecFR(st.U18,1)} % d’élèves de 18 ans : combien d’élèves ont 18 ans ?`, id:'b4a'},
+      { labelHTML: '4b) Quel est le pourcentage d’élèves  d’élèves n’ayant ni 17 ans ni 18 ans ? (<em>à 0,01&nbsp;% près</em>). ',
+        id:'b4b' }
+    ]
+  );
+},
+
   correct(host, st){
     function parseProp(s){
       s = String(s||'').trim();
@@ -1181,21 +1334,24 @@ const ex7 = {
     }
     const samePct2 = (a,b)=> Math.round(a*100) === Math.round(b*100);
     const sameDec4 = (a,b)=> Math.round(a*1e4) === Math.round(b*1e4);
-
-    const ok1a = sameDec4(parseProp($('#b1a',host).value), st.G/st.N);
+const f1 = parseIrreducibleFraction($('#b1a',host).value);
+const exp1 = toIrreducible(st.G, st.N);
+const ok1a = !!f1 && f1.a===exp1.n && f1.b===exp1.d;
     const ok1b = (p => Number.isFinite(p) && samePct2(p, 100*st.G/st.N))(parsePercentStrict($('#b1b',host).value));
 
-    const ok2a = sameDec4(parseProp($('#b2a',host).value), st.G17/st.G);
+const f2 = parseIrreducibleFraction($('#b2a',host).value);
+const exp2 = toIrreducible(st.G17, st.G);
+const ok2a = !!f2 && f2.a===exp2.n && f2.b===exp2.d;
     const ok2b = (p => Number.isFinite(p) && samePct2(p, 100*st.G17/st.G))(parsePercentStrict($('#b2b',host).value));
 
     const ans3 = ($('#b3',host).value||'').toLowerCase().replace(/\s+/g,' ').trim();
     const ok3 = ans3.includes(st.group.split(' ')[0].toLowerCase()) && ans3.includes('fille');
 
-    const ok4a = parseInt(stripSignUnicode($('#b4a',host).value||'').trim(),10) === st.n18;
+const ok4a = parseIntStrict($('#b4a',host).value) === st.n18;
 
     const p17_round = Math.round(100*st.N17/st.N);
     const exp4b = 100 - p17_round - st.U18;
-    const ok4b = (p => Number.isFinite(p) && samePct2(p, exp4b))(parsePercentStrict($('#b4b',host).value));
+    const ok4b = (p => Number.isFinite(p) && samePct2(p, exp4b))(parsePercentRequireSign($('#b4b',host).value));
 
     const ok = ok1a && ok1b && ok2a && ok2b && ok3 && ok4a && ok4b;
     $('#res',host).innerHTML = ok ? '✔' :
@@ -1205,36 +1361,65 @@ const ex7 = {
   },
   solution(host, st){
     const sDec4 = x => fmtDecFR(x, 4);
+const defGroup = defDet(st.group); // "la classe", "le groupe …", "l’équipe", ...
 
-    const L1a = `${Q(1,'a')} ${L(`${texFrac(st.G, st.N)} = ${sDec4(st.G/st.N)}`)}`;
-    const S1a = `La proportion de filles dans le ${st.group} est ${sDec4(st.G/st.N)}.`;
+const r1 = toIrreducible(st.G, st.N);
+const L1a = `${Q(1,'a')} ${L(`p = ${texFrac(st.G, st.N)} = ${texFrac(r1.n, r1.d)}`)}`;
+const S1a = `La proportion de filles dans ${defGroup} est ${L(texFrac(r1.n, r1.d))} ${L('\\approx ' + sDec4(st.G/st.N))}.`;
 
     const L1b = `${Q(1,'b')} ${chainFracDecPct(st.G, st.N, 2)}`;
 const S1b = `Le pourcentage de filles dans le ${st.group} est ${PCT(100*st.G/st.N,2)}.`;
 
-    const L2a = `${Q(2,'a')} ${L(`${texFrac(st.G17, st.G)} = ${sDec4(st.G17/st.G)}`)}`;
-    const S2a = `La proportion de filles de 17 ans parmi les filles est ${sDec4(st.G17/st.G)}.`;
+const r2 = toIrreducible(st.G17, st.G);
+const L2a = `${Q(2,'a')} ${L(`p = ${texFrac(st.G17, st.G)} = ${texFrac(r2.n, r2.d)}`)}`;
+const S2a = `La proportion de filles de 17 ans parmi les filles est ${L(texFrac(r2.n, r2.d))} ${L('\\approx ' + sDec4(st.G17/st.G))}.`;
 
     const L2b = `${Q(2,'b')} ${chainFracDecPct(st.G17, st.G, 2)}`;
 const S2b = `Le pourcentage de filles de 17 ans parmi les filles est ${PCT(100*st.G17/st.G,2)}.`;
 
-    const S3  = `${Q(3)} D’après le tableau (et l’énoncé), les populations sont « ${st.group} » et « filles ».`;
+    const S3  = `${Q(3)} D’après l’énoncé, les populations sont « ${st.group} » et « filles ».`;
 
     const L4a = `${Q(4,'a')} ${L(`${texFrac(fmtDecFR(st.U18,1),100)} \\times ${st.N} = ${st.n18}`)}`;
-    const S4a = `Il y a ${st.n18} élèves de 18 ans.`;
+const S4a = `Il y a ${NI(st.n18)} ${s(st.n18,'élève','élèves')} de 18 ans.`;
 
     const p17_pct_exact = 100*st.N17/st.N;
     const p17_pct_round = Math.round(p17_pct_exact);
     const nonePct = 100 - p17_pct_round - st.U18;
-    const L4b = `${Q(4,'b')} ${L(`${chainFracDecPct(st.N17, st.N, 2).slice(2,-2)} ; \\text{arrondi au % : } ${p17_pct_round}\\,\\% ; \\text{ donc } 100\\,\\% - ${p17_pct_round}\\,\\% - ${fmtDecFR(st.U18,1)}\\,\\% = ${fmtDecFR(nonePct,2)}\\,\\%`)}`;
-const S4b = `Le pourcentage d’élèves n’ayant ni 17 ans ni 18 ans est ${PCT(nonePct,2)}.`;
+ // --- 4b) Nouvelle présentation demandée ---
+// Étape 1 : nombre d'élèves de 17 OU 18 ans
+const k17or18 = st.N17 + st.n18;  // 17 ans + résultat 4a
+
+// Étape 2 : nombre d'élèves NI 17 NI 18 ans
+const kNeither = st.N - k17or18;
+
+// Étape 3 : pourcentage (2 décimales) avec "=" ou "≈" selon le cas
+const sDec2 = symTex(eqOrApproxSymbol(kNeither, st.N, 2));           // pour le décimal (2 déc.)
+const sPct2 = symTex(eqOrApproxPercentSymbol(kNeither, st.N, 2));    // pour le %
+
+const fracNeither = texFrac(kNeither, st.N);
+const dec2  = tidyDecFR(kNeither / st.N, 4);
+const pct2  = tidyDecFR(100 * kNeither / st.N, 2);
+
+// Lignes LaTeX
+// 4b — lignes annotées en clair après les égalités
+const L4b1 = `${Q(4,'b')} ${L(`${st.N17} + ${st.n18} = ${k17or18}`)} élèves ont 17 ans ou 18 ans.`;
+const L4b2 = `${L(`${st.N} - ${k17or18} = ${kNeither}`)} élèves ont ni 17 ans ni 18 ans.`;
+// (L4b3 inchangé)
+const L4b3 = chainFracDecPct(kNeither, st.N, 2);
+
+
+// Phrase récap
+const S4b_new =
+  `Parmi les ${NI(st.N)} élèves, ${NI(kNeither)} ${s(kNeither,'élève','élèves')} ` +
+  `n’${vAvoir(kNeither)} ni 17 ans ni 18 ans, soit ${PCT(100*kNeither/st.N,2)}.`;
 
     $('#res',host).innerHTML = [
       L1a, S1a, L1b, S1b,
       L2a, S2a, L2b, S2b,
       S3,
       L4a, S4a,
-      L4b, S4b
+        L4b1, L4b2, L4b3, S4b_new  // 4b) (nouveau)
+
     ].map(x=>`<p>${x}</p>`).join('');
     $('#res',host).className='res-ok';
 	retypeset(host);   // <<< NEW

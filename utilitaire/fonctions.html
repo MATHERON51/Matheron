@@ -1,0 +1,2362 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Étude d’une fonction — Courbe, signes, variations, f′</title>
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"],input[type="number"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .small{font-size:.92rem;color:#555}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* tableaux imprimables style PDF */
+  table.pdf-tbl{ border-collapse:separate; border-spacing:0; border:none; margin:.4rem 0; }
+  table.pdf-tbl th, table.pdf-tbl td{ border:none; padding:4px 6px; text-align:center; vertical-align:middle; }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* tableaux interactifs (cadre uniquement) */
+  table.var{ border-collapse:separate; border-spacing:0; margin:.35rem auto }
+  table.var th, table.var td{ padding:4px 6px; border:none }
+  table.var tr:first-child > * { border-top:    1.5px solid #000; }
+  table.var tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.var tr > *:first-child { border-left:   1.5px solid #000; }
+  table.var tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.var tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+  table.var td.bigsel{ padding:0 }
+  table.var td.bigsel select{ display:block; width:100%; height:100%; background:transparent; padding:0; margin:0; text-align:center; text-align-last:center; appearance:none }
+  table.var input[type="text"]{ width:110px; text-align:center }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.repere{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  
+  /* Séparateur vertical après la 1re colonne, pour tous les tableaux interactifs */
+table.var tr > *:first-child{
+  border-left: 1.5px solid #000;   /* bord extérieur gauche (déjà présent) */
+  border-right: 1.5px solid #000;  /* ⇐ ajout : barre verticale après la 1re colonne */
+}
+/* 5) f' + variations — trait entre f'(x) et f (énoncé + PDF) */
+#dv-wrap table.var tbody tr:nth-child(2) > *,
+#dv-out  table.pdf-tbl tbody tr:nth-child(2) > * {
+  border-bottom: 1.5px solid #000;
+}
+/* 5) ENONCÉ : trait entre f'(x) et f */
+#dv-wrap table.var tbody tr:nth-child(2) > * {
+  border-bottom: 1.5px solid #000;
+}
+
+/* 5) SOLUTION (PDF) : trait entre f'(x) et f */
+#dv-out table.pdf-tbl tbody tr:first-child > * {
+  border-bottom: 1.5px solid #000;
+}
+/* Enlever fond/bordure sur les blocs de solution */
+#v-out.steps,
+#s1-out.steps,
+#sf-out.steps,
+#dv-out.steps,
+#curve-out-var.steps,
+#curve-out-sign.steps {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+#v-out .step, #s1-out .step, #sf-out .step,
+#dv-out .step, #curve-out-var .step, #curve-out-sign .step {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+/* Trait entre f'(x) et f dans la solution auto */
+#curve-out-deriv table.pdf-tbl tbody tr:first-child > *{
+  border-bottom: 1.5px solid #000;
+}
+
+/* Pas de fond gris pour cette sortie */
+#curve-out-deriv.steps { background: transparent !important; border:none !important; padding:0 !important; }
+#curve-out-deriv .step  { background: transparent !important; border:none !important; padding:0 !important; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+
+/* 2 barres (||) — écart RESSERRÉ */
+table.pdf-tbl td.dbar::before,
+table.pdf-tbl td.dbar::after{
+  content:'';
+  position:absolute;
+  top:-1.5px;
+  bottom:-1.5px;
+  border-left:2px solid #000;
+}
+table.pdf-tbl td.dbar::before{ left: calc(50% - 2px); }
+table.pdf-tbl td.dbar::after { left: calc(50% + 2px); }
+
+/* === 4) TABLEAU SIGNE FACTORISÉ — ENONCÉ (grille interactive) === */
+/* trait sous x (tu l'as déjà via tbody tr:first-child > * { border-bottom: ... }) */
+/* traits entre 'a' / facteurs / 'f(x)' */
+#sf-wrap table.var tbody tr.sf-row-a > *,
+#sf-wrap table.var tbody tr.sf-row-factor + tr.sf-row-factor > *,
+#sf-wrap table.var tbody tr.sf-row-fx > * {
+  border-top: 1.5px solid #000;
+}
+/* Ligne après 'a' (si la ligne 'a' est affichée) */
+#sf-wrap table.var tbody tr.sf-row-a + tr.sf-row-factor > * {
+  border-top: 1.5px solid #000;
+}
+
+/* === 4) TABLEAU SIGNE FACTORISÉ — SOLUTION (PDF) === */
+/* traits entre 'a' / facteurs / 'f(x)' */
+#sf-out table.pdf-tbl tbody tr.sf-pdf-row-a > *,
+#sf-out table.pdf-tbl tbody tr.sf-pdf-row-factor + tr.sf-pdf-row-factor > *,
+#sf-out table.pdf-tbl tbody tr.sf-pdf-row-fx > * {
+  border-top: 1.5px solid #000;
+}
+
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* Courbes multiples : trait horizontal entre f'(x) et f dans la SOLUTION (PDF) */
+#mc-out-deriv table.pdf-tbl tbody tr:first-child > * {
+  border-bottom: 1.5px solid #000;
+}
+
+/* Gabarit SOLUTION (pdf-tbl) — aération modérée */
+.steps .pdf-tbl{
+  width: auto;             /* ne force pas 100% */
+  max-width: 100%;
+  table-layout: auto;
+}
+.steps .pdf-tbl th,
+.steps .pdf-tbl td{
+  padding: 5px 8px;        /* léger + que l'origine, moins qu'avant */
+}
+.steps .pdf-tbl tbody th{
+  min-width: 64px;         /* libellés (f, f', a, …) */
+}
+.steps .pdf-tbl td{
+  min-width: 30px;         /* colonnes x / intervalles */
+}
+/* Flèches plus grandes dans les tableaux de variations de la **solution** */
+.steps .pdf-tbl td.arr{
+  font-size: 1.45em;   /* taille des flèches */
+  line-height: 1;
+  font-weight: 700;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+@media print{
+  .steps .pdf-tbl td.arr{ font-size: 1.6em; }
+}
+/* Trait entre f'(x) et f dans le tableau f′+variations */
+.pdf-tbl tr.row-fp > *{
+  border-bottom: 1.5px solid #000 !important;
+}
+/* même look que le fichier de départ */
+svg.repere{
+  background:#fff;
+  border:1px solid #e5e5e5;
+  border-radius:8px;
+}
+svg.repere .frame{ stroke:#111; stroke-width:1; fill:none }
+svg.repere .grid-major line{ stroke:#ddd; stroke-width:1 }
+svg.repere .grid-minor line{ stroke:#eee; stroke-width:.6 }
+svg.repere .axes line{ stroke:#111; stroke-width:2.2 }
+svg.repere text{ font-size:12px; fill:#111 }
+/* ==== Tableau des racines (comme sur le screen) ==== */
+table.roots-tbl{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  margin:.45rem 0;
+}
+table.roots-tbl thead th{
+  background:#f3f3f6;
+  text-align:center;
+  padding:8px 24px;
+  border:1px solid #e5e5e5;
+  font-weight:600;
+}
+table.roots-tbl tbody td{
+  vertical-align:top;
+  padding:8px 28px;
+  border:1px solid #e5e5e5;
+  white-space:normal;
+  line-height:1.95;   /* même respiration que ton exemple */
+}
+/* une étape = une ligne, sans wrap à l'intérieur */
+.mline{ display:block; white-space:nowrap; }
+/* Tableau de signe factorisé : traits horizontaux entre TOUTES les lignes du corps */
+table.pdf-tbl.sf tbody tr + tr > *{
+  border-top: 1.5px solid #000;
+}
+/* Tableau de signe factorisé (.sf) */
+table.pdf-tbl.sf tbody tr + tr > *{
+  border-top: 1.5px solid #000;               /* toutes les lignes horizontales */
+}
+
+/* Barre verticale centrée uniquement dans les cellules "racine" (classe vbar) */
+table.pdf-tbl.sf td.vbar { position: relative; }
+table.pdf-tbl.sf td.vbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px; bottom:-1.5px;                   /* colle aux lignes horizontales */
+  left:50%; transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+
+
+
+</style>
+
+<!-- MathJax pour jolies formules -->
+<script>
+  window.MathJax = { tex:{inlineMath:[["\\(","\\)"],["$","$"]], processEscapes:true}, chtml:{matchFontHeight:false}, startup:{typeset:true} };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <label for="fx">Fonction f(x) :</label>
+        <input id="fx" type="text" placeholder="ex : x^3 - 3x + 1,  sin(x),  |x| + sqrt(x+2)" value="x^3 - 3x + 1">
+        <label for="I">Intervalle x ∈ :</label>
+<input id="I" type="text" value="[-4;4]">
+<label style="display:inline-flex;gap:6px;align-items:center">
+<label class="chk"><input id="chk-ortho" type="checkbox"> Repère orthonormé</label>
+<label class="chk"><input id="chk-sym"   type="checkbox"> Repère symétrique</label>
+
+</label>
+
+      </div>
+      <div class="small" style="margin-top:6px">
+        Astuces de saisie : puissances avec <code>^</code> (ex. <code>x^2</code>), constantes : <code>pi</code>, <code>e</code> — fonctions : 
+        <code>sin, cos, tan, asin, acos, atan, exp, ln, log, sqrt, abs</code>.
+      </div>
+      <div class="btnbar" style="margin-top:10px">
+        <button class="btn" id="btn-plot">Courbe dans un repère</button>
+        <button class="btn" id="btn-var">Tableau de variation</button>
+           <button class="btn" id="btn-etude-signe">Étude du signe de f</button>
+        <button class="btn" id="btn-etude-var">Étude des variations (via f′)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="graph" id="graph"></div>
+      <div class="steps" id="out-eq"></div>
+      <div class="steps" id="out-var"></div>
+      <div class="steps" id="out-sign"></div>
+      <div class="steps" id="out-deriv"></div>
+    </div>
+
+    <div class="card small">
+      <b>Notes</b>
+      <ul style="margin:.35rem 0 0 22px">
+        <li>Les zéros et points critiques sont détectés numériquement (subdivision + bissection, dérivée centrée).</li>
+        <li>Les valeurs affichées sont arrondies pour la lisibilité (≈). Utilise un intervalle raisonnable pour un graphe propre.</li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const UMIN = '−';
+
+const isChecked = sel => !!document.querySelector(sel)?.checked;
+
+/* ===== Normalisation d'une expression utilisateur =====
+   - gère : π / pi, minus unicode, ^ → **, ² ³, rac( ) → sqrt( )
+   - espace implicite : 2x → 2*x, x( → x*(, )x → )*x
+*/
+function normalizeExpr(src){
+  return String(src || '')
+    .replace(/\u2212/g,'-')
+    .replaceAll('π','pi')
+    .replace(/rac\s*\(/gi,'sqrt(')
+    .replaceAll('·','*')
+    .replace(/\^/g,'**')
+    // ² ³
+    .replace(/([)\]a-zA-Z0-9]\s*)²/g,'$1**2')
+    .replace(/([)\]a-zA-Z0-9]\s*)³/g,'$1**3')
+// multiplications implicites “classiques”
+.replace(/(\d)\s*x/gi,'$1*x')
+.replace(/x\s*\(/gi,'x*(')
+.replace(/\)\s*x/gi,')*x')
+
+// ⟵ AJOUTS pour les formes factorisées
+.replace(/(\d)\s*\(/g,'$1*(')   // 2( … )  →  2*( … )
+.replace(/\)\s*\(/g,')*(')      // )(      →  )*( 
+
+    // ====== AJOUTS pour gérer -x, +x et -x**n ======
+    // cas -x**n (spécifique exponentiation)
+    .replace(/(^|[^\w)\]])-x\*\*/gi, '$1-1*x**')
+    // cas -x suivi d'un * (ex: après x*( ) )
+    .replace(/(^|[^\w)\]])-x(?=\*)/gi, '$1-1*x')
+    // cas -x “isolé” (début, après + - ( , etc.)
+    .replace(/(^|[^\w)\]])-x\b/gi, '$1-1*x')
+    // (optionnel) même chose pour +x pour être homogène
+    .replace(/(^|[^\w)\]])\+x(?=\*|\b)/gi, '$1+1*x')
+    // ================================================
+    // mapping des fonctions
+    .replace(/\babs\s*\(/gi,'Math.abs(')
+    .replace(/\bsqrt\s*\(/gi,'Math.sqrt(')
+    .replace(/\bln\s*\(/gi,'Math.log(')
+    .replace(/\blog10?\s*\(/gi,'Math.log10(')
+    .replace(/\bexp\s*\(/gi,'Math.exp(')
+    .replace(/\bsin\s*\(/gi,'Math.sin(')
+    .replace(/\bcos\s*\(/gi,'Math.cos(')
+    .replace(/\btan\s*\(/gi,'Math.tan(')
+    .replace(/\basin\s*\(/gi,'Math.asin(')
+    .replace(/\bacos\s*\(/gi,'Math.acos(')
+    .replace(/\batan\s*\(/gi,'Math.atan(')
+    .replace(/\bpi\b/gi,'Math.PI')
+    .replace(/\be\b/g,'Math.E');
+}
+
+
+/* ===== Parse d'une borne d'intervalle =====
+   Accepte: -oo, +oo, oo, -∞, +∞, ∞ ; et toute expression parseable.
+   Retourne Number.NEGATIVE_INFINITY / POSITIVE_INFINITY, ou un nombre fini.
+*/
+function parseEndpoint(s){
+  const raw = (s || '').trim().toLowerCase().replace(/\s+/g,'').replace(/\u2212/g,'-');
+  if(!raw) throw new Error('Borne d’intervalle vide.');
+  if (raw === 'oo' || raw === '+oo' || raw === '∞' || raw === '+∞') return Number.POSITIVE_INFINITY;
+  if (raw === '-oo' || raw === '-∞') return Number.NEGATIVE_INFINITY;
+
+  const expr = normalizeExpr(s);
+  // évalue l'expression dans un Function sandboxé
+  try{
+    // eslint-disable-next-line no-new-func
+    const g = new Function(`return (${expr});`);
+    const v = g();
+    if(!Number.isFinite(v)) throw 0;
+    return v;
+  }catch{
+    throw new Error(`Borne invalide : “${s}”`);
+  }
+}
+
+/* ——— Aides affichage bornes ——— */
+function fmtBound(x){
+  if (x === Number.POSITIVE_INFINITY) return '+\\infty';
+  if (x === Number.NEGATIVE_INFINITY) return '-\\infty';
+  return fmtX(x); // ta version "multiples de pi" si dispo
+}
+
+/* ——— Parsing d’un intervalle “texte” ———
+   Accepte :
+   - formes à crochets: [a;b], ]a;b[, [a;b[, ]a;b], (a;b), etc.  (séparateur ; ou ,)
+   - ensembles: R, R+, R-, R*, R*+, R*-
+   Retourne { a, b, leftClosed, rightClosed, labelTex, pieces }
+   NB: pieces est une éventuelle décomposition en sous-intervalles (ex: R*)
+*/
+function parseIntervalText(s){
+  if (!s || !s.trim()) throw new Error("Intervalle vide.");
+  const raw = s.trim().replace(/\s+/g,'');
+  const lower = raw.toLowerCase();
+
+  // --- Ensembles usuels ---
+  if (/^r\*?\+$/i.test(raw)){         // R+ ou R*+
+    const a = 0, b = Number.POSITIVE_INFINITY;
+    const leftClosed = raw.toLowerCase() === 'r+';  // R+ = [0;+∞[, R*+ = ]0;+∞[
+    const rightClosed = false;
+    const labelTex = raw.toLowerCase()==='r+' ? '[0; +\\infty[' : ']0; +\\infty[';
+    return { a, b, leftClosed, rightClosed, labelTex, pieces:[{a,b,leftClosed,rightClosed}] };
+  }
+  if (/^r\*?-$/i.test(raw)){          // R- ou R*-
+    const a = Number.NEGATIVE_INFINITY, b = 0;
+    const leftClosed = false;
+    const rightClosed = raw.toLowerCase() === 'r-'; // R- = ]-∞;0], R*- = ]-∞;0[
+    const labelTex = raw.toLowerCase()==='r-' ? ']-\\infty; 0]' : ']-\\infty; 0[';
+    return { a, b, leftClosed, rightClosed, labelTex, pieces:[{a,b,leftClosed,rightClosed}] };
+  }
+  if (/^r\*$/i.test(raw)){            // R* = R \ {0}
+    const a1 = Number.NEGATIVE_INFINITY, b1 = 0;
+    const a2 = 0, b2 = Number.POSITIVE_INFINITY;
+    const labelTex = '\\mathbb{R}\\setminus\\{0\\}';
+    // pièce 1 : ]-∞;0[ ; pièce 2 : ]0;+∞[
+    return {
+      a: a1, b: b2, leftClosed:false, rightClosed:false,
+      labelTex,
+      pieces:[
+        { a:a1, b:b1, leftClosed:false, rightClosed:false },
+        { a:a2, b:b2, leftClosed:false, rightClosed:false }
+      ]
+    };
+  }
+  if (/^r$/i.test(raw)){              // R = ]-∞; +∞[
+    const a = Number.NEGATIVE_INFINITY, b = Number.POSITIVE_INFINITY;
+    const labelTex = ']-\\infty; +\\infty[';
+    return { a, b, leftClosed:false, rightClosed:false, labelTex, pieces:[{a,b,leftClosed:false,rightClosed:false}] };
+  }
+
+  // --- Formes à crochets/parenthèses ---
+  // Exemples valides : [a;b], ]a;b[, [a;b[, ]a;b], (a,b), (a;b)
+  const m = raw.match(/^([\[\(\]])([^;\],\)]+)[;,]([^;\],\)]+)([\]\)\[])?$/);
+  if (!m){
+    throw new Error("Intervalle invalide. Utilise par ex. [a;b], ]a;b[, R, R+, R* …");
+  }
+  const Lb = m[1], sa = m[2], sb = m[3];
+  const Rb = m[4] || ']'; // si non fourni, on suppose ']' (compat FR)
+
+  // interprétation crochets français :  [  = fermé ; ] = ouvert  /  ( = ouvert ; ) = fermé
+  const leftClosed  = (Lb === '[');
+  const rightClosed = (Rb === ']');
+
+  // parse des bornes (oo, pi, rac(), ², … autorisés)
+  const a = parseEndpoint(sa);
+  const b = parseEndpoint(sb);
+  if (!(b > a)) throw new Error("On attend a<b pour l’intervalle.");
+
+  const Ltx = leftClosed ? '[' : ']';
+  const Rtx = rightClosed ? ']' : '[';
+  const labelTex = `${Ltx}${fmtBound(a)}; ${fmtBound(b)}${Rtx}`;
+
+  return { a, b, leftClosed, rightClosed, labelTex, pieces:[{a,b,leftClosed,rightClosed}] };
+}
+
+function stripOuterParens(s){
+  s = String(s || '').trim();
+  if (!s.startsWith('(') || !s.endsWith(')')) return s;
+  let d = 0;
+  for (let i = 0; i < s.length; i++){
+    if (s[i] === '(') d++;
+    else if (s[i] === ')'){
+      d--;
+      if (d === 0 && i < s.length - 1) return s; // les () n'encerclent pas TOUT
+    }
+  }
+  return s.slice(1, -1); // () globales → on retire
+}
+
+
+
+function stack(lines){
+  return '<div class="lines">' + lines.map(s=>`<div class="l">${s}</div>`).join('') + '</div>';
+}
+/* ===== 0) Parsing sûr de f(x) =====
+   Supporte: ^, pi, e, fonctions Math usuelles, |x|, sqrt, ln, log(=log10), implicit "Math."
+*/
+function compileFx(src){
+  if(!src || !src.trim()) throw new Error('Saisis une fonction.');
+  const s = normalizeExpr(src);
+  try{
+    // eslint-disable-next-line no-new-func
+    const f = new Function('x', `return (${s});`);
+    void f(0); // test
+    return f;
+  }catch{
+    throw new Error("Impossible de parser la fonction. Vérifie la syntaxe.");
+  }
+}
+
+
+
+/* ===== 1) Outils numériques ===== */
+function bisectZero(f, a, b, maxIt=60, eps=1e-10){
+  let fa=f(a), fb=f(b);
+  if(!isFinite(fa) || !isFinite(fb)) return null;
+  if(fa===0) return a; if(fb===0) return b;
+  if(fa*fb>0) return null;
+  let lo=a, hi=b, flo=fa, fhi=fb;
+  for(let i=0;i<maxIt;i++){
+    const mid=(lo+hi)/2, fm=f(mid);
+    if(!isFinite(fm)) return null;
+    if(Math.abs(fm)<eps) return mid;
+    if(flo*fm<=0){ hi=mid; fhi=fm; } else { lo=mid; flo=fm; }
+  }
+  return (lo+hi)/2;
+}
+
+function derivC(f, x, h){
+  // dérivée centrée d’ordre 4 (si possible), fallback ordre 2
+  if(!isFinite(h) || h<=0) h=1e-4*(1+Math.abs(x));
+  const y1=f(x-2*h), y2=f(x-h), y3=f(x+h), y4=f(x+2*h);
+  if([y1,y2,y3,y4].every(Number.isFinite)){
+    return (y1 - 8*y2 + 8*y3 - y4)/(12*h);
+  }
+  const yL=f(x-h), yR=f(x+h);
+  return (yR - yL)/(2*h);
+}
+
+function rootsOn(f, a, b, samples=800){
+  // détecte zéros de f par balayage + bissection
+  const X=[], Y=[];
+  const n = Math.max(10, samples|0);
+  for(let i=0;i<=n;i++){
+    const x = a + (b-a)*i/n;
+    let y = f(x);
+    if(!Number.isFinite(y)) y = NaN;
+    X.push(x); Y.push(y);
+  }
+  const roots=[];
+  for(let i=0;i<n;i++){
+    const x1=X[i], x2=X[i+1], y1=Y[i], y2=Y[i+1];
+    if(!Number.isFinite(y1) || !Number.isFinite(y2)) continue;
+    if(y1===0){ roots.push(x1); continue; }
+    if(y1*y2<0){
+      const r = bisectZero(f,x1,x2);
+      if(r!=null) roots.push(r);
+    }
+  }
+  // dédoublonne (tolérance)
+  roots.sort((u,v)=>u-v);
+  const out=[];
+  for(const r of roots){ if(out.length===0 || Math.abs(r-out.at(-1))>1e-3) out.push(r); }
+  return out;
+}
+
+function critPoints(f, a, b, samples=800){
+  // points critiques: zéros de f' (dérivée num.)
+  const fp = x => derivC(f, x, 1e-4*(1+Math.abs(x)));
+  return rootsOn(fp, a, b, samples);
+}
+// ≈= true si x est à ~tol d’un des éléments de L
+function nearAny(x, L, tol=1e-4){ return L.some(u => Math.abs(x - u) < tol); }
+
+// Trous de domaine dans ]a;b[ : là où f n’est pas fini (asymptotes, racines d’un dénominateur…)
+function domainHoles(f, a, b, samples = 1200){
+  const isFin = y => Number.isFinite(y) && Math.abs(y) < 1e12;
+  const holes = [];
+  const n = Math.max(80, samples|0);
+
+  let xPrev = a;
+  let yPrev = f(xPrev);
+  let finPrev = isFin(yPrev);
+
+  // raffine une frontière finie/non-finie
+  const refineBoundary = (lo, hi, loOk) => {
+    for (let k = 0; k < 60; k++){
+      const mid = (lo + hi) / 2;
+      const ok = isFin(f(mid));
+      if (ok === loOk) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
+
+  // bisection “zéro” qui renvoie null si on tombe sur non-fini
+  const tryRoot = (lo, hi) => {
+    let flo = f(lo), fhi = f(hi);
+    if (!isFin(flo) || !isFin(fhi) || flo * fhi > 0) return null;
+    for (let k = 0; k < 60; k++){
+      const mid = (lo + hi) / 2;
+      const fm = f(mid);
+      if (!isFin(fm)) return null;          // ⇒ pole détectée
+      if (Math.abs(fm) < 1e-9) return mid;  // vrai zéro
+      if (flo * fm <= 0){ hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+    }
+    return null; // pas de zéro convaincant
+  };
+
+  for (let i = 1; i <= n; i++){
+    const x = a + (b - a) * i / n;
+    const y = f(x);
+    const fin = isFin(y);
+
+    // frontiere finie/non-finie détectée
+    if (fin !== finPrev){
+      holes.push(refineBoundary(xPrev, x, finPrev));
+    } else if (fin && finPrev) {
+      // deux valeurs FINIES, mais signe différent → ou bien zéro, ou bien asymptote
+      if (Math.sign(yPrev) !== 0 && Math.sign(y) !== 0 && Math.sign(yPrev) !== Math.sign(y)){
+        const r = tryRoot(xPrev, x);
+        if (r === null){ // pas de zéro ⇒ très probablement une asymptote verticale
+          holes.push(refineBoundary(xPrev, x, true));
+        }
+      }
+    }
+
+    xPrev = x; yPrev = y; finPrev = fin;
+  }
+
+  holes.sort((u,v)=>u-v);
+  const out = [];
+  for (const h of holes){
+    if (!out.length || Math.abs(h - out.at(-1)) > 1e-6) out.push(h);
+  }
+  // écarter les bornes
+  return out.filter(x => x > a + 1e-8 && x < b - 1e-8);
+}
+
+function effectiveBounds(f, a, b){
+  const ok = x => { const y=f(x); return Number.isFinite(y) && Math.abs(y)<1e12; };
+
+  // borne gauche efficace
+  let A = a;
+  if(!ok(A)){
+    let lo=a, hi=b, prev=a, prevOk=ok(a);
+    const N=600;
+    for(let i=1;i<=N;i++){
+      const x=a+(b-a)*i/N, o=ok(x);
+      if(o && !prevOk){ lo=prev; hi=x; break; }
+      prev=x; prevOk=o;
+    }
+    for(let k=0;k<50;k++){ const m=(lo+hi)/2; if(ok(m)) hi=m; else lo=m; }
+    A=hi;
+  }
+
+  // borne droite efficace
+  let B = b;
+  if(!ok(B)){
+    let lo=a, hi=b, next=b, nextOk=ok(b);
+    const N=600;
+    for(let i=N-1;i>=0;i--){
+      const x=a+(b-a)*i/N, o=ok(x);
+      if(o && !nextOk){ lo=x; hi=next; break; }
+      next=x; nextOk=o;
+    }
+    for(let k=0;k<50;k++){ const m=(lo+hi)/2; if(ok(m)) lo=m; else hi=m; }
+    B=lo;
+  }
+  return {A,B};
+}
+
+
+// On ne garde que les c ∈ (a,b) où le signe de f' change (sinon, colonne inutile)
+function critWithSignChange(f, a, b){
+  const fp = x => derivC(f, x, 1e-4*(1+Math.abs(x)));
+  const C  = critPoints(f, a, b);            // racines de f'
+  const keep=[];
+  for(const c of C){
+    if(!(c>a+1e-9 && c<b-1e-9)) continue;
+    const sL = Math.sign(fp(c - 1e-6*(1+Math.abs(c))));
+    const sR = Math.sign(fp(c + 1e-6*(1+Math.abs(c))));
+    if (sL !== sR) keep.push(c);
+  }
+  keep.sort((u,v)=>u-v);
+  const out=[]; for(const x of keep){ if(out.length===0 || Math.abs(x-out.at(-1))>1e-3) out.push(x); }
+  return out;
+}
+
+// TeX “gentil” pour l’en-tête : 1/x → \dfrac{1}{x}, pi → \pi, sqrt(...) → \sqrt{...}
+function toTeXPretty(src){
+  const s = String(src||'').trim();
+
+  // autoriser 'rac(' comme synonyme de 'sqrt(' pour l'affichage TeX
+  const t = s.replace(/\brac\s*\(/gi,'sqrt(');
+
+  // fraction de niveau 0 → \dfrac{...}{...}
+  let depth=0, slash=-1;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(ch==='(') depth++; else if(ch===')') depth=Math.max(0,depth-1);
+    else if(ch==='/' && depth===0){ slash=i; break; }
+  }
+  if(slash>0){
+    const L = t.slice(0,slash).trim(), R = t.slice(slash+1).trim();
+if (L && R){
+  const num = stripOuterParens(L);
+  const den = stripOuterParens(R);
+  return `\\dfrac{${num}}{${den}}`;   // donne  \dfrac{1}{x-3}
+}
+  }
+
+  return t
+    .replace(/\bpi\b/gi,'\\pi')
+    .replace(/\b(?:sqrt|rac)\s*\(\s*([^()]+)\s*\)/gi,'\\sqrt{$1}')
+    .replace(/\babs\s*\(\s*([^()]+)\s*\)/gi,'\\lvert $1 \\rvert');
+}
+
+
+/* ===== Formatage en multiples de pi quand c'est possible ===== */
+// Approxime t ≈ p/q avec 1 ≤ q ≤ 24 (suffisant pour les angles usuels)
+function approxRational(t, maxQ=24, tol=1e-8){
+  let best = null, bestErr = Infinity;
+  for(let q=1; q<=maxQ; q++){
+    const p = Math.round(t*q);
+    const err = Math.abs(t - p/q);
+    if (err < bestErr){ best = {p, q, err}; bestErr = err; }
+    if (err < tol) break;
+  }
+  return best;
+}
+/* ===== Fractions irréductibles ===== */
+
+// approximation rationnelle (fractions continues), borne sur le dénominateur
+function approxFraction(x, maxDen = 200) {
+  if (!Number.isFinite(x)) return { p: NaN, q: NaN };
+  const s = Math.sign(x) || 1;
+  let a = Math.abs(x);
+  let h1 = 1, h0 = 0, k1 = 0, k0 = 1; // convergents (h/k)
+  for (let i = 0; i < 32; i++) {
+    const ai = Math.floor(a);
+    const h = ai * h1 + h0;
+    const k = ai * k1 + k0;
+    if (k > maxDen) break;
+    h0 = h1; h1 = h; k0 = k1; k1 = k;
+    const frac = a - ai;
+    if (frac < 1e-15) break;
+    a = 1 / frac;
+  }
+  return { p: s * h1, q: k1 };
+}
+
+// LaTeX pour un réel en fraction irréductible (ou entier)
+function fracLatex(x, maxDen = 200) {
+  if (!Number.isFinite(x)) return '';
+  // proche d'un entier ?
+  const r = Math.round(x);
+  if (Math.abs(x - r) < 1e-12) return String(r);
+
+  // sinon fraction
+  let { p, q } = approxFraction(x, maxDen);
+  // réduit (au cas où)
+  const g = (a,b)=> b ? g(b, a % b) : Math.abs(a);
+  const d = g(Math.round(p), Math.round(q)) || 1;
+  p = Math.round(p / d); q = Math.round(q / d);
+
+  if (q === 1) return String(p);
+  const sgn = (p < 0 ? '-' : '');
+  const P = Math.abs(p);
+  return `${sgn}\\frac{${P}}{${q}}`;
+}
+
+// retourne une chaîne LaTeX SANS \( \) : 0, \pi, -\pi, \frac{3\pi}{4}, etc.
+// ou null si l’approximation n’est pas assez bonne
+function asPiMultiple(x, tolAbs=1e-6){
+  const t = x / Math.PI;
+  if (!Number.isFinite(t)) return null;
+  const {p, q, err} = approxRational(t);
+  if (!p && !q) return null;
+  // seuil d’acceptation : erreur absolue sur x < tolAbs
+  if (Math.abs(x - (p*Math.PI)/q) > tolAbs) return null;
+
+  if (p === 0) return '0';
+  const sgn = (p < 0) ? '-' : '';
+  const P = Math.abs(p);
+
+  if (q === 1){
+    if (P === 1) return sgn + '\\pi';
+    return sgn + P + '\\pi';
+  }
+  // forme fractionnaire
+  if (P === 1) return sgn + '\\frac{\\pi}{' + q + '}';
+  return sgn + '\\frac{' + P + '\\pi}{' + q + '}';
+}
+
+// nombre décimal avec virgule
+function asDecimal(x){
+  const r = Math.round(x*1000)/1000; // 1e-3
+  return String(r).replace('.', ',');
+}
+
+// === Formatter principal des abscisses (LaTeX-ready, sans \( \)) ===
+// (tu gardes ta approxRational / asPiMultiple existante)
+
+function fmtX(x){
+  const piForm = asPiMultiple(x);           // multiples de π si très proches
+  if (piForm) return piForm;
+
+  // fraction seulement si dénominateur petit (≤ 24) et approximation serrée
+  const fr = fracIfClose(x, 24, 1e-10);
+  if (fr) return fr;
+
+  // sinon décimal 2 chiffres (virgule)
+  return asFixedComma(x, 2);
+}
+
+
+// ordonnées en fraction irréductible (pas de multiples de pi ici)
+function fmtY(y){
+  return fracLatex(y, 200);
+}
+function asFixedComma(x, k = 2){
+  if (!Number.isFinite(x)) return '';
+  return x.toFixed(k).replace('.', ',');
+}
+
+// fraction simple uniquement si très proche
+function fracIfClose(x, maxDen = 24, tol = 1e-8){
+  const { p, q } = approxFraction(x, maxDen);
+  if (!Number.isFinite(p) || !Number.isFinite(q) || q === 0) return null;
+  return Math.abs(x - p/q) <= tol
+    ? (q === 1 ? String(p) : (p < 0 ? '-' : '') + '\\frac{' + Math.abs(p) + '}{' + q + '}')
+    : null;
+}
+
+// format “int/fraction simple sinon décimal 10^-2”
+function fmtRootSmart(x){
+  if (!Number.isFinite(x)) return '';
+  if (Math.abs(x - Math.round(x)) < 1e-10) return String(Math.round(x));
+  const fr = fracIfClose(x, 24, 1e-8);
+  return fr || asFixedComma(x, 2);
+}
+
+// produit 2×(a) pour l’étape de substitution (avant simplification)
+// "2a" affiché comme produit : parenthèses UNIQUEMENT si a < 0
+function texDenom2a_asProduct(a){
+  if (a === 1)  return '2';                 // 2a = 2
+  if (a === -1) return '2\\times(-1)';      // 2a = 2×(-1)
+
+  const aTex = Number.isInteger(a) ? String(a) : fracLatex(a, 200);
+  return (a < 0) ? `2\\times(${aTex})` : `2\\times ${aTex}`;
+}
+
+
+
+// pas "joli" pour ~N graduations visibles
+function niceStep(min, max, target = 8){
+  const span = Math.max(1e-12, max - min);
+  const raw  = span / target;
+  const pow  = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f    = raw / pow;
+  const base = (f <= 1) ? 1 : (f <= 2) ? 2 : (f <= 2.5) ? 2.5 : (f <= 5) ? 5 : 10;
+  return base * pow;
+}
+// format des nombres selon le pas (aligné sur l’axe, pas de -0)
+
+const fmtInt = v => String(Math.trunc(v)).replace('-', '−');
+
+
+// pas entier "joli" pour avoir ≤ ~12 graduations visibles
+function integerStep(a, b, maxTicks = 12){
+  const L = Math.ceil(a), R = Math.floor(b);
+  const span = Math.max(1, R - L + 1);
+  const raw = Math.ceil(span / maxTicks); // pas entier minimal
+  // arrondi sur l’échelle 1–2–5×10^k
+  const bases = [1, 2, 5];
+  let k = 1, step = 1;
+  while (step < raw){
+    for (const base of bases){
+      if (base * k >= raw){ step = base * k; break; }
+    }
+    if (step < raw) k *= 10;
+  }
+  return step; // entier
+}
+// Helper: push si différent (on compare le LaTeX sans espaces superflus)
+function pushUniq(arr, latex){
+  const norm = s => String(s).replace(/\s+/g,' ').trim();
+  if (!latex) return;
+  const last = arr.length ? arr[arr.length-1] : null;
+  if (!last || norm(last) !== norm(latex)) arr.push(latex);
+}
+function inClosed(x, A, B){
+  const L = Math.min(A, B), R = Math.max(A, B);
+  return x >= L - 1e-12 && x <= R + 1e-12;   // petite tolérance numérique
+}
+
+
+
+/* ===== Détection/parse d'une forme factorisée (avec produit implicite) =====
+   Exemples acceptés :  2(x-3)(x+2),  -(x+1)^2(x-4), 3x(x-1), (x-2)(x+3)^3, etc.
+   Retourne : { ok, a, factors:[{p,q,root,m}] } où facteur ≡ (p x + q)^m
+*/
+/* Vrai si src est (coefficient optionnel) × produit pur de facteurs linéaires (px+q)^m,
+   sans + / − externes (hors signes à l’intérieur des facteurs), et avec * optionnels. */
+// 1) Détection : on délègue au parseur strict
+function isPureProductOfLinears(src){
+  const r = parseFactoredPolynomialText(src);
+  return !!r.ok;
+}
+
+// 2) Parseur STRICT d’un produit de facteurs linéaires (coefficient optionnel en tête),
+//    *pas* de +/− en dehors des facteurs, ordre conservé, produit implicite autorisé.
+function parseFactoredPolynomialText(src){
+  if(!src || !src.trim()) return { ok:false };
+  const s = src.replace(/\s+/g,'').replace(/\u2212/g,'-');
+
+  // tokens autorisés : (px+q)^m ou x^m, et un nombre en tête (coefficient)
+  const TOK = /(\(?[+-]?\d*\.?\d*x(?:[+-]\d*\.?\d+)?\)?(?:\^\d+)?)|([+-]?\d*\.?\d+)/g;
+
+  let m, parts = [], idx = 0;
+  while ((m = TOK.exec(s)) !== null){
+    if (m.index !== idx){
+      const sep = s.slice(idx, m.index);
+      if (!/^\*+$/.test(sep)) return { ok:false }; // uniquement des * entre tokens
+    }
+    parts.push(m[0]);
+    idx = TOK.lastIndex;
+  }
+  if (idx !== s.length) return { ok:false };
+  if (!parts.length)    return { ok:false };
+
+  let a = 1, factors = [], sawConst = false;
+  for (let i=0;i<parts.length;i++){
+    const t = parts[i];
+
+    // nombre : autorisé UNE SEULE fois et UNIQUEMENT en tête (coefficient global)
+    if (/^[+-]?\d*\.?\d+$/.test(t)){
+      if (i === 0 && !sawConst){ a = Number(t); sawConst = true; continue; }
+      return { ok:false };
+    }
+
+    // facteur linéaire (px+q)^m   ou   x^m
+    const R = /^\(?([+-]?\d*\.?\d*)?x([+-]\d*\.?\d+)?\)?(?:\^(\d+))?$/i.exec(t);
+    if(!R) return { ok:false };
+    const p = (R[1]===undefined || R[1]==='' || R[1]==='+' || R[1]==='-') ? (R[1]==='-'?-1:1) : Number(R[1]);
+    const q = (R[2]===undefined) ? 0 : Number(R[2]);
+    const pow = R[3] ? parseInt(R[3],10) : 1;
+    if(!Number.isFinite(p) || Math.abs(p) < 1e-15) return { ok:false };
+const tNoPow   = t.replace(/\^\d+$/, '');           // retire ^m éventuel
+const hasParen = tNoPow.startsWith('(') && tNoPow.endsWith(')');
+const hasQ     = R[2] !== undefined && Number(R[2]) !== 0;
+if (hasQ && !hasParen) return { ok:false };
+    factors.push({ p, q, m: pow, root: (-q)/p }); // ⚠️ on NE trie PAS → on respecte l’ordre saisi
+  }
+  if (!factors.length) return { ok:false };
+
+  return { ok:true, a, factors };
+}
+
+
+
+
+/* ===== Étapes de résolution par équation-produit ===== */
+/* ===== Étapes “équation-produit” — présentation EXACTE demandée ===== */
+function zeroProductStepsHTML(a, factors, intervalLabel){
+  // affichage du coefficient devant le produit
+  const coef = (t)=>{
+    if (t === 1)  return '';
+    if (t === -1) return '−';
+    return fracLatex(t, 200); // entier ou fraction propre
+  };
+  // p·x + q en TeX (sans ^1)
+  const pTex = v => (v===1?'': v===-1?'−': fracLatex(v,200));
+  const qTex = v => v===0 ? '' : (v>0 ? ('+'+fracLatex(v,200)) : ('−'+fracLatex(Math.abs(v),200)));
+  const facLabel = F => {
+    const core = `${pTex(F.p)}x${qTex(F.q)}`.replace(/^x/,'x'); // enlève le 1 devant x
+    return F.m===1 ? `(${core})` : `(${core})^{${F.m}}`;
+  };
+ const eqFac0 = F => `${pTex(F.p)}x${qTex(F.q)}=0`;
+
+  // (i)  écriture factorisée telle quelle
+  const L0 = `\\(f(x)=0\\)`;
+  const L1 = `$${coef(a)}${factors.map(facLabel).join('')}=0$`;
+
+  // (ii) équations des facteurs = 0 (une fois par facteur distinct, dans l’ordre saisi)
+  const seen = new Set();
+  const uniqFactors = [];
+  for(const F of factors){
+    const k = `${F.p}|${F.q}`; if(seen.has(k)) continue; seen.add(k); uniqFactors.push(F);
+  }
+  const L2 = `$\\iff ${uniqFactors.map(eqFac0).join('\\;\\text{ ou }\\;')}$`;
+
+  // (iii) solutions x = -q/p (toujours dans l’ordre saisi)
+  const L3 = `$\\iff ${uniqFactors
+    .map(F => `x=${fmtX((-F.q)/F.p)}`)
+    .join('\\;\\text{ ou }\\;')}$`;
+
+  // (iv) ensemble des solutions S (unicité, mais ordre d’apparition conservé)
+  const rootsInOrder = [];
+  for(const F of uniqFactors){
+    const r = (-F.q)/F.p;
+    if(!rootsInOrder.some(u => Math.abs(u - r) < 1e-12)) rootsInOrder.push(r);
+  }
+  const L4 = `$S=\\{${rootsInOrder.map(r=>fmtX(r)).join('\\;;\\;')}\\}$`;
+
+  return [L0,L1,L2,L3,L4].map(s=>`<div class="step">${s}</div>`).join('');
+}
+
+
+
+/* ===== Tableau de signes multi-lignes (forme factorisée) =====
+   Lignes : x | a | chaque facteur | f(x)
+   - '0' en colonne racine
+   - signe qui bascule uniquement quand la multiplicité est impaire
+   - réutilise tes classes pdf-tbl + marquages existants
+*/
+function tableSignFactorized(a, factors, A, B, intervalLabel){
+ const eps = 1e-10;
+  // ne garder que les racines dans (A,B) — on n’affiche pas les extrémités
+  const roots = factors
+    .map(F => F.root)
+    .filter(r => r > A + eps && r < B - eps)
+    .sort((u, v) => u - v);
+ const cols = [A, ...roots, B].filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-10);
+
+  const pTex = v => (v===1?'': v===-1?'-': fracLatex(v,200));
+  const qTex = v => v===0 ? '' : (v>0 ? ('+'+fracLatex(v,200)) : (UMIN+fracLatex(Math.abs(v),200)));
+  const linLabel = F => (F.m===1
+    ? `${pTex(F.p)}x${qTex(F.q)}`.replace(/^x/,'x')
+    : `${pTex(F.p)}x${qTex(F.q)}^{${F.m}}`.replace(/^x/,'x')
+  );
+  const factorSignBetween = (F, x)=>{
+    const s = Math.sign(F.p*x + F.q) || 0;
+    return (F.m % 2 === 0) ? +1 : s;
+  };
+  const isRootCol = (x) => roots.some(r=>Math.abs(x-r)<1e-10);
+
+  // En-tête x (pas de vbar dans thead)
+  const head = ['<tr><th>\\(x\\)</th>'];
+  cols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x)}\\)</td>`); if(j<cols.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  const rows = [];
+
+  // Ligne "a" (valeur), omise si a=1
+  if (Math.abs(a - 1) > 1e-12){
+    const sA = Math.sign(a)||1;
+    let rowA = `<tr class="sf-pdf-row-a"><th>\\(${fracLatex(a,200)}\\)</th>`;
+    cols.forEach((x,j)=>{
+      const cls = (j>0 && j<cols.length-1 && isRootCol(x)) ? ' class="vbar"' : '';
+      rowA += `<td${cls}></td>`;
+      if(j<cols.length-1) rowA += `<td style="font-weight:700">${sA>0?'+':'−'}</td>`;
+    });
+    rowA += '</tr>';
+    rows.push(rowA);
+  }
+
+  // Une ligne par facteur
+  for(const F of factors){
+    let row = `<tr class="sf-pdf-row-factor"><th>\\(${linLabel(F)}\\)</th>`;
+    cols.forEach((x,j)=>{
+      const atRoot = (j>0 && j<cols.length-1 && Math.abs(x - F.root) < 1e-10);
+      const cls = (j>0 && j<cols.length-1 && isRootCol(x)) ? (atRoot ? ' class="zbar vbar"' : ' class="vbar"') : (atRoot ? ' class="zbar"' : '');
+      row += `<td${cls}>${atRoot ? '0' : ''}</td>`;
+      if(j<cols.length-1){
+        const mid = (cols[j]+cols[j+1])/2;
+        const s = factorSignBetween(F, mid);
+        row += `<td style="font-weight:700">${s>0?'+':(s<0?'−':'')}</td>`;
+      }
+    });
+    row += '</tr>';
+    rows.push(row);
+  }
+
+  // Ligne f(x)
+  let rowFx = '<tr class="sf-pdf-row-fx"><th>\\(f(x)\\)</th>';
+  cols.forEach((x,j)=>{
+    const isColRoot = (j>0 && j<cols.length-1 && isRootCol(x));
+    if(isColRoot){
+      const isZero = roots.some(r=>Math.abs(x-r)<1e-10);
+      rowFx += `<td class="${isZero?'zbar ':''}vbar">${isZero?'0':''}</td>`;
+    }else{
+      rowFx += `<td></td>`;
+    }
+    if(j<cols.length-1){
+      const mid = (cols[j]+cols[j+1])/2;
+      let s = Math.sign(a)||1;
+      for(const F of factors){
+        const sf = factorSignBetween(F, mid);
+        if (sf===0){ s = 0; break; }
+        s *= sf;
+      }
+      rowFx += `<td style="font-weight:700">${s>0?'+':(s<0?'−':'')}</td>`;
+    }
+  });
+  rowFx += '</tr>';
+  rows.push(rowFx);
+
+  return `
+    <div><b>Tableau de signes de \\(f\\) sur \\(${intervalLabel}\\) :</b></div>
+    <table class="pdf-tbl sf"><thead>${head.join('')}</thead><tbody>${rows.join('')}</tbody></table>
+  `;
+}
+
+// Détecte a·∏(px+q)^m / b·∏(rx+s)^n  (avec multiplications implicites).
+// Retourne { ok, a, b, num:[{p,q,m,root}], den:[...]} ou {ok:false}
+function parseRationalLinearText(src){
+  if(!src || !src.trim()) return { ok:false };
+  const s = src.replace(/\s+/g,'').replace(/\u2212/g,'-');
+
+  // coupe au '/' de niveau 0
+  let depth = 0, cut = -1;
+  for(let i=0;i<s.length;i++){
+    const c = s[i];
+    if(c==='(') depth++; else if(c===')') depth = Math.max(0, depth-1);
+    else if(c==='/' && depth===0){ cut = i; break; }
+  }
+  if(cut < 0) return { ok:false };
+
+  const N = s.slice(0, cut);
+  const D = s.slice(cut+1);
+
+  const PN = parseFactoredPolynomialText(N);
+  const PD = parseFactoredPolynomialText(D);
+  if(!PN.ok || !PD.ok) return { ok:false };
+
+  return { ok:true, a:PN.a, b:PD.a, num:PN.factors, den:PD.factors };
+}
+
+function rationalStepsHTML(a, num, b, den, intervalLabel){
+  const fracLatexC = fracLatex(a/b, 200);
+  const pTex = v => (v===1?'': v===-1?'−': fracLatex(v,200));
+  const qTex = v => v===0 ? '' : (v>0 ? ('+'+fracLatex(v,200)) : ('−'+fracLatex(Math.abs(v),200)));
+  const facLbl = F => F.m===1
+      ? `(${pTex(F.p)}x${qTex(F.q)})`
+      : `(${pTex(F.p)}x${qTex(F.q)})^{${F.m}}`;
+
+  const uniqByPQ = (L)=>{ const seen=new Set(), out=[]; for(const F of L){ const k=`${F.p}|${F.q}`; if(!seen.has(k)){ seen.add(k); out.push(F); } } return out; };
+
+  // numérateur = 0
+  const Nu = uniqByPQ(num);
+  const L1 = [
+    `<div><b>Résolution de \\(\\text{numérateur}=0\\)</b></div>`,
+    `<div>\\(${fracLatexC}\\,${num.map(facLbl).join('')}=0\\)</div>`,
+    `<div>\\(\\iff ${Nu.map(F=>`${pTex(F.p)}x${qTex(F.q)}=0`).join('\\;\\text{ ou }\\;')}\\)</div>`,
+    `<div>\\(\\iff ${Nu.map(F=>`x=${fmtX((-F.q)/F.p)}`).join('\\;\\text{ ou }\\;')}\\)</div>`
+  ];
+
+  // dénominateur = 0  → valeurs interdites
+  const De = uniqByPQ(den);
+  const L2 = [
+    `<div><b>Valeur(s) interdite(s)</b> (\\(\\text{dénominateur}=0\\)) :</div>`,
+    `<div>\\(${fracLatex(b,200)}\\,${den.map(facLbl).join('')}=0\\)</div>`,
+    `<div>\\(\\iff ${De.map(F=>`${pTex(F.p)}x${qTex(F.q)}=0`).join('\\;\\text{ ou }\\;')}\\)</div>`,
+    `<div>\\(\\iff ${De.map(F=>`x=${fmtX((-F.q)/F.p)}`).join('\\;\\text{ ou }\\;')}\\)</div>`
+  ];
+
+  return `<div class="steps">${L1.join('')}${L2.join('')}</div>`;
+}
+
+function tableSignRationalFactorized(a, num, b, den, A, B, intervalLabel){
+  const C = a / b;                         // constante globale
+  const eps = 1e-10;
+
+  const rootsNum = num.map(F=>F.root);
+  const rootsDen = den.map(F=>F.root);
+  const isNumR = x => rootsNum.some(r=>Math.abs(r-x)<1e-10);
+  const isDenR = x => rootsDen.some(r=>Math.abs(r-x)<1e-10);
+
+  // colonnes = bornes + racines (num & den) intérieures
+  const inner = [...rootsNum, ...rootsDen]
+    .filter(r => r > A + eps && r < B - eps)
+    .sort((u,v)=>u-v)
+    .filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-10);
+
+  const cols = [A, ...inner, B];
+
+  const head = ['<tr><th>\\(x\\)</th>'];
+  cols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x)}\\)</td>`); if(j<cols.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // helpers signe d’un facteur linéaire sur un point
+  const signLin = (F, x) => {
+    const s = Math.sign(F.p*x + F.q) || 0;
+    return (F.m % 2 === 0) ? +1 : s;
+  };
+
+  const cellAtCol = (j, atRootClass) => {
+    // barre simple si racine (vbar) ; double barre si racine du dénominateur
+    const x = cols[j];
+    const classes = [];
+    if (j>0 && j<cols.length-1){
+      if (isDenR(x)) classes.push('dbar'); else if (isNumR(x)) classes.push('vbar');
+      if (atRootClass) classes.push(atRootClass);
+    }
+    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+    const text = (atRootClass==='zbar' ? '0' : '');
+    return `<td${cls}>${text}</td>`;
+  };
+
+  const rows = [];
+
+  // ligne constante globale (si ≠ 1)
+  if (Math.abs(C - 1) > 1e-12){
+    let rowC = `<tr class="sf-pdf-row-a"><th>\\(${fracLatex(C,200)}\\)</th>`;
+    cols.forEach((_,j)=>{
+      rowC += cellAtCol(j, null);
+      if (j < cols.length-1){
+        rowC += `<td style="font-weight:700">${C>0?'+':'−'}</td>`;
+      }
+    });
+    rowC += '</tr>';
+    rows.push(rowC);
+  }
+
+  // lignes facteurs du numérateur : 0 sur leur colonne
+  for(const F of num){
+    let row = `<tr class="sf-pdf-row-factor"><th>\\(${(F.m===1?`${F.p===1?'':F.p===-1?'-':fracLatex(F.p,200)}x${F.q===0?'':(F.q>0?`+${fracLatex(F.q,200)}`:`−${fracLatex(-F.q,200)}`)}`
+      : `${F.p===1?'':F.p===-1?'-':fracLatex(F.p,200)}x${F.q===0?'':(F.q>0?`+${fracLatex(F.q,200)}`:`−${fracLatex(-F.q,200)}`)}^{${F.m}}`).replace(/^x/,'x')}\\)</th>`;
+    cols.forEach((x,j)=>{
+      const atRoot = (j>0 && j<cols.length-1 && Math.abs(x - F.root) < 1e-10);
+      row += cellAtCol(j, atRoot ? 'zbar' : null);
+      if (j < cols.length-1){
+        const mid = (cols[j] + cols[j+1]) / 2;
+        const s = signLin(F, mid);
+        row += `<td style="font-weight:700">${s>0?'+':(s<0?'−':'')}</td>`;
+      }
+    });
+    row += '</tr>';
+    rows.push(row);
+  }
+
+  // lignes facteurs du dénominateur : 0 + double barre sur leur colonne
+  for(const F of den){
+    let row = `<tr class="sf-pdf-row-factor"><th>\\(${(F.m===1?`${F.p===1?'':F.p===-1?'-':fracLatex(F.p,200)}x${F.q===0?'':(F.q>0?`+${fracLatex(F.q,200)}`:`−${fracLatex(-F.q,200)}`)}`
+      : `${F.p===1?'':F.p===-1?'-':fracLatex(F.p,200)}x${F.q===0?'':(F.q>0?`+${fracLatex(F.q,200)}`:`−${fracLatex(-F.q,200)}`)}^{${F.m}}`).replace(/^x/,'x')}\\)</th>`;
+    cols.forEach((x,j)=>{
+      const atRoot = (j>0 && j<cols.length-1 && Math.abs(x - F.root) < 1e-10);
+      // cellule de colonne : 'zbar' + 'dbar'
+      const cls = (j>0 && j<cols.length-1 && Math.abs(x - F.root) < 1e-10) ? 'zbar dbar' : (isDenR(x) ? 'dbar' : null);
+      row += `<td${cls?` class="${cls}"`:''}>${atRoot?'0':''}</td>`;
+      if (j < cols.length-1){
+        const mid = (cols[j] + cols[j+1]) / 2;
+        const s = signLin(F, mid);
+        row += `<td style="font-weight:700">${s>0?'+':(s<0?'−':'')}</td>`;
+      }
+    });
+    row += '</tr>';
+    rows.push(row);
+  }
+
+  // ligne f(x) : 0 sur colonne racine NUMÉRATEUR (non commune), || sur colonne DENOM
+  let rowFx = '<tr class="sf-pdf-row-fx"><th>\\(f(x)\\)</th>';
+  cols.forEach((x,j)=>{
+    if (j===0 || j===cols.length-1){
+      rowFx += '<td></td>';
+    } else {
+      const numRoot = isNumR(x);
+      const denRoot = isDenR(x);
+      if (denRoot){
+        rowFx += '<td class="dbar"></td>';            // valeur interdite
+      } else if (numRoot){
+        rowFx += '<td class="zbar">0</td>';           // vraie racine de f
+      } else {
+        rowFx += '<td></td>';
+      }
+    }
+    if (j < cols.length-1){
+      const mid = (cols[j] + cols[j+1]) / 2;
+      // signe global : produit des signes (num ** m) et (den ** m), fois signe(C)
+      let s = Math.sign(C) || 1;
+      for(const F of num){ s *= signLin(F, mid) || 1; }
+      for(const F of den){ s *= signLin(F, mid) || 1; }  // (division par ±1 revient à multiplier)
+      rowFx += `<td style="font-weight:700">${s>0?'+':'−'}</td>`;
+    }
+  });
+  rowFx += '</tr>';
+  rows.push(rowFx);
+
+  return `
+    <div><b>Tableau de signes de \\(f\\) sur \\(${intervalLabel}\\) :</b></div>
+    <table class="pdf-tbl sf"><thead>${head.join('')}</thead><tbody>${rows.join('')}</tbody></table>
+  `;
+}
+
+
+/* ===== Détection & étude du cas affine f(x)=mx+p ===== */
+
+// Ajuste f(x) par une droite et vérifie la linéarité
+function detectAffineOn(f, a, b, tol=1e-8){
+  // borne finie par sécurité
+  let A=a, B=b;
+  if(!Number.isFinite(A) || !Number.isFinite(B)){ A=-4; B=4; }
+  if (A===B) { A-=1; B+=1; }
+
+  const x1=A, x2=B, xm=(A+B)/2;
+  const y1=f(x1), y2=f(x2), ym=f(xm);
+  if (![y1,y2,ym].every(Number.isFinite)) return { ok:false };
+
+  const m = (y2 - y1) / (x2 - x1);
+  const p = ym - m*xm;
+
+  // vérif sur quelques points
+  const testXs = [A, xm, B, (2*A+B)/3, (A+2*B)/3];
+  for(const x of testXs){
+    const y=f(x), yhat = m*x + p;
+    if(!Number.isFinite(y) || Math.abs(y - yhat) > Math.max(1e-7, tol*(1+Math.abs(y)))) {
+      return { ok:false };
+    }
+  }
+  return { ok:true, m, p };
+}
+
+// LaTeX propre pour une fraction p/q irréductible (déjà dispo plus haut : fracLatex)
+const texFrac = x => fracLatex(x, 200);
+
+// Bloc « Étude du signe (affine) » : étapes + tableau
+function affineSignHTML(m, p, a, b, intervalLabel){
+  // racine (si m ≠ 0)
+  const hasRoot = (m !== 0);
+
+// helpers locaux
+const abs = x => Math.abs(x);
+const gcd = (a,b)=> b ? gcd(b, a % b) : Math.abs(a);
+const I = n => String(Math.trunc(n));                      // entier en TeX brut
+const F = (p,q)=> `\\dfrac{${p}}{${q}}`;                   // fraction p/q en TeX
+
+  const mTex = texFrac(m);
+  const pTex = texFrac(p);
+  const x0   = -p / m;
+
+if (Math.abs(p) < 1e-12) {
+  const mem0 = inClosed(0, a, b) ? '\\in' : '\\notin';
+
+  const eqSteps = `
+    <div><b>Résolution de \\(f(x)=0\\) (affine linéaire) :</b></div>
+    <div class="small" style="margin:.2rem 0 .4rem">
+      \\(f(x)=mx\\) avec \\(m=${mTex}\\)
+    </div>
+    <div>\\(f(x)=0\\)</div>
+    <div>\\(${mTex}x = 0\\)</div>
+    <div>\\(x = 0\\)</div>
+    <div>\\(0 ${mem0} ${intervalLabel}\\)</div>
+  `;
+
+    const leg = (m > 0)
+      ? `<div class="small">Comme \\(m&gt;0\\), \\(f(x)&gt;0\\) pour \\(x&gt;0\\), \\(f(x)&lt;0\\) pour \\(x&lt;0\\).</div>`
+      : `<div class="small">Comme \\(m&lt;0\\), \\(f(x)&gt;0\\) pour \\(x&lt;0\\), \\(f(x)&lt;0\\) pour \\(x&gt;0\\).</div>`;
+
+    const fAff = x => m * x;
+    const table = tableSign(fAff, a, b, 'f(x)', intervalLabel);
+
+    return `<div><b>Étude du signe (linéaire)</b></div>
+            <div class="steps">${eqSteps}${leg}</div>
+            <div class="steps">${table}</div>`;
+  }
+
+// --- Étape 3 : mx = -p (affichée avec le bon signe numérique)
+const rhs3 = (p >= 0 ? `-${pTex}` : `+${texFrac(-p)}`);
+
+// --- Étape 4 : x = (-p)/m  avec le signe au NUMÉRATEUR
+
+// Si dénominateur > 0 : le signe va DEVANT la fraction (règle demandée)
+// --- Étapes "fraction" ---
+const num4 = -p;      // numérateur de (-p)/m
+const den4 =  m;      // dénominateur
+const aNum = Math.abs(num4), aDen = Math.abs(den4);
+const sgnTot = Math.sign(num4) * Math.sign(den4) || 0;
+
+// 4a) Afficher x = (-p)/m tel quel SI den<0 → ex: x = -3 / -2
+const step4_raw = (den4 < 0 && num4 !== 0)
+  ? `x = \\dfrac{${texFrac(num4)}}{${texFrac(den4)}}`
+  : null;
+
+// 4b) Normaliser le signe avec dénominateur > 0,
+//     et si den>0 on ne met PAS "−" au numérateur → signe DEVANT la fraction
+let step4_norm;
+if (den4 >= 0){
+  step4_norm = (num4 < 0)
+    ? `x = -\\dfrac{${texFrac(aNum)}}{${texFrac(aDen)}}`
+    : `x = \\dfrac{${texFrac(aNum)}}{${texFrac(aDen)}}`;
+} else { // den<0 → on bascule les deux signes
+  step4_norm = (num4 > 0)
+    ? `x = -\\dfrac{${texFrac(aNum)}}{${texFrac(aDen)}}`
+    : `x = \\dfrac{${texFrac(aNum)}}{${texFrac(aDen)}}`;
+}
+
+// 5) Réduction finale (et entier si Q=1)
+let P = aNum, Q = aDen;
+const g = gcd(Math.round(P), Math.round(Q)) || 1;
+P = Math.round(P/g); Q = Math.round(Q/g);
+const step5 = (sgnTot < 0)
+  ? (Q === 1 ? `x = -${P}` : `x = -\\dfrac{${P}}{${Q}}`)
+  : (Q === 1 ? `x = ${P}`  : `x = \\dfrac{${P}}{${Q}}`);
+
+// 6) Rappel (souvent identique à step5)
+const step6 = `x = ${fmtX(x0)}`;
+
+
+// Bloc complet (cas m ≠ 0)
+let eqSteps = '';
+   if (hasRoot){
+  const lines = [];
+  pushUniq(lines, `<div><b>Résolution de \\(f(x)=0\\) (affine) :</b></div>`);
+  pushUniq(lines, `<div class="small" style="margin:.2rem 0 .4rem">
+    \\(f(x)=mx+p\\) avec \\(m=${mTex}\\), \\(p=${pTex}\\)
+  </div>`);
+  pushUniq(lines, `\\(f(x)=0\\)`);
+  pushUniq(lines, `\\(${mTex}x + ${pTex} = 0\\)`);
+pushUniq(lines, `\\(${mTex}x = ${rhs3}\\)`);
+if (step4_raw) pushUniq(lines, `\\(${step4_raw}\\)`);   // seulement si den<0
+pushUniq(lines, `\\(${step4_norm}\\)`);  pushUniq(lines, `\\(${step5}\\)`);           // x = fraction réduite
+  // Si step6==step5 (très fréquent), il ne sera pas ajouté (doublon)
+  // Idem step5==step4, etc.
+
+  eqSteps = `<div>${lines.join('</div><div>')}</div>`;
+   const mem = inClosed(x0, a, b) ? '\\in' : '\\notin';
+  pushUniq(lines, `\\(x ${mem} ${intervalLabel}\\)`);
+  eqSteps = `<div>${lines.join('</div><div>')}</div>`;
+}else{
+  eqSteps = `
+    <div><b>Résolution de \\(f(x)=0\\) (affine) :</b></div>
+    <div class="small" style="margin:.2rem 0 .4rem">
+      \\(f(x)=mx+p\\) avec \\(m=${mTex}\\), \\(p=${pTex}\\)
+    </div>
+    <div>\\(m=0\\Rightarrow f(x)=p=${pTex}\\)</div>
+    <div>${ p===0 ? '\\(f(x)=0\\) pour tout \\(x\\).' : 'Pas de solution.' }</div>
+  `;
+}
+
+
+
+  // Légende du signe selon m
+  const leg = hasRoot
+    ? (m>0
+        ? `<div class="small">Comme \\(m&gt;0\\) : \\(f(x)&gt;0\\) pour \\(x&gt;${fmtX(x0)}\\), \\(f(x)&lt;0\\) pour \\(x&lt;${fmtX(x0)}\\).</div>`
+        : `<div class="small">Comme \\(m&lt;0\\) : \\(f(x)&gt;0\\) pour \\(x&lt;${fmtX(x0)}\\), \\(f(x)&lt;0\\) pour \\(x&gt;${fmtX(x0)}\\).</div>`)
+    : (p>0
+        ? `<div class="small">Ici \\(m=0\\) et \\(p&gt;0\\) : \\(f(x)&gt;0\\) sur tout \\(${intervalLabel}\\).</div>`
+        : (p<0
+            ? `<div class="small">Ici \\(m=0\\) et \\(p&lt;0\\) : \\(f(x)&lt;0\\) sur tout \\(${intervalLabel}\\).</div>`
+            : `<div class="small">\\(f(x)=0\\) pour tout \\(x\\) (fonction nulle).</div>`));
+
+  // Pour le tableau, réutilise la grille générique (place bien le 0 à x0)
+  // On construit une petite f-affine exacte pour la table :
+  const fAff = (x)=> m*x + p;
+
+  const table = hasRoot
+    ? tableSign(fAff, a, b, 'f(x)', intervalLabel)
+    : tableSign(fAff, a, b, 'f(x)', intervalLabel);
+
+  return `<div><b>Étude du signe (affine) sur \\(${intervalLabel}\\)</b></div>
+          <div class="steps">${eqSteps}${leg}</div>
+          <div class="steps">${table}</div>`;
+}
+/* ===== Helpers manquants pour poly2_signHTML — compat strict ===== */
+(function(){
+  // — PGCD entier
+  function gcd(a,b){ a=Math.trunc(Math.abs(a)); b=Math.trunc(Math.abs(b));
+    while(b){ const t=a%b; a=b; b=t; } return a||1; }
+
+  // — Réduction d’une fraction, dénominateur > 0
+  function simp(p,q){
+    if(!Number.isFinite(p) || !Number.isFinite(q) || q===0) return [p,q];
+    p=Math.trunc(p); q=Math.trunc(q);
+    if(q<0){ p=-p; q=-q; }
+    const d=gcd(p,q); return [p/d, q/d];
+  }
+
+  // — \dfrac{num}{den} SANS double signe ; ne réduit pas par défaut
+  function texRatRaw(num, den){
+    if(!Number.isFinite(num) || !Number.isFinite(den) || den===0) return String(num)+'/'+String(den);
+    let p=num, q=den;
+    if(q<0){ p=-p; q=-q; }
+    const sgn = p<0 ? '-' : '';
+    const P = Math.abs(p), Q = Math.abs(q);
+    return sgn ? `${sgn}\\dfrac{${P}}{${Q}}` : `\\dfrac{${P}}{${Q}}`;
+  }
+
+  // — \dfrac{p}{q} **irréductible**
+  function texRat(fr){
+    let [p,q] = Array.isArray(fr) ? fr : [fr[0], fr[1]];
+    if(q===0) return '\\dfrac{'+p+'}{0}';
+    if(!Number.isFinite(p) || !Number.isFinite(q)) return String(p)+'/'+String(q);
+    [p,q] = simp(p,q);
+    if(q===1) return (p<0?'-':'') + String(Math.abs(p));
+    const sgn = p<0 ? '-' : '';
+    const P = Math.abs(p);
+    return sgn ? `${sgn}\\dfrac{${P}}{${q}}` : `\\dfrac{${P}}{${q}}`;
+  }
+
+  // — Enrobage MathJax inline
+  function wrap(s){ return `\\(${s}\\)`; }
+
+  // — Une ligne “label = rhs” (sans <div> ; tu les ajoutes déjà autour)
+  function line(label, rhs){ return wrap(`${label} = ${rhs}`); }
+// au même endroit que wrap() et line()
+const approxLine = (lhs, rhsLatex) => wrap(`${lhs} \\approx ${rhsLatex}`); // pas de "=" !
+const belongLine = (lhs, Itex, belongs=true) => wrap(`${lhs} ${belongs?'\\in':'\\notin'} ${Itex}`);
+
+  // — Push si différent du précédent (évite doublons consécutifs)
+  function pushIfNew(arr, html){ if(!arr.length || arr[arr.length-1]!==html) arr.push(html); }
+
+  // — Test carré parfait (tolérance faible), sur entiers
+  function isSquare(n){
+    if(!Number.isFinite(n)) return false;
+    const r = Math.round(Math.sqrt(Math.abs(n)));
+    return r*r === Math.abs(n);
+  }
+
+  // — Décomposition D = k^2 * nrest (nrest “quasi” sans carré) pour D entier >=0
+  function sqrtDecomp(D){
+    if(!Number.isFinite(D) || D<0) return [1, D];
+    const N = Math.round(D);
+    if(Math.abs(N-D)>1e-9) return [1, D]; // pas entier → on laisse
+    let n = N, k = 1;
+    for(let p=2; p*p<=n; p++){
+      let cnt=0; while(n%p===0){ n/=p; cnt++; }
+      if(cnt>=2){ const t = Math.floor(cnt/2); k *= Math.pow(p, t); cnt -= 2*t; }
+      // le reste p^cnt (cnt = 0 ou 1) reste dans n
+    }
+    // si n est > 1 il reste un facteur premier au carré libre
+    return [k, n];
+  }
+
+  // — Denominateur “2a” en TeX (sans évaluer symboliquement 2a → on affiche 2a proprement)
+ function fmtAx2_tex(a){
+  // 2a écrit proprement en TeX
+  if (a === 1)  return '2';
+  if (a === -1) return '2\\times(-1)';
+  if (Number.isInteger(a)) {
+    return (a < 0) ? `2\\times(${a})` : `2\\times ${a}`;
+  }
+  // a fraction / réel : utilise ta fracLatex ; parenthèses si négatif
+  const t = fracLatex(a, 200) || String(2*a);
+  const needParen = /^-/.test(t);
+  return `2\\times ${needParen ? `(${t})` : t}`;
+}
+
+
+
+  // — ax^2 format
+  function ax2(a){
+    if(a===1)  return 'x^{2}';
+    if(a===-1) return '-x^{2}';
+    return `${a}x^{2}`;
+  }
+
+  // — Expose exactement les noms attendus par ta fonction “riche”
+Object.assign(window, {
+  gcd, simp, texRatRaw, texRat,
+  wrap, line, approxLine, belongLine, pushIfNew,
+  isSquare, sqrtDecomp, fmtAx2_tex, ax2
+});
+
+})();
+function rootsTwoColTable(x1Lines, x2Lines){
+  return (
+    '<table class="roots-tbl">' +
+      '<thead><tr>' +
+        '<th>\\(x_1\\)</th>' +
+        '<th>\\(x_2\\)</th>' +
+      '</tr></thead>' +
+     '<tbody><tr>' +
+        '<td>'+ stack(x1Lines) +'</td>' +   // ⟵ empilé
+        '<td>'+ stack(x2Lines) +'</td>' +   // ⟵ empilé
+     '</tr></tbody>' +
+    '</table>'
+  );
+}
+
+/* ===== Polynôme du second degré (avec détail + tableau standard) ===== */
+function poly2_signHTML(a,b,c,A,B,intervalLabel){
+const D  = b*b - 4*a*c;   // Δ calculé localement
+const st = { delta: D };  // compat pour le reste de ton code
+const fQuad = x => a*x*x + b*x + c;
+
+  const out=[];
+  out.push('<div class="step">'+wrap(`a=${a} \\; ;\\; b=${b} \\; \\text{et}\\; c=${c}`)+'</div>');
+
+  { // Δ
+    const prod4ac = 4 * a * c;
+    const b2 = b*b;
+    const prettyProd = `4 \\times ${a<0?`(${a})`:a} \\times ${c<0?`(${c})`:c}`;
+    const middle = prod4ac < 0 ? (`${b2} + ${Math.abs(prod4ac)}`) : (`${b2} - ${prod4ac}`);
+    const tail = D>0 ? ' > 0' : (D<0 ? ' < 0' : ' ');
+    out.push('<div class="step" style="color:#b00020">'+wrap(`\\Delta = b^{2} - 4ac = ${b2} - ${prettyProd} = ${middle} = ${D}${tail}`)+'</div>');
+  }
+
+  // ===== Corps principal (inchangé fonctionnellement) =====
+  if(D<0){
+    out.push('<div class="step">Ainsi l’équation n’admet pas de solution réelle.</div>');
+    out.push('<div class="step"><i>\\(P(x)\\)</i> n’a pas de forme factorisée.</div>');
+out.push( tableSign(fQuad, A, B, 'f(x)', intervalLabel));
+} else if (D===0){
+  const L=[];
+  L.push(line('\\alpha', `\\frac{-b}{2a}`));
+  L.push(line('\\alpha', texRatRaw(-b, 2*a)));
+  const g=gcd(Math.abs(-b), Math.abs(2*a));
+  const Pn=(-b)/g, Qn=(2*a)/g;
+  pushIfNew(L, line('\\alpha', Qn!==1 ? texRat([Pn,Qn]) : String(Pn)));
+  const alpha = Pn/Qn;
+
+  out.push('<div class="step">Ainsi l’équation admet une seule solution :</div>');
+out.push('<div class="step">' + L.map(s => `<div>${s}</div>`).join('') + '</div>');
+
+  // ⟵⟵ AJOUT : appartenance de α à l’intervalle [A;B]
+  const mem = inClosed(alpha, A, B) ? '\\in' : '\\notin';
+  out.push('<div class="step">'+wrap(`\\alpha ${mem} ${intervalLabel}`)+'</div>');
+
+  const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x ${alpha<0?'+ '+Math.abs(alpha):'- '+Math.abs(alpha)}\\right)^{2}`;
+  out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
+out.push( tableSign(fQuad, A, B, 'f(x)', intervalLabel));
+
+ } else {
+   function xiThreeLines(signPM){
+  const label = signPM < 0 ? 'x_{1}' : 'x_{2}';
+  const pmS   = signPM < 0 ? ' - '  : ' + ';
+  const L = [];
+
+  // 1) Formule générale
+  pushIfNew(L, line(label, `\\frac{-b ${pmS} \\sqrt{\\Delta}}{2a}`));
+
+  if (isSquare(D)) {
+    // ----- Δ carré : résultat exact => PAS de ligne "≈"
+    const r = Math.sqrt(D);
+    pushIfNew(L, line(label, `\\frac{${-b} ${pmS} ${r}}{${texDenom2a_asProduct(a)}}`));
+    const den = 2 * a;
+    pushIfNew(L, line(label, `\\frac{${-b} ${pmS} ${r}}{${den}}`));
+
+    const num = -b + (signPM < 0 ? -r : r);
+    pushIfNew(L, line(label, texRatRaw(num, den)));
+
+    const g   = gcd(Math.abs(num), Math.abs(den));
+    const Pn  = num / g, Qn = den / g;
+    pushIfNew(L, line(label, Qn === 1 ? String(Pn) : texRat([Pn, Qn])));
+
+  } else {
+    // ----- Δ non carré : symbole exact + une ligne d'approx
+    const [kfac, nrest] = sqrtDecomp(D);
+    const sq = (kfac > 1 ? `${kfac}\\sqrt{${nrest}}` : `\\sqrt{${nrest}}`);
+
+    pushIfNew(L, line(label, `\\frac{${-b} ${pmS} ${sq}}{${texDenom2a_asProduct(a)}}`));
+    pushIfNew(L, line(label, `\\frac{${-b} ${pmS} ${sq}}{${2*a}}`));
+
+    const approx = (-b + (signPM < 0 ? -Math.sqrt(D) : Math.sqrt(D))) / (2*a);
+    pushIfNew(L, approxLine(label, asFixedComma(approx, 2)));   // ≈ seulement ici
+  }
+
+  // appartenance à l’intervalle
+  const xval = (-b + (signPM < 0 ? -1 : 1) * Math.sqrt(D)) / (2*a);
+  const mem  = inClosed(xval, A, B) ? '\\in' : '\\notin';
+  L.push(`\\(${label} ${mem} ${intervalLabel}\\)`);
+
+  return L;
+}
+
+
+
+
+    if(isSquare(D)){
+      out.push('<div class="step">Et '+wrap(`\\sqrt{\\Delta} = ${Math.sqrt(D)}`)+'</div>');
+      out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
+const L = xiThreeLines(-1);   // bloc HTML pour x1 (à gauche)
+const R = xiThreeLines(+1);   // bloc HTML pour x2 (à droite)
+out.push( rootsTwoColTable(L, R) );
+// Tableau de signes sur R (titre affiche ton intervalLabel)
+const r=Math.sqrt(D); const x1 = (-b - r)/(2*a), x2 = (-b + r)/(2*a);
+      const Ssorted = [x1,x2].sort((u,v)=>u-v);
+      const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x ${x1<0?'+ '+Math.abs(x1):'- '+Math.abs(x1)}\\right)\\left(x ${x2<0?'+ '+Math.abs(x2):'- '+Math.abs(x2)}\\right)`;
+      out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
+	  out.push( tableSign(fQuad, A, B, 'f(x)', intervalLabel));      
+
+    } else {
+      out.push('<div class="step">Et '+wrap(`\\sqrt{\\Delta} = \\sqrt{${D}}`)+'</div>');
+      out.push('<div class="step">Ainsi l’équation admet deux solutions réelles :</div>');
+const L = xiThreeLines(-1);   // bloc HTML pour x1 (à gauche)
+const R = xiThreeLines(+1);   // bloc HTML pour x2 (à droite)
+out.push( rootsTwoColTable(L, R) );
+// === ICI : libellés exacts pour la ligne x du tableau de signes ===
+      const x1 = (-b - Math.sqrt(D)) / (2*a);
+     const x2 = (-b + Math.sqrt(D)) / (2*a);
+      let overrides = [];
+      // Δ non carré : on affiche (-b ± k√n) / (2a)
+     const [kfac, nrest] = sqrtDecomp(D);   // déjà défini plus haut dans ton code
+      const numMinus = `${-b} - ${ (kfac>1 ? `${kfac}\\sqrt{${nrest}}` : `\\sqrt{${nrest}}`) }`;
+      const numPlus  = `${-b} + ${ (kfac>1 ? `${kfac}\\sqrt{${nrest}}` : `\\sqrt{${nrest}}`) }`;
+     let den = 2*a;                 // valeur numérique
+const denTex = String(den);    // pour l’affichage plus haut (overrides)
+
+   overrides = [
+  { x: x1, tex: `\\dfrac{${numMinus}}{${denTex}}` },
+  { x: x2, tex: `\\dfrac{${numPlus}}{${denTex}}` },
+];
+
+      const gCommon = gcd(gcd(Math.abs(b), Math.abs(kfac)), Math.abs(den)); if (gCommon > 1) den = den / gCommon; // ok, c’est un let num
+
+      const num1 = `${(-b/gCommon)||(-b)} - ${((kfac/gCommon)>1? (kfac/gCommon+`\\sqrt{${nrest}}`) : (`\\sqrt{${nrest}}`))}`;
+      const num2 = `${(-b/gCommon)||(-b)} + ${((kfac/gCommon)>1? (kfac/gCommon+`\\sqrt{${nrest}}`) : (`\\sqrt{${nrest}}`))}`;
+      const approx1 = (-b - Math.sqrt(D))/(2*a), approx2 = (-b + Math.sqrt(D))/(2*a);
+const pair = [
+  { v: approx1, s: wrap(`\\frac{${num1}}{${den}}`) },
+  { v: approx2, s: wrap(`\\frac{${num2}}{${den}}`) }
+].sort((p,q)=>p.v-q.v);
+      const fac = `${a===1?'':String(a)}${a===1?'':'\\,'}\\left(x - ${pair[0].s.replace('\\(','').replace('\\)','')}\\right)\\left(x - ${pair[1].s.replace('\\(','').replace('\\)','')}\\right)`;
+      out.push('<div class="step">La forme factorisée est : '+wrap(`P(x) = ${fac}`)+'</div>');
+	  // Tableau de signes sur R (titre affiche ton intervalLabel)
+     out.push( tableSign(fQuad, A, B, 'f(x)', intervalLabel, overrides));
+    }
+  }
+
+ // ===== Remarques intégrées (ex-remarkBlock) =====
+ // --- push unique: évite d'afficher 2 fois la même ligne consécutive ---
+function pushStepUnique(arr, innerHTML){
+  const line = '<div class="step">'+innerHTML+'</div>';
+  if (!arr.length || arr[arr.length-1] !== line) arr.push(line);
+}
+
+const R = [];
+const pushR = s => pushStepUnique(R, s);   // ⟵ remplace ton ancien pushR
+
+
+  // Cas c = 0 (produit avec x)
+  if(a!==0 && c===0 && b!==0){
+    pushR('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+    let eq = (a === 1) ? 'x^{2}' : (a === -1) ? '-x^{2}' : `${a}x^{2}`;
+    if (b !== 0) eq += (b > 0 ? ' + ' : ' - ') + `${Math.abs(b)}x`;
+    eq += ' = 0';
+    pushR(wrap(eq));
+    pushR(wrap(`x\\left(${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)}\\right) = 0`));
+    pushR(wrap(`x = 0 \\;\\text{ ou }\\; ${a===1?'x':a===-1?'-x':(a+'x')} ${b>=0?'+':'-'} ${Math.abs(b)} = 0`));
+    const sAB = simp(-b,a);
+    pushR(wrap(`x = 0 \\;\\text{ ou }\\; x = ${texRat(sAB)}`));
+  }
+
+  // Cas b = 0, c ≠ 0  (x^2 = k)
+  if(a!==0 && b===0 && c!==0){
+    pushR('<b>Remarque :</b> Il est préférable d’utiliser la méthode suivante :');
+   pushR(wrap(`${ax2(a)} ${c>=0?'+':'-'} ${Math.abs(c)} = 0`));
+pushR(wrap(`${ax2(a)} = ${-c}`));
+
+    const sAC = simp(-c,a);
+    pushR(wrap(`x^{2} = ${texRat(sAC)}`));
+    const t = (-c)/a;
+    if(t<0){ pushR('Pas de solution réelle.'); }
+    else if(t===0){ pushR(wrap('x = 0')); }
+    else{
+      const [pn,qn]=[Math.abs(sAC[0]), Math.abs(sAC[1])];
+      const right = qn===1 ? String(pn) : `\\left( \\frac{${pn}}{${qn}} \\right)`;
+      pushR(wrap(`x = -\\sqrt{${right}} \\;\\text{ ou }\\; x = \\sqrt{${right}}`));
+      const rn = Math.sqrt(pn), rd = Math.sqrt(qn);
+      if(Number.isInteger(rn) && Number.isInteger(rd)){
+        const [sp,sq] = simp(rn|0, rd|0);
+        if(sq===1){ pushR(wrap(`x = -${sp} \\;\\text{ ou }\\; x = ${sp}`)); }
+        else{ pushR(wrap(`x = -${texRat([sp,sq])} \\;\\text{ ou }\\; x = ${texRat([sp,sq])}`)); }
+      }
+    }
+  }
+
+
+  // Cas Δ = 0 (factorisation au carré parfait)
+  if(a!==0 && D===0){
+    const sAB = simp(-b, 2*a);
+    const alpha    = texRat(sAB);
+    const alphaAbs = texRat([Math.abs(sAB[0]), sAB[1]]);
+    const op = (sAB[0] < 0 ? ' + ' : ' - ');
+    pushR('<b>Remarque :</b> On aurait pu utiliser la méthode suivante :');
+const bx = b ? (b>0 ? ' + ' : ' - ') + (Math.abs(b)===1 ? 'x' : `${Math.abs(b)}x`) : '';
+const cterm = c ? (c>0 ? ' + ' : ' - ') + `${Math.abs(c)}` : '';
+pushR(wrap(`${ax2(a)}${bx}${cterm} = 0`));
+    if (a !== 1) {
+      const sb = simp(b, a), sc = simp(c, a);
+      let termBx = '';
+      if (b !== 0) {
+        const signB = (sb[0] >= 0 ? ' + ' : ' - ');
+        const magB  = Math.abs(sb[0]) === sb[1] ? '' : texRat([Math.abs(sb[0]), sb[1]]);
+        termBx = signB + magB + 'x';
+      }
+      let termC  = '';
+      if (c !== 0) {
+        const signC = (sc[0] >= 0 ? ' + ' : ' - ');
+        const magC  = texRat([Math.abs(sc[0]), sc[1]]);
+        termC = signC + magC;
+      }
+      pushR(wrap(`${a}\\left(x^{2}${termBx}${termC}\\right) = 0`));
+    }
+    if (a !== 1) { pushR(wrap(`${a}\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); }
+    if (sAB[0] === 0) { pushR(wrap(`x^{2} = 0`)); pushR(wrap(`x = 0`)); }
+    else { pushR(wrap(`\\left(x${op}${alphaAbs}\\right)^{2} = 0`)); pushR(wrap(`x${op}${alphaAbs} = 0`)); pushR(wrap(`x = ${alpha}`)); }
+  }
+
+  // ===== Jointure finale =====
+  // Nettoyage petites collisions " + − " etc.
+  let html = '<div class="steps">'+out.join('')+(R.length?('<div class="sep" style="height:1px;background:#e5e7eb;margin:.4rem 0"></div>'+R.join('')):'')+'</div>';
+  html = html.replace(/\+\s*−/g,' − ').replace(/−\s*−/g,' + ').replace(/−\s*\+/g,' − ');
+  return html;
+}
+
+function parseQuadraticIfPure(src){
+  if(!src) return null;
+  const s = src.replace(/\s+/g,'').replace(/\u2212/g,'-');
+
+  // Interdit si parenthèses/produits/quotients/fonctions
+  if (/[()*/]|sin|cos|tan|sqrt|abs|exp|ln|log/i.test(s)) return null;
+
+  // Interdit s’il y a des puissances > 2 (x^3, ³, ^4, …)
+  if (/[xX](?:\^([3-9]\d*)|[³-⁹])/.test(s)) return null;
+
+  // a x^2 + b x + c (termes b et c optionnels)
+  const re = /^([+-]?\d*\.?\d*)?x(?:\^2|²)(?:([+-]\d*\.?\d*)x)?(?:([+-]\d*\.?\d*))?$/i;
+  const m = s.match(re);
+  if(!m) return null;
+
+  const num = t => (t===''||t==='+') ? 1 : (t==='-' ? -1 : Number(t));
+  const a = num(m[1] ?? '+');
+  const b = m[2] ? Number(m[2]) : 0;
+  const c = m[3] ? Number(m[3]) : 0;
+  if(!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) return null;
+
+  return {a,b,c};
+}
+
+
+/* ===== 2) Graphe rapide (SVG) ===== */
+function drawGraph(f, a, b, mount, opts={}){
+  const ortho = !!opts.ortho;
+  const sym   = !!opts.sym; 
+  mount.innerHTML='';
+
+  const W=620, H=340, m=36;
+  const x0=m, y0=m, w=W-2*m, h=H-2*m;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('class','repere');
+
+// borne x si ±∞
+  let A=a, B=b;
+  if(!Number.isFinite(A) && !Number.isFinite(B)){ A=-10; B=10; }
+  else if(!Number.isFinite(A)){ A=B-20; }
+  else if(!Number.isFinite(B)){ B=A+20; }
+
+  // échantillonnage pour dessiner (pas pour fixer y si 'sym')
+  const N=800;
+  const xs = Array.from({length:N+1},(_,i)=> A + (B-A)*i/N);
+  const ys = xs.map(x=> f(x));
+  let ymin0=Infinity, ymax0=-Infinity;
+  ys.forEach(y=>{ if(Number.isFinite(y)){ ymin0=Math.min(ymin0,y); ymax0=Math.max(ymax0,y); }});
+  if(!isFinite(ymin0) || !isFinite(ymax0) || ymin0===ymax0){ ymin0=-5; ymax0=5; }
+
+  // ===== fenêtre verticale =====
+  const isXSym = Math.abs(A+B) < 1e-12;      // [-L;L]
+  const Mx     = Math.max(Math.abs(A), Math.abs(B));
+  let yMin, yMax;
+  if (sym){
+    // y calqué sur l’intervalle x
+    yMin = isXSym ? A : -Mx;
+    yMax = isXSym ? B :  Mx;
+  } else {
+    const pad = 0.08*(ymax0 - ymin0 || 10);
+    yMin = ymin0 - pad;
+    yMax = ymax0 + pad;
+  }
+
+
+
+let xLeft = x0, yTop = y0, wEff = w, hEff = h;
+let scaleX = w / (B - A);
+let scaleY = h / (yMax - yMin);
+
+// — option "orthonormé" : même échelle en x et y (isométrique)
+if (ortho){
+  const s = Math.min(scaleX, scaleY);
+  scaleX = scaleY = s;
+
+  // limité par la largeur → étendre verticalement
+  if (s === (w / (B - A))){
+    const spanY = h / s;                 // hauteur en unités
+    const midY  = (yMin + yMax) / 2;
+    yMin = midY - spanY/2;
+    yMax = midY + spanY/2;
+    // (les coordonnées écran ne changent pas)
+  } else {
+    // limité par la hauteur → centrer horizontalement
+    wEff  = s * (B - A);
+    xLeft = x0 + (w - wEff) / 2;
+  }
+}
+
+// — projecteurs
+const X = x => xLeft + scaleX * (x - A);
+const Y = y => yTop  + h - scaleY * (y - yMin);
+const yBottom = yTop + h, xRight = xLeft + wEff;
+
+
+  // cadre
+  const frame = document.createElementNS(svg.namespaceURI,'rect');
+  frame.setAttribute('x', x0); frame.setAttribute('y', y0);
+  frame.setAttribute('width', w); frame.setAttribute('height', h);
+  frame.setAttribute('class','frame');
+  svg.appendChild(frame);
+
+  // grille “nice” + labels posés sur les axes
+  const gMinor = document.createElementNS(svg.namespaceURI,'g'); gMinor.setAttribute('class','grid-minor');
+  const gMajor = document.createElementNS(svg.namespaceURI,'g'); gMajor.setAttribute('class','grid-major');
+  const tx = document.createElementNS(svg.namespaceURI,'g');
+  const ty = document.createElementNS(svg.namespaceURI,'g');
+
+const stepX = integerStep(A, B, 12);
+const stepY = integerStep(yMin, yMax, 10);
+  const xStart = Math.ceil(A/stepX)*stepX, xEnd = Math.floor(B/stepX)*stepX;
+  const yStart = Math.ceil(yMin/stepY)*stepY, yEnd = Math.floor(yMax/stepY)*stepY;
+
+  const yAxisY = Math.max(yTop+10, Math.min(yBottom-10, Y(0)));
+  const xAxisX = Math.max(xLeft+10, Math.min(xRight-10, X(0)));
+
+  const sub = 5;
+  const tooManyX = ((xEnd-xStart)/stepX > 14);
+  const tooManyY = ((yEnd-yStart)/stepY > 10);
+
+  // verticales + x labels
+  for(let x=xStart; x<=xEnd+1e-12; x+=stepX){
+    const xx = X(x);
+    const L = document.createElementNS(svg.namespaceURI,'line');
+    L.setAttribute('x1', xx); L.setAttribute('y1', yTop); L.setAttribute('x2', xx); L.setAttribute('y2', yBottom);
+    gMajor.appendChild(L);
+
+    const t = document.createElementNS(svg.namespaceURI,'text');
+    t.textContent = fmtInt(x, stepX);
+    const yLab = (yMin<=0 && yMax>=0) ? (yAxisY+14) : (yBottom+16);
+    t.setAttribute('x', Math.max(xLeft+5, Math.min(xRight-5, xx)));
+    t.setAttribute('y', Math.max(yTop+2, Math.min(yBottom+16, yLab)));
+    t.setAttribute('text-anchor','middle');
+    tx.appendChild(t);
+  }
+  if(!tooManyX){
+    for(let x=xStart; x<=xEnd+1e-12; x+=stepX){
+      for(let k=1;k<sub;k++){
+        const xm = x + k*stepX/sub; if (xm > xEnd) break;
+        const xx = X(xm);
+        const L = document.createElementNS(svg.namespaceURI,'line');
+        L.setAttribute('x1', xx); L.setAttribute('y1', yTop); L.setAttribute('x2', xx); L.setAttribute('y2', yBottom);
+        gMinor.appendChild(L);
+      }
+    }
+  }
+
+  // horizontales + y labels
+  for(let y=yStart; y<=yEnd+1e-12; y+=stepY){
+    const yy = Y(y);
+    const L = document.createElementNS(svg.namespaceURI,'line');
+    L.setAttribute('x1', xLeft); L.setAttribute('y1', yy); L.setAttribute('x2', xRight); L.setAttribute('y2', yy);
+    gMajor.appendChild(L);
+
+    const t = document.createElementNS(svg.namespaceURI,'text');
+    t.textContent = fmtInt(y, stepY);
+    const xLab = (A<=0 && B>=0) ? (xAxisX-6) : (xLeft-8);
+    t.setAttribute('x', Math.max(xLeft+6, Math.min(xRight-8, xLab)));
+    t.setAttribute('y', Math.max(yTop+10, Math.min(yBottom-6, yy+4)));
+    t.setAttribute('text-anchor','end');
+    ty.appendChild(t);
+  }
+  if(!tooManyY){
+    for(let y=yStart; y<=yEnd+1e-12; y+=stepY){
+      for(let k=1;k<sub;k++){
+        const ym = y + k*stepY/sub; if (ym > yEnd) break;
+        const yy = Y(ym);
+        const L = document.createElementNS(svg.namespaceURI,'line');
+        L.setAttribute('x1', xLeft); L.setAttribute('y1', yy); L.setAttribute('x2', xRight); L.setAttribute('y2', yy);
+        gMinor.appendChild(L);
+      }
+    }
+  }
+
+  svg.appendChild(gMinor); svg.appendChild(gMajor);
+  svg.appendChild(tx); svg.appendChild(ty);
+
+  // axes (si visibles)
+  const axes = document.createElementNS(svg.namespaceURI,'g'); axes.setAttribute('class','axes');
+  if (yMin<=0 && yMax>=0){
+    const axX = document.createElementNS(svg.namespaceURI,'line');
+    axX.setAttribute('x1', xLeft); axX.setAttribute('x2', xRight);
+    axX.setAttribute('y1', Y(0));  axX.setAttribute('y2', Y(0));
+    axes.appendChild(axX);
+  }
+  if (A<=0 && B>=0){
+    const axY = document.createElementNS(svg.namespaceURI,'line');
+    axY.setAttribute('x1', X(0)); axY.setAttribute('x2', X(0));
+    axY.setAttribute('y1', yBottom); axY.setAttribute('y2', yTop);
+    axes.appendChild(axY);
+  }
+  svg.appendChild(axes);
+
+  // courbe
+  const path = document.createElementNS(svg.namespaceURI,'path');
+  let d='';
+  for(let i=0;i<=N;i++){
+    const x=xs[i], y=ys[i];
+    if(!Number.isFinite(y)){ d += ` M ${X(x)} ${yBottom}`; continue; }
+    d += (i===0?'M ':' L ') + X(x)+' '+Y(y);
+  }
+  path.setAttribute('d', d);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke','#111');
+  path.setAttribute('stroke-width','2.6');
+  path.setAttribute('stroke-linecap','round');
+  svg.appendChild(path);
+
+  mount.appendChild(svg);
+}
+
+
+
+
+
+/* ===== 3) Tableaux ===== */
+
+function tableVariation(f, a, b, intervalLabel){
+  const holes = domainHoles(f, a, b);
+  const crit  = critWithSignChange(f, a, b);          // uniquement si changement de sens
+  const fp    = x => derivC(f, x, 1e-4*(1+Math.abs(x)));
+
+  // colonnes : bornes + trous + points critiques retenus
+  const cols = [a, ...holes, ...crit, b].sort((u,v)=>u-v)
+                 .filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-4);
+
+  const head=['<tr><th>\\(x\\)</th>'];
+  cols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x)}\\)</td>`); if(j<cols.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // sens sur chaque intervalle
+  const dirs=[];
+  for(let i=0;i<cols.length-1;i++){
+    const mid=(cols[i]+cols[i+1])/2;
+    const s = fp(mid);
+    dirs.push(s>0?'↗':(s<0?'↘':''));
+  }
+
+  // valeurs aux colonnes (si trou → pas de valeur)
+  const vals = cols.map(x=> Number.isFinite(f(x)) ? f(x) : NaN);
+  const marks = cols.map((x,idx)=>{
+    if(idx===0 || idx===cols.length-1) return {yM:'', ym:''};
+    if (nearAny(x, holes))             return {yM:'', ym:''}; // pas de max/min sur un trou
+    const yL=vals[idx-1], y0=vals[idx], yR=vals[idx+1];
+    if(Number.isFinite(y0) && Number.isFinite(yL) && Number.isFinite(yR)){
+      if(y0>yL && y0>yR) return {yM:fmtY(y0), ym:''};
+      if(y0<yL && y0<yR) return {yM:'', ym:fmtY(y0)};
+    }
+    return {yM:'', ym:''};
+  });
+
+  const cellVal=(v,top)=>{
+    const up=top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    const dn=!top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+  };
+
+  const body=['<tr><th>\\(f\\)</th>'];
+  for(let i=0;i<cols.length;i++){
+    if (i===0){
+      const d=dirs[0];
+      const v = Number.isFinite(vals[0]) ? fmtY(vals[0]) : '';
+      if(d==='↗') body.push(cellVal(v,false));
+      else if(d==='↘') body.push(cellVal(v,true));
+      else body.push(cellVal('',true));
+    }else if (i===cols.length-1){
+      const d=dirs.at(-1);
+      const v = Number.isFinite(vals.at(-1)) ? fmtY(vals.at(-1)) : '';
+      if(d==='↗') body.push(cellVal(v,true));
+      else if(d==='↘') body.push(cellVal(v,false));
+      else body.push(cellVal('',true));
+    }else if (nearAny(cols[i], holes)){
+      body.push('<td class="dbar"></td>'); // ← double barre sur valeur interdite
+    }else{
+      const {yM,ym}=marks[i];
+      if(yM) body.push(cellVal(yM,true));
+      else if(ym) body.push(cellVal(ym,false));
+      else body.push(cellVal('',true));
+    }
+    if(i<cols.length-1) body.push(`<td class="arr">${dirs[i]||''}</td>`);
+  }
+  body.push('</tr>');
+
+  return `<div><b>Tableau de variations de \\(f\\) sur \\(${intervalLabel}\\) :</b></div>
+          <table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${body.join('')}</tbody></table>`;
+}
+
+function tableSign(f, a, b, label='f(x)', intervalLabel, overrides = []){
+  // nouvelles bornes « utilisables » (débutent là où f est définie)
+  const eb = effectiveBounds(f, a, b);
+  const aEff = eb.A, bEff = eb.B;
+
+  const holes = domainHoles(f, aEff, bEff);   // maintenant 0 n'est pas un trou pour sqrt
+  const roots = rootsOn(f, aEff, bEff);
+
+  const findOv = x => overrides?.find(o => Math.abs(o.x - x) < 1e-6);
+
+  const cols = [aEff, ...holes, ...roots, bEff].sort((u,v)=>u-v)
+                 .filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-4);
+
+  const head=['<tr><th>\\(x\\)</th>'];
+// dans tableSign(...), au moment de construire l’en-tête :
+cols.forEach((x,j)=>{
+  const ov = findOv(x);                     // garde tes overrides exacts (ex: forme sqrt)
+  const isRoot = nearAny(x, roots);
+  const label = ov ? ov.tex : (isRoot ? fmtRootSmart(x) : fmtX(x));
+  head.push(`<td>\\(${label}\\)</td>`);
+  if(j<cols.length-1) head.push('<td></td>');
+});
+
+
+  const signs=[];
+  for(let i=0;i<cols.length-1;i++){
+    const mid=(cols[i]+cols[i+1])/2;
+    const y=f(mid);
+    signs.push( y>0? '+' : (y<0? '−' : '') );
+  }
+
+  let row = `<tr><th>\\(${label}\\)</th>`;
+  for(let j=0;j<cols.length;j++){
+    if (j>0 && j<cols.length-1){
+      if (nearAny(cols[j], holes)) row += `<td class="dbar"></td>`;
+      else if (nearAny(cols[j], roots)) row += `<td class="zbar">0</td>`;
+      else row += `<td></td>`;
+    } else row += `<td></td>`;
+    if(j<cols.length-1) row += `<td style="font-weight:700">${signs[j]||''}</td>`;
+  }
+  row += '</tr>';
+
+  return `<div><b>Tableau de signes de \\(${label}\\) sur \\(${intervalLabel}\\) :</b></div>
+          <table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${row}</tbody></table>`;
+}
+
+
+function tableDerivPlusVar(f, a, b, intervalLabel){
+  const holes = domainHoles(f, a, b);
+  const crit  = critWithSignChange(f, a, b);
+  const fp    = x => derivC(f, x, 1e-4*(1+Math.abs(x)));
+
+  const cols = [a, ...holes, ...crit, b].sort((u,v)=>u-v)
+                 .filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-4);
+
+  const head=['<tr><th>\\(x\\)</th>'];
+  cols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x)}\\)</td>`); if(j<cols.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // f'(x) : 0 aux vrais points critiques, || sur les trous
+  let rowFp = '<tr class="row-fp"><th>\\(f\'(x)\\)</th>';
+  for(let j=0;j<cols.length;j++){
+    if (j===0 || j===cols.length-1) rowFp += '<td></td>';
+    else if (nearAny(cols[j], holes)) rowFp += '<td class="dbar"></td>';
+    else rowFp += '<td class="zbar">0</td>';
+    if(j<cols.length-1){
+      const mid=(cols[j]+cols[j+1])/2;
+      const s = fp(mid);
+      rowFp += `<td style="font-weight:700">${s>0?'+':(s<0? UMIN : '')}</td>`;
+    }
+  }
+  rowFp += '</tr>';
+
+  // variations de f
+  const dirs=[];
+  for(let j=0;j<cols.length-1;j++){
+    const mid=(cols[j]+cols[j+1])/2;
+    const s=fp(mid);
+    dirs.push(s>0?'↗':(s<0?'↘':''));
+  }
+  const vals = cols.map(x=> Number.isFinite(f(x)) ? f(x) : NaN);
+  const marks = cols.map((x,i)=>{
+    if(i===0 || i===cols.length-1) return {yM:'',ym:''};
+    if (nearAny(x, holes)) return {yM:'',ym:''};
+    const yL=vals[i-1], y0=vals[i], yR=vals[i+1];
+    if(Number.isFinite(y0) && Number.isFinite(yL) && Number.isFinite(yR)){
+      if(y0>yL && y0>yR) return {yM:fmtY(y0),ym:''};
+      if(y0<yL && y0<yR) return {yM:'',ym:fmtY(y0)};
+    }
+    return {yM:'',ym:''};
+  });
+  const cellVal=(v,top)=>{
+    const up=top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    const dn=!top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+  };
+  const rowF = (()=>{
+    const body=['<tr><th>\\(f\\)</th>'];
+    for(let i=0;i<cols.length;i++){
+      if (i===0){
+        const d=dirs[0], v=Number.isFinite(vals[0])?fmtY(vals[0]):'';
+        if(d==='↗') body.push(cellVal(v,false));
+        else if(d==='↘') body.push(cellVal(v,true));
+        else body.push(cellVal('',true));
+      }else if (i===cols.length-1){
+        const d=dirs.at(-1), v=Number.isFinite(vals.at(-1))?fmtY(vals.at(-1)):'';
+        if(d==='↗') body.push(cellVal(v,true));
+        else if(d==='↘') body.push(cellVal(v,false));
+        else body.push(cellVal('',true));
+      }else if (nearAny(cols[i], holes)){
+        body.push('<td class="dbar"></td>');
+      }else{
+        const {yM,ym}=marks[i];
+        if(yM) body.push(cellVal(yM,true));
+        else if(ym) body.push(cellVal(ym,false));
+        else body.push(cellVal('',true));
+      }
+      if(i<cols.length-1) body.push(`<td class="arr">${dirs[i]||''}</td>`);
+    }
+    body.push('</tr>');
+    return body.join('');
+  })();
+
+  return `<div><b>Tableau \\(f'(x)\\) et variations de \\(f\\) sur \\(${intervalLabel}\\) :</b></div>
+          <table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowFp}${rowF}</tbody></table>`;
+}
+
+
+/* ===== 4) Actions ===== */
+function typeset(node){ if(window.MathJax?.typesetPromise){ MathJax.typesetPromise([node]).catch(()=>{}); } }
+
+function getInput(){
+  const fx = $('#fx').value;
+  const I  = $('#I').value;
+
+  const Iinfo = parseIntervalText(I);
+  const f  = compileFx(fx);
+
+  const ortho = $('#chk-ortho')?.checked || false;
+const sym   = $('#chk-sym')?.checked   || false;
+
+  return {
+    f,
+    a: Iinfo.a,
+    b: Iinfo.b,
+    src: fx,
+    Iinfo,
+    intervalLabel: Iinfo.labelTex,
+    ortho,
+    sym
+  };
+}
+
+$('#btn-plot').onclick = ()=>{
+  try{
+    const {f,a,b,src,intervalLabel} = getInput();
+    $('#out-eq').innerHTML =
+      `<div><b>Courbe de :</b> \\(f(x)=\\displaystyle ${src}\\) sur \\(${intervalLabel}\\)</div>`;
+    drawGraph(f, a, b, $('#graph'), {
+      ortho: isChecked('#chk-ortho'),   // ← ne plante pas si la case n’existe pas
+      sym:   isChecked('#chk-sym')
+    });
+    typeset($('#out-eq'));
+  }catch(e){ alert(e.message); }
+};
+
+
+
+
+$('#btn-var').onclick = ()=>{
+  try{
+const { f, a, b, src, intervalLabel } = getInput();
+const fxTex = toTeXPretty(src);
+
+$('#out-eq').innerHTML =
+  `<div><b>Étude des variations de :</b> \\(f(x)=\\displaystyle ${src}\\) sur \\(${intervalLabel}\\)</div>`;
+$('#out-var').innerHTML = tableVariation(f, a, b, intervalLabel);
+    $('#graph').innerHTML='';
+    $('#out-sign').innerHTML='';
+    $('#out-deriv').innerHTML='';
+    typeset($('#out-eq')); typeset($('#out-var'));
+  }catch(e){ alert(e.message); }
+};
+
+
+
+
+
+$('#btn-etude-signe').onclick = ()=>{
+  try{
+    const { f, a, b, src, intervalLabel } = getInput();
+    const fxTex = toTeXPretty(src.trim());
+    const text = src.replace(/\s+/g,'');
+// ——— Déclencheur “forme factorisée” UNIQUEMENT si produit pur de linéaires
+const raw = $('#fx').value;
+  // ★★ NOUVEAU : quotient factorisé
+    const R = parseRationalLinearText(raw);
+    if (R.ok){
+      $('#out-eq').innerHTML =
+        `<div><b>Étude du signe (quotient factorisé)</b></div>` +
+        rationalStepsHTML(R.a, R.num, R.b, R.den, intervalLabel);
+
+      $('#out-sign').innerHTML =
+        tableSignRationalFactorized(R.a, R.num, R.b, R.den, a, b, intervalLabel);
+
+      $('#graph').innerHTML=''; $('#out-var').innerHTML=''; $('#out-deriv').innerHTML='';
+      typeset($('#out-eq')); typeset($('#out-sign'));
+      return;
+    }
+
+
+
+// — prioritaire : forme factorisée
+const fact = parseFactoredPolynomialText(raw);
+if (fact.ok){
+  $('#out-eq').innerHTML =
+    `<div><b>Étude du signe (forme factorisée)</b></div>` +
+    zeroProductStepsHTML(fact.a, fact.factors, intervalLabel);
+
+  $('#out-sign').innerHTML =
+    tableSignFactorized(fact.a, fact.factors, a, b, intervalLabel);
+
+  $('#graph').innerHTML=''; $('#out-var').innerHTML=''; $('#out-deriv').innerHTML='';
+  typeset($('#out-eq')); typeset($('#out-sign'));
+  return; // ⟵ très important
+}
+
+// —— sinon : COMPORTEMENT NORMAL (affine → quadratique → polynomiale → fallback)
+
+
+    // === Cas affine ===
+    const A = detectAffineOn(f, a, b);
+    if (A.ok && Math.abs(A.m) > 1e-12){
+      $('#out-eq').innerHTML = `<div><b>Étude du signe (affine)</b></div>`;
+      $('#out-sign').innerHTML = affineSignHTML(A.m, A.p, a, b, intervalLabel);
+	      typeset($('#out-eq'));
+
+      typeset($('#out-sign'));
+      return;
+    }
+
+    // === Cas polynôme du second degré (exact, développé) ===
+ const Q = parseQuadraticIfPure(src);
+ if (Q){
+   const {a: Acoef, b: Bcoef, c: Ccoef} = Q;
+   $('#out-eq').innerHTML =
+    `<div><b>Étude du signe (polynôme du second degré)</b> : \\(f(x)=\\displaystyle ${fxTex}\\)</div>`;
+  $('#out-sign').innerHTML = poly2_signHTML(Acoef, Bcoef, Ccoef, a, b, intervalLabel);
+   typeset($('#out-eq')); typeset($('#out-sign'));
+   return;
+ }
+
+
+
+    // === Autre cas (fallback générique) ===
+    $('#out-eq').innerHTML = `<div><b>Étude du signe :</b> \\(f(x)=\\displaystyle ${fxTex}\\)</div>`;
+    $('#out-sign').innerHTML = tableSign(f, a, b, 'f(x)', intervalLabel);
+	    typeset($('#out-eq'));
+
+    typeset($('#out-sign'));
+  }catch(e){ alert(e.message); }
+};
+
+
+$('#btn-etude-var').onclick = ()=>{
+  try{
+const { f, a, b, src, intervalLabel } = getInput();
+const fxTex = toTeXPretty(src);
+
+const C = critPoints(f,a,b);
+const eqHtml = (C.length
+  ? `Points critiques où \\(f'(x)=0\\) (≈) : ${C.map(c=>'x\\approx '+fmtX(c)).join(', ')}.`
+  : `Aucun point critique \\(f'(x)=0\\) détecté sur \\(${intervalLabel}\\).`);
+$('#out-eq').innerHTML =
+  `<div><b>Étude des variations — dérivée :</b> \\(f(x)=\\displaystyle ${src}\\)</div><div class="small">${eqHtml}</div>`;
+$('#out-deriv').innerHTML = tableDerivPlusVar(f, a, b, intervalLabel);
+
+    $('#graph').innerHTML='';
+    $('#out-sign').innerHTML='';
+    $('#out-var').innerHTML='';
+    typeset($('#out-eq')); typeset($('#out-deriv'));
+  }catch(e){ alert(e.message); }
+};
+
+})();
+</script>
+</body>
+</html>

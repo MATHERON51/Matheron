@@ -269,8 +269,6 @@ table.pdf-tbl td.lim {
   padding: 2px 4px;
 }
 table.pdf-tbl td.lim small { font-size: .95em; }
-.is-hidden{ display:none !important; }
-
 </style>
 
 <!-- MathJax pour jolies formules -->
@@ -1438,10 +1436,8 @@ function tableSignFactorized(a, factors, A, B, intervalLabel){
   const inOpen = r => (!Number.isFinite(A) || r > A + eps) &&
                       (!Number.isFinite(B) || r < B - eps);
 
-// Nouveau : on trie les racines et on dédoublonne avant de fabriquer cols
-const roots = factors.map(F => F.root).filter(inOpen).sort((u, v) => u - v);
-const uniqRoots = roots.filter((x, i, arr) => i === 0 || Math.abs(x - arr[i - 1]) > 1e-10);
-const cols = [A, ...uniqRoots, B];
+  const roots = factors.map(F=>F.root).filter(inOpen);
+  const cols  = [A, ...roots, B].filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-10);
 
 
   const pTex = v => (v===1?'': v===-1?'-': fracLatex(v,200));
@@ -2261,8 +2257,6 @@ const stepY = integerStep(yMin, yMax, 10);
 /* ===== 3) Tableaux ===== */
 
 function tableVariation(f, a, b, intervalLabel, src){
-const bank = variationFromLibrary(src, f, a, b, intervalLabel);
-  if (bank) return bank;
   const win = finiteWindow(a, b);
   const Acalc = win.A, Bcalc = win.B;
 
@@ -2351,99 +2345,15 @@ else if (nearAny(cols[i], holes)){
 /* ===== Banque de variations + composition affine g(x)=ax+b ===== */
 
 // parse "ax+b" ou "x"
-/* ======= INNER types reconnus : affine, power_n, homography ======= */
-
-// --- parseurs ---
-function parseInnerAffine(txt){
-  const s = String(txt||'').replace(/\s+/g,'').replace(/\u2212/g,'-');
-  if (s === 'x') return { type:'affine', A:1, B:0 };
-  const m = s.match(/^([+-]?\d*\.?\d*)x(?:([+-]\d*\.?\d+))?$/i);
+function parseAffineInnerText(expr){
+  const s = String(expr||'').replace(/\s+/g,'').replace(/\u2212/g,'-');
+  if (s === 'x') return {a:1, b:0};
+  const m = s.match(/^([+-]?\d*\.?\d*)x([+-]\d*\.?\d+)?$/i);
   if (!m) return null;
   const A = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : Number(m[1]));
   const B = m[2] ? Number(m[2]) : 0;
-  if (!Number.isFinite(A) || A===0) return null;
-  return { type:'affine', A, B };
+  return (Number.isFinite(A) && Math.abs(A) > 0) ? {a:A, b:B} : null;
 }
-
-// g(x) = a x^n + b  (n entier ≥ 1)
-function parseInnerPower(txt){
-  let s = String(txt||'').replace(/\s+/g,'').replace(/\u2212/g,'-');
-  s = s.replace(/x²/gi,'x^2').replace(/x³/gi,'x^3');
-  const m = s.match(/^([+-]?\d*\.?\d*)x\^?(\d+)(?:([+-]\d*\.?\d+))?$/i);
-  if (!m) return null;
-  const a = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : Number(m[1]));
-  const n = Number(m[2]);
-  const b = m[3] ? Number(m[3]) : 0;
-  if (!Number.isFinite(a) || a===0 || !Number.isInteger(n) || n<1) return null;
-  return { type:'power', a, n, b };
-}
-
-// g(x) = (a x + b) / (c x + d) avec c x + d ≠ 0
-function parseInnerHomography(txt){
-  const s = String(txt||'').replace(/\s+/g,'').replace(/\u2212/g,'-');
-  const m = s.match(/^\(?([+-]?\d*\.?\d*)x([+-]\d*\.?\d+)?\)?\/\(?([+-]?\d*\.?\d*)x([+-]\d*\.?\d+)?\)?$/i);
-  if (!m) return null;
-  const α = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : Number(m[1]));
-  const β = m[2] ? Number(m[2]) : 0;
-  const γ = (m[3]===''||m[3]==='+') ? 1 : (m[3]==='-' ? -1 : Number(m[3]));
-  const δ = m[4] ? Number(m[4]) : 0;
-  if (![α,β,γ,δ].every(Number.isFinite)) return null;
-  const det = α*δ - β*γ;
-  if (Math.abs(det) < 1e-15) return null; // pas bijective → on évite
-  return { type:'hmg', α, β, γ, δ, det };
-}
-
-// --- interface commune : inverse u -> x  /  monotone par morceaux / trous en x ---
-const INNER = {
-  // u(x) = A x + B
-  map_u(inner, x){ return inner.A * x + inner.B; },
-  inv_x(inner, u){ return (u - inner.B) / inner.A; },
-  holesX(inner){ return []; },
-  pieces(inner, a, b){ // monotone unique
-    return [{ xL:a, xR:b, mono: Math.sign(inner.A)||1 }];
-  }
-};
-
-const INNER_POWER = {
-  map_u(I,x){ return I.a*Math.pow(x, I.n) + I.b; },
-  inv_x(I,u){
-    const t = (u - I.b) / I.a;
-    if (I.n % 2 === 1) return Math.sign(t)*Math.pow(Math.abs(t), 1/I.n); // unique
-    // pair : on choisit la branche X>=0 ou X<=0 au rendu via pieces(); ici on renvoie la branche + par défaut
-    return (t<0) ? NaN : Math.pow(t, 1/I.n);
-  },
-  holesX(){ return []; },
-  pieces(I, a, b){
-    if (I.n % 2 === 1){  // impair : monotone sur tout R (sens = sign(a))
-      return [{ xL:a, xR:b, mono: Math.sign(I.a)||1 }];
-    }
-    // pair : décroît sur (-∞,0] puis croît sur [0,+∞) si a>0 ; inverse si a<0 (mais le signe ne change pas le sens local)
-    const mid = 0;
-    const parts=[];
-    if (a < mid) parts.push({ xL:a, xR:Math.min(b, mid), mono:-1 }); // (-∞,0] ↘
-    if (b > mid) parts.push({ xL:Math.max(a, mid), xR:b, mono:+1 }); // [0,+∞) ↗
-    return parts;
-  }
-};
-
-const INNER_HMG = {
-  map_u(H,x){ return (H.α*x + H.β) / (H.γ*x + H.δ); },
-  inv_x(H,u){ return (H.δ*u - H.β) / (-H.γ*u + H.α); }, // inverse de Möbius
-  holesX(H){ return (H.γ===0) ? [] : [-H.δ/H.γ]; },     // pôle (double barre)
-  pieces(H, a, b){
-    const pole = (H.γ===0) ? null : (-H.δ/H.γ);
-    const monoSign = (H.det>0 ? +1 : -1);               // g'(x)=det/(γx+δ)^2
-    const P=[];
-    if (pole==null || pole<=a || pole>=b){
-      P.push({ xL:a, xR:b, mono: monoSign });
-    } else {
-      P.push({ xL:a,    xR:pole, mono: monoSign });
-      P.push({ xL:pole, xR:b,    mono: monoSign });
-    }
-    return P;
-  }
-};
-
 
 // helpers
 const sgn = x => (x>0)-(x<0);
@@ -2485,23 +2395,14 @@ function renderVarTableFromPieces(f, a, b, intervalLabel, cols, dirs, holes, ext
   // ——— LIGNE f : bords, trous (avec 0−/0+), extrémums, flèches ———
   const body = ['<tr><th>\\(f\\)</th>'];
   cols.forEach((x, j) => {
-   // --- BORD GAUCHE ---
-if (j === 0) {
-  const y0  = Number.isFinite(a) ? f(a) : NaN;
-  // si f(a) est définie ⇒ on affiche f(a), sinon on utilise la limite fournie (banque ou fallback)
-  const txt = Number.isFinite(y0) ? fmtY(y0)
-                                  : (edgeLim ? edgeLim(f,'L') : edgeLimit(f,a,b,'L'));
-  const top = (dirs[0] !== '↗');        // ↗ : valeur en bas ; ↘ : en haut
-  body.push( cellVal(txt, top) );
-}
-// --- BORD DROIT ---
-else if (j === cols.length - 1) {
-  const y1  = Number.isFinite(b) ? f(b) : NaN;
-  const txt = Number.isFinite(y1) ? fmtY(y1)
-                                  : (edgeLim ? edgeLim(f,'R') : edgeLimit(f,a,b,'R'));
-  const top = (dirs.at(-1) === '↗');    // ↗ : valeur en haut ; ↘ : en bas
-  body.push( cellVal(txt, top) );
-}
+    if (j === 0){                              // bord gauche
+      const limL = edgeLim ? edgeLim(f,'L') : edgeLimit(f, a, b, 'L');
+      body.push(dirs[0]==='↗' ? cellVal(limL, false) : cellVal(limL, true));
+    }
+    else if (j === cols.length-1){             // bord droit
+      const limR = edgeLim ? edgeLim(f,'R') : edgeLimit(f, a, b, 'R');
+      body.push(dirs.at(-1)==='↗' ? cellVal(limR, true) : cellVal(limR, false));
+    }
 else if (isHole(x)){                       // TROU : lim− || lim+
   const L = bankHoleLimit(rec, f, x, 'L'); // TeX: +\infty, -\infty, 0, …
   const R = bankHoleLimit(rec, f, x, 'R');
@@ -2542,7 +2443,63 @@ else if (isHole(x)){                       // TROU : lim− || lim+
 
 
 
+// fabrique colonnes/flèches/“trous” pour une outer f(u) connue, composée g(x)=ax+b
+// fabrique colonnes/flèches/trous + points d'extrémum projetés (x*) depuis u*
+function buildPieces_outer_on_affine(outer, a, b, A, B){
+  const pieces = [];
+  const holesX = [];
+  const extXs  = []; // << nouveau
 
+  const addSeg = (xL, xR, arrow) => {
+    const L = Math.max(a, Math.min(xL, xR));
+    const R = Math.min(b, Math.max(xL, xR));
+    if (R > L) pieces.push({xL:L, xR:R, arrow});
+  };
+
+  // image de [a,b] par g(x)=Ax+B (gère ±∞)
+  const uA = Number.isFinite(a) ? (A*a+B) : (a===Number.NEGATIVE_INFINITY ? (A>0?Number.NEGATIVE_INFINITY:Number.POSITIVE_INFINITY) : (A>0?Number.POSITIVE_INFINITY:Number.NEGATIVE_INFINITY));
+  const uB = Number.isFinite(b) ? (A*b+B) : (b===Number.POSITIVE_INFINITY ? (A>0?Number.POSITIVE_INFINITY:Number.NEGATIVE_INFINITY) : (A>0?Number.NEGATIVE_INFINITY:Number.POSITIVE_INFINITY));
+  const uMin = Math.min(uA, uB), uMax = Math.max(uA, uB);
+
+  // trous en u (statique ou dynamique)
+  const holesU = outer.holesIn ? outer.holesIn(uMin, uMax) : (outer.holesU || []);
+  for (const u0 of holesU){
+    const x0 = preimage(u0, A, B);
+    if (x0 > a + 1e-12 && x0 < b - 1e-12) holesX.push(canonicalZero(x0));
+  }
+
+  // extrémums dynamiques si dispo, sinon table statique
+  const extsU = outer.extremaIn ? outer.extremaIn(uMin, uMax) : (outer.extremaU || []);
+  for (const E of extsU){
+    const xE = preimage(E.u, A, B);
+    if (xE > a + 1e-12 && xE < b - 1e-12){
+      extXs.push({ x: canonicalZero(xE), type: E.type, yTex: E.yTex });
+    }
+  }
+
+  // segments monotones : via segmenter(uMin,uMax) si présent, sinon outer.domain (statique)
+  const segs = outer.segmenter ? outer.segmenter(uMin, uMax) : (outer.domain || []);
+  for (const D of segs){
+    const XL = preimage(D.L, A, B);
+    const XR = preimage(D.R, A, B);
+    const arrow = (D.mono * Math.sign(A||1) > 0) ? '↗' : '↘';
+    addSeg(XL, XR, arrow);
+  }
+
+// === remplace la fin de buildPieces_outer_on_affine ===
+  const colsRaw = [a, b, ...holesX, ...pieces.flatMap(p=>[p.xL, p.xR]), ...extXs.map(e=>e.x)];
+  const cols = uniqSortedCols(colsRaw, 1e-8);
+
+  const dirs = [];
+  for (let i=0;i<cols.length-1;i++){
+    const L = cols[i], R = cols[i+1];
+    const mid = midBetween(L, R);               // <<< au lieu de (L+R)/2
+    const seg = pieces.find(p => mid > Math.min(p.xL,p.xR)+1e-12 && mid < Math.max(p.xL,p.xR)-1e-12);
+    dirs.push(seg ? seg.arrow : '');
+  }
+
+  return { cols, dirs, holesX, extXs };
+}
 
 
 
@@ -2584,7 +2541,7 @@ const VAR_BANK = {
 
   sqrt: {
     id:'sqrt', holesU: [],
-    domain: [{ L:0, R:Number.POSITIVE_INFINITY, openL:true, openR:true, mono:+1 }],
+    domain: [{ L:0, R:Number.POSITIVE_INFINITY, openL:false, openR:true, mono:+1 }],
     extremaU: [{ u:0, type:'min', yTex:'0' }],
     // seulement u→+∞ a du sens
     limInf(sign){ return (sign > 0 ? '+\\infty' : '' ); }
@@ -2605,134 +2562,17 @@ const VAR_BANK = {
     limInf(sign){ return (sign > 0 ? '+\\infty' : '0'); } // u→+∞ : +∞, u→−∞ : 0
   },
 
- inv:  {
-  id: 'inv',
-  holesU: [0],
-  // deux morceaux “↘” (u ↘ sur (-∞,0) et (0,+∞))
-  domain: [
-    { L: Number.NEGATIVE_INFINITY, R: 0, openL:true, openR:true, mono:-1 },
-    { L: 0, R: Number.POSITIVE_INFINITY, openL:true, openR:true, mono:-1 }
-  ],
-  // nouvelles limites “banque”
-  limInf(dir){ return '0'; },                             // x→±∞ ⇒ 0
-  limAt0(side){ return (side<0 ? '−\\infty' : '+\\infty'); } // u→0±
-}
-
+  inv: {
+    id:'inv', holesU:[0],                        // trou en u=0
+    domain: [
+      { L:Number.NEGATIVE_INFINITY, R:0, openL:true, openR:true, mono:-1 },
+      { L:0,                        R:Number.POSITIVE_INFINITY, openL:true, openR:true, mono:-1 }
+    ],
+    extremaU: [],                                // pas d’extrémum global
+    limInf(){ return '0'; },                     // u→±∞ : 0
+    limAt0(side){ return side < 0 ? '−\\infty' : '+\\infty'; } // u→0^- / 0^+
+  }
 };
-
-function parseHomographyTop(src){
-  const s = String(src||'').replace(/\s+/g,'').replace(/\u2212/g,'-');
-  const m = s.match(/^\(?([+-]?\d*\.?\d*)x([+-]\d*\.?\d+)?\)?\/\(?([+-]?\d*\.?\d*)x([+-]\d*\.?\d+)?\)?$/i);
-  if (!m) return null;
-  const α = (m[1]===''||m[1]==='+') ? 1 : (m[1]==='-' ? -1 : Number(m[1]));
-  const β = m[2] ? Number(m[2]) : 0;
-  const γ = (m[3]===''||m[3]==='+') ? 1 : (m[3]==='-' ? -1 : Number(m[3]));
-  const δ = m[4] ? Number(m[4]) : 0;
-  if (![α,β,γ,δ].every(Number.isFinite)) return null;
-  const det = α*δ - β*γ;               // signe = sens de variation
-  if (Math.abs(det) < 1e-15) return null; // exclut le cas dégénéré
-  return { α, β, γ, δ, det, pole: (γ===0? null : -δ/γ) };
-}
-
-function tableVarHomography(H, a, b, intervalLabel){
-  const { α, β, γ, δ, det, pole } = H;
-
-  // colonnes : bornes + pôle éventuel
-  const cols = [];
-  cols.push(a);
-  if (Number.isFinite(pole) && pole > a + 1e-12 && pole < b - 1e-12) cols.push(canonicalZero(pole));
-  cols.push(b);
-  cols.sort((u,v)=>u-v);
-
-const head = ['<tr><th>\\(x\\)</th>'];
-cols.forEach((x, j) => {
-  const isPole = Number.isFinite(pole) && Math.abs(x - pole) < 1e-10;
-  if (isPole) {
-    head.push('<td class="lim"></td>');
-    head.push(`<td>\\(${xHeadLabel(x, j, cols, a, b)}\\)</td>`); // ici s’affiche −2
-    head.push('<td class="lim"></td>');
-  } else {
-    head.push(`<td>\\(${xHeadLabel(x, j, cols, a, b)}\\)</td>`);
-  }
-  if (j < cols.length - 1) head.push('<td></td>'); // cellule flèche
-});
-head.push('</tr>');
-
-
-  // flèches (sens = signe(det), sur chaque morceau)
-  const arrow = det>0 ? '↗' : '↘';
-  const dirs = Array(cols.length-1).fill(arrow);
-
-  // limites aux bords (horizontale y = α/γ si γ ≠ 0)
-  const limAtInf = (γ!==0) ? fracLatex(α/γ, 200) : (det>0?'+\\infty':'−\\infty'); // (γ=0 ⇒ affine, cas rarissime ici)
-  const limL = limAtInf, limR = limAtInf;
-
-  // limites aux trous (pôle)
-  function limAtPole(side){ // side: 'L' ou 'R'
-    const x0 = pole;
-    const num = α*x0 + β;
-    const s = Math.sign(num/γ) || 1;
-    // y ≈ (num/γ) * 1/(x - x0)
-    return (side==='L') ? (s>0 ? '−\\infty' : '+\\infty')
-                        : (s>0 ? '+\\infty' : '−\\infty');
-  }
-
-  // petit helper pour la cellule “double-étage”
-  const cellVal = (v, top)=>{
-    const up = top ? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
-    const dn = top ? '&nbsp;' : (v?`\\(${v}\\)`:'&nbsp;');
-    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
-  };
-
-  // construit la ligne f
-  const row = ['<tr><th>\\(f\\)</th>'];
-  for (let i=0;i<cols.length;i++){
-    const x = cols[i];
-
-    // BORDS
-    if (i===0){
-      row.push( dirs[0]==='↗' ? cellVal(limL, false) : cellVal(limL, true) );
-    } else if (i===cols.length-1){
-      row.push( dirs.at(-1)==='↗' ? cellVal(limR, true) : cellVal(limR, false) );
-    }
-    // PÔLE
-   else if (Number.isFinite(pole) && Math.abs(x - pole) < 1e-10) {
-  const leftTop  = (dirs[i-1] === '↗');
-  const rightTop = (dirs[i]   === '↗') ? false : true;
-
-  // signe de (α*x0+β)/γ  → orientation des limites ±∞
-  const s = Math.sign((α * pole + β) / γ) || 1;
-  const L = (s > 0 ? '−\\infty' : '+\\infty'); // x→pole−
-  const R = (s > 0 ? '+\\infty' : '−\\infty'); // x→pole+
-
-  row.push( cellVal(L, leftTop) );
-  row.push('<td class="dbar"></td>');         // la double barre SOUS la cellule “−2”
-  row.push( cellVal(R, rightTop) );
-
-  // flèche du segment (pole, colonne suivante)
-  if (i < cols.length - 1) row.push(`<td class="arr">${dirs[i]}</td>`);
-  continue;
-}
-
-    else{
-      row.push('<td></td>');
-    }
-
-    if (i<cols.length-1) row.push(`<td class="arr">${dirs[i]}</td>`);
-  }
-  row.push('</tr>');
-
-  return `
-    <div><b>Tableau de variations de \\(f\\) (banque) sur \\(${intervalLabel}\\) :</b></div>
-    <table class="pdf-tbl">
-      <thead>${head.join('')}</thead>
-      <tbody>${row.join('')}</tbody>
-    </table>
-  `;
-}
-
-
-
 
 /* ===== Helpers trigonométriques pour la banque ===== */
 
@@ -2914,273 +2754,81 @@ function recognizeFromBank(src){
   return null;
 }
 
-function recognizeOuterInner(src){
-  // normalisation légère
-  let s = String(src||'').trim().replace(/\s+/g,'').replace(/\u2212/g,'-');
-  s = s.replace(/rac\s*\(/gi,'sqrt(');          // ⟵ AJOUT : rac(...) ≡ sqrt(...)
-  if (/^\|.*\|$/.test(s)) s = 'abs(' + s.slice(1,-1) + ')';
-
-  const tryInner = (txt) => parseInnerAffine(txt) || parseInnerPower(txt) || parseInnerHomography(txt);
-
-  // 1/( ... )
-  {
-    const m = s.match(/^1\/\((.+)\)$/i);
-    if (m){
-      const inn = tryInner(m[1]); if (inn) return { outer: VAR_BANK.inv, inner: inn };
-    }
-    if (s==='1/x') return { outer: VAR_BANK.inv, inner: {type:'affine', A:1, B:0} };
-  }
-  // sqrt( … ) , ln( … ), exp( … ), abs( … )
-  for (const [re, outer] of [
-    [/^sqrt\((.+)\)$/i, VAR_BANK.sqrt],
-    [/^ln\((.+)\)$/i,   VAR_BANK.ln],
-    [/^exp\((.+)\)$/i,  VAR_BANK.exp],
-    [/^abs\((.+)\)$/i,  VAR_BANK.abs]
-  ]){
-    const m = s.match(re);
-    if (m){ const inn = tryInner(m[1]); if (inn) return { outer, inner: inn }; }
-  }
-  // trig si tu as ajouté VAR_BANK_TRIG (sin/cos/tan)
-  for (const [re, outer] of [
-    [/^sin\((.+)\)$/i,  (typeof VAR_BANK_TRIG!=='undefined'? VAR_BANK_TRIG.sin : null)],
-    [/^cos\((.+)\)$/i,  (typeof VAR_BANK_TRIG!=='undefined'? VAR_BANK_TRIG.cos : null)],
-    [/^tan\((.+)\)$/i,  (typeof VAR_BANK_TRIG!=='undefined'? VAR_BANK_TRIG.tan : null)],
-  ]){
-    if (!outer) continue;
-    const m = s.match(re);
-    if (m){ const inn = tryInner(m[1]); if (inn) return { outer, inner: inn }; }
-  }
-  // monômes x^n déjà pris en charge (outer=powN(n), inner affine x)
-  {
-    let m = s.match(/^x\^\s*(\d+)$/i) || s.match(/^x\*\*\s*(\d+)$/i);
-    if (!m){ if (s==='x²'||s==='x^2'||s==='x**2') m=['','2']; if (s==='x³'||s==='x^3'||s==='x**3') m=['','3']; }
-    if (m){ const n = parseInt(m[1],10); if (n>=1) return { outer: VAR_BANK.powN(n), inner:{type:'affine', A:1, B:0} }; }
-  }
-  return null;
-}
-
-function innerAPI(inner){
-  if (inner.type==='affine') return INNER;
-  if (inner.type==='power')  return INNER_POWER;
-  if (inner.type==='hmg')    return INNER_HMG;
-  return INNER; // fallback
-}
-
-// Fabrique colonnes/flèches/trous/extrémums pour f(u(x)) avec inner générique
-// Fabrique colonnes/flèches/trous/extrémums pour f(u(x)) avec inner générique
-function buildPieces_outer_on_inner(outer, inner, a, b){
-  const IN = innerAPI(inner);
-  const pieces = [];
-  const holesX = [];
-  const extXs  = [];
-
-  // 0) Trous de l'inner (ex: homographie) → barres en x
-  for (const x0 of IN.holesX(inner)){
-    if (x0 > a + 1e-12 && x0 < b - 1e-12) holesX.push(canonicalZero(x0));
-  }
-
-  // 1) Segments monotones de g (inner) sur [a,b]
-  const segX = IN.pieces(inner, a, b); // {xL,xR,mono} (mono = ±1)
-
-  // 2) Segments monotones de l’outer (en u)
-  //    - si outer.domain existe (banque), on s'en sert
-  //    - sinon, on considère un seul segment ↑ sur (-∞,+∞)
-  const segU = outer.domain ?? [{
-    L: Number.NEGATIVE_INFINITY, R: Number.POSITIVE_INFINITY,
-    openL:true, openR:true, mono:+1
-  }];
-
-  // 3) Croisement des segments (u(g(x)) avec u dans les morceaux de outer)
-  for (const SX of segX){
-    const xL = SX.xL, xR = SX.xR, mi = Math.sign(SX.mono) || 1;
-    // image en u des extrémités
-    const uAt = x => IN.map_u(inner, x);
-    const uL = uAt(xL), uR = uAt(xR);
-    const uMin = Math.min(uL, uR), uMax = Math.max(uL, uR);
-
-    // pour chaque morceau en u de l'outer, on intersecte avec [uMin,uMax]
-    for (const SU of segU){
-      const L = Math.max(uMin, SU.L);
-      const R = Math.min(uMax, SU.R);
-      if (!(R > L)) continue;
-
-      // extrémités en x obtenues par l’inverse de g
-      // si mi>0 : u augmente avec x → xA=inv(L), xB=inv(R)
-      // si mi<0 : u diminue avec x → xA=inv(R), xB=inv(L)
-      const xA = (mi > 0) ? IN.inv_x(inner, L) : IN.inv_x(inner, R);
-      const xB = (mi > 0) ? IN.inv_x(inner, R) : IN.inv_x(inner, L);
-      if (Number.isNaN(xA) || Number.isNaN(xB)) continue;
-
-
-      const xLo = Math.max(a, Math.min(xA, xB));
-      const xHi = Math.min(b, Math.max(xA, xB));
-      if (!(xHi > xLo)) continue;
-
-      const mt = (Math.sign(SU.mono)||1) * mi;  // **monotonie totale**
-      pieces.push({ xL: xLo, xR: xHi, arrow: (mt>0 ? '↗' : '↘') });
-    }
-  }
-
-  // 4) Trous hérités de l’outer (u = u0 tels que outer.holesU contient u0)
-  const holesU = outer.holesIn ? outer.holesIn(-1e9, +1e9) : (outer.holesU || []);
-  for (const u0 of holesU){
-    const x0 = innerAPI(inner).inv_x(inner, u0);
-    if (Number.isFinite(x0) && x0 > a + 1e-12 && x0 < b - 1e-12){
-      holesX.push(canonicalZero(x0));
-    }
-  }
-
-  // 5) Extrémums de l’outer : u* → x* = g^{-1}(u*)
-  const uWindowKnown = Number.isFinite(a) && Number.isFinite(b);
-  const uAtA = uWindowKnown ? IN.map_u(inner, a) : 0;
-  const uAtB = uWindowKnown ? IN.map_u(inner, b) : 0;
-  const uMin = uWindowKnown ? Math.min(uAtA, uAtB) : -1e3;
-  const uMax = uWindowKnown ? Math.max(uAtA, uAtB) :  1e3;
-  const extsU = outer.extremaIn ? outer.extremaIn(uMin, uMax) : (outer.extremaU || []);
-  for (const E of extsU){
-    const xE = IN.inv_x(inner, E.u);
-    if (Number.isFinite(xE) && xE > a + 1e-12 && xE < b - 1e-12){
-      extXs.push({ x: canonicalZero(xE), type: E.type, yTex: E.yTex });
-    }
-  }
-
-  // 6) Colonnes, flèches
-  const cols = uniqSortedCols([a, b, ...holesX, ...pieces.flatMap(p => [p.xL, p.xR]), ...extXs.map(e=>e.x)], 1e-8);
-  const dirs = [];
-  for (let i=0; i<cols.length-1; i++){
-    const mid = midBetween(cols[i], cols[i+1]);
-    const seg = pieces.find(p => mid > Math.min(p.xL,p.xR)+1e-12 && mid < Math.max(p.xL,p.xR)-1e-12);
-    dirs.push(seg ? seg.arrow : '');
-  }
-
-  return { cols, dirs, holesX, extXs };
-}
-
 
 
 // === à placer près de recognizeFromBank ===
 
 // Limites aux bords (utilise la banque quand dispo)
-// direction en u quand x → ±∞ : selon le type d'INNER
-function dirU_at_edge(inner, edge){ // -1 pour x->-∞, +1 pour x->+∞
-  const sX = (edge==='L' ? -1 : +1);
-  if (inner.type==='affine'){
-    return (Math.sign(inner.A)||1) * sX;
-  }
-  if (inner.type==='power'){
-    // x^n : pour x->±∞, u ~ a x^n
-    const n = inner.n, a = inner.a;
-    const s = (n%2===0) ? +1 : sX;  // pair : même signe ; impair : dépend du bord
-    return (Math.sign(a)||1) * s;
-  }
-  if (inner.type==='hmg'){
-    // homographie : u→ α/γ si γ≠0 (borne finie), donc outer.limInf n'est pas pertinent ; on renverra vide
-    return 0; // "pas d'infini" spécial → on laisse le fallback numérique
-  }
-  return sX;
-}
-
 function bankEdgeLimitProvider(rec, a, b){
-  return function edgeLim(f, edge){
-    if (edge==='L' && Number.isFinite(a)) return oneSidedLimit(f, a, 'R');
-    if (edge==='R' && Number.isFinite(b)) return oneSidedLimit(f, b, 'L');
+  return function edgeLim(f, edge){ // 'L' (gauche) ou 'R' (droite)
+    // bornes finies -> unilatérale numérique
+    if (edge === 'L' && Number.isFinite(a)) return oneSidedLimit(f, a, 'R');
+    if (edge === 'R' && Number.isFinite(b)) return oneSidedLimit(f, b, 'L');
 
-    if (!rec) return (edge==='L') ? '−\\infty' : '+\\infty';
+    if (!rec){ // pas reconnu par la banque
+      return (edge==='L') ? '−\\infty' : '+\\infty';
+    }
+    const { outer, A } = rec;
 
-    const { outer, inner } = rec;
-    const dirU = dirU_at_edge(inner, edge);
-    if (dirU !== 0 && typeof outer.limInf === 'function'){
+    // direction en x aux bords, puis en u via u=Ax+B
+    const dirX = (edge==='L' ? (a===Number.NEGATIVE_INFINITY?-1:+1)
+                             : (b===Number.POSITIVE_INFINITY?+1:-1));
+    const dirU = (Math.sign(A)||1) * dirX;
+
+    if (outer.limInf){
       const L = outer.limInf(dirU);
       if (L) return L;
     }
-    // sinon : estimation numérique prudente
     return (edge==='L')
       ? oneSidedLimit(f, Number.isFinite(a)?a:(b-1), 'R')
       : oneSidedLimit(f, Number.isFinite(b)?b:(a+1), 'L');
   };
 }
 
-
-
-
-function bankHoleLimit(rec, f, x0, side){
-  // Pas de reconnaissance -> estimation numérique classique
+// Limites au voisinage d’un TROU x0 (colonnes fantômes 0− / 0+)
+function bankHoleLimit(rec, f, x0, side){ // side: 'L' (x->x0-) ou 'R' (x->x0+)
   if (!rec) return oneSidedLimit(f, x0, side);
-
-  // 1) Homographie PURES (rec.type === 'homography')
-  if (rec?.type === 'homography') {
-    const { α, β, γ, pole } = rec.H;
-    if (Math.abs(x0 - pole) < 1e-10) {
-      // signe de (α*x0+β)/γ pilote l’orientation des ±∞
-      const s = Math.sign((α * pole + β) / γ) || 1;
-      return (side === 'L')
-        ? (s > 0 ? '−\\infty' : '+\\infty')
-        : (s > 0 ? '+\\infty' : '−\\infty');
-    }
-    return oneSidedLimit(f, x0, side);
-  }
-
-  // À partir d’ici, on peut utiliser outer si présent
-  const outer = rec?.outer;
-
-  // 2) Trous provenant de tan(u) : u = π/2 + kπ
-  if (outer?.id === 'tan' && typeof outer.limAtHole === 'function'){
-    const sX = (side === 'L') ? -1 : +1;
-    const sU = (Math.sign(rec.A)||1) * sX;  // signe de (u - u0)
-    return outer.limAtHole(sU);
-  }
-
-  // 3) Trous "u=0" (ln(u), 1/u)
-  if (outer?.holesU?.includes(0) && typeof outer.limAt0 === 'function'){
-    const sX = (side === 'L') ? -1 : +1;        // signe de (x - x0)
-    const sU = (Math.sign(rec.A)||1) * sX;      // signe de (u - 0)
-    // ln : côté u<0 interdit -> renvoyer vide
-    if (outer.id === 'ln' && sU < 0) return '';
+  const { outer, A } = rec;
+if (rec?.outer?.id === 'tan' && typeof rec.outer.limAtHole === 'function'){
+  // ici, le "trou" vient d'un u = π/2 + kπ  ⇒ signe en u selon A*(x - x0)
+  const sX = (side==='L') ? -1 : +1;
+  const sU = (Math.sign(rec.A)||1) * sX;
+  return rec.outer.limAtHole(sU);
+}
+  // trou issu de u=0 ? (inv, ln)
+  if (outer.holesU?.includes(0) && typeof outer.limAt0 === 'function'){
+    const sX  = (side==='L') ? -1 : +1;         // signe de (x-x0)
+    const sU  = (Math.sign(A)||1) * sX;         // signe de (u-0)
+    // ln: seulement côté u>0
+    if (outer.id === 'ln' && sU < 0) return ''; // côté interdit -> rien
     return outer.limAt0(sU) || '';
   }
-
-  // 4) Fallback
   return oneSidedLimit(f, x0, side);
 }
 
 
 
 
-
+// === remplace variationFromLibrary ===
 function variationFromLibrary(src, f, a, b, intervalLabel){
-  // 0) PRIORITÉ — homographie pure : (ax+b)/(cx+d)
-  const H = parseHomographyTop(src);
-  if (H){
-    return tableVarHomography(H, a, b, intervalLabel);
-  }
-
-  // 1) compositions usuelles (inv, sqrt, ln, exp, |·|, x^n, trig) avec inner affine/power/hmg
-  const rec = recognizeOuterInner(src);
+  const rec = recognizeFromBank(src);
   if (!rec) return null;
 
-  const { outer, inner } = rec;
-  const { cols, dirs, holesX, extXs } = buildPieces_outer_on_inner(outer, inner, a, b);
+  const { outer, A, B } = rec;
+  const { cols, dirs, holesX, extXs } = buildPieces_outer_on_affine(outer, a, b, A, B);
   const edgeLim = bankEdgeLimitProvider(rec, a, b);
 
   return renderVarTableFromPieces(
     f, a, b, intervalLabel,
     cols, dirs, holesX, extXs,
-    edgeLim, rec
+    edgeLim, rec                                   // <<< rec transmis
   );
 }
 
 
 
 
-
 function tableSign(f, a, b, label='f(x)', intervalLabel, overrides = []){
-  // ⇣ Essaie d'abord les formes factorisées
-  const q = parseQuotientFactoredText(label === 'f(x)' ? document.getElementById('fx').value : '');
-  if (q?.ok) return tableSignQuotientFactorized(q, a, b, intervalLabel);
-
-  const p = parseFactoredPolynomialText(label === 'f(x)' ? document.getElementById('fx').value : '');
-  if (p?.ok) return tableSignFactorized(p.a, p.factors, a, b, intervalLabel);
-
   // nouvelles bornes « utilisables » (débutent là où f est définie)
   const eb = effectiveBounds(f, a, b);
   const aEff = eb.A, bEff = eb.B;
@@ -3229,189 +2877,83 @@ for(let i=0;i<cols.length-1;i++){
 }
 
 
-// Détecte si f' "existe" numériquement en x0 (pentes G/D ≈ égales et finies)
-function derivDefinedAt(f, x0){
-  // f et f' finies au voisinage de x0 ?
-  if (!Number.isFinite(f(x0))) return false;
-  const h = 1e-6 * (1 + Math.abs(x0));
-  const y1 = f(x0 - h), y2 = f(x0 + h);
-  if (![y1,y2].every(Number.isFinite)) return false;
-  const fp = (y2 - y1) / (2*h);
-  return Number.isFinite(fp) && Math.abs(fp) < 1e12;
-}
+function tableDerivPlusVar(f, a, b, intervalLabel){
+const { A: Acalc, B: Bcalc } = finiteWindow(a, b);
+const holes = domainHoles(f, Acalc, Bcalc);
+const crit  = critWithSignChange(f, Acalc, Bcalc);
+
+  const fp    = x => derivC(f, x, 1e-4*(1+Math.abs(x)));
+
+  const cols = [a, ...holes, ...crit, b].sort((u,v)=>u-v)
+                 .filter((x,i,arr)=> i===0 || Math.abs(x-arr[i-1])>1e-4);
+
+ const head = ['<tr><th>\\(x\\)</th>'];
+cols.forEach((x, j) => {
+  head.push(`<td>\\(${xHeadLabel(x, j, cols, a, b)}\\)</td>`);
+  if (j < cols.length - 1) head.push('<td></td>');
+});
+head.push('</tr>');
 
 
-// Fabrique le "squelette" du tableau de variations : colonnes, flèches, trous, extrémums
-function buildVariationSkeleton(f, a, b, src){
-// PRIORITÉ : homographie pure f(x) = (αx+β)/(γx+δ)
-const H = parseHomographyTop(src);
-if (H) {
-  const { α, β, γ, δ, det, pole } = H;      // det = αδ − βγ
-  const cols = [a];
-  if (Number.isFinite(pole) && pole > a + 1e-12 && pole < b - 1e-12) {
-    cols.push(canonicalZero(pole));
-  }
-  cols.push(b);
-  cols.sort((u, v) => u - v);
-
-  // sens constant sur chaque morceau : signe(det)
-  const dirs = Array(cols.length - 1).fill(det > 0 ? '↗' : '↘');
-
-  // trous (le pôle)
-  const holes = Number.isFinite(pole) ? [canonicalZero(pole)] : [];
-
-  // pas d’extrémum pour une homographie
-  const exts = [];
-
-  // limites aux bords : asymptote horizontale y = α/γ si γ ≠ 0
-  const edgeLim = () => (γ !== 0 ? fracLatex(α / γ, 200) : (det > 0 ? '+\\infty' : '−\\infty'));
-
-  // on fournit un petit “rec” pour que bankHoleLimit connaisse la polarité aux trous
-  const rec = { type: 'homography', H };
-
-  return { cols, dirs, holes, exts, edgeLim: (_f,_edge)=>edgeLim(), rec };
-}
-
-
-  // 1) priorité banque (outer ∘ inner, homographie, trig…)
-  const rec = recognizeOuterInner(src);
-  if (rec){
-    const { cols, dirs, holesX, extXs } = buildPieces_outer_on_inner(rec.outer, rec.inner, a, b);
-    const edgeLim = bankEdgeLimitProvider(rec, a, b);
-    return { cols, dirs, holes: holesX, exts: extXs, edgeLim, rec };
-  }
-  // 2) fallback numérique = ce que tu fais pour "Tableau de variation"
-  const { A: Acalc, B: Bcalc } = finiteWindow(a, b);
-  const holes = domainHoles(f, Acalc, Bcalc);
-  const crit  = critWithSignChange(f, Acalc, Bcalc, holes);
-  const cols  = uniqSortedCols([a, ...holes, ...crit, b], 1e-8);
-  const dirs  = [];
-  for (let i=0; i<cols.length-1; i++){
-    const mid = midBetween(cols[i], cols[i+1]);
-    const s = derivC(f, mid, 1e-4*(1+Math.abs(mid)));
-    dirs.push(s>0?'↗':(s<0?'↘':''));
-  }
-  // extrémums (uniquement quand le sens change et f(x) est défini)
-  const exts = [];
-  for (let j=1; j<cols.length-1; j++){
-    if (nearAny(cols[j], holes)) continue;
-    const L = dirs[j-1], R = dirs[j];
-    if ((L==='↗' && R==='↘') || (L==='↘' && R==='↗')){
-      const y = f(cols[j]);
-      if (Number.isFinite(y)){
-        exts.push({ x: canonicalZero(cols[j]), type: (L==='↗'?'max':'min'), yTex: fmtY(y) });
-      }
-    }
-  }
-  const edgeLim = (g, edge)=> smartEdgeLimit(g, src, a, b, edge);
-  return { cols, dirs, holes, exts, edgeLim, rec:null };
-}
-
-function tableDerivPlusVar(f, a, b, intervalLabel, src){
-  // même squelette que le tableau "variations" simple
-  const { cols, dirs, holes, exts, edgeLim, rec } = buildVariationSkeleton(f, a, b, src);
-
-  const isHole = x => holes.some(h => Math.abs(h - x) < 1e-8);
-  const extAt  = x => exts.find(e => Math.abs(e.x-x)<1e-9);
-
-  // ── EN-TÊTE x : on garde les deux cellules "lim" autour des trous (comme dans la banque)
-  const head = ['<tr><th>\\(x\\)</th>'];
-  cols.forEach((x, j) => {
-    if (j===0 || j===cols.length-1 || !isHole(x)){
-      head.push(`<td>\\(${xHeadLabel(x, j, cols, a, b)}\\)</td>`);
-    } else {
-      head.push('<td class="lim"></td>');
-      head.push(`<td>\\(${xHeadLabel(x, j, cols, a, b)}\\)</td>`);
-      head.push('<td class="lim"></td>');
-    }
-    if (j < cols.length - 1) head.push('<td></td>');
-  });
-  head.push('</tr>');
-
-  // petite cellule "double étage" pour f
-  const cellVal=(v,top)=>{
-    const up=top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
-    const dn=top? '&nbsp;' : (v?`\\(${v}\\)`:'&nbsp;');
-    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
-  };
-
+  // f'(x) : 0 aux vrais points critiques, || sur les trous
   let rowFp = '<tr class="row-fp"><th>\\(f\'(x)\\)</th>';
-  for (let j = 0; j < cols.length; j++) {
-    const xj = cols[j];
-
-    // trou de domaine interne : déjà géré plus bas
-    const isHoleHere = (j>0 && j<cols.length-1) && isHole(xj);
-
-    // --- BORDS : si f est définie au bord mais f' n'existe pas -> double barre
-    const isEdge    = (j===0 || j===cols.length-1);
-    const isInfEdge = isEdge && !Number.isFinite(j===0 ? a : b);  // <<< SEULE AJOUTE
-
-    if (isEdge) {
-      if (isInfEdge) {
-        // pas de test ni de barre à ±∞
-        rowFp += '<td></td>';                                       // <<< SEULE ACTION
-      } else {
-        const xEdge = (j===0 ? a : b);
-        const fDef  = Number.isFinite(f(xEdge));
-        const fpDef = derivDefinedAt(f, xEdge);  // faux pour sqrt au coin
-        rowFp += fDef && !fpDef ? '<td class="dbar"></td>' : '<td></td>';
-      }
-    }
-    else if (isHoleHere){
-      // trou : (lim) | || | (lim)
-      rowFp += '<td></td><td class="dbar"></td><td></td>';
-      if (j < cols.length - 1)
-        rowFp += `<td style="font-weight:700">${dirs[j]==='↗'?'+':(dirs[j]==='↘'?'−':'')}</td>`;
-      continue;
-    } else {
-      // intérieur : barre verticale ; "0" si changement de signe ET f' existe
-      const L = dirs[j-1], R = dirs[j];
-      const change = ((L==='↗' && R==='↘') || (L==='↘' && R==='↗'));
-      if (change && derivDefinedAt(f, xj)) rowFp += '<td class="zbar vbar">0</td>';
-      else                                 rowFp += '<td class="vbar"></td>';
-    }
-
-    if (j < cols.length - 1) {
-      rowFp += `<td style="font-weight:700">${dirs[j]==='↗'?'+':(dirs[j]==='↘'?'−':'')}</td>`;
+  for(let j=0;j<cols.length;j++){
+    if (j===0 || j===cols.length-1) rowFp += '<td></td>';
+    else if (nearAny(cols[j], holes)) rowFp += '<td class="dbar"></td>';
+    else rowFp += '<td class="zbar">0</td>';
+    if(j<cols.length-1){
+      const mid=(cols[j]+cols[j+1])/2;
+      const s = fp(mid);
+      rowFp += `<td style="font-weight:700">${s>0?'+':(s<0? UMIN : '')}</td>`;
     }
   }
   rowFp += '</tr>';
 
-  // ── LIGNE f : exactement la même logique d’affichage que ton tableau de variations (banque incluse)
+  // variations de f
+  const dirs=[];
+  for(let j=0;j<cols.length-1;j++){
+    const mid=(cols[j]+cols[j+1])/2;
+    const s=fp(mid);
+    dirs.push(s>0?'↗':(s<0?'↘':''));
+  }
+const vals = cols.map(x=> Number.isFinite(x) && Number.isFinite(f(x)) ? f(x) : NaN);
+  const marks = cols.map((x,i)=>{
+    if(i===0 || i===cols.length-1) return {yM:'',ym:''};
+    if (nearAny(x, holes)) return {yM:'',ym:''};
+    const yL=vals[i-1], y0=vals[i], yR=vals[i+1];
+    if(Number.isFinite(y0) && Number.isFinite(yL) && Number.isFinite(yR)){
+      if(y0>yL && y0>yR) return {yM:fmtY(y0),ym:''};
+      if(y0<yL && y0<yR) return {yM:'',ym:fmtY(y0)};
+    }
+    return {yM:'',ym:''};
+  });
+  const cellVal=(v,top)=>{
+    const up=top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    const dn=!top? (v?`\\(${v}\\)`:'&nbsp;') : '&nbsp;';
+    return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
+  };
   const rowF = (()=>{
     const body=['<tr><th>\\(f\\)</th>'];
     for(let i=0;i<cols.length;i++){
-      if (i === 0){ // bord gauche
-        const y0 = f(a);
-        const showValue = Number.isFinite(a) && Number.isFinite(y0);
-        const txt = showValue ? fmtY(y0) : edgeLim(f, 'L');   // <-- 0 pour sqrt
-        body.push(dirs[0]==='↗' ? cellVal(txt, false) : cellVal(txt, true));
-      } else if (i === cols.length - 1){ // bord droit
-        const y1 = f(b);
-        const showValue = Number.isFinite(b) && Number.isFinite(y1);
-        const txt = showValue ? fmtY(y1) : edgeLim(f, 'R');
-        body.push(dirs.at(-1)==='↗' ? cellVal(txt, true) : cellVal(txt, false));
-
-      } else if (isHole(cols[i])){
-        // limites banque (signes corrects) de part et d'autre du trou
-        const L = bankHoleLimit(rec, f, cols[i], 'L');
-        const R = bankHoleLimit(rec, f, cols[i], 'R');
-        const leftTop  = (dirs[i-1] === '↗');
-        const rightTop = (dirs[i]   === '↗') ? false : true;
-        body.push(cellVal(L || '', leftTop));
+      if (i===0){
+        const d=dirs[0], v=Number.isFinite(vals[0])?fmtY(vals[0]):'';
+        if(d==='↗') body.push(cellVal(v,false));
+        else if(d==='↘') body.push(cellVal(v,true));
+        else body.push(cellVal('',true));
+      }else if (i===cols.length-1){
+        const d=dirs.at(-1), v=Number.isFinite(vals.at(-1))?fmtY(vals.at(-1)):'';
+        if(d==='↗') body.push(cellVal(v,true));
+        else if(d==='↘') body.push(cellVal(v,false));
+        else body.push(cellVal('',true));
+      }else if (nearAny(cols[i], holes)){
         body.push('<td class="dbar"></td>');
-        body.push(cellVal(R || '', rightTop));
-        if (i < cols.length - 1) body.push(`<td class="arr">${dirs[i]||''}</td>`);
-        continue;
-      } else {
-        const ext = extAt(cols[i]);
-        if (ext){
-          body.push(ext.type==='max' ? cellVal(ext.yTex, true) : cellVal(ext.yTex, false));
-        } else {
-          body.push(cellVal('', true));
-        }
+      }else{
+        const {yM,ym}=marks[i];
+        if(yM) body.push(cellVal(yM,true));
+        else if(ym) body.push(cellVal(ym,false));
+        else body.push(cellVal('',true));
       }
-      if (i<cols.length-1) body.push(`<td class="arr">${dirs[i]||''}</td>`);
+      if(i<cols.length-1) body.push(`<td class="arr">${dirs[i]||''}</td>`);
     }
     body.push('</tr>');
     return body.join('');
@@ -3422,9 +2964,6 @@ function tableDerivPlusVar(f, a, b, intervalLabel, src){
 }
 
 
-
-
-
 /* ===== 4) Actions ===== */
 function typeset(node){ if(window.MathJax?.typesetPromise){ MathJax.typesetPromise([node]).catch(()=>{}); } }
 
@@ -3433,47 +2972,22 @@ function getInput(){
   const I  = $('#I').value;
 
   const Iinfo = parseIntervalText(I);
-  const f     = compileFx(fx);
-
-  // valeurs par défaut issues de l'entrée
-  let a = Iinfo.a;
-  let b = Iinfo.b;
-  let intervalLabel = Iinfo.labelTex;
-
-  // --- Forcer le domaine si f(x) = sqrt(ax+b) / rac(ax+b) ---
-  //    et mémoriser l'abscisse "coin" x0 où la dérivée n'existe pas.
-    // --- Domaine forcé pour sqrt(ax+b) / rac(ax+b) ---
-  let corner = null; // point où f' n'existe pas (le "coin")
-  (function(){
-    const rec = recognizeOuterInner(fx);              // ← utilise le patch #1
-    if (!rec) return;
-    if (rec.outer?.id === 'sqrt' && rec.inner?.type === 'affine') {
-      const A = rec.inner.A, Bn = rec.inner.B;
-      const x0 = -Bn / A;                             // Ax + B = 0
-      corner = x0;
-
-      if (A > 0) {                                    // domaine [x0 ; +∞[
-        if (a < x0) a = x0;
-        if (!Number.isFinite(b) || b <= x0) b = +Infinity;
-        intervalLabel = `[${fmtX(x0)}; +\\infty[`;
-      } else {                                        // domaine ]-∞ ; x0]
-        if (b > x0) b = x0;
-        if (!Number.isFinite(a) || a >= x0) a = -Infinity;
-        intervalLabel = `]-\\infty; ${fmtX(x0)}]`;
-      }
-    }
-  })();
-
-
-
+  const f  = compileFx(fx);
 
   const ortho = $('#chk-ortho')?.checked || false;
-  const sym   = $('#chk-sym')?.checked   || false;
+const sym   = $('#chk-sym')?.checked   || false;
 
-  return { f, a, b, src: fx, Iinfo, intervalLabel, ortho, sym, corner };
-
+  return {
+    f,
+    a: Iinfo.a,
+    b: Iinfo.b,
+    src: fx,
+    Iinfo,
+    intervalLabel: Iinfo.labelTex,
+    ortho,
+    sym
+  };
 }
-
 
 $('#btn-plot').onclick = ()=>{
   try{
@@ -3495,7 +3009,7 @@ $('#btn-var').onclick = ()=>{
   try{
     const { f, a, b, src, intervalLabel } = getInput();
     $('#out-eq').innerHTML =
-      `<div><b>Étude des variations de :</b> \\(f(x)=\\displaystyle ${toTeXPretty(src)}\\) sur \\(${intervalLabel}\\)</div>`;
+      `<div><b>Étude des variations de :</b> \\(f(x)=\\displaystyle ${src}\\) sur \\(${intervalLabel}\\)</div>`;
 
     // 1) essaie la banque (fonctions usuelles + compositions affines)
     const bankHTML = variationFromLibrary(src, f, a, b, intervalLabel);
@@ -3586,140 +3100,27 @@ typeset($('#out-eq')); typeset($('#out-deriv'));typeset($('#out-var'));typeset($
 };
 
 
-$('#btn-etude-var').onclick = () => {
+$('#btn-etude-var').onclick = ()=>{
   try{
-    const { f, a, b, src, intervalLabel } = getInput();
-    $('#out-eq').innerHTML =
-      `<div><b>Étude des variations de :</b> \\(f(x)=\\displaystyle ${toTeXPretty(src)}\\) sur \\(${intervalLabel}\\)</div>`;
-    $('#out-deriv').innerHTML = tableDerivPlusVar(f, a, b, intervalLabel, src);
+const { f, a, b, src, intervalLabel } = getInput();
+const fxTex = toTeXPretty(src);
 
-    // ménage
+const C = critPoints(f,a,b);
+const eqHtml = (C.length
+  ? `Points critiques où \\(f'(x)=0\\) (≈) : ${C.map(c=>'x\\approx '+fmtX(c)).join(', ')}.`
+  : `Aucun point critique \\(f'(x)=0\\) détecté sur \\(${intervalLabel}\\).`);
+$('#out-eq').innerHTML =
+  `<div><b>Étude des variations — dérivée :</b> \\(f(x)=\\displaystyle ${src}\\)</div><div class="small">${eqHtml}</div>`;
+$('#out-deriv').innerHTML = tableDerivPlusVar(f, a, b, intervalLabel);
+
     $('#graph').innerHTML='';
-    $('#out-var').innerHTML='';
     $('#out-sign').innerHTML='';
-
-    typeset($('#out-eq')); typeset($('#out-deriv'));
+    $('#out-var').innerHTML='';
+   typeset($('#out-sign')); typeset($('#out-eq')); typeset($('#out-deriv'));typeset($('#out-var'));
   }catch(e){ alert(e.message); }
 };
 
-// ====== TOGGLE PANELS (show/hide, un seul ouvert à la fois) ======
-const PANELS = {
-  'btn-plot':        'graph',
-  'btn-var':         'out-var',
-  'btn-etude-signe': 'out-sign',
-  'btn-etude-var':   'out-deriv'
-};
-let openPanel = null;
-
-function clearPanel(id){
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = '';
-}
-function clearAllPanels(){
-  Object.values(PANELS).forEach(clearPanel);
-}
-
-// petit helper : récupère f, [a,b], et le label TeX de l’intervalle
-function getInputs(){
-  const fxSrc = document.getElementById('fx').value;
-  const f     = compileFx(fxSrc);
-  const It    = parseIntervalText(document.getElementById('I').value);
-  const piece = (It.pieces && It.pieces[0]) ? It.pieces[0] : It;
-  return { fxSrc, f, a: piece.a, b: piece.b, labelTex: It.labelTex };
-}
-
-// rendu “beau titre” au-dessus des tableaux
-function renderHeader(whereId, kind, fxSrc, labelTex){
-  const where = document.getElementById(whereId);
-  const prettyFx = toTeXPretty(fxSrc);
-  const titles = {
-    graph:  `Courbe de \\(f(x)= ${prettyFx}\\) sur \\(${labelTex}\\)`,
-    var:    `Tableau de variations de \\(f\\) sur \\(${labelTex}\\)`,
-    sign:   `Tableau de signes de \\(f(x)\\) sur \\(${labelTex}\\)`,
-    dvar:   `Tableau \\(f'(x)\\) et variations de \\(f\\) sur \\(${labelTex}\\)`
-  };
-  where.insertAdjacentHTML('beforeend', `<div class="step"><b>${titles[kind]}</b></div>`);
-}
-
-// rendus identiques à tes fonctionnalités actuelles
-function renderPlot(){
-  const { fxSrc, f, a, b, labelTex } = getInputs();
-  const mount = document.getElementById('graph');
-  mount.innerHTML = '';
-  drawGraph(f, a, b, mount, {
-    ortho: !!document.getElementById('chk-ortho')?.checked,
-    sym:   !!document.getElementById('chk-sym')?.checked
-  });
-}
-
-function renderVar(){
-  const { fxSrc, f, a, b, labelTex } = getInputs();
-  const out = document.getElementById('out-var');
-  out.innerHTML = '';
-  // banque quand dispo, sinon tableau numérique
-  const bank = variationFromLibrary(fxSrc, f, a, b, labelTex);
-  out.insertAdjacentHTML('beforeend', bank ?? tableVariation(f, a, b, labelTex, fxSrc));
-  (window.MathJax?.typesetPromise ?? window.MathJax?.typeset)?.();
-}
-
-function renderSign(){
-  const { fxSrc, f, a, b, labelTex } = getInputs();
-  const out = document.getElementById('out-sign');
-  out.innerHTML = '';
-
-  // priorité : quotient factorisé → produit factorisé → fallback numérique (mêmes fonctions que chez toi)
-  const q = parseQuotientFactoredText(fxSrc);
-  if (q?.ok){
-    out.insertAdjacentHTML('beforeend', tableSignQuotientFactorized(q, a, b, labelTex));
-  } else {
-    const p = parseFactoredPolynomialText(fxSrc);
-    if (p?.ok) out.insertAdjacentHTML('beforeend', tableSignFactorized(p.a, p.factors, a, b, labelTex));
-    else       out.insertAdjacentHTML('beforeend', tableSign(f, a, b, 'f(x)', labelTex));
-  }
-  (window.MathJax?.typesetPromise ?? window.MathJax?.typeset)?.();
-}
-
-function renderDerivVar(){
-  const { fxSrc, f, a, b, labelTex } = getInputs();
-  const out = document.getElementById('out-deriv');
-  out.innerHTML = '';
-  out.insertAdjacentHTML('beforeend', tableDerivPlusVar(f, a, b, labelTex, fxSrc));
-  (window.MathJax?.typesetPromise ?? window.MathJax?.typeset)?.();
-}
-
-// map bouton → fonction de rendu
-const RENDER = {
-  'btn-plot':        renderPlot,
-  'btn-var':         renderVar,
-  'btn-etude-signe': renderSign,
-  'btn-etude-var':   renderDerivVar
-};
-
-// branche les 4 boutons en “toggle”
-Object.keys(PANELS).forEach(btnId => {
-  document.getElementById(btnId).addEventListener('click', () => {
-    const targetPanel = PANELS[btnId];
-
-    // si on reclique le même → on masque tout
-    if (openPanel === targetPanel){
-      clearAllPanels();
-      openPanel = null;
-      return;
-    }
-
-    // sinon on remplace ce qu'il y avait : on vide, on ouvre celui-ci
-    clearAllPanels();
-    openPanel = targetPanel;
-    RENDER[btnId]();             // calcule + injecte
-  });
-});
-
-
 })();
-
-
-
-
 </script>
 </body>
 </html>

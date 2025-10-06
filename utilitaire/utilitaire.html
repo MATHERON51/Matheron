@@ -194,6 +194,13 @@ table.var td.zbar {
 @media print{
   .steps .pdf-tbl td.arr{ font-size: 1.6em; }
 }
+/* Centrage vertical (valeur unique) */
+table.pdf-tbl td.mid, table.var td.mid { position: relative; }
+table.pdf-tbl td.mid .midv, table.var td.mid .midv{
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  white-space:nowrap; text-align:center;
+}
 
 </style>
 
@@ -642,7 +649,7 @@ function analyzeVariationFromCurve(){
   const colsY = colsX.map(x=> valueOnCurve(K,x));
   const dirs = [];
   for(let j=0;j<colsX.length-1;j++){
-    dirs.push( colsY[j+1] > colsY[j] ? '↗' : (colsY[j+1] < colsY[j] ? '↘' : '') );
+    dirs.push( colsY[j+1] > colsY[j] ? '↗' : (colsY[j+1] < colsY[j] ? '↘' : '→') );
   }
 
   const yMarks = colsX.map((xk,idx)=>{
@@ -672,6 +679,7 @@ function analyzeVariationFromCurve(){
 
   function L(s){ return s? `\\(${String(s).replace('.',',').replace('-',UMIN)}\\)` : '&nbsp;'; }
   function cellVal(v,top){ const up=top?L(v):'&nbsp;'; const dn=!top?L(v):'&nbsp;'; return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`; }
+  function cellValMidVar(v){ return `<td class="mid"><div class="midv">${L(v)}</div></td>`; }
 
   const body=['<tr><th>\\(f\\)</th>'];
   for(let idx=0; idx<colsX.length; idx++){
@@ -679,11 +687,14 @@ function analyzeVariationFromCurve(){
       const d=dirs[0];
       if(d==='↗') body.push(cellVal(fmtX(colsY[0]),false));
       else if(d==='↘') body.push(cellVal(fmtX(colsY[0]),true));
-      else body.push(cellVal('',true));
+      else if(d==='→') body.push(cellValMidVar(fmtX(colsY[0])));
+     else body.push(cellVal('',true));
+
     }else if(idx===colsX.length-1){
-      const d=dirs.at(-1);
+    const d=dirs.at(-1);
       if(d==='↗') body.push(cellVal(fmtX(colsY.at(-1)),true));
       else if(d==='↘') body.push(cellVal(fmtX(colsY.at(-1)),false));
+      else if(d==='→') body.push(cellValMidVar(fmtX(colsY.at(-1))));
       else body.push(cellVal('',true));
     }else{
       const {yM,ym}=yMarks[idx];
@@ -818,19 +829,22 @@ rowFp += '</tr>';
     const dn = !top ? L(v) : '&nbsp;';
     return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
   };
+  const cellValMidVar = v => `<td class="mid"><div class="midv">${L(v)}</div></td>`;
 
   const bodyF = ['<tr><th>\\(f\\)</th>'];
   for(let i=0;i<colsX.length;i++){
     if(i===0){
       const d=dirs[0];
       if(d==='↗') bodyF.push(cellVal(fmtX(colsY[0]),false));
-      else if(d==='↘') bodyF.push(cellVal(fmtX(colsY[0]),true));
+     else if(d==='↘') bodyF.push(cellVal(fmtX(colsY[0]),true));
+      else if(d==='→') bodyF.push(cellValMidVar(fmtX(colsY[0])));
       else bodyF.push(cellVal('',true));
     }else if(i===colsX.length-1){
       const d=dirs.at(-1);
       if(d==='↗') bodyF.push(cellVal(fmtX(colsY.at(-1)),true));
       else if(d==='↘') bodyF.push(cellVal(fmtX(colsY.at(-1)),false));
-      else bodyF.push(cellVal('',true));
+      else if(d==='→') bodyF.push(cellValMidVar(fmtX(colsY.at(-1))));
+     else bodyF.push(cellVal('',true));
     }else{
       const {yM,ym} = yMarks[i];
       if(yM) bodyF.push(cellVal(yM,true));
@@ -1107,7 +1121,7 @@ c.layerLbl.style.display = (i < count) ? '' : 'none';   // ← nouveau
   }
 function redrawLabels(c){
   c.layerLbl.innerHTML = '';
-    if (c.labels.length > 1) c.labels = (s.labels || []).slice(0,1); // garde 1 seul
+    if (c.labels.length > 1) c.labels = c.labels.slice(0,1); // garde 1 seul
 
   c.labels.forEach((lbl, idx)=>{
     const fo = document.createElementNS(rep.svg.namespaceURI,'foreignObject');
@@ -1188,8 +1202,10 @@ function placeLabelAt(c, x, y){
     crit.sort((a,b)=>a-b);
     const colsX=[a2]; for(const x of crit){ if(Math.abs(x-colsX.at(-1))>1e-3) colsX.push(x); } colsX.push(b2);
     const colsY=colsX.map(x=> valueOnCurveK(K,x));
-    const dirs=[]; for(let j=0;j<colsX.length-1;j++){ dirs.push(colsY[j+1]>colsY[j]?'↗':(colsY[j+1]<colsY[j]?'↘':'')); }
-    const yMarks=colsX.map((xk,idx)=>{
+const dirs=[]; for(let j=0;j<colsX.length-1;j++){
+    const yL = colsY[j], yR = colsY[j+1];
+    dirs.push( yR > yL ? '↗' : (yR < yL ? '↘' : '→') );
+  }    const yMarks=colsX.map((xk,idx)=>{
       if(idx===0 || idx===colsX.length-1) return {yM:'', ym:''};
       const yL=colsY[idx-1], y0=colsY[idx], yR=colsY[idx+1];
       if(y0>yL && y0>yR) return {yM:fmtX(y0), ym:''};
@@ -1395,14 +1411,20 @@ rep.hit.addEventListener('touchstart', onClick2, {passive:false});
       const L = s => s? `\\(${String(s).replace('.',',').replace('-',UMIN)}\\)` : '&nbsp;';
       const cellVal=(v,top)=>{ const up=top?L(v):'&nbsp;', dn=!top?L(v):'&nbsp;'; return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`; };
       const body=['<tr><th>\\('+a.name+'\\)</th>'];
+	const cellValMidVar = v => `<td class="mid"><div class="midv">${L(v)}</div></td>`;
+
       for(let i=0;i<colsX.length;i++){
         if(i===0){
-          const d=dirs[0]; if(d==='↗') body.push(cellVal(fmtX(colsY[0]),false));
+          const d=dirs[0];
+          if(d==='↗') body.push(cellVal(fmtX(colsY[0]),false));
           else if(d==='↘') body.push(cellVal(fmtX(colsY[0]),true));
+          else if(d==='→') body.push(cellValMidVar(fmtX(colsY[0])));
           else body.push(cellVal('',true));
         }else if(i===colsX.length-1){
-          const d=dirs.at(-1); if(d==='↗') body.push(cellVal(fmtX(colsY.at(-1)),true));
+         const d=dirs.at(-1);
+          if(d==='↗') body.push(cellVal(fmtX(colsY.at(-1)),true));
           else if(d==='↘') body.push(cellVal(fmtX(colsY.at(-1)),false));
+          else if(d==='→') body.push(cellValMidVar(fmtX(colsY.at(-1))));
           else body.push(cellVal('',true));
         }else{
           const {yM,ym}=yMarks[i]; if(yM) body.push(cellVal(yM,true)); else if(ym) body.push(cellVal(ym,false)); else body.push(cellVal('',true));
@@ -1487,10 +1509,22 @@ rep.hit.addEventListener('touchstart', onClick2, {passive:false});
       const L = s => s? `\\(${String(s).replace('.',',').replace('-',UMIN)}\\)` : '&nbsp;';
       const cellVal=(v,top)=>{ const up=top?L(v):'&nbsp;', dn=!top?L(v):'&nbsp;'; return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`; };
       const bodyF=['<tr><th>\\('+a.name+'\\)</th>'];
+	  const cellValMidVar = v => `<td class="mid"><div class="midv">${L(v)}</div></td>`;
+
       for(let i=0;i<colsX.length;i++){
-        if(i===0){ const d=dirs[0]; if(d==='↗') bodyF.push(cellVal(fmtX(colsY[0]),false)); else if(d==='↘') bodyF.push(cellVal(fmtX(colsY[0]),true)); else bodyF.push(cellVal('',true)); }
-        else if(i===colsX.length-1){ const d=dirs.at(-1); if(d==='↗') bodyF.push(cellVal(fmtX(colsY.at(-1)),true)); else if(d==='↘') bodyF.push(cellVal(fmtX(colsY.at(-1)),false)); else bodyF.push(cellVal('',true)); }
-        else { const {yM,ym}=yMarks[i]; if(yM) bodyF.push(cellVal(yM,true)); else if(ym) bodyF.push(cellVal(ym,false)); else bodyF.push(cellVal('',true)); }
+        if(i===0){
+         const d=dirs[0];
+         if(d==='↗') bodyF.push(cellVal(fmtX(colsY[0]),false));
+         else if(d==='↘') bodyF.push(cellVal(fmtX(colsY[0]),true));
+         else if(d==='→') bodyF.push(cellValMidVar(fmtX(colsY[0])));
+          else bodyF.push(cellVal('',true));
+       } else if(i===colsX.length-1){
+          const d=dirs.at(-1);
+          if(d==='↗') bodyF.push(cellVal(fmtX(colsY.at(-1)),true));
+          else if(d==='↘') bodyF.push(cellVal(fmtX(colsY.at(-1)),false));
+          else if(d==='→') bodyF.push(cellValMidVar(fmtX(colsY.at(-1))));
+          else bodyF.push(cellVal('',true));
+        } else { const {yM,ym}=yMarks[i]; if(yM) bodyF.push(cellVal(yM,true)); else if(ym) bodyF.push(cellVal(ym,false)); else bodyF.push(cellVal('',true)); }
         if(i<colsX.length-1) bodyF.push(`<td class="arr">${dirs[i]||''}</td>`);
       }
       bodyF.push('</tr>');
@@ -1577,7 +1611,7 @@ const toolVar = {
     const n=Math.min(4, Math.max(1, +$('#v-n',host).value||2));
     const cols=['xmin', ...Array.from({length:n},(_,i)=>'x'+(i+1)), 'xmax'];
     function xCell(role){ return `<td><input class="vx" data-role="${role}" type="text" placeholder="${role}"></td>`; }
-    function arrowCell(i){ return `<td class="bigsel"><select class="vdir" data-i="${i}"><option></option><option>↘</option><option>↗</option></select></td>`; }
+    function arrowCell(i){ return `<td class="bigsel"><select class="vdir" data-i="${i}">  <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`; }
 // Ligne x — en-tête éditable
 let rowX = '<tr><th><input class="v-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
 cols.forEach((c,j)=>{ 
@@ -1613,7 +1647,7 @@ function fCell(role){
 let rowF = '<tr><th><input class="v-hf" type="text" value="f" style="width:70px;text-align:center"></th>';
 cols.forEach((c,j)=>{
   rowF += fCell(c);
-  if(j < cols.length-1) rowF += `<td class="bigsel"><select class="vdir" data-i="${j}"><option></option><option>↘</option><option>↗</option></select></td>`;
+  if(j < cols.length-1) rowF += `<td class="bigsel"><select class="vdir" data-i="${j}">  <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`;
 });
 rowF += '</tr>';
 
@@ -1656,18 +1690,24 @@ makeTable(host){
   // --- préparation des affichages "classiques" (hors ||) ---
   const topArr = new Array(roles.length).fill('');
   const botArr = new Array(roles.length).fill('');
+  const overrideCore = new Array(roles.length).fill(null); // si → : cellule mid
+
 
   roles.forEach((r, idx) => {
     const { yM, ym } = vals[idx];
     const isFirst = (idx === 0), isLast = (idx === roles.length - 1);
     if (isFirst){
-      const d = dirs[0] || '';
+           const d = dirs[0] || '';
       if      (d === '↗') botArr[idx] = ym || '';
       else if (d === '↘') topArr[idx] = yM || '';
+      else if (d === '→') overrideCore[idx] = cellValMid( ym || yM || '' );
+     
     } else if (isLast){
-      const d = dirs.at(-1) || '';
+       const d = dirs.at(-1) || '';
       if      (d === '↗') topArr[idx] = yM || '';
       else if (d === '↘') botArr[idx] = ym || '';
+      else if (d === '→') overrideCore[idx] = cellValMid( yM || ym || '' );
+    
     } else {
       if      (yM) topArr[idx] = yM;
       else if (ym) botArr[idx] = ym;
@@ -1680,6 +1720,10 @@ makeTable(host){
     const dn = bottomText ? Lx(bottomText) : '&nbsp;';
     return `<td><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
   }
+function cellValMid(v){
+  // Valeur unique, centrée verticalement au milieu de la cellule
+  return `<td class="mid"><div class="midv">${Lx(v)}</div></td>`;
+}
 
   // === NOUVEAU : modèle de colonnes "étendu" autour des || ===
   // Chaque rôle produit: [limL?] + core + [limR?] puis (s’il n’est pas le dernier) un séparateur d’intervalle.
@@ -1711,9 +1755,26 @@ makeTable(host){
       return;
     }
     if (e.kind === 'core'){
-      if (vmark[roles[e.idx]] === '||') rowF += '<td class="dbar"></td>'; // la double barre seule
-      else rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
-      return;
+     const role = roles[e.idx];
+      const isBar = (vmark[role] === '||');
+      const leftConst  = (e.idx > 0 && dirs[e.idx - 1] === '→');
+      const rightConst = (e.idx < roles.length - 1 && dirs[e.idx] === '→');
+      const vCore = vals[e.idx].yM || vals[e.idx].ym || '';
+
+      if (isBar){
+        // || : juste la double barre
+        rowF += '<td class="dbar"></td>';
+      } else if (overrideCore[e.idx]){
+        // extrémités déjà surclassées (→)
+        rowF += overrideCore[e.idx];
+      } else if (leftConst || rightConst){
+        // ⟵ NOUVEAU : si un des intervalles adjacents est →, on centre la valeur
+        rowF += cellValMid(vCore);
+      } else {
+        // cas ↗ / ↘ classique (haut/bas)
+        rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
+     }
+       return;
     }
     // ---- colonne limite GAUCHE d'une double barre ----
 if (e.kind === 'limL') {
@@ -1721,10 +1782,11 @@ if (e.kind === 'limL') {
   const vRaw = vals[e.idx].yM || vals[e.idx].ym || '';
   const dL   = dirs[e.idx - 1] || ''; // sens de l'intervalle de gauche
   if (!vRaw) { rowF += '<td class="lim"></td>'; return; }
+  if (dL === '→') { rowF += cellValMid(vRaw); return; }
   // ↗ (vers la barre) finit en HAUT à gauche ; ↘ finit en BAS à gauche
   rowF += (dL === '↗') ? cellValRaw(vRaw, '') 
        : (dL === '↘') ? cellValRaw('', vRaw)
-                      : cellValRaw(vRaw, '');  // défaut: en haut
+                     : cellValRaw(vRaw, '');  // défaut: en haut
   return;
 }
 
@@ -1733,7 +1795,8 @@ if (e.kind === 'limR') {
   // priorité ym (min = limite droite), sinon retombe sur yM pour dupliquer
   const vRaw = vals[e.idx].ym || vals[e.idx].yM || '';
   const dR   = dirs[e.idx] || ''; // sens de l'intervalle de droite
-  if (!vRaw) { rowF += '<td class="lim"></td>'; return; }
+ if (!vRaw) { rowF += '<td class="lim"></td>'; return; }
+  if (dR === '→') { rowF += cellValMid(vRaw); return; }
   // ↗ (en repartant) démarre en BAS à droite ; ↘ démarre en HAUT à droite
   rowF += (dR === '↗') ? cellValRaw('', vRaw)
        : (dR === '↘') ? cellValRaw(vRaw, '')
@@ -2061,7 +2124,7 @@ makeGrid(host){
 
   const xCell   = role => `<td><input class="dvx" data-role="${role}" type="text" placeholder="${role}"></td>`;
   const sCell   = i    => `<td class="bigsel"><select class="dvs" data-i="${i}"><option></option><option>+</option><option>${UMIN}</option></select></td>`;
-  const dirCell = i    => `<td class="bigsel"><select class="dvd" data-i="${i}"><option></option><option>↘</option><option>↗</option></select></td>`;
+  const dirCell = i    => `<td class="bigsel"><select class="dvd" data-i="${i}">  <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`;
   const yBlock  = role => `<td><div style="display:flex;flex-direction:column;gap:6px;align-items:center">
                              <input class="dvYmax" data-role="${role}" type="text" placeholder="max">
                              <input class="dvYmin" data-role="${role}" type="text" placeholder="min">
@@ -2103,7 +2166,7 @@ function fCell(role){
 let rF = '<tr><th>\\(f\\)</th>';
 cols.forEach((c,j)=>{
   rF += fCell(c);
-  if(j<cols.length-1) rF += `<td class="bigsel"><select class="dvd" data-i="${j}"><option></option><option>↘</option><option>↗</option></select></td>`;
+  if(j<cols.length-1) rF += `<td class="bigsel"><select class="dvd" data-i="${j}">  <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`;
 });
 rF += '</tr>';
 
@@ -2129,6 +2192,7 @@ makeTable(host){
   $$('.dvz',host).forEach(sel => { zmap[sel.dataset.role] = sel.value || ''; });
 
   const L = s => `\\(${String(s).replace('-',''+UMIN)}\\)`;
+  const cellValMid = v => `<td class="mid"><div class="midv">${Lx(v)}</div></td>`;
 
   // --- valeurs limites saisies dans la ligne f (max/min par colonne) ---
   const vals = roles.map(r => ({
@@ -2158,6 +2222,8 @@ makeTable(host){
 
   // ===== Ligne f'(x) : 0/|| sur colonnes "core", vide sur limL/limR, signe sur sep =====
   let rowFp = `<tr><th>\\(f'(x)\\)</th>`;
+    const overrideCore = new Array(roles.length).fill(null);
+
   exp.forEach(e=>{
     if (e.kind === 'sep'){ rowFp += `<td style="font-weight:700;text-align:center">${sgn[e.idx]||''}</td>`; return; }
     if (e.kind === 'core'){ rowFp += pdfBarCell(zmap[roles[e.idx]] || '', roles[e.idx]); return; }
@@ -2175,12 +2241,16 @@ makeTable(host){
     const isFirst = (idx === 0), isLast = (idx === roles.length - 1);
     if (isFirst){
       const d = dirs[0] || '';
-      if      (d === '↗') botArr[idx] = ym || '';
+        if      (d === '↗') botArr[idx] = ym || '';
       else if (d === '↘') topArr[idx] = yM || '';
+      else if (d === '→') overrideCore[idx] = cellValMid( ym || yM || '' );
+    
     } else if (isLast){
       const d = dirs.at(-1) || '';
-      if      (d === '↗') topArr[idx] = yM || '';
+         if      (d === '↗') topArr[idx] = yM || '';
       else if (d === '↘') botArr[idx] = ym || '';
+      else if (d === '→') overrideCore[idx] = cellValMid( yM || ym || '' );
+    
     } else {
       if      (yM) topArr[idx] = yM;
       else if (ym) botArr[idx] = ym;
@@ -2197,9 +2267,21 @@ makeTable(host){
   exp.forEach(e=>{
     if (e.kind === 'sep'){ rowF += `<td class="arr">${dirs[e.idx]||''}</td>`; return; }
     if (e.kind === 'core'){
-      // colonne principale : soit la double barre seule, soit la valeur normale
-      if (vmarkF[roles[e.idx]] === '||') rowF += '<td class="dbar"></td>';
-      else rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
+      const role = roles[e.idx];
+      const isBar = (vmarkF[role] === '||');
+      const leftConst  = (e.idx > 0 && dirs[e.idx - 1] === '→');
+      const rightConst = (e.idx < roles.length - 1 && dirs[e.idx] === '→');
+      const vCore = vals[e.idx].yM || vals[e.idx].ym || '';
+
+      if (isBar){
+        rowF += '<td class="dbar"></td>';
+      } else if (overrideCore[e.idx]){
+        rowF += overrideCore[e.idx];
+      } else if (leftConst || rightConst){
+        rowF += cellValMid(vCore);
+      } else {
+       rowF += cellValRaw(topArr[e.idx], botArr[e.idx]);
+      }
       return;
     }
     // Colonnes limites (autour d'une ||) — duplication si une seule limite
@@ -2209,7 +2291,8 @@ makeTable(host){
       const v = vals[k].yM || vals[k].ym || '';
       const dL = dirs[k-1] || '';
       if (!v){ rowF += '<td class="lim"></td>'; return; }
-      rowF += (dL==='↗') ? cellValRaw(v,'')    // finit en haut à gauche
+ if (dL==='→') { rowF += cellValMid(v); return; }
+      rowF += (dL==='↗') ? cellValRaw(v,'')
            : (dL==='↘') ? cellValRaw('',v)    // finit en bas à gauche
                          : cellValRaw(v,'');
       return;
@@ -2219,8 +2302,8 @@ makeTable(host){
       const v = vals[k].ym || vals[k].yM || '';
       const dR = dirs[k] || '';
       if (!v){ rowF += '<td class="lim"></td>'; return; }
-      rowF += (dR==='↗') ? cellValRaw('',v)    // démarre en bas à droite
-           : (dR==='↘') ? cellValRaw(v,'')    // démarre en haut à droite
+if (dR==='→') { rowF += cellValMid(v); return; }
+      rowF += (dR==='↗') ? cellValRaw('',v)           : (dR==='↘') ? cellValRaw(v,'')    // démarre en haut à droite
                          : cellValRaw('',v);
       return;
     }

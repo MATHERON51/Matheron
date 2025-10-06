@@ -726,8 +726,29 @@ return [
 
 
 }
+// === Helpers fractions/décimaux (tolérants) ===
+function parseFracOrDec(s){
+  if(!s) return NaN;
+  s = String(s).replace(/\u2212|−/g,'-').replace(/\s+/g,'').replace(/,/g,'.');
 
+  // \dfrac{p}{q}
+  let m = s.match(/^\\dfrac\{([+\-]?\d+)\}\{([+\-]?\d+)\}$/);
+  if(m){ const p=+m[1], q=+m[2]; if(q!==0) return p/q; return NaN; }
 
+  // p/q
+  m = s.match(/^([+\-]?\d+)\/([+\-]?\d+)$/);
+  if(m){ const p=+m[1], q=+m[2]; if(q!==0) return p/q; return NaN; }
+
+  // entier/décimal
+  if(/^([+\-]?\d+(?:\.\d+)?)$/.test(s)) return +s;
+
+  return NaN;
+}
+function sameNumber(u, tex){
+  const a = parseFracOrDec(u);
+  const b = parseFracOrDec(tex);
+  return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a-b) < 1e-9;
+}
 
 /* ====== Exo aléatoire ====== */
 // ====== Exo aléatoire ======
@@ -874,6 +895,10 @@ host.querySelectorAll('input,select').forEach(el=>ensureTickAfter(el));
 cleanTextNodes(host);
 typesetAll(host);
   },
+
+
+
+
 
  correct(host, st){
   const {a,b,c,x1,x2,alphaTex,betaTex} = st;
@@ -1136,29 +1161,42 @@ function isStep1_b0(txt){
   })();
 
   // 3) Sommet S(α;β) — acceptons "S(…)" ou "(…)" ; virgule ou point-virgule
-  (function(){
-    const el = get('.sommet');
-    const raw = valTrim(el);
-    if(!raw) return;
-    tot++;
-    const canon = raw.replace(/\s+/g,'')
-                     .replace(/^s\(/i,'(')
-                     .replace(/,/g,';');
-    const want = `(${alphaTex};${betaTex})`;
-    const good = (canon===want);
-    setTick(el, good?'ok':'ko'); if(good) ok++;
-  })();
+(function(){
+  const el = get('.sommet');
+  const raw = valTrim(el);
+  if(!raw) return;
+  tot++;
+
+  // accepte: S(α;β) / (α;β) / espaces / virgule ou point-virgule
+  let s = raw.replace(/\s+/g,'').replace(/^s\(/i,'(').replace(/,/g,';');
+  const m = s.match(/^\((.+);(.+)\)$/);
+  let good = false;
+  if(m){
+    const ux = m[1], uy = m[2];
+    good = sameNumber(ux, alphaTex) && sameNumber(uy, betaTex);
+  }
+  setTick(el, good?'ok':'ko'); if(good) ok++;
+})();
+
 
   // 4) Axe x = α
-  (function(){
-    const el = get('.axe');
-    const raw = valTrim(el);
-    if(!raw) return;
-    tot++;
-    const canon = raw.replace(/\s+/g,'');
-    const good = (canon===`x=${alphaTex}`);
-    setTick(el, good?'ok':'ko'); if(good) ok++;
-  })();
+(function(){
+  const el = get('.axe');
+  const raw = valTrim(el);
+  if(!raw) return;
+  tot++;
+
+  // Doit commencer par x= (espaces tolérés autour)
+  const m = raw.replace(/\s+/g,'').match(/^x=(.+)$/i);
+  let good = false;
+  if(m){
+    const rhs = m[1];                 // ce qui est après "x="
+    good = sameNumber(rhs, alphaTex);  // accepte \dfrac{…}{…}, a/b, décimal
+  }
+  setTick(el, good ? 'ok' : 'ko'); if(good) ok++;
+})();
+
+
 
   // 5) Variations (flèches et β au bon endroit)
   (function(){
@@ -1175,7 +1213,7 @@ function isStep1_b0(txt){
       const raw = valTrim(el);
       if(!raw) return;
       tot++;
-      const good = (raw===alphaTex);
+const good = sameNumber(raw, alphaTex);
       setTick(el, good?'ok':'ko'); if(good) ok++;
     })();
 
@@ -1187,7 +1225,20 @@ function isStep1_b0(txt){
       tot++;
       const expectTop = (a<0) ? betaTex : '';     // a<0 → maximum en haut
       const expectBot = (a>0) ? betaTex : '';     // a>0 → minimum en bas
-      const good = (topV===expectTop && botV===expectBot);
+
+
+let good = false;
+if (expectTop && expectBot==='') {
+  // on n’exige que le champ attendu ; l’autre peut rester vide
+  good = sameNumber(topV, betaTex) && (!botV || botV==='');
+}
+else if (expectBot && expectTop==='') {
+  good = sameNumber(botV, betaTex) && (!topV || topV==='');
+}
+else { // parabole vers le bas/haut ne donne jamais les deux en même temps, mais par sécurité :
+  good = (!expectTop || sameNumber(topV, betaTex))
+      && (!expectBot || sameNumber(botV, betaTex));
+}
       setTick(top, good?'ok':'ko');
       setTick(bot, good?'ok':'ko');
       if(good) ok++;

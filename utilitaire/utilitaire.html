@@ -269,30 +269,93 @@ const $$=(s,r)=> Array.from((r||document).querySelectorAll(s));
 const UMIN='−';
 function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
 /* ==== Infinity → LaTeX ==== */
+/* Nettoyage des délimiteurs \( \) / $ $ déjà éventuels */
 function stripMathDelims(s){
   return (s||'')
-    .replace(/^\\\(|\\\)$/g,'')   // enlève \( \)
-    .replace(/^\$+|\$+$/g,'')     // enlève $...$
+    .replace(/^\\\(|\\\)$/g,'')
+    .replace(/^\$+|\$+$/g,'')
     .trim();
 }
+
+/* ∞ : -oo, +oo, oo, -∞, +∞, ∞, -inf, +inf, infty → \pm\infty */
 function toLatexInfinityToken(s){
-  // accepte: -oo, +oo, oo, -∞, +∞, ∞, -inf, +inf, infty (avec espaces, minus unicode…)
-  const t = stripMathDelims(s).toLowerCase()
-              .replace(/\s+/g,'')
-              .replace(/−/g,'-');               // unicode minus → ASCII
+  const t = stripMathDelims(s).toLowerCase().replace(/\s+/g,'').replace(/−/g,'-');
   const m = t.match(/^([+-])?(?:oo|∞|inf|infty)$/);
   if(!m) return null;
   const sign = (m[1]==='-' ? '-' : m[1]==='+' ? '+' : '');
-  return `${sign}\\infty`;                       // <-- à utiliser DANS LaTeX
+  return `${sign}\\infty`;
 }
-/* Emballe une valeur dans \( ... \) avec gestion ∞.
-   NB: si ce n'est PAS une ∞, on garde ton rendu visuel avec le '−' unicode. */
+
+/* Convertit l’écriture « clavier » → LaTeX : rac( ) , 1/2 , abs() , pi, puissances, ⋯ */
+function prettyMath(raw){
+  let s = stripMathDelims(raw);
+  if(!s) return '';
+
+  // minus unicode → ASCII
+  s = s.replace(/−/g,'-');
+
+  // exposants ² ³ → ^2 ^3
+  s = s.replace(/²/g,'^2').replace(/³/g,'^3');
+
+  // pi / PI → \pi
+  s = s.replace(/\bpi\b/gi,'\\pi');
+
+  // abs(x) → \lvert x\rvert
+  s = s.replace(/\babs\s*\(\s*([^()]+)\s*\)/gi,'\\lvert $1\\rvert');
+
+  // rac( ... ) → \sqrt{...}   (itératif pour capter les imbriqués simples)
+  for(let k=0;k<8;k++){
+    const t = s.replace(/\brac\s*\(\s*([^()]+?)\s*\)/gi,'\\sqrt{$1}');
+    if(t===s) break; s=t;
+  }
+
+  // ^( ... ) → ^{...}  et ^x → ^{x} si x n'est qu'un token
+  s = s.replace(/\^\s*\(([^()]+)\)/g,'^{\$1}');
+  s = s.replace(/\^([a-zA-Z0-9+\-/*.:,]+)(?![a-zA-Z0-9])/g,'^{\$1}'); // conservateur
+
+  // a*b → a\cdot b (léger) — on évite * dans LaTeX
+  s = s.replace(/(\d|\)|[a-zA-Z])\s*\*\s*(\d|\(|[a-zA-Z])/g,'$1\\cdot $2');
+
+  // fractions « simples » A/B → \dfrac{A}{B}
+  // A et B = nombre/variable/(...)/\sqrt{...}/|...|
+  const atom = String.raw`(?:-?\d+(?:[.,]\d+)?|[a-zA-Z](?:_[a-zA-Z0-9]+)?|\([^()]+\)|\\sqrt\{[^{}]+\}|\\lvert[^{}]+\\rvert)`;
+  const fracRe = new RegExp(`(${atom})\\s*\\/\\s*(${atom})`);
+  for(let i=0;i<12;i++){
+    const t = s.replace(fracRe,'\\dfrac{$1}{$2}');
+	s = s.replace(/\{\(([^{}()]+)\)\}/g, '{$1}');
+
+    if(t===s) break; s=t;
+  }
+// --- après la/les lignes qui font: s = s.replace(fracRe, '\\frac{$1}{$2}') ---
+
+// Enlève les parenthèses qui ENTOURENT TOUT le numérateur/denominateur
+// Ex: \frac{(x+5)}{(x-1)}  ->  \frac{x+5}{x-1}
+// Gère aussi quelques parenthèses imbriquées simples.
+for (let i = 0; i < 6; i++) {
+  const t = s.replace(
+    /\{\s*\(([^{}()]*(?:\([^{}()]*\)[^{}()]*)*)\)\s*\}/g,
+    '{$1}'
+  );
+  if (t === s) break;
+  s = t;
+}
+
+  // ∞ (en dernier pour ne pas casser les remplacements précédents)
+  const tok = toLatexInfinityToken(s);
+  if(tok) return tok;
+
+  return s;
+}
+
+/* Wrapper final vers \( … \) (utilisé partout dans le rendu) */
 function Lx(s){
   if(!s) return '\\(\\)';
-  const tok = toLatexInfinityToken(s);
-  if(tok) return `\\(${tok}\\)`;
-  return `\\(${String(s).replace(/-/g, UMIN)}\\)`;
+  return `\\(${prettyMath(String(s))}\\)`;
 }
+
+/* Si tu utilises parfois L(...) pour des libellés : bascule-le sur Lx pour profiter du rendu. */
+function L(s){ return Lx(s); }
+
 
 /* ===== Repère & tracés (reprend l'esprit Ex.1/2) ===== */
 function buildRepereSVG(opts){
@@ -1740,7 +1803,7 @@ function cellValMid(v){
   });
 
   // THEAD étendu (cases vides au-dessus des nouvelles colonnes)
-  const head = ['<tr><th>'+L(labelX)+'</th>'];
+  const head = ['<tr><th>'+Lx(labelX)+'</th>'];
   exp.forEach(e => {
     if (e.kind === 'core') head.push(`<td>${Lx(xs[e.idx])}</td>`);
     else                   head.push('<td></td>'); // limL/limR/sep
@@ -1748,7 +1811,7 @@ function cellValMid(v){
   head.push('</tr>');
 
   // TBODY — ligne f
-  let rowF = '<tr><th>'+L(labelF)+'</th>';
+  let rowF = '<tr><th>'+Lx(labelF)+'</th>';
   exp.forEach(e => {
     if (e.kind === 'sep'){
       rowF += `<td class="arr">${dirs[e.idx] || ''}</td>`;
@@ -1882,12 +1945,12 @@ const L = s => `\\(${s}\\)`;
 
 const labelX = clean($('.s1-hx',host)?.value || 'x');
 const labelF = clean($('.s1-hf',host)?.value || 'f(x)');
-const head=['<tr><th>'+L(labelX)+'</th>'];
+const head=['<tr><th>'+Lx(labelX)+'</th>'];
 xs.forEach((x,j)=>{ head.push(`<td>${Lx(x)}</td>`); if(j<xs.length-1) head.push('<td></td>'); });
 head.push('</tr>');
 const roles = ['xmin', ...$$('.s1x',host).slice(1,-1).map((_,i)=>'r'+(i+1)), 'xmax'];
 
-let rowF = '<tr><th>'+L(labelF)+'</th>';
+let rowF = '<tr><th>'+Lx(labelF)+'</th>';
 roles.forEach((role, j)=>{
   rowF += pdfBarCell(zmap[role] || '', role);
   if (j < roles.length-1) rowF += `<td style="font-weight:700">${sgn[j]||''}</td>`;
@@ -2047,7 +2110,7 @@ const labelFx = clean($('.sf-hfx',host)?.value || 'f(x)');
 const factLabels = $$('.sf-hf',host).map(inp=> clean(inp.value||'') );
 
 // En-tête x
-const head=['<tr><th>'+L(labelX)+'</th>'];
+const head=['<tr><th>'+Lx(labelX)+'</th>'];
 xs.forEach((x,j)=>{ head.push(`<td>${Lx(x)}</td>`); if(j<xs.length-1) head.push('<td></td>'); });
 head.push('</tr>');
 
@@ -2055,7 +2118,7 @@ head.push('</tr>');
 const body=[];
 // Ligne a (SOLUTION PDF) : barres verticales entre les signes
 if ($$('.sf-a', host).length) {
-  let tr = '<tr class="sf-pdf-row-a"><th>' + L(labelA) + '</th>';
+  let tr = '<tr class="sf-pdf-row-a"><th>' + Lx(labelA) + '</th>';
   for (let j = 0; j < cols; j++) {
     const isEdge = (j === 0 || j === cols - 1);
     tr += isEdge ? '<td></td>' : '<td class="sbar"></td>'; // ← barre verticale
@@ -2086,7 +2149,7 @@ factLabels.forEach((lab, idx)=>{
 
 
 // Ligne f(x) — valeurs 0/|| sous colonnes + signes par intervalles
-let trF = '<tr class="sf-pdf-row-fx"><th>'+ L(labelFx) +'</th>';
+let trF = '<tr class="sf-pdf-row-fx"><th>'+ Lx(labelFx) +'</th>';
 for (let j = 0; j < cols; j++) {
   const role = roleSeq[j];
   trF += pdfBarCell(Zfx[role] || '', role);
@@ -2138,14 +2201,14 @@ makeGrid(host){
     </td>`;
 
   // Ligne x
-  let rX = '<tr><th>\\(x\\)</th>';
-  cols.forEach((c,j)=>{ rX += xCell(c); if(j<cols.length-1) rX += '<td></td>'; });
-  rX += '</tr>';
+let rX = '<tr><th><input class="dv-hx" type="text" value="x" style="width:70px;text-align:center"></th>';
+cols.forEach((c,j)=>{ rX += xCell(c); if(j<cols.length-1) rX += '<td></td>'; });
+rX += '</tr>';
 
   // Ligne f'(x) : 0/|| sous chaque colonne + signe sur chaque intervalle
-  let rS = `<tr><th>\\(f'(x)\\)</th>`;
-  cols.forEach((c,j)=>{ rS += zeroCell(c); if(j<cols.length-1) rS += sCell(j); });
-  rS += '</tr>';
+let rS = `<tr><th><input class="dv-hfp" type="text" value="f'(x)" style="width:70px;text-align:center"></th>`;
+cols.forEach((c,j)=>{ rS += zeroCell(c); if(j<cols.length-1) rS += sCell(j); });
+rS += '</tr>';
 
 function fCell(role){
   return `<td>
@@ -2163,10 +2226,11 @@ function fCell(role){
 }
 
 
-let rF = '<tr><th>\\(f\\)</th>';
+let rF = '<tr><th><input class="dv-hf" type="text" value="f" style="width:70px;text-align:center"></th>';
 cols.forEach((c,j)=>{
   rF += fCell(c);
-  if(j<cols.length-1) rF += `<td class="bigsel"><select class="dvd" data-i="${j}">  <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`;
+  if(j<cols.length-1) rF += `<td class="bigsel"><select class="dvd" data-i="${j}">
+    <option></option><option>↘</option><option>↗</option><option>→</option></select></td>`;
 });
 rF += '</tr>';
 
@@ -2180,6 +2244,18 @@ $('#btn-action2').style.display='none';
 },
 
 makeTable(host){
+// helpers pour nettoyer/LaTeX-ifier
+const clean = s => (s||'')
+  .replace(/^\\\(|\\\)$/g,'')
+  .replace(/^\$+|\$+$/g,'')
+  .trim();
+const L = s => `\\(${s}\\)`;
+
+// NOUVEAU : libellés saisis
+const labelX  = clean($('.dv-hx', host)?.value  || 'x');
+const labelFp = clean($('.dv-hfp',host)?.value || "f'(x)");
+const labelF  = clean($('.dv-hf', host)?.value || 'f');
+
   const xs   = $$('.dvx',host).map(i=> i.value.trim());
   const sgn  = $$('.dvs',host).map(s=> s.value || '');      // signes de f'
   let   dirs = $$('.dvd',host).map(s=> s.value || '');      // ↘/↗ pour f
@@ -2191,7 +2267,6 @@ makeTable(host){
   const zmap = {};
   $$('.dvz',host).forEach(sel => { zmap[sel.dataset.role] = sel.value || ''; });
 
-  const L = s => `\\(${String(s).replace('-',''+UMIN)}\\)`;
   const cellValMid = v => `<td class="mid"><div class="midv">${Lx(v)}</div></td>`;
 
   // --- valeurs limites saisies dans la ligne f (max/min par colonne) ---
@@ -2214,14 +2289,14 @@ makeTable(host){
     if (k < roles.length-1) exp.push({kind:'sep', idx:k});
   });
 
-  const head = ['<tr><th>\\(x\\)</th>'];
+const head = ['<tr><th>'+Lx(labelX)+'</th>'];
   exp.forEach(e=>{
     if (e.kind === 'core') head.push(`<td>${Lx(xs[e.idx])}</td>`); else head.push('<td></td>');
   });
   head.push('</tr>');
 
   // ===== Ligne f'(x) : 0/|| sur colonnes "core", vide sur limL/limR, signe sur sep =====
-  let rowFp = `<tr><th>\\(f'(x)\\)</th>`;
+let rowFp = `<tr><th>${Lx(labelFp)}</th>`;
     const overrideCore = new Array(roles.length).fill(null);
 
   exp.forEach(e=>{
@@ -2263,7 +2338,7 @@ makeTable(host){
     return `<td class="lim"><div style="text-align:center">${up}</div><div style="height:6px"></div><div style="text-align:center">${dn}</div></td>`;
   }
 
-  let rowF = '<tr><th>\\(f\\)</th>';
+let rowF = `<tr><th>${Lx(labelF)}</th>`;
   exp.forEach(e=>{
     if (e.kind === 'sep'){ rowF += `<td class="arr">${dirs[e.idx]||''}</td>`; return; }
     if (e.kind === 'core'){

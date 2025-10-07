@@ -772,8 +772,29 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
     .qa{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start}
   .qmark{min-width:1.2em;text-align:center;font-weight:700}
   
+   /* ===== Graphe (SVG) ===== */
+.repere { width:100%; height:auto }
+.repere .grid{ stroke:#e6e6e6; stroke-width:1 }
+.repere .axis{ stroke:#555; stroke-width:1.4 }
+.repere .curve{ stroke:#111; stroke-width:2; fill:none }
+.repere .tick text{ font-size:12px; fill:#333 }
+
+
+
+/* Quadrillage complet */
+.repere .gridH{ stroke:#e8e8e8; stroke-width:1 }
+.repere .gridV{ stroke:#e8e8e8; stroke-width:1 }
+.repere .gridH.major, .repere .gridV.major{ stroke:#dddddd; stroke-width:1.2 } /* un poil plus visible */
+
+.repere .tickline{ stroke:#111; stroke-width:1.4 }
+.repere .tick.int text{ font-size:12px; dominant-baseline:ideographic; }
+.repere .tick.pi  text{ font-size:11px; opacity:.85; dominant-baseline:ideographic; }
+.repere .tick.y  text{ font-size:12px; dominant-baseline:middle; }
   
-  
+   .controls,
+  [data-math-kbd],
+  input, select, textarea, button,
+  .tick { display:none !important; }
 </style>
 
 <style>

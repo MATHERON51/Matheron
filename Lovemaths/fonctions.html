@@ -294,6 +294,19 @@ table.pdf-tbl td.lim small { font-size: .95em; }
 </label>
 
       </div>
+	  
+	  <div class="wrap">
+  <div class="row">
+    <label>f(x) =</label>
+    <input id="func" size="42" placeholder="ex: ln(cos(x)) ou sqrt(1-x^2)/(x-1)">
+    <label>sur</label>
+    <input id="dom" size="18" placeholder="]-oo;+oo[ (optionnel)">
+    <button id="go">Étudier</button>
+  </div>
+
+  <div id="out"></div>
+</div>
+	  
       <div class="small" style="margin-top:6px">
         Astuces de saisie : puissances avec <code>^</code> (ex. <code>x^2</code>), constantes : <code>pi</code>, <code>e</code> — fonctions : 
         <code>sin, cos, tan, asin, acos, atan, exp, ln, log, sqrt, abs</code>.
@@ -2261,9 +2274,6 @@ const stepY = integerStep(yMin, yMax, 10);
 /* ===== 3) Tableaux ===== */
 
 function tableVariation(f, a, b, intervalLabel, src){
-  // — forcer le domaine réel si f(x) = ln(ax+b) (intérieur affine)
-  ({ a, b, intervalLabel } = clampIntervalToLnAffine(src, a, b, intervalLabel));
-
 const bank = variationFromLibrary(src, f, a, b, intervalLabel);
   if (bank) return bank;
   const win = finiteWindow(a, b);
@@ -2864,30 +2874,29 @@ function recognizeFromBank(src){
   // 1/(ax+b)
   {
     const m = s.match(/^1\/\((.+)\)$/i);
-    if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK.inv, A:g.A, B:g.B }; }
+    if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK.inv, A:g.a, B:g.b }; }
     if (s==='1/x') return { outer: VAR_BANK.inv, A:1, B:0 };
   }
   // sqrt(ax+b)
   {
     const m = s.match(/^sqrt\((.+)\)$/i);
-    if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK.sqrt, A:g.A, B:g.B }; }
+    if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK.sqrt, A:g.a, B:g.b }; }
   }
   // ln(ax+b)
   {
     const m = s.match(/^ln\((.+)\)$/i);
-    if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK.ln, A:g.A, B:g.B };
- }
+    if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK.ln, A:g.a, B:g.b }; }
   }
   // exp(ax+b)
   {
     const m = s.match(/^exp\((.+)\)$/i);
-    if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK.exp, A:g.A, B:g.B }; }
+    if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK.exp, A:g.a, B:g.b }; }
     if (s==='exp(x)') return { outer: VAR_BANK.exp, A:1, B:0 };
   }
   // abs(ax+b)
   {
     const m = s.match(/^abs\((.+)\)$/i);
-    if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK.abs, A:g.A, B:g.B }; }
+    if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK.abs, A:g.a, B:g.b }; }
   }
   // x^n
   {
@@ -2904,15 +2913,15 @@ function recognizeFromBank(src){
   // … dans recognizeFromBank(src) :
 {
   const m = s.match(/^sin\((.+)\)$/i);
-  if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK_TRIG.sin, A:g.A, B:g.B }; }
+  if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK_TRIG.sin, A:g.a, B:g.b }; }
 }
 {
   const m = s.match(/^cos\((.+)\)$/i);
-  if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK_TRIG.cos, A:g.A, B:g.B }; }
+  if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK_TRIG.cos, A:g.a, B:g.b }; }
 }
 {
   const m = s.match(/^tan\((.+)\)$/i);
-  if (m){ const g=parseInnerAffine(m[1]); if(g) return { outer: VAR_BANK_TRIG.tan, A:g.A, B:g.B }; }
+  if (m){ const g=parseAffineInnerText(m[1]); if(g) return { outer: VAR_BANK_TRIG.tan, A:g.a, B:g.b }; }
 }
 
   return null;
@@ -2962,31 +2971,6 @@ function recognizeOuterInner(src){
   }
   return null;
 }
-
-/* === Clamp du domaine pour ln(ax+b) quand l'intérieur est affine === */
-function clampIntervalToLnAffine(src, a, b, intervalLabel){
-  const rec = recognizeOuterInner(src);
-  if (!rec || rec.outer?.id !== 'ln' || rec.inner?.type !== 'affine') {
-    return { a, b, intervalLabel }; // inchangé
-  }
-  const A = rec.inner.A, B = rec.inner.B;
-  if (!Number.isFinite(A) || A === 0) return { a, b, intervalLabel };
-
-  const x0 = -B / A; // frontière du domaine (ax+b = 0)
-
-  // Domaine réel de ln(ax+b) : ax+b > 0
-  if (A > 0) {
-    // x > x0 ⇒ on pousse la borne gauche jusqu'à x0 si besoin
-    if (!(a > x0)) a = x0;
-    intervalLabel = `]${fmtX(x0)}; +\\infty[`;
-  } else {
-    // A < 0 : x < x0 ⇒ on ramène la borne droite à x0 si besoin
-    if (!(b < x0)) b = x0;
-    intervalLabel = `]-\\infty; ${fmtX(x0)}[`;
-  }
-  return { a, b, intervalLabel };
-}
-
 
 function innerAPI(inner){
   if (inner.type==='affine') return INNER;
@@ -3177,8 +3161,6 @@ function bankHoleLimit(rec, f, x0, side){
 
 
 function variationFromLibrary(src, f, a, b, intervalLabel){
-  ({ a, b } = clampIntervalToLnAffine(src, a, b, /*label inutil ici*/ ''));
-
   // 0) PRIORITÉ — homographie pure : (ax+b)/(cx+d)
   const H = parseHomographyTop(src);
   if (H){
@@ -3205,7 +3187,6 @@ function variationFromLibrary(src, f, a, b, intervalLabel){
 
 
 function tableSign(f, a, b, label='f(x)', intervalLabel, overrides = []){
-
   // ⇣ Essaie d'abord les formes factorisées
   const q = parseQuotientFactoredText(label === 'f(x)' ? document.getElementById('fx').value : '');
   if (q?.ok) return tableSignQuotientFactorized(q, a, b, intervalLabel);
@@ -3275,9 +3256,6 @@ function derivDefinedAt(f, x0){
 
 // Fabrique le "squelette" du tableau de variations : colonnes, flèches, trous, extrémums
 function buildVariationSkeleton(f, a, b, src){
-  // — clamp dès le squelette (pour que le tableau commence au bon bord)
-  ({ a, b } = clampIntervalToLnAffine(src, a, b, /*label inutil ici*/ ''));
-
 // PRIORITÉ : homographie pure f(x) = (αx+β)/(γx+δ)
 const H = parseHomographyTop(src);
 if (H) {
@@ -3755,6 +3733,130 @@ Object.keys(PANELS).forEach(btnId => {
 
 
 
+</script>
+<script>
+// === Mini-outils ===
+const INF = { pos:"+∞", neg:"−∞" };
+const fmtVal = v => v==null ? "" : (v==="+oo"?INF.pos : v==="-oo"?INF.neg : String(v).replace(/--/g,"+"));
+const renderDomain = dom =>
+  dom.map(([a,b,ol,or])=>{
+    const L = ol? "]":"[";
+    const R = or? "[":"]";
+    const A = (a==null? INF.neg : String(a).replace(/\.0$/,""));
+    const B = (b==null? INF.pos : String(b).replace(/\.0$/,""));
+    return `${L}${A} ; ${B}${R}`;
+  }).join(" ∪ ");
+
+const fpSign = m => m==="croissante"?"+":(m==="decroissante"?"−":"0");
+
+// === Rendu tableau de variations (simple, sans tes composants) ===
+function renderVariation(steps){
+  const host = document.createElement('div');
+  const tbl = document.createElement('table');
+  const trX = document.createElement('tr');
+  const trL = document.createElement('tr');
+  const trF = document.createElement('tr');
+  const trV = document.createElement('tr');
+  trX.innerHTML = `<td><b>x</b></td>`;
+  trL.innerHTML = `<td><b>limites</b></td>`;
+  trF.innerHTML = `<td><b>f'(x)</b></td>`;
+  trV.innerHTML = `<td><b>variations</b></td>`;
+
+  steps.forEach(seg=>{
+    // Colonne fantôme gauche si limite gauche
+    if(seg.lim_left){
+      trX.innerHTML += `<td></td>`;
+      trL.innerHTML += `<td>${fmtVal(seg.lim_left)}</td>`;
+      trF.innerHTML += `<td></td>`;
+      trV.innerHTML += `<td></td>`;
+    }
+    // Double barre ? (si tu veux la forcer plus tard, mets bars.double=true côté API)
+    if(seg.bars && seg.bars.double){
+      ['X','L','F','V'].forEach(()=>{}); // lignes vides au niveau de la double barre
+      const td = `<td class="dbl"></td>`;
+      trX.innerHTML += td; trL.innerHTML += td; trF.innerHTML += td; trV.innerHTML += td;
+    }
+    // Intervalle
+    const a = seg.a==null? INF.neg : seg.a;
+    const b = seg.b==null? INF.pos : seg.b;
+    const L = seg.open_left? "]":"[";
+    const R = seg.open_right? "[":"]";
+    trX.innerHTML += `<td>${L}${a} ; ${b}${R}</td>`;
+    trL.innerHTML += `<td>${fmtVal(seg.lim_left)||""} → ${fmtVal(seg.lim_right)||""}</td>`;
+    trF.innerHTML += `<td>${fpSign(seg.monotonic)}</td>`;
+    trV.innerHTML += `<td>${seg.monotonic}</td>`;
+
+    // Colonne fantôme droite si limite droite
+    if(seg.lim_right){
+      trX.innerHTML += `<td></td>`;
+      trL.innerHTML += `<td>${fmtVal(seg.lim_right)}</td>`;
+      trF.innerHTML += `<td></td>`;
+      trV.innerHTML += `<td></td>`;
+    }
+  });
+
+  tbl.append(trX,trL,trF,trV);
+  host.appendChild(tbl);
+  return host;
+}
+
+// === Tracé “secours” (polyline) à partir des échantillons API ===
+function plotFromSamples(mount, sample){
+  const W=620,H=340,m=36; const x0=m,y0=m,w=W-2*m,h=H-2*m;
+  const svgNS='http://www.w3.org/2000/svg';
+  mount.innerHTML='';
+  const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const ax=document.createElementNS(svgNS,'path'); ax.setAttribute('d',`M ${x0} ${y0+h/2} H ${x0+w} M ${x0+w/2} ${y0} V ${y0+h}`);
+  ax.setAttribute('stroke','#888'); ax.setAttribute('fill','none'); svg.appendChild(ax);
+  if(sample.length<2){ mount.appendChild(svg); return; }
+  const xs=sample.map(p=>p[0]), ys=sample.map(p=>p[1]);
+  const xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const X = x=> x0 + (x-xmin)/(xmax-xmin||1)*w;
+  const Y = y=> y0 + (ymax-y)/(ymax-ymin||1)*h;
+  const path = [];
+  for(let i=0;i<sample.length;i++){
+    const [x,y]=sample[i];
+    if(i===0) path.push('M',X(x),Y(y));
+    else{
+      const [xp,yp]=sample[i-1];
+      if(Math.abs(y-yp)>1e3) path.push('M',X(x),Y(y)); else path.push('L',X(x),Y(y));
+    }
+  }
+  const pl=document.createElementNS(svgNS,'path'); pl.setAttribute('d',path.join(' '));
+  pl.setAttribute('stroke','black'); pl.setAttribute('fill','none'); svg.appendChild(pl);
+  mount.appendChild(svg);
+}
+
+// === Clic ===
+document.getElementById('go').onclick = async ()=>{
+  const func = document.getElementById('func').value.trim();
+  const dom  = document.getElementById('dom').value.trim();
+  if(!func || !func.includes('x')){ alert("La fonction doit contenir la variable x."); return; }
+
+  const r = await fetch('/analyze', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({func, interval: dom||null})});
+  const data = await r.json();
+
+  const out = document.getElementById('out');
+  if(!data.ok){ out.innerHTML = `<div class="card" style="color:#b00020">${(data.errors||[]).join('<br>')}</div>`; return; }
+
+  // Cartes
+  const card1 = `<div class="card"><b>Saisie (brut) :</b> f(x) = <span class="mono">${data.latex_input}</span></div>`;
+  const card2 = `<div class="card"><b>Domaine :</b> ${renderDomain(data.domain_intervals)}</div>`;
+  const card3 = `<div class="card"><b>Limites aux bornes :</b><ul>${
+      data.limits.map(L=>`<li>à ${(''+L.at)} côté ${L.side} : ${fmtVal(L.value)}</li>`).join('')
+    }</ul></div>`;
+  out.innerHTML = card1 + card2 + card3;
+
+  // Variations
+  const varHost = document.createElement('div'); varHost.className='card';
+  varHost.innerHTML = '<b>Tableau de variations :</b>';
+  varHost.appendChild( renderVariation(data.variation) );
+  out.appendChild(varHost);
+
+  // Courbe
+  const g = document.createElement('div'); g.className='card'; g.innerHTML='<b>Courbe :</b><div id="gph"></div>';
+  out.appendChild(g); plotFromSamples(g.querySelector('#gph'), data.sample);
+};
 </script>
 </body>
 </html>

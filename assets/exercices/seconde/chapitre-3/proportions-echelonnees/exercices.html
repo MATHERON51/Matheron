@@ -7,6 +7,8 @@
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
 <link rel="stylesheet" href="../../../../css/mobile.css">
 
 <style>
@@ -155,6 +157,16 @@ const parseNum = s => { s=stripSign(String(s||'').trim()).replace(',','.'); retu
 const parsePct = s => { s=stripSign(String(s||'').trim()).replace(',','.'); if(/%$/.test(s)) s=s.slice(0,-1).trim(); const v=parseFloat(s); return Number.isFinite(v)?v:NaN; };
 const unaccent = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
+// "de" → "d’" si l’unité commence par une voyelle (accents gérés)
+// ex. d’élèves, de clients
+const de_ = (s) => {
+  const txt = String(s || '').trim();
+  const w = unaccent(txt).toLowerCase();
+  return /^[aeiouh]/.test(w) ? "d’" : "de ";
+};
+
+
+
 // Normalisation "robuste" : sans accents, pas de tirets/apostrophes, minuscules, espaces compressés
 const NORM = s => unaccent(String(s||'').toLowerCase())
   .replace(/[-’']/g,' ')
@@ -166,6 +178,53 @@ const STOP = new Set([
   'de','des','du','d','l','la','le','les','sur','en','au','aux','avec','pour','chez','dans',
   'moins','ans','seconde','service','menu','tribune','equipe','pass','jours','mobile','mobiles','point','relais','rang','premium','3'
 ]);
+
+const isAlpha = s => /^[A-Za-zÀ-ÖØ-öø-ÿ\-]+$/.test(s);
+const INVAR = new Set(['vip','pass','3d','cdi','cdd','rh']); // mots invariants fréquents
+
+function pluralizeWord(raw){
+  const w = unaccent(raw).toLowerCase();
+  if (!isAlpha(w) || INVAR.has(w) || /[sxz]$/.test(w)) return raw; // déjà “pluriel” ou invariable
+
+  // cas simples suffisants pour nos libellés
+  if (/al$/.test(w) && !/(festival|bal|carnaval)$/.test(w)) return raw.replace(/al$/i,'aux');
+  if (/(eau|au|eu)$/.test(w) && !/(bleu|pneu)$/.test(w))     return raw + 'x';
+  return raw + 's';
+}
+
+const NON_PLUR = new Set([
+  // prépositions / articles courants
+  'de','des','du','d','l','la','le','les','au','aux','à','a',
+  'en','sur','sous','dans','entre','contre','avec','sans','chez','par','pour','vers'
+]);
+
+function pluralizeLabel(label){
+  return String(label||'')
+    .split(/(\s+)/) // garder les espaces
+    .map(tok => {
+      const base = unaccent(tok).toLowerCase();
+      // on pluralise seulement les mots « lexicaux » que l’on veut fléchir
+      if (!isAlpha(base)) return tok;
+      if (NON_PLUR.has(base)) return tok;   // ← NE PAS pluraliser « sur », « en », « à », …
+      if (INVAR.has(base))    return tok;   // invariants (VIP, pass, etc.)
+      return pluralizeWord(tok);
+    })
+    .join('');
+}
+
+
+// Remplacement ciblé "des <col>" → "des <col-pluriel>"
+function pluralizeInText(str, C){
+  const c1 = C.col1 || '', c2 = C.col2 || '';
+  const c1p = pluralizeLabel(c1), c2p = pluralizeLabel(c2);
+  return str
+    .replaceAll(` des ${c1} `, ` des ${c1p} `)
+    .replaceAll(` des ${c2} `, ` des ${c2p} `)
+    .replaceAll(` Des ${ucfirst(c1)} `, ` Des ${ucfirst(c1p)} `)
+    .replaceAll(` Des ${ucfirst(c2)} `, ` Des ${ucfirst(c2p)} `);
+}
+
+
 
 const splitTokens = s => NORM(s).split(' ').filter(w => w && !STOP.has(w));
 
@@ -803,44 +862,47 @@ const EX2_INTRO = {
 function ex2Intro(C, st){
   const pc2 = Math.round(100*st.B/st.N);
   const fn = EX2_INTRO[C.t];
-  if (fn) return fn(C, st, pc2);
-  // fallback propre si un thème est manquant
-  return `Dans ${C.U} de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. `+
-         `Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`;
+  const base = fn
+    ? fn(C, st, pc2)
+    : `Dans ${C.U} de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} sont ${C.col2}. `+
+      `Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`;
+  return pluralizeInText(base, C);   // ✅ corrige "des visite libre" → "des visites libres"
 }
+
 /* ====== Ex.2 — Question contextualisée par thème ====== */
 const EX2_Q = {
-  classe:              C => `Quel est le pourcentage d’${C.unit} de la classe qui ${C.action} ?`,
-  college:             C => `Quel est le pourcentage d’${C.unit} du collège qui ${C.action} ?`,
-  lycee:               C => `Quel est le pourcentage d’${C.unit} du lycée qui ${C.action} ?`,
-  clubSportif:         C => `Quel est le pourcentage d’${C.unit} du club sportif qui ${C.action} ?`,
-  bibliotheque:        C => `Quel est le pourcentage d’${C.unit} de la bibliothèque qui ${C.action} ?`,
-  entrepriseCadres:    C => `Quel est le pourcentage de ${C.unit} de l’entreprise qui ${C.action} ?`,
-  entrepriseTP:        C => `Quel est le pourcentage de ${C.unit} de l’entreprise qui ${C.action} ?`,
-  universite:          C => `Quel est le pourcentage d’${C.unit} de l’université qui ${C.action} ?`,
-  festival:            C => `Quel est le pourcentage de ${C.unit} du festival qui ${C.action} ?`,
+  classe:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la classe qui ${C.action} ?`,
+  college:             C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du collège qui ${C.action} ?`,
+  lycee:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du lycée qui ${C.action} ?`,
+  clubSportif:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club sportif qui ${C.action} ?`,
+  bibliotheque:        C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque qui ${C.action} ?`,
+  entrepriseCadres:    C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} ?`,
+  entrepriseTP:        C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} ?`,
+  universite:          C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’université qui ${C.action} ?`,
+  festival:            C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du festival qui ${C.action} ?`,
   hopital:             C => `Quel est le pourcentage des ${C.unit} de l’hôpital qui ${C.action} ?`,
-  musee:               C => `Quel est le pourcentage de ${C.unit} du musée qui ${C.action} ?`,
-  stade:               C => `Quel est le pourcentage d’${C.unit} du stade qui ${C.action} ?`,
-  reseau:              C => `Quel est le pourcentage d’${C.unit} du réseau social qui ${C.action} ?`,
-  supermarche:         C => `Quel est le pourcentage de ${C.unit} du supermarché qui ${C.action} ?`,
-  restaurant:          C => `Quel est le pourcentage de ${C.unit} du restaurant qui ${C.action} ?`,
-  cinema:              C => `Quel est le pourcentage de ${C.unit} du cinéma qui ${C.action} ?`,
-  ville:               C => `Quel est le pourcentage d’${C.unit} de la ville qui ${C.action} ?`,
+  musee:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du musée qui ${C.action} ?`,
+  stade:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du stade qui ${C.action} ?`,
+  reseau:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du réseau social qui ${C.action} ?`,
+  supermarche:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du supermarché qui ${C.action} ?`,
+  restaurant:          C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du restaurant qui ${C.action} ?`,
+  cinema:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du cinéma qui ${C.action} ?`,
+  ville:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la ville qui ${C.action} ?`,
   transports:          C => `Quel est le pourcentage de ${C.unit} des transports urbains qui ${C.action} ?`,
-  clubMusique:         C => `Quel est le pourcentage d’${C.unit} du club de musique qui ${C.action} ?`,
-  ecommerce:           C => `Quel est le pourcentage de ${C.unit} du site d’e-commerce qui ${C.action} ?`,
-  parcAuto:            C => `Quel est le pourcentage de ${C.unit} du parc automobile qui ${C.action} ?`,
-  association:         C => `Quel est le pourcentage de ${C.unit} de l’association qui ${C.action} ?`,
-  clubSport:           C => `Quel est le pourcentage d’${C.unit} du club de sport qui ${C.action} ?`,
-  jardin:              C => `Quel est le pourcentage de ${C.unit} du jardin botanique qui ${C.action} ?`,
-  parc:                C => `Quel est le pourcentage de ${C.unit} du parc qui ${C.action} ?`,
-  biblioMunicipale:    C => `Quel est le pourcentage de ${C.unit} de la bibliothèque municipale qui ${C.action} ?`,
-  serviceRH:           C => `Quel est le pourcentage d’${C.unit} du service RH qui ${C.action} ?`,
-  marche:              C => `Quel est le pourcentage de ${C.unit} du marché qui ${C.action} ?`,
-  hotel:               C => `Quel est le pourcentage de ${C.unit} de l’hôtel qui ${C.action} ?`,
-  camping:             C => `Quel est le pourcentage d’${C.unit} du camping qui ${C.action} ?`
+  clubMusique:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club de musique qui ${C.action} ?`,
+  ecommerce:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du site d’e-commerce qui ${C.action} ?`,
+  parcAuto:            C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du parc automobile qui ${C.action} ?`,
+  association:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’association qui ${C.action} ?`,
+  clubSport:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club de sport qui ${C.action} ?`,
+  jardin:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du jardin botanique qui ${C.action} ?`,
+  parc:                C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du parc qui ${C.action} ?`,
+  biblioMunicipale:    C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque municipale qui ${C.action} ?`,
+  serviceRH:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du service RH qui ${C.action} ?`,
+  marche:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du marché qui ${C.action} ?`,
+  hotel:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’hôtel qui ${C.action} ?`,
+  camping:             C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du camping qui ${C.action} ?`
 };
+
 
 function ex2Question(C){
   const fn = EX2_Q[C.t];
@@ -850,37 +912,38 @@ function ex2Question(C){
 
 /* ====== Ex.2 — Libellé de solution contextualisé ====== */
 const EX2_SOLN = {
-  classe:              C => `Pourcentage d’${C.unit} de la classe qui ${C.action}`,
-  college:             C => `Pourcentage d’${C.unit} du collège qui ${C.action}`,
-  lycee:               C => `Pourcentage d’${C.unit} du lycée qui ${C.action}`,
-  clubSportif:         C => `Pourcentage d’${C.unit} du club sportif qui ${C.action}`,
-  bibliotheque:        C => `Pourcentage d’${C.unit} de la bibliothèque qui ${C.action}`,
-  entrepriseCadres:    C => `Pourcentage d’${C.unit} de l’entreprise qui ${C.action}`,
-  entrepriseTP:        C => `Pourcentage d’${C.unit} de l’entreprise qui ${C.action}`,
-  universite:          C => `Pourcentage d’${C.unit} de l’université qui ${C.action}`,
-  festival:            C => `Pourcentage d’${C.unit} du festival qui ${C.action}`,
+  classe:              C => `Pourcentage ${de_(C.unit)}${C.unit} de la classe qui ${C.action}`,
+  college:             C => `Pourcentage ${de_(C.unit)}${C.unit} du collège qui ${C.action}`,
+  lycee:               C => `Pourcentage ${de_(C.unit)}${C.unit} du lycée qui ${C.action}`,
+  clubSportif:         C => `Pourcentage ${de_(C.unit)}${C.unit} du club sportif qui ${C.action}`,
+  bibliotheque:        C => `Pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque qui ${C.action}`,
+  entrepriseCadres:    C => `Pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action}`,
+  entrepriseTP:        C => `Pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action}`,
+  universite:          C => `Pourcentage ${de_(C.unit)}${C.unit} de l’université qui ${C.action}`,
+  festival:            C => `Pourcentage ${de_(C.unit)}${C.unit} du festival qui ${C.action}`,
   hopital:             C => `Pourcentage des ${C.unit} de l’hôpital qui ${C.action}`,
-  musee:               C => `Pourcentage d’${C.unit} du musée qui ${C.action}`,
-  stade:               C => `Pourcentage d’${C.unit} du stade qui ${C.action}`,
-  reseau:              C => `Pourcentage d’${C.unit} du réseau social qui ${C.action}`,
-  supermarche:         C => `Pourcentage d’${C.unit} du supermarché qui ${C.action}`,
-  restaurant:          C => `Pourcentage d’${C.unit} du restaurant qui ${C.action}`,
-  cinema:              C => `Pourcentage d’${C.unit} du cinéma qui ${C.action}`,
-  ville:               C => `Pourcentage d’${C.unit} de la ville qui ${C.action}`,
+  musee:               C => `Pourcentage ${de_(C.unit)}${C.unit} du musée qui ${C.action}`,
+  stade:               C => `Pourcentage ${de_(C.unit)}${C.unit} du stade qui ${C.action}`,
+  reseau:              C => `Pourcentage ${de_(C.unit)}${C.unit} du réseau social qui ${C.action}`,
+  supermarche:         C => `Pourcentage ${de_(C.unit)}${C.unit} du supermarché qui ${C.action}`,
+  restaurant:          C => `Pourcentage ${de_(C.unit)}${C.unit} du restaurant qui ${C.action}`,
+  cinema:              C => `Pourcentage ${de_(C.unit)}${C.unit} du cinéma qui ${C.action}`,
+  ville:               C => `Pourcentage ${de_(C.unit)}${C.unit} de la ville qui ${C.action}`,
   transports:          C => `Pourcentage de ${C.unit} des transports urbains qui ${C.action}`,
-  clubMusique:         C => `Pourcentage d’${C.unit} du club de musique qui ${C.action}`,
-  ecommerce:           C => `Pourcentage de ${C.unit} du site d’e-commerce qui ${C.action}`,
-  parcAuto:            C => `Pourcentage de ${C.unit} du parc automobile qui ${C.action}`,
-  association:         C => `Pourcentage de ${C.unit} de l’association qui ${C.action}`,
-  clubSport:           C => `Pourcentage d’${C.unit} du club de sport qui ${C.action}`,
-  jardin:              C => `Pourcentage de ${C.unit} du jardin botanique qui ${C.action}`,
-  parc:                C => `Pourcentage d’${C.unit} du parc qui ${C.action}`,
-  biblioMunicipale:    C => `Pourcentage d’${C.unit} de la bibliothèque municipale qui ${C.action}`,
-  serviceRH:           C => `Pourcentage d’${C.unit} du service RH qui ${C.action}`,
-  marche:              C => `Pourcentage de ${C.unit} du marché qui ${C.action}`,
-  hotel:               C => `Pourcentage d’${C.unit} de l’hôtel qui ${C.action}`,
-  camping:             C => `Pourcentage d’${C.unit} du camping qui ${C.action}`
+  clubMusique:         C => `Pourcentage ${de_(C.unit)}${C.unit} du club de musique qui ${C.action}`,
+  ecommerce:           C => `Pourcentage ${de_(C.unit)}${C.unit} du site d’e-commerce qui ${C.action}`,
+  parcAuto:            C => `Pourcentage ${de_(C.unit)}${C.unit} du parc automobile qui ${C.action}`,
+  association:         C => `Pourcentage ${de_(C.unit)}${C.unit} de l’association qui ${C.action}`,
+  clubSport:           C => `Pourcentage ${de_(C.unit)}${C.unit} du club de sport qui ${C.action}`,
+  jardin:              C => `Pourcentage ${de_(C.unit)}${C.unit} du jardin botanique qui ${C.action}`,
+  parc:                C => `Pourcentage ${de_(C.unit)}${C.unit} du parc qui ${C.action}`,
+  biblioMunicipale:    C => `Pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque municipale qui ${C.action}`,
+  serviceRH:           C => `Pourcentage ${de_(C.unit)}${C.unit} du service RH qui ${C.action}`,
+  marche:              C => `Pourcentage ${de_(C.unit)}${C.unit} du marché qui ${C.action}`,
+  hotel:               C => `Pourcentage ${de_(C.unit)}${C.unit} de l’hôtel qui ${C.action}`,
+  camping:             C => `Pourcentage ${de_(C.unit)}${C.unit} du camping qui ${C.action}`
 };
+
 
 function ex2AnswerLabel(C){
   const f = EX2_SOLN[C.t];
@@ -889,50 +952,50 @@ function ex2AnswerLabel(C){
 
 /* ====== Ex.2 — Q3 contextualisée : p(col1 | nonA) ====== */
 const EX2_Q3 = {
-  // libellés « lieu » spécifiques
-  classe:           (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de la catégorie « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (dans la classe) ?`,
-  college:          (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au collège) ?`,
-  lycee:            (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au lycée) ?`,
-  clubSport:        (C,nonA)=> `Quel est le pourcentage d’${C.unit} qui pratiquent la ${C.col1} sachant qu’ils suivent des « ${nonA} » ?`, // ex. natation | cours individuels
-  clubSportif:      (C,nonA)=> `Quel est le pourcentage d’${C.unit} du club qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
-  bibliotheque:     (C,nonA)=> `Parmi les « ${nonA} » de la bibliothèque, quel pourcentage relèvent de « ${ucfirst(C.col1)} » ?`,
-  biblioMunicipale: (C,nonA)=> `Parmi les « ${nonA} » de la bibliothèque municipale, quel pourcentage relèvent de « ${ucfirst(C.col1)} » ?`,
-  entrepriseCadres: (C,nonA)=> `Dans l’entreprise, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
-  entrepriseTP:     (C,nonA)=> `Dans l’entreprise, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
-  universite:       (C,nonA)=> `À l’université, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
-  festival:         (C,nonA)=> `Au festival, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  hopital:          (C,nonA)=> `À l’hôpital, quel est le pourcentage des ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  musee:            (C,nonA)=> `Au musée, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  stade:            (C,nonA)=> `Au stade, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  reseau:           (C,nonA)=> `Sur le réseau social, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  supermarche:      (C,nonA)=> `Au supermarché, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  restaurant:       (C,nonA)=> `Au restaurant, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  cinema:           (C,nonA)=> `Au cinéma, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  ville:            (C,nonA)=> `Dans la ville, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  transports:       (C,nonA)=> `Dans les transports urbains, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  clubMusique:      (C,nonA)=> `Au club de musique, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  ecommerce:        (C,nonA)=> `Sur le site d’e-commerce, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  parcAuto:         (C,nonA)=> `Dans le parc automobile, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  association:      (C,nonA)=> `Dans l’association, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  jardin:           (C,nonA)=> `Au jardin botanique, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  parc:             (C,nonA)=> `Dans le parc, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  serviceRH:        (C,nonA)=> `Au service RH, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  marche:           (C,nonA)=> `Au marché, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  hotel:            (C,nonA)=> `À l’hôtel, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
-  camping:          (C,nonA)=> `Au camping, quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`
+  classe:     (C,nonA)=> `Quel est le pourcentage ${de_(C.unit)}${C.unit} qui relèvent de la catégorie « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (dans la classe) ?`,
+  college:    (C,nonA)=> `Quel est le pourcentage ${de_(C.unit)}${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au collège) ?`,
+  lycee:      (C,nonA)=> `Quel est le pourcentage ${de_(C.unit)}${C.unit} qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » (au lycée) ?`,
+  clubSport:  (C,nonA)=> `Quel est le pourcentage ${de_(C.unit)}${C.unit} qui pratiquent la ${C.col1} sachant qu’ils suivent des « ${nonA} » ?`,
+  clubSportif:(C,nonA)=> `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club qui relèvent de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`,
+  // …
+  festival:   (C,nonA)=> `Au festival, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  musee:      (C,nonA)=> `Au musée, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  stade:      (C,nonA)=> `Au stade, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  reseau:     (C,nonA)=> `Sur le réseau social, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  supermarche:(C,nonA)=> `Au supermarché, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  restaurant: (C,nonA)=> `Au restaurant, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  cinema:     (C,nonA)=> `Au cinéma, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  ville:      (C,nonA)=> `Dans la ville, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  clubMusique:(C,nonA)=> `Au club de musique, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  serviceRH:  (C,nonA)=> `Au service RH, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  hotel:      (C,nonA)=> `À l’hôtel, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  camping:    (C,nonA)=> `Au camping, quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+
+  // (garde tels quels les entrées déjà en "de ${C.unit}" / "des ${C.unit}")
+  hopital:    (C,nonA)=> `À l’hôpital, quel est le pourcentage des ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  transports: (C,nonA)=> `Dans les transports urbains, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  ecommerce:  (C,nonA)=> `Sur le site d’e-commerce, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  parcAuto:   (C,nonA)=> `Dans le parc automobile, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  association:(C,nonA)=> `Dans l’association, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  jardin:     (C,nonA)=> `Au jardin botanique, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  parc:       (C,nonA)=> `Dans le parc, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`,
+  marche:     (C,nonA)=> `Au marché, quel est le pourcentage de ${C.unit} relevant de « ${ucfirst(C.col1)} » parmi les « ${nonA} » ?`
 };
+
 
 function ex2Question3(C){
   const nonA = C.nonA || ('Non ' + C.A);
   const f = EX2_Q3[C.t];
-  return (f ? f(C, nonA) : `Quel est le pourcentage d’${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`);
+  // ✅ élision correcte : "de clients", "d’élèves", "d’utilisateurs", etc.
+  return f ? f(C, nonA)
+           : `Quel est le pourcentage ${de_(C.unit)}${C.unit} relevant de « ${ucfirst(C.col1)} » sachant qu’ils sont « ${nonA} » ?`;
 }
-
 /* ====== Ex.2 — Libellé de solution Q3 contextualisé ====== */
 const EX2_SOLN3 = {
-  clubSport:  C => `Pourcentage d’${C.unit} qui pratiquent la ${C.col1} parmi ceux qui suivent des « ${C.nonA||('Non '+C.A)} »`,
-  default:    C => `Pourcentage d’${C.unit} de la catégorie « ${ucfirst(C.col1)} » parmi les « ${C.nonA||('Non '+C.A)} »`
+  clubSport:  C => `Pourcentage ${de_(C.unit)}${C.unit} qui pratiquent la ${C.col1} parmi ceux qui suivent des « ${C.nonA||('Non '+C.A)} »`,
+  default:    C => `Pourcentage ${de_(C.unit)}${C.unit} de la catégorie « ${ucfirst(C.col1)} » parmi les « ${C.nonA||('Non '+C.A)} »`
 };
+
 function ex2AnswerLabel3(C){
   return (EX2_SOLN3[C.t] || EX2_SOLN3.default)(C);
 }
@@ -1033,7 +1096,7 @@ render(host, st){
    <div class="row">
       <div class="col-label">${ex2Intro(C, st)}</div>
       <div class="input-line">
-	     	  <div><strong>Q1.</strong> Compléter le tableau :</div>
+	     	  <div><strong>Q1. </strong> Compléter le tableau :</div>
 
         <table class="tbl pdfb" id="t2">
           <tr><th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th></tr>
@@ -1079,12 +1142,12 @@ render(host, st){
         </table>
 
         <div style="margin-top:8px">
-  <strong>Q2.</strong> ${ex2Question(C)}
+  <strong>Q2. </strong> ${ex2Question(C)}
 </div>
 <input type="text" id="tPct" placeholder="">
 <span class="tick" id="tickPct"></span>
 <div style="margin-top:10px">
-  <strong>Q3.</strong> ${ex2Question3(C)} (Arrondir au % près)
+  <strong>Q3. </strong> ${ex2Question3(C)} (Arrondir au % près)
 
 </div>
 <input type="text" id="tPctQ3" placeholder="">

@@ -795,6 +795,33 @@ table.pdf-tbl-var th{ background:#f3f3f6 }
   [data-math-kbd],
   input, select, textarea, button,
   .tick { display:none !important; }
+  
+  /* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
 </style>
 
 <style>

@@ -1,35 +1,1362 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Seconde – Chapitre Transversal – Le SI</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Python — Le SI – Exemples</title>
+
+<!-- mêmes feuilles que ton modèle -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.controls select{border:1px solid #ccc;border-radius:8px;padding:.45rem .55rem}
+.controls .btn:active{transform:translateY(1px)}
+.controls .score{margin-left:auto;font-weight:700}
+.small{font-size:.92rem;color:#555}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.tick{display:none;margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b;display:inline}
+.tick.ko{color:#b00020;display:inline}
+
+.tbl{border-collapse:collapse}
+.tbl td,.tbl th{border:1px solid #ddd;padding:6px 8px;text-align:center}
+
+/* Lignes de réponse imprimables */
+.blank-wrap{ display:inline-block; vertical-align:baseline }
+.blank-wrap .blank{ display:none; height:1.4em; border-bottom:2px solid #000; vertical-align:baseline; }
+@media print{
+  .controls,.header,.kbd-host,.hide-print{display:none!important}
+  .card{box-shadow:none}
+  .blank-wrap input{ display:none !important; }
+  .blank-wrap .blank{ display:inline-block !important; }
+}
+</style>
+
+<!-- MathJax identique -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)'], ['$', '$']], displayMath: [['\\[','\\]'], ['$$','$$']], processEscapes: true },
+  chtml: { matchFontHeight:false }, startup: { typeset: true }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+<!-- libs partagées -->
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 </head>
 <body>
-  <h1>Exercices – Le SI</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:23.</p>
-    <p>Les exercices pour <strong>Le SI</strong> (Seconde) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>seconde</code></li>
-        <li>Chapitre : <code>chapitre-transversal</code></li>
-        <li>Thème (slug) : <code>le-si</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../seconde/index.html">← Retour à l'index Seconde</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Python — Le SI – Exemples</h1>
   </div>
+
+  <div class="wrap">
+    <!-- Barre de contrôle -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-sol" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <!-- Hôte -->
+    <div id="host" class="card" data-active="" data-state=""></div>
+
+    <!-- Saisie & réponses acceptées -->
+
+  </div>
+
+<script>
+(function(){
+"use strict";
+
+/* ====== Utilitaires ====== */
+function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+
+function $(s,root){return (root||document).querySelector(s)}
+function $all(s,root){return Array.from((root||document).querySelectorAll(s))}
+function rint(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function choice(A){return A[Math.floor(Math.random()*A.length)]}
+function near(a,b,eps){return Math.abs(a-b)<= (eps||1e-9)}
+function parseNumber(s){
+  if(s==null) return NaN;
+  s = (''+s).trim().replace(',', '.');
+  if(/^[-+]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return +s;
+  return NaN;
+}
+function retypeMath(scope){ if(window.MathJax?.typesetPromise) MathJax.typesetPromise([scope||document]) }
+function mkInput(id,w){ return `<span class="blank-wrap"><input id="${id}" style="width:${w||110}px;font-size:15px;padding:6px;border:1px solid #ddd;border-radius:8px"> <span class="blank" style="width:${(w||110)-14}px"></span></span>` }
+function tickTri(el, state){
+  if(!el) return;
+  el.classList.remove('ok','ko');
+  if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+  else el.textContent='';
+}
+function scoreSet(a,b){ const s=$("#score"); if(s) s.textContent=`Score : ${a} / ${b}` }
+let SCORE=[0,0];
+function normPy(s){
+  return (''+s).toLowerCase()
+    .replace(/[ \t]/g,'')
+    .replace(/[−–—]/g,'-')
+    .replace(/\u00A0/g,'')
+    .replace(/;+$/,''); // ; facultatif
+}
+function normRelation(str){
+  if(str==null) return '';
+  let s=(''+str).toLowerCase().replace(/\s+/g,'');
+  s=s.replace(/[−–—]/g,'-');
+  s=s.replace(/u\(([^)]+)\)/g,'u_{$1}').replace(/u_\(([^)]+)\)/,'u_{$1}').replace(/u_\{([^}]+)\)/g,'u_{$1}');
+  s=s.replace(/u_\{([a-z])\}/g,'u_$1').replace(/\{(\d+)\}/g,'$1');
+  return s;
+}
+function fmtPt(P){ return `\\((${P[0]}  ;  ${P[1]})\\)`; }  // (x ; y)
+function hasBothTF(arr){ return arr.some(Boolean) && arr.some(x=>!x); }
+
+// Normalise un texte "appel de fonction" (retire espaces, minuscule, virgules homogènes)
+function normCall(s){
+  return (''+s).trim()
+    .toLowerCase()
+    .replace(/\s+/g,'')       // supprime espaces
+    .replace(/[,;]+/g,',');   // ; → , par sécurité
+}
+// Tick helper concis
+function setTick(host, sel, state){
+  const el=$(sel,host); if(!el) return;
+  el.classList.remove('ok','ko');
+  if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+  else el.textContent='';
+}
+// Nombre tolérant
+function chkNumById(id, target, tickSel, host, eps=1e-6){
+  const raw=(document.getElementById(id)?.value||'').trim();
+  const ok = raw==='' ? null : near(parseNumber(raw), target, eps);
+  setTick(host, tickSel, ok);
+  return ok;
+}
+
+// === Transposer .tbl : colonnes -> lignes ===
+function transposeTables(scope){
+  (scope||document).querySelectorAll('table.tbl').forEach(tbl=>{
+    const rows = Array.from(tbl.rows);
+    if (!rows.length) return;
+    const nCols = rows[0].cells.length, nRows = rows.length;
+
+    // Nouveau tableau (mêmes classes + marqueur "transposed" optionnel)
+    const newT = document.createElement('table');
+    newT.className = (tbl.className || '') + ' transposed';
+    // Copie simple des styles inline si jamais (rare)
+    if (tbl.getAttribute('style')) newT.setAttribute('style', tbl.getAttribute('style'));
+
+    for (let c = 0; c < nCols; c++){
+      const tr = document.createElement('tr');
+      for (let r = 0; r < nRows; r++){
+        const src = rows[r].cells[c];
+        const cell = document.createElement(r===0 ? 'th' : 'td'); // l’ancienne 1ʳᵉ ligne d’en-têtes devient la 1ʳᵉ colonne
+        // Déplacer tout le contenu (inputs, spans tick, etc.) pour conserver les IDs/écouteurs
+        while (src.firstChild) cell.appendChild(src.firstChild);
+        tr.appendChild(cell);
+      }
+      newT.appendChild(tr);
+    }
+    tbl.parentNode.replaceChild(newT, tbl);
+  });
+}
+function fmtMX(m){
+  if (m === 1)  return 'x';
+  if (m === -1) return '-x';
+  return `${m}*x`;          // pour Python ET lisible
+}
+function fmtMX_tex(m){
+  if (m === 1)  return 'x';
+  if (m === -1) return '-x';
+  return `${m}x`;           // pour l’affichage math (pas de *)
+}
+function fmtP(p){
+  if (p === 0) return '';
+  return (p > 0) ? ` + ${p}` : ` - ${Math.abs(p)}`;
+}
+
+// helpers "pas 0,5"
+const toHalf  = x => Math.round(x * 2) / 2;
+const rhalf   = (a, b) => rint(Math.ceil(a * 2), Math.floor(b * 2)) / 2;
+/* ====== REGISTRY ====== */
+function makeExos(){
+  const L=[];
+
+L.push({
+  id:'D1_photos',
+  title:'D1 — Tirage photo : prix par palier',
+  gen(){
+  const round2 = x => Math.round(x*100)/100;
+  const SEUILS = [80,90,100,110,120,130,140,150];
+  const seuil = SEUILS[Math.floor(Math.random()*SEUILS.length)];
+
+  const pLow = round2(rint(7,12)/100);              // €/photo si n < seuil
+  const pHigh = round2(Math.max(0.01, pLow - rint(1,4)/100)); // €/photo si n ≥ seuil (toujours < pLow)
+
+  const n1 = rint(10, seuil-1);
+  const n2 = rint(seuil, seuil+120);
+  const m1 = +(n1*pLow ).toFixed(2);
+  const m2 = +(n2*pHigh).toFixed(2);
+
+  const code =
+`def photos(n):
+    if n < ${seuil}:
+        M = ${pLow.toFixed(2)} * n
+        return M
+    else:
+        M = ${pHigh.toFixed(2)} * n
+        return M`;
+
+  return {pLow,pHigh,seuil,n1,n2,m1,m2,code};
+},
+
+  render(host,s){
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+      <p><strong>Exercice D1.</strong> Photos</p>
+	  <p>Un site internet de développement de photos propose le tirage sur papier des photos à <b>${s.pLow.toFixed(2)} €</b> l'unité; le tarif passe à <b>${s.pHigh.toFixed(2)} €</b> l'unité pour une commande d'au moins <b>${s.seuil}</b> photos.
+On veut créer une fonction en langage Python donnant le montant dépensé pour un nombre \\(n\\) de tirages.</p>
+
+	  
+	  
+	  
+      <ul>
+        <li>Si le nombre \\(n\\) de photos est strictement inférieur à ${s.seuil} : <br>Le prix d'un tirage est :  ${mkInput('d1a',120)} € <span id="td1a" class="tick"></span> <br>Le montant M dépensé est  : ${mkInput('d1b',120)} € <span id="td1b" class="tick"></span></li>
+        <li>Si le nombre \\(n\\) de photos est supérieur ou égal à ${s.seuil} : <br>Le prix d'un tirage est :  ${mkInput('d1c',120)} € <span id="td1c" class="tick"></span> <br>Le montant M dépensé est  : ${mkInput('d1d',120)} € <span id="td1d" class="tick"></span></li>
+      </ul>
+      <p>1. Ecrire une fonction photos en langage Python donnant le montant dépensé pour un nombre \\(n\\) de tirages.</p>
+         <p>2a. Quel est le montant dépensé pour ${s.n1} tirages : ${mkInput('d1e',120)} € <span id="td1e" class="tick"></span></p>
+		          <p>2b. Quel est le montant dépensé pour ${s.n2} tirages : ${mkInput('d1f',120)} € <span id="td1f" class="tick"></span></p>
+
+
+   </div><div><div id="steps" class="steps"></div></div></div>`;
+    host.__state=s;
+  },
+  check(host){
+    const s = host.__state;
+
+    // Helpers
+    const get = id => (document.getElementById(id)?.value||'').trim();
+    const near2 = (v,tol=1e-2) => Number.isFinite(v) && Math.abs(v) !== Infinity
+                      ? (Math.abs(v - Math.round(v*100)/100) <= tol ? Math.round(v*100)/100 : v)
+                      : v;
+    const num = str => parseNumber(str); // déjà dispo dans ton patch commun
+    const setTick = (sel,state) => {
+      const el = $(sel,host);
+      el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok'); el.textContent='✓';}
+      else if(state===false){el.classList.add('ko'); el.textContent='✗';}
+      else el.textContent='';
+    };
+    const okNum = (id, target, sel) => {
+      const v = get(id); if(v===''){ setTick(sel,null); return undefined; }
+      const val = num(v);
+      const ok = (val!==null) && near(parseNumber(v), target, 1e-2);
+      setTick(sel, ok); return ok===true;
+    };
+
+    // Accepte M(n)=p*n ou n*p (texte). On tolère espaces et virgules.
+    const okFormula = (id, price, sel) => {
+      const v = get(id); if(v===''){ setTick(sel,null); return undefined; }
+      const canon = v.replace(/\s+/g,'').replace(',','.');
+      const pattern1 = new RegExp(`^${price}(\\*|×)?n$`);
+      const pattern2 = new RegExp(`^n(\\*|×)?${price}$`);
+      const ok = pattern1.test(canon) || pattern2.test(canon);
+      setTick(sel, ok); return ok;
+    };
+
+    // Vérifs
+    const a = okNum('d1a', s.pLow,  '#td1a');          // prix unitaire (< seuil)
+    const b = okFormula('d1b', s.pLow,  '#td1b');      // M(n)=pLow*n
+    const c = okNum('d1c', s.pHigh, '#td1c');          // prix unitaire (≥ seuil)
+    const d = okFormula('d1d', s.pHigh, '#td1d');      // M(n)=pHigh*n
+    const e = okNum('d1e', s.m1,    '#td1e');          // M(n1)
+    const f = okNum('d1f', s.m2,    '#td1f');          // M(n2)
+
+    // Score global (si tous remplis)
+    const oks = [a,b,c,d,e,f];
+    const filled = oks.every(x => x !== undefined);
+    const all = oks.every(Boolean);
+    if(typeof SCORE!=='undefined' && filled){ SCORE[1]++; if(all) SCORE[0]++; scoreSet(...SCORE); }
+
+    return filled ? all : false;
+  },
+
+  solution(host){
+    const s = host.__state, W = $('#steps',host);
+    host.__solutionPython = s.code;
+    host.dataset.hasSolution = '1';
+
+    W.innerHTML = `
+	
+<p><b>Réponses aux questions :</b></p>
+<ul>
+  <li>Si \\(n &lt; ${s.seuil}\\) : prix unitaire = <b>${s.pLow} €</b> ; \\(M(n)= ${s.pLow.toFixed(2)} n\\) €.</li>
+  <li>Si \\(n \\ge ${s.seuil}\\) : prix unitaire = <b>${s.pHigh} €</b> ; \\(M(n)= ${s.pHigh.toFixed(2)} n\\) €.</li>
+  </ul>
+  <p>1. <b>Fonction en langage Python :</b>
+
+	<pre><code>${s.code}</code></pre>
+  <p>2a. Pour \\(n=${s.n1}\\) : \\(M=${s.pLow.toFixed(2)}\\times ${s.n1}= \\)<b>${s.m1} €</b>.</p>
+  <p>2b. Pour \\(n=${s.n2}\\) : \\(M=${s.pHigh.toFixed(2)}\\times ${s.n2}= \\)<b>${s.m2} €</b>.</p>
+
+
+<pre><code># Tests
+photos(${s.n1}) = ${s.m1}
+photos(${s.n2}) = ${s.m2}</code></pre>`;
+  typesetAll(host);
+
+  }
+});
+
+
+
+L.push({
+  id:'D2_location',
+  title:'D2 — Location : forfait + kilomètres',
+  gen(){
+    const base = rint(150,300);     // € — base relevée pour être cohérente avec les prix actuels
+    const SEUILS = [100,150,200,250,300,350,400,450,500];
+    const inclus = SEUILS[Math.floor(Math.random()*SEUILS.length)];
+    const kmc = rint(15,45)/100;    // €/km sup
+    const x1 = rint(50, inclus);    // ≤ inclus
+    const x2 = rint(inclus+50, inclus+500);
+    const c1 = base;
+    const c2 = +(base + (x2-inclus)*kmc).toFixed(2);
+const code =
+`def location(x):
+    if x <= ${inclus}:
+        C = ${base}
+        return C
+    else:
+        C = ${base} + (x - ${inclus}) * ${kmc.toFixed(2)}
+        return C
+`;
+
+    return {base,inclus,kmc,x1,x2,c1,c2,code};
+  },
+  render(host,s){
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D2.</strong> Location de voitures</p>
+
+	<p>On donne le programme suivant écrit en langage Python : </p>
+      <pre><code>${s.code}</code></pre>
+      <p>1) Qu'affiche le programme en sortie si on écrit dans la console :</p>
+      <ul>
+        <li>location(${s.x1}) : ${mkInput('d2a',110)} € <span id="td2a" class="tick"></span></li>
+        <li>location(${s.x2}) : ${mkInput('d2b',110)} € <span id="td2b" class="tick"></span></li>
+      </ul>
+      <p>2) Une agence de location de voitures utilise le programme ci-dessus afin de calculer le coût \\(C\\) de la location d'une voiture pour \\(x\\) kilomètres parcourus. 
+<br>Compléter les informations manquantes :
+</p>
+      <ul>
+        <li>Tarif de la location : ${mkInput('d2c',120)} € <span id="td2c" class="tick"></span></li>
+        <li>Kilomètres inclus : ${mkInput('d2d',120)} km <span id="td2d" class="tick"></span></li>
+        <li>Coût par km supplémentaire : ${mkInput('d2e',150)} € <span id="td2e" class="tick"></span></li>
+      </ul>
+    </div></div>`;
+    host.__state=s;
+  },
+  check(host){
+    const s=host.__state;
+    const okA=chk('d2a', s.c1,'#td2a'), okB=chk('d2b', s.c2,'#td2b');
+    const okC=chk('d2c', s.base,'#td2c',1e-9);
+    const okD=chk('d2d', s.inclus,'#td2d',1e-9);
+    const okE=chk('d2e', s.kmc,'#td2e',1e-9);
+    score(okA,okB,okC,okD,okE); return [okA,okB,okC,okD,okE].every(Boolean);
+    function chk(id,t,sel,eps=1e-2){ const v=(document.getElementById(id)?.value||'').trim();
+      const ok = v===''?null: near(parseNumber(v), t, eps); tick(sel,ok); return ok===true; }
+    function tick(sel,state){ const el=$(sel,host); el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok');el.textContent='✓';}
+      else if(state===false){el.classList.add('ko');el.textContent='✗';} else el.textContent=''; }
+    function score(...oks){ const filled=oks.every(x=>x!==undefined); const all=oks.every(Boolean);
+      if(filled){ SCORE[1]++; if(all) SCORE[0]++; scoreSet(...SCORE);} }
+  },
+  solution(host){
+  const s = host.__state;
+  host.__solutionPython = s.code;
+  host.dataset.hasSolution = '1';
+
+  // Assure l'existence du conteneur #steps
+  let W = $('#steps', host);
+  if(!W){
+    W = document.createElement('div');
+    W.id = 'steps';
+    W.className = 'steps';
+    host.appendChild(W);
+  }
+
+  W.innerHTML = `<pre><code>${s.code}</code></pre>
+<p><b>Réponses aux questions :</b></p>
+<ol>
+  <li><b>Question 1</b>
+    <ul>
+      <li>location(${s.x1}) = <b>${s.c1.toFixed(2)} €</b></li>
+      <li>location(${s.x2}) = <b>${s.c2.toFixed(2)} €</b></li>
+    </ul>
+  </li>
+  <li><b>Question 2</b>
+    <ul>
+      <li>Tarif de la location : <b>${s.base.toFixed(2)} €</b></li>
+      <li>Kilomètres inclus : <b>${s.inclus} km</b></li>
+      <li>Coût par km supplémentaire : <b>${s.kmc.toFixed(2)} €</b></li>
+    </ul>
+  </li>
+</ol>
+
+<pre><code># Tests
+location(${s.x1}) = ${s.c1}
+location(${s.x2}) = ${s.c2}</code></pre>`;
+  typesetAll(host);
+
+}
+
+});
+
+
+
+L.push({
+  id:'D3_tshirts',
+  title:'D3 — T-shirts : tarif dégressif',
+  gen(){
+    const SEUILS = [30,40,50,60,70,80,90,100];
+    const seuil = SEUILS[Math.floor(Math.random()*SEUILS.length)];
+    const round2 = x => Math.round(x*100)/100;
+
+    const p1 = round2(rint(350,500)/100);           // € si N < seuil
+    const p2 = round2(p1 - rint(30,120)/100);       // € si N ≥ seuil
+
+    // Valeurs pour le tableau
+    const Nvals = [30,45,50,120,254].map(x => x + rint(-5,5)); // légère variation
+    const price = n => +(((n < seuil) ? p1 : p2) * n).toFixed(2);
+    const out = Nvals.map(price);
+
+    // Valeurs explicites pour les questions 2a / 2b
+    const n1 = rint(Math.max(5, Math.min(25, seuil-10)), Math.max(10, seuil-1)); // < seuil
+    const n2 = rint(seuil, seuil + 120);                                          // ≥ seuil
+    const m1 = +(n1 * p1).toFixed(2);
+    const m2 = +(n2 * p2).toFixed(2);
+
+const code =
+`def t_shirt(N):
+    if N < ${seuil}:
+        return ${p1.toFixed(2)} * N
+    else:
+        return ${p2.toFixed(2)} * N
+`;
+
+
+    return {seuil,p1,p2,Nvals,out,price,n1,n2,m1,m2,code};
+  },
+
+  render(host,s){
+    const rows = s.Nvals.map((n,i)=>`
+      <tr><td>${n}</td><td>${mkInput('d3t'+i,120)} <span id="td3t${i}" class="tick"></span></td></tr>`).join('');
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D3.</strong> T-shirts</p>
+
+      <p>Un club sportif fait fabriquer des t-shirts au nom du club. Chaque t-shirt est facturé ${s.p1.toFixed(2)}€, mais ils sont facturés ${s.p2.toFixed(2)} € si la commande est d'au moins ${s.seuil} unités du produit.
+Soit \\(N\\) la variable égale au nombre de t-shirts commandés et \\(P\\) le prix à payer.</p>
+      
+      <ul>
+        <li>Si le nombre \\(N\\) de t-shirts est strictement inférieur à ${s.seuil} : <br>Le prix d'un t-shirt  est :  ${mkInput('d3a',120)} € <span id="td3a" class="tick"></span> <br>Le montant M dépensé est  : ${mkInput('d3b',120)} € <span id="td3b" class="tick"></span></li>
+        <li>Si le nombre \\(N\\) de t-shirts est supérieur ou égal à ${s.seuil} : <br>Le prix d'un t-shirt  est :  ${mkInput('d3c',120)} € <span id="td3c" class="tick"></span> <br>Le montant M dépensé est  : ${mkInput('d3d',120)} € <span id="td3d" class="tick"></span></li>
+      </ul>
+      <p>1a. Quel est le montant dépensé pour ${s.n1} t-shirts : ${mkInput('d3e',120)} € <span id="td3e" class="tick"></span></p>
+      <p>1b. Quel est le montant dépensé pour ${s.n2} t-shirts : ${mkInput('d3f',120)} € <span id="td3f" class="tick"></span></p>
+      <p>2. Ecrire une fonction t_shirt en langage Python donnant le montant dépensé pour un nombre \\(n\\) de t-shirts achetés.</p>
+      <p>3. Compléter le tableau suivant en utilisant la fonction t_shirt</p>
+
+      <table class="tbl"><tr><th>Nombre de t-shirts</th><th>Montant (€)</th></tr>${rows}</table>
+    </div></div>`;
+    host.__state=s;
+  },
+
+  check(host){
+    const s = host.__state;
+
+    // Helpers
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const setTick = (sel,state) => {
+      const el = $(sel,host); el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok'); el.textContent='✓';}
+      else if(state===false){el.classList.add('ko'); el.textContent='✗';}
+      else el.textContent='';
+    };
+    const okNum = (id,target,sel,eps=1e-2) => {
+      const v = get(id); if(v===''){ setTick(sel,null); return undefined; }
+      const ok = near(parseNumber(v), target, eps);
+      setTick(sel, ok); return ok===true;
+    };
+    // Accepte M(N) = p*N ou N*p (avec * ou ×, espaces/virgules tolérés)
+    const okFormula = (id, price, sel) => {
+      const v = get(id); if(v===''){ setTick(sel,null); return undefined; }
+      const canon = v.replace(/\s+/g,'').replace(/,/g,'.');
+      const p = String(price);
+      const re1 = new RegExp(`^(?:${p})(?:\\*|×)?N$`, 'i');
+      const re2 = new RegExp(`^N(?:\\*|×)?(?:${p})$`, 'i');
+      const ok = re1.test(canon) || re2.test(canon);
+      setTick(sel, ok); return ok;
+    };
+
+    // 1) Vérifs des deux cas (prix unitaire + formule)
+    const A = okNum('d3a', s.p1, '#td3a');           // prix (< seuil)
+    const B = okFormula('d3b', s.p1, '#td3b');       // M(N)=p1*N
+    const C = okNum('d3c', s.p2, '#td3c');           // prix (≥ seuil)
+    const D = okFormula('d3d', s.p2, '#td3d');       // M(N)=p2*N
+
+    // 2) Montants pour n1 et n2
+    const E = okNum('d3e', s.m1, '#td3e');
+    const F = okNum('d3f', s.m2, '#td3f');
+
+    // 3) Tableau de tests
+    let filledTable = true, okTable = true;
+    s.out.forEach((v,i)=>{
+      const raw = get('d3t'+i);
+      const o = raw===''?null: near(parseNumber(raw), v, 1e-2);
+      setTick('#td3t'+i, o);
+      if(o===null) filledTable = false; else if(!o) okTable = false;
+    });
+
+    // Score global
+    const oks = [A,B,C,D,E,F, (filledTable?okTable:undefined)];
+    const filledAll = oks.every(x => x !== undefined);
+    const allOk = (A&&B&&C&&D&&E&&F&&okTable);
+
+    if(typeof SCORE!=='undefined' && (filledAll || (filledTable && [A,B,C,D,E,F].every(x=>x!==undefined)))){
+      SCORE[1]++; if(allOk) SCORE[0]++; scoreSet(...SCORE);
+    }
+
+    return (filledAll ? allOk : false);
+  },
+
+  solution(host){
+    const s = host.__state;
+
+    host.__solutionPython = s.code;
+    host.dataset.hasSolution = '1';
+
+    // Assure l'existence d'un conteneur #steps
+    let W = $('#steps',host);
+    if(!W){
+      W = document.createElement('div');
+      W.id = 'steps';
+      W.className = 'steps';
+      host.appendChild(W);
+    }
+
+    W.innerHTML = `
+<p><b>Réponses aux questions :</b></p>
+<ul>
+  <li>Si \\(N &lt; ${s.seuil}\\) : prix unitaire = <b>${s.p1.toFixed(2)} €</b> ; \\(M(N)= ${s.p1}\\times N\\) €.</li>
+  <li>Si \\(N \\ge ${s.seuil}\\) : prix unitaire = <b>${s.p2.toFixed(2)} €</b> ; \\(M(N)= ${s.p2}\\times N\\) €.</li>
+</ul>
+
+<p><b>Montants demandés :</b></p>
+1a. Pour \\(N=${s.n1}\\) : \\(M=${s.p1}\\times ${s.n1}=\\)<b>${s.m1.toFixed(2)} €</b>.<br>
+1b. Pour \\(N=${s.n2}\\) : \\(M=${s.p2}\\times ${s.n2}=\\)<b>${s.m2.toFixed(2)} €</b>.
+<p>2. <b>Fonction en langage Python :</b>
+<pre><code>${s.code}</code></pre></p>
+
+<p>3. <b>Tableau de contrôle :</b></p>
+<pre><code>${s.Nvals.map((n,i)=>`t_shirt(${n}) = ${s.out[i]}`).join('\n')}</code></pre>`;
+  typesetAll(host);
+
+  }
+});
+
+
+
+L.push({
+  id:'D4_ski',
+  title:'D4 — Ski : chalet + forfait',
+  gen(){
+  const chalet = rint(600,1200); // €
+  const seuil  = rint(4,7);      // à partir de …
+
+  // Prix par personne : f2 DOIT être moins cher que f1
+  const f1 = rint(180,260);           // €/pers si n < seuil
+  const remise = rint(10,40);         // € de réduction au-delà du seuil
+  const f2 = f1 - remise;             // €/pers si n ≥ seuil  (toujours < f1)
+
+  const nA = Math.max(1, seuil-1), nB = seuil+1;
+
+  const total = n => chalet + n * (n < seuil ? f1 : f2);
+  const tA = total(nA), tB = total(nB);
+
+  const tests = [3,5,7,12]
+    .map(x => Math.max(1, x + rint(-1,1)))
+    .map(n => ({ n, tot: total(n), pp: + (total(n)/n).toFixed(2) }));
+
+  const code =
+`def ski(n):
+    if n < ${seuil}:
+        prix = ${chalet} + ${f1} * n
+    else:
+        prix = ${chalet} + ${f2} * n
+    return prix
+
+def ski_part(n):
+    return ski(n) / n`;
+
+  return { chalet, seuil, f1, f2, nA, nB, tA, tB, tests, code };
+},
+  render(host,s){
+    const rows = s.tests.map((t,i)=>`
+      <tr><td>${t.n}</td>
+          <td>${mkInput('d4t'+i,110)} <span id="td4t${i}" class="tick"></span></td>
+          <td>${mkInput('d4p'+i,110)} <span id="td4p${i}" class="tick"></span></td></tr>`).join('');
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D4.</strong> Location au ski</p>
+
+      <p>Un groupe de personnes souhaite réserver un chalet à la montagne pour skier. La location du chalet est de ${s.chalet} € .
+<br>Pour skier, le forfait à la semaine est de ${s.f1} €  par personne. Mais, si le groupe est composé de ${s.seuil} personnes ou plus, le forfait est à ${s.f2} € par personne.</p>
+      
+        <p>1) Quelle est la dépense du groupe s'il est composé de ${s.nA} personnes : ${mkInput('d4a',120)} € <span id="td4a" class="tick"></span></p>
+        <p>2) Quelle est la dépense du groupe s'il est composé de ${s.nB} personnes : ${mkInput('d4b',120)} € <span id="td4b" class="tick"></span></p>
+      <p>3a) Créer une fonction ski en langage Python qui affiche le prix payé par un groupe composé de n personnes.</p> 
+      <p>3b) Créer une nouvelle fonction pour qu'elle affiche la part que chaque membre du groupe doit payer.</p> 
+
+      <p>4) Tester les fonctions pour les valeurs suivantes (arrondir à 0,01 près si nécessaire) :</p>
+      <table class="tbl"><tr><th>Personnes</th><th>Montant total (€)</th><th>Montant / pers (€)</th></tr>${rows}</table>
+    </div></div>`;
+    host.__state=s;
+  },
+check(host){
+  const s = host.__state;
+
+  // === Helpers (comparaison au centime) ===
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  const cents = v => Math.round(v*100);
+  const parse = str => parseNumber(str);
+  const setTick = (sel,state) => {
+    const el = $(sel,host); if(!el) return;
+    el.classList.remove('ok','ko');
+    if(state===true){el.classList.add('ok'); el.textContent='✓';}
+    else if(state===false){el.classList.add('ko'); el.textContent='✗';}
+    else el.textContent='';
+  };
+  const okNum = (id, target, sel) => {
+    const v = get(id); if(v===''){ setTick(sel,null); return undefined; }
+    const val = parse(v);
+    const ok = Number.isFinite(val) && cents(val) === cents(target);
+    setTick(sel, ok); return ok===true;
+  };
+
+  // 1) Questions directes (totaux)
+  const okA = okNum('d4a', s.tA, '#td4a');
+  const okB = okNum('d4b', s.tB, '#td4b');
+
+  // 2) Tableau de tests : total & par personne
+  let filled = (okA!==undefined && okB!==undefined), allOk = (okA&&okB);
+  s.tests.forEach((t,i)=>{
+    const okT = okNum('d4t'+i, t.tot, '#td4t'+i);
+    const okP = okNum('d4p'+i, t.pp,  '#td4p'+i);   // pp est déjà arrondi à 2 décimales
+    if(okT===undefined || okP===undefined) filled = false;
+    allOk = allOk && (okT===true) && (okP===true);
+  });
+
+  if(filled){ SCORE[1]++; if(allOk) SCORE[0]++; scoreSet(...SCORE); }
+  return filled && allOk;
+},
+
+solution(host){
+  const s = host.__state;
+  host.__solutionPython = s.code;
+  host.dataset.hasSolution = '1';
+
+  // Conteneur #steps garanti
+  let W = $('#steps',host);
+  if(!W){
+    W = document.createElement('div');
+    W.id = 'steps';
+    W.className = 'steps';
+    host.appendChild(W);
+  }
+
+  // Choix des tarifs selon les cas nA (< seuil) et nB (≥ seuil)
+  const unitA = s.f1;  // car nA < seuil
+  const unitB = s.f2;  // car nB ≥ seuil
+
+  // Tableau des tests (avec 2 décimales)
+  const lines = s.tests
+    .map(t => `ski(${t.n}) = ${t.tot} €    /    ski_part(${t.n}) = ${t.pp.toFixed(2)} €`)
+    .join('\n');
+
+  W.innerHTML = `
+<p><b>Réponses aux questions :</b></p>
+
+1) Pour \\(n = ${s.nA}\\) (tarif \\(< ${s.seuil}\\) donc ${unitA} € / pers) :
+      \\(M = ${s.chalet} + ${s.nA}\\times ${unitA} = \\) <b>${s.tA} €</b>.<br>
+2) Pour \\(n = ${s.nB}\\) (tarif \\(\\ge ${s.seuil}\\) donc ${unitB} € / pers) :
+      \\(M = ${s.chalet} + ${s.nB}\\times ${unitB} = \\) <b>${s.tB} €</b>.
+</ul>
+
+<p><b>3a–3b. Fonctions en langage Python :</b></p>
+<pre><code>${s.code}</code></pre>
+
+<p><b>4. Tests :</b></p>
+<pre><code>${lines}</code></pre>`;
+  typesetAll(host);
+}
+
+});
+
+
+
+L.push({
+  id:'D5_moyenne',
+  title:'D5 — Moyenne sur 4 notes',
+  gen(){
+    const mk=()=>[rint(6,15), rint(6,15), rint(6,15), rint(6,15)];
+    const rows=[mk(), mk(), mk()];
+    const res = rows.map(R=>({R, m:+((R[0]+R[1]+R[2]+R[3])/4).toFixed(2), ok: ((R[0]+R[1]+R[2]+R[3])/4)>=10 }));
+    const code =
+`def moyenne(a, b, c, d):
+    m = (a + b + c + d) / 4
+    if m >= 10:
+        return "l'élève a la moyenne"
+    else:
+        return "l'élève n'a pas la moyenne"
+		
+def moyenne_booleen(a, b, c, d):
+    m = (a + b + c + d) / 4
+    return m >= 10
+
+`;
+    return {res,code};
+  },
+  render(host,s){
+    const rows = s.res.map((o,i)=>`
+      <tr><td>${o.R[0]}</td><td>${o.R[1]}</td><td>${o.R[2]}</td><td>${o.R[3]}</td>
+          <td>${mkInput('d5'+i,100)} <span id="td5${i}" class="tick"></span></td></tr>`).join('');
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D5.</strong> Moyenne</p>
+
+	<p>Un élève veut savoir s'il a la moyenne. <br>
+Pour cela, il dispose de ses notes représentées par les variables a, b, c et d.<br>
+Ecrire une fonction moyenne en langage Python afin qu'elle calcule sa moyenne \\(m\\) et affiche si l'élève a la moyenne ou non.</p>
+      <table class="tbl"><tr><th>1ère note</th><th>2ème note</th><th>3ème note</th><th>4ème note</th><th>A la moyenne ? (oui/non)</th></tr>${rows}</table>
+    </div></div>`;
+    host.__state=s;
+  },
+  check(host){
+    const s=host.__state; let filled=true, ok=true;
+    s.res.forEach((o,i)=>{
+      const raw=(document.getElementById('d5'+i)?.value||'').trim().toLowerCase();
+      const good = o.ok ? ['true','vrai','oui'] : ['false','faux','non'];
+      const st = raw===''?null: good.includes(raw);
+      tick('#td5'+i, st); if(st===null) filled=false; else if(!st) ok=false;
+    });
+    if(filled){ SCORE[1]++; if(ok) SCORE[0]++; scoreSet(...SCORE); }
+    return filled && ok;
+    function tick(sel,state){ const el=$(sel,host); el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok');el.textContent='✓';}
+      else if(state===false){el.classList.add('ko');el.textContent='✗';} else el.textContent=''; }
+  },
+solution(host){
+  const s = host.__state;
+
+  // Mémorise le code Python pour la console
+  host.__solutionPython = s.code;
+  host.dataset.hasSolution = '1';
+
+  // Conteneur #steps garanti
+  let W = $('#steps',host);
+  if(!W){
+    W = document.createElement('div');
+    W.id = 'steps';
+    W.className = 'steps';
+    host.appendChild(W);
+  }
+
+  // Format: moyenne(5,7,12,15) = 9.75  →  True/False
+  const lines = s.res.map(o => {
+    const args = o.R.join(', ');
+    const m = o.m.toFixed(2);
+    const ok = o.ok ? `L'élève a la moyenne` : `L'élève n'a pas la moyenne`;
+    return `moyenne(${args}) = ${m}  →  ${ok}`;
+  }).join('\n');
+
+  W.innerHTML = `<pre><code>${s.code}
+
+# Tests
+${lines}</code></pre>`;
+
+  // (optionnel) re-typeset si tu utilises MathJax ailleurs
+  if (window.MathJax?.typesetPromise) MathJax.typesetPromise([host]);
+}
+
+});
+
+
+
+L.push({
+  id:'D6_droite',
+  title:'D6 — Appartenance à une droite y = mx + p',
+  gen(){
+let m = 0, p = 0;
+do { m = rint(-4, 5); } while (m === 0);
+do { p = rint(-6, 8); } while (p === 0);
+    // Garantir au moins un point sur la droite
+    const x0=rint(-4,4); const y0=m*x0+p;
+    const pts=[[x0,y0],[rint(-6,6),rint(-6,6)],[rint(-6,6),rint(-6,6)],[rint(-6,6),rint(-6,6)]];
+    const res=pts.map(([x,y])=> (y===m*x+p));
+    const pyRight = `${fmtMX(m)}${fmtP(p)}`;  // ex: "x + 3", "-x - 2", "3*x + 5"
+
+	const code =
+`def d_appart(x, y):
+    if y == ${pyRight}:
+        return "Le point appartient à la droite d"
+    else:
+        return "Le point n'appartient pas à la droite d"
+
+
+def d_appart_booleen(x, y):
+    return y == ${pyRight}`;
+    return {m,p,pts,res,code};
+  },
+  render(host,s){
+    const fmt=P=>`(${P[0]} ; ${P[1]})`;
+    const rows = s.pts.map((P,i)=>`
+      <tr><td>${fmt(P)}</td><td>${mkInput('d6'+i,100)} <span id="td6${i}" class="tick"></span></td></tr>`).join('');
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D6.</strong> Appartenance à une droite</p>
+
+      <p>Soit \\(d\\) la droite d'équation : \\(y = ${fmtMX_tex(s.m)}${fmtP(s.p)}\\)
+	  <br>Ecrire une fonction d_appart qui teste si un point dont on connait les coordonnées appartient à la droite \\(d\\). </p>
+      <table class="tbl"><tr><th>Point M</th><th>M ∈ d ?</th></tr>${rows}</table>
+    </div></div>`;
+    host.__state=s;
+  },
+  check(host){
+    const s=host.__state; let filled=true, ok=true;
+    s.res.forEach((R,i)=>{
+      const raw=(document.getElementById('d6'+i)?.value||'').trim().toLowerCase();
+      const st = raw===''?null: (R?['true','vrai','oui']:['false','faux','non']).includes(raw);
+      tick('#td6'+i, st); if(st===null) filled=false; else if(!st) ok=false;
+    });
+    if(filled){ SCORE[1]++; if(ok) SCORE[0]++; scoreSet(...SCORE); }
+    return filled && ok;
+    function tick(sel,state){ const el=$(sel,host); el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok');el.textContent='✓';}
+      else if(state===false){el.classList.add('ko');el.textContent='✗';} else el.textContent=''; }
+  },
+  solution(host){
+    const s=host.__state;
+    host.__solutionPython=s.code; host.dataset.hasSolution='1';
+    const lines = s.pts.map((P,i)=>`d_appart_booleen(${P[0]}, ${P[1]}) = ${s.res[i]}`).join('\n');
+	// Conteneur #steps garanti
+  let W = $('#steps',host);
+  if(!W){
+    W = document.createElement('div');
+    W.id = 'steps';
+    W.className = 'steps';
+    host.appendChild(W);
+  }
+    W.innerHTML = `<pre><code>${s.code}
+
+# Tests
+${lines}</code></pre>`;
+  }
+});
+
+
+
+L.push({
+  id:'D7_cinema',
+  title:'D7 — Cinéma : abonnement avantageux ?',
+
+
+gen(){
+  // c0 ∈ [9 ; 13] par pas de 0,5
+  const c0 = rhalf(9, 13);           // ex: 9.0, 9.5, 10.0, …
+
+  const S  = rint(30, 70);           // forfait (entier €)
+
+  // écart (remise) ∈ [0,5 ; 4] par pas de 0,5
+// écart (delta) en € : au moins 7, par pas de 0,5, et c1 >= 0,5
+const lb = 7;                    // borne basse de l’écart
+const ub = toHalf(c0 - 0.5);     // pour garantir c1 >= 0,5
+const delta = rhalf(lb, ub);     // tirage en pas de 0,5 dans [7 ; c0-0,5]
+
+
+
+
+  // c1 = c0 - delta, aussi multiple de 0,5, et strictement < c0
+  const c1 = toHalf(c0 - delta);
+
+  // si tu veux conserver l'affichage "2 décimales"
+  const c0str = c0.toFixed(2);
+  const c1str = c1.toFixed(2);
+
+
+
+
+// --- seuil critique (au moins 5)
+const ncrit = Math.max(5, Math.ceil(S / Math.max(0.0001, (c0 - c1))));
+
+// --- 3 valeurs avant, 1 égale, 1 après (sans doublons)
+const nc = ncrit;                       // alias
+
+
+// construit 3 valeurs < nc, 1 valeur = nc, 1 valeur > nc, strictement croissantes
+function buildNs(nc){
+  // brouillons de positions autour du seuil
+  let a = Math.max(1, nc - 6);
+  let b = Math.max(a + 1, nc - 3);
+  let c = Math.max(b + 1, nc - 1);
+  const d = nc;
+  let e = Math.max(d + 1, nc + 4);
+
+  // sécurité : si jamais un doublon se glisse (seuil très petit), on pousse un peu
+  if (b === a) b = a + 1;
+  if (c === b) c = b + 1;
+  if (c >= d)  c = Math.max(1, d - 1, b + 1); // c doit rester < d
+  if (e <= d)  e = d + 1;
+
+  return [a, b, c, d, e];
+}
+
+const Ns = [nc - 3, nc - 2, nc - 1, nc, nc + 1].map(n => Math.max(1, n));
+const adv = n => (S + n*c1) < (n*c0);
+const out = Ns.map(n => adv(n));
+
+  const code =
+`def cinema(n):
+    if ${S} + ${c1}*n < ${c0}*n:
+        return "L'abonnement est plus avantageux"
+    else:
+        return "L'abonnement est moins avantageux"
+
+def cinema_booleen(n):
+    return ${S} + ${c1}*n < ${c0}*n`;
+
+  return {c0, c1, c0str, c1str, S, Ns,out,ncrit,code};
+},
+
+  render(host,s){
+    const rows=s.Ns.map((n,i)=>`
+      <tr><td>${n}</td><td>${mkInput('d7'+i,100)} <span id="td7${i}" class="tick"></span></td></tr>`).join('');
+    host.innerHTML=`
+    <div class="row norepere"><div class="statement">
+	      <p><strong>Exercice D7.</strong> Cinéma et abonnement</p>
+
+      <p>Un cinéma propose deux tarifs : avec ou sans abonnement.<br>
+Sans abonnement, la place de cinéma coûte ${s.c0}€.
+L'abonnement pour un an coûte ${s.S}€ et la place revient alors à ${s.c1}€.
+<br>On souhaite concevoir un programme qui affiche directement si l'abonnement est  plus avantageux pour un nombre \\(N\\) de places achetées.
+</p>
+      <table class="tbl"><tr><th>Nombre de films</th><th>Abo avantageux ?</th></tr>${rows}</table>
+      <p>À partir de combien de places l’abonnement devient-il avantageux ? 
+         ${mkInput('d7k',120)} <span id="td7k" class="tick"></span></p>
+    </div></div>`;
+    host.__state=s;
+  },
+  check(host){
+    const s=host.__state; let filled=true, ok=true;
+    s.out.forEach((R,i)=>{
+      const raw=(document.getElementById('d7'+i)?.value||'').trim().toLowerCase();
+      const st = raw===''?null: (R?['true','vrai','oui']:['false','faux','non']).includes(raw);
+      tick('#td7'+i, st); if(st===null) filled=false; else if(!st) ok=false;
+    });
+    const okK = (()=>{
+      const v=(document.getElementById('d7k')?.value||'').trim();
+      const st = v===''?null: near(parseNumber(v), s.ncrit, 1e-9);
+      tick('#td7k', st); if(st===null) filled=false; else if(!st) ok=false; return st;
+    })();
+    if(filled){ SCORE[1]++; if(ok) SCORE[0]++; scoreSet(...SCORE); }
+    return filled && ok;
+    function tick(sel,state){ const el=$(sel,host); el.classList.remove('ok','ko');
+      if(state===true){el.classList.add('ok');el.textContent='✓';}
+      else if(state===false){el.classList.add('ko');el.textContent='✗';} else el.textContent=''; }
+  },
+  solution(host){
+    const s=host.__state;
+    host.__solutionPython=s.code; host.dataset.hasSolution='1';
+	  let W = $('#steps',host);
+  if(!W){
+    W = document.createElement('div');
+    W.id = 'steps';
+    W.className = 'steps';
+    host.appendChild(W);
+  }
+    W.innerHTML = `<pre><code>${s.code}
+
+# Tests
+${s.Ns.map((n,i)=>`cinema(${n}) = ${s.out[i]}`).join('\n')}
+Seuil: n ≥ ${s.ncrit}</code></pre>`;
+  }
+});
+
+
+
+  return L;
+}
+
+/* ====== UI ====== */
+const REGISTRY = makeExos();
+window.REGISTRY = REGISTRY;
+
+function populateSelect(){
+  const sel=$("#exo-select"); if(!sel) return;
+  sel.innerHTML = '';
+  for(const e of REGISTRY){
+    const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o);
+  }
+}
+function renderActive(){
+  const host=$("#host"), sel=$("#exo-select");
+  try{
+    const def=REGISTRY.find(e=>e.id===sel.value) || REGISTRY[0];
+    host.dataset.active=def.id;
+    def.render(host, def.gen());
+    host.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('keydown', ev=>{ if(ev.key==='Enter') $('#btn-check').click(); });
+    });
+    retypeMath(host);
+	    transposeTables(host);   // <<<<<< transposition ici
+
+  }catch(e){
+    host.innerHTML = `<div class="steps" style="color:#b00020"><b>Erreur :</b> ${e.message}</div>`;
+  }
+}
+function val(id){ const e=document.getElementById(id); return e?e.value:'' }
+
+window.addEventListener('load', ()=>{
+  populateSelect();
+  $("#exo-select")?.addEventListener('change', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-new")?.addEventListener('click', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-reset")?.addEventListener('click', ()=>{ SCORE=[0,0]; scoreSet(0,0); renderActive(); });
+  $("#btn-check")?.addEventListener('click', ()=>{
+    const host=$("#host");
+    const def=REGISTRY.find(e=>e.id===host.dataset.active);
+    if(def?.check) def.check(host);
+  });
+  $("#btn-sol")?.addEventListener('click', ()=>{
+    const host=$("#host");
+    const def=REGISTRY.find(e=>e.id===host.dataset.active);
+    if(def?.solution) def.solution(host);
+  });
+
+  renderActive(); scoreSet(0,0);
+
+  // Init PDF (même position que d’habitude)
+  (function waitForPDF(){
+    if (window.ExoPDF?.init && Array.isArray(window.REGISTRY) && window.REGISTRY.length){
+      ExoPDF.init({
+        title: 'Première — Suites numériques — Python (Pour & Tant que)',
+        max: 50,
+        mountAfterSelector: '#info-saisie',
+        autoPrint: false
+      });
+    } else { setTimeout(waitForPDF, 60); }
+  })();
+});
+})();
+</script>
+<!-- === Console Python 3 panneaux : Éditeur / Console / Sortie === -->
+<style>
+/* === Console Python — CSS consolidé (remplace les doublons) === */
+#py-panel{
+  position: fixed;
+  right: 16px;
+  /* top est fixé par placePanel() en JS */
+  bottom: auto;
+  width: 680px;
+  max-width: 95vw;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 12px 22px rgba(0,0,0,.14);
+  display: none;               /* affiché/masqué par le bouton */
+  flex-direction: column;
+  z-index: 9999;
+  max-height: 80vh;            /* hauteur max raisonnable */
+}
+
+#py-head{
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px; border-bottom: 1px solid #eee;
+}
+#py-head .btn{ border:1px solid #ccc; background:#fff; border-radius:8px; padding:.35rem .6rem; cursor:pointer }
+#py-head .btn:active{ transform: translateY(1px) }
+#py-status{ margin-left: auto }
+
+#py-sections{
+  display: flex;               /* <<< PAS grid */
+  flex-direction: column;
+  min-height: 0;               /* indispensable pour que #py-out puisse grandir */
+}
+
+#py-editor{
+  width: 100%;
+  height: 230px;               /* éditable */
+  min-height: 120px;
+  resize: vertical;
+  border: none; border-bottom: 1px solid #eee;
+  padding: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  outline: none;
+}
+
+#py-repl{ display:flex; gap:8px; align-items:center; padding:8px; border-bottom:1px solid #eee }
+#py-input{
+  flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size:14px;
+}
+
+#py-out{
+  flex: 1 1 auto;              /* prend tout l'espace restant */
+  min-height: 120px;
+  overflow: auto;
+  padding: 10px;
+  background: #0e1116; color:#d6deeb;
+  border-bottom-left-radius:12px; border-bottom-right-radius:12px;
+  white-space: pre-wrap;
+}
+@media (max-width:720px){ #py-panel{ width:96vw } }
+
+</style>
+
+<script>
+(function(){
+  // === 0) Bouton barre d’outils
+  const bar = document.querySelector('.controls');
+  if(bar && !document.getElementById('py-open')){
+    const btn=document.createElement('button');
+    btn.id='py-open'; btn.className='btn'; btn.textContent='▶️ Console Python';
+    bar.insertBefore(btn, bar.children[1]||null);
+  }
+
+  // === 1) Panneau
+  const panel=document.createElement('div');
+  panel.id='py-panel';
+  panel.innerHTML=`
+    <div id="py-head">
+      <strong>Éditeur / Console / Sortie</strong>
+      <button id="py-fill" class="btn">🧩 Préremplir depuis l’exercice</button>
+      <button id="py-run"  class="btn">▶️ Exécuter le code</button>
+      <button id="py-eval" class="btn">⏎ Eval (ligne console)</button>
+      <button id="py-clear" class="btn">🧹 Effacer sortie</button>
+      <div id="py-status">Pyodide : chargement…</div>
+      <button id="py-close" class="btn">✖</button>
+    </div>
+    <div id="py-sections">
+      <textarea id="py-editor" spellcheck="false"
+        placeholder="# Écris ton programme ici (def suite(n): ...)."></textarea>
+      <div id="py-repl">
+        <span><strong>Console</strong> › </span>
+        <input id="py-input" placeholder="ex: suite(5) ou print(suite(5))">
+      </div>
+      <pre id="py-out">[sortie]</pre>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const $ = sel => document.querySelector(sel);
+function placePanel(){
+  const controls = document.querySelector('.controls');
+  if(!controls) return;
+  const r = controls.getBoundingClientRect();
+  const top = Math.round(r.bottom + 8 + window.scrollY);
+  panel.style.top = top + 'px';
+
+  const free = window.innerHeight - (r.bottom + 8);
+  panel.style.maxHeight = Math.max(260, free - 16) + 'px'; // pas de height fixe !
+}
+
+  // === 2) Charger Pyodide (une seule fois)
+  let pyodide=null;
+  async function ensurePy(){
+    if(pyodide) return pyodide;
+    if(!window.loadPyodide){
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+      await new Promise(r=>{ s.onload=r; document.head.appendChild(s); });
+    }
+    pyodide=await loadPyodide({});
+    $('#py-status').textContent='Pyodide : prêt';
+    return pyodide;
+  }
+  $('#py-open')?.addEventListener('click', async ()=>{
+  const btn = document.getElementById('py-open');
+  const isShown = panel.style.display === 'flex';
+  if (isShown) {
+    panel.style.display = 'none';
+    btn?.setAttribute('aria-pressed','false');
+    btn.textContent = '▶️ Console Python';
+  } else {
+    placePanel();                 // <— positionne sous le sélecteur
+    panel.style.display = 'flex';
+    btn?.setAttribute('aria-pressed','true');
+    btn.textContent = '⏹ Fermer la console';
+    await ensurePy();             // charge Pyodide à l’ouverture
+  }
+});
+
+// --- ajuster au scroll / resize (déboursé léger)
+let _placeTO=null;
+function schedulePlace(){
+  clearTimeout(_placeTO);
+  _placeTO = setTimeout(placePanel, 20);
+}
+window.addEventListener('scroll', schedulePlace, {passive:true});
+window.addEventListener('resize', schedulePlace);
+  $('#py-close')?.addEventListener('click', ()=>{ panel.style.display='none'; });
+
+  // === 3) Exécution & capture stdout/stderr
+function appendOut(txt){
+  const el = document.querySelector('#py-out');
+  if (el.textContent.trim() === '[sortie]') el.textContent = ''; // enlève le placeholder
+  el.textContent += (el.textContent ? '\n' : '') + txt;
+  el.scrollTop = el.scrollHeight;
+}
+  async function pyExec(code){
+    await ensurePy();
+    let stdout='', stderr='';
+    pyodide.setStdout({batched:msg=>{stdout+=msg;}});
+    pyodide.setStderr({batched:msg=>{stderr+=msg;}});
+	await pyodide.runPythonAsync(`
+import builtins
+from js import prompt
+
+def _browser_input(msg=''):
+    # affiche le message passé à input(...) dans la boîte de saisie
+    v = prompt(str(msg))
+    return '' if v is None else v  # input doit renvoyer une chaîne
+
+builtins.input = _browser_input
+`);
+
+    try{
+	pyodide.setStdin({
+  stdin: () => {
+    const v = window.prompt("Entrée pour input() :");
+    return ((v ?? '') + '\n');
+  }
+});
+      await pyodide.runPythonAsync(code);
+      if(stdout.trim()) appendOut(stdout.trim());
+      if(stderr.trim()) appendOut('[stderr]\\n'+stderr.trim());
+    }catch(e){
+      appendOut('[Erreur] ' + (e?.message || String(e)));
+    }
+  }
+
+  // === 4) Exécuter le contenu de l’éditeur
+  $('#py-run').addEventListener('click', async ()=>{
+    const code=$('#py-editor').value;
+    await pyExec(code);
+  });
+
+  // === 5) Évaluer une ligne console
+  // - si c’est une expression, on affiche repr(expr)
+  // - sinon on exécute comme une instruction (ex: x=3)
+  const hist=[]; let hIdx=-1;
+  $('#py-eval').addEventListener('click', async ()=>{ await runConsoleLine(); });
+  $('#py-input').addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); await runConsoleLine(); }
+    else if(e.key==='ArrowUp'){ if(hist.length){hIdx=Math.max(0,hIdx-1); $('#py-input').value=hist[hIdx]; e.preventDefault();} }
+    else if(e.key==='ArrowDown'){ if(hist.length){hIdx=Math.min(hist.length, hIdx+1); $('#py-input').value=(hIdx>=hist.length?'':hist[hIdx]); e.preventDefault();} }
+  });
+  async function runConsoleLine(){
+    const line=$('#py-input').value.trim();
+    if(!line) return;
+    hist.push(line); hIdx=hist.length;
+    $('#py-input').value='';
+    // essaie eval(...)
+    const wrapper = `
+import builtins
+_res_ = None
+try:
+    _res_ = eval(${JSON.stringify(line)})
+    if _res_ is not None:
+        print(repr(_res_))
+except SyntaxError:
+    exec(${JSON.stringify(line)})
+`;
+    await pyExec(wrapper);
+  }
+
+  // === 6) Effacer sortie
+  $('#py-clear').addEventListener('click', ()=>{ $('#py-out').textContent='[sortie]'; });
+
+  // === 7) Préremplir depuis l’exercice actif (même logique que ta console précédente)
+  function getVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+function codeFromExercise(){
+  const host = document.querySelector('#host');
+
+  // <<< PRIORITÉ À LA SOLUTION SI ELLE EXISTE
+  if (host?.__solutionPython) {
+    return host.__solutionPython + '\n';
+  }
+}
+  // ... ensuite ton code existant (ex1, ex2, ex3, etc.)
+
+  $('#py-fill').addEventListener('click', ()=>{ $('#py-editor').value = codeFromExercise(); });
+
+  // === 8) Petit “éditeur intelligent” : indentation après ":" + Tab/Shift+Tab + Ctrl/Cmd+Enter
+  (function enhanceEditor(){
+    const ta=$('#py-editor');
+    function insert(text){
+      const s=ta.selectionStart, e=ta.selectionEnd;
+      ta.setRangeText(text, s, e, 'end');
+    }
+    function curLine(){
+      const pos=ta.selectionStart, before=ta.value.slice(0,pos);
+      const ls = before.lastIndexOf('\n')+1;
+      const line = before.slice(ls);
+      const indent = (line.match(/^\s*/)||[''])[0];
+      return {line, indent};
+    }
+    function indentSel(add=true){
+      const start=ta.selectionStart, end=ta.selectionEnd, v=ta.value;
+      const from=v.lastIndexOf('\n',start-1)+1;
+      const to=v.indexOf('\n',end); const endPos=(to===-1?v.length:to);
+      const lines=v.slice(from,endPos).split('\n');
+      const pad='    ';
+      const changed=lines.map(s=> add? pad+s : (s.startsWith('    ')?s.slice(4):s.replace(/^ {1,3}/,''))).join('\n');
+      ta.value = v.slice(0,from)+changed+v.slice(endPos);
+      const delta=changed.length - (endPos-from);
+      ta.setSelectionRange(start+(add?4:0), end+delta);
+    }
+    ta.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#py-run').click(); return; }
+      if(e.key==='Tab'){ e.preventDefault(); if(ta.selectionStart!==ta.selectionEnd) indentSel(!e.shiftKey); else insert('    '); return; }
+      if(e.key==='Enter'){ e.preventDefault(); const {line,indent}=curLine(); const more=/:\s*$/.test(line)?'    ':''; insert('\n'+indent+more); return; }
+    });
+  })();
+})();
+</script>
+
+
 </body>
 </html>

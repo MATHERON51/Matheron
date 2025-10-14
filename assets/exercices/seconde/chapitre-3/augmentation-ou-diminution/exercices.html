@@ -214,7 +214,6 @@ const ex1 = {
     const inner = innerHost(host);
     inner.innerHTML = `
       <div class="consigne">
-        <div class="c-label">Énoncé</div>
 Donner le coefficient multiplicateur correspondant à ${st.type==='hausse'?'une <strong>hausse</strong>':'une <strong>baisse</strong>'} de <strong>\\(${fmtIntOrDec(st.p,2)}\\%\\)</strong>.
       </div>
       <div class="row">
@@ -274,7 +273,6 @@ const ex2 = {
     const inner = innerHost(host);
     inner.innerHTML = `
       <div class="consigne">
-        <div class="c-label">Énoncé</div>
         Le coefficient multiplicateur est <strong>\\( c = ${fmtIntOrDec(st.c,4)} \\)</strong>.
         Indiquer s’il s’agit d’une hausse ou d’une baisse, et donner le pourcentage d’évolution, à 0,01 près.
       </div>
@@ -552,12 +550,12 @@ const ex4 = {
     const inner = innerHost(host);
     inner.innerHTML = `
       <div class="consigne">
-        <div class="c-label">Énoncé</div>
+	          <div style="margin-top:.4rem">${st.text}</div>
+
         <ol style="margin:.3rem 0 .6rem 1.2rem">
           <li>Calculer le coefficient multiplicateur \\( c \\), arrondir à \\( 10^{-4} \\).</li>
 <li>En déduire le taux d’évolution \\( t \\) sous forme de pourcentage, à 0,01% près.</li>
         </ol>
-        <div style="margin-top:.4rem">${st.text}</div>
       </div>
 
       <div class="row">
@@ -614,8 +612,473 @@ const ex4 = {
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
+
+// ================== Ex. 5 — Vi & taux → Vf (banque de 20) ==================
+const ex5 = {
+  id: 'vi_taux_vers_vf_banque20',
+  title: 'Ex. 5 — Évolution : on connaît Vi et le taux, on cherche Vf',
+  gen(){
+   const rint = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+  const choice = A => A[Math.floor(Math.random()*A.length)];
+  const gcd = (a,b)=> b ? gcd(b, a%b) : Math.abs(a);
+
+  // Vi multiple de m dans [min,max]
+  function pickMultiple(min, max, m){
+    const kmin = Math.ceil(min / m), kmax = Math.floor(max / m);
+    return (kmax < kmin) ? m * kmin : rint(kmin, kmax) * m;
+  }
+
+  // Pour que Vf = Vi*(100 + s*p)/100 soit ENTIER,
+  // Vi doit être multiple de 100 / gcd(100, 100 + s*p)
+  function needMultipleForIntegerVf(p, s){
+    const num = 100 + s*p;
+    const g = gcd(100, num);
+    return 100 / g; // diviseur minimal de Vi
+  }
+
+  // Unités considérées "comptables"
+  const COUNT_UNITS = new Set(['habitants','abonnés','pas','élèves','logements','arbres','visiteurs']);
+
+  // Chaque entrée renvoie {Vi, p (en %), s (+1/-1), unit, txt, ask}
+  const BANK5 = [
+    // 1 — Club de sport (baisse) — COMPTE
+    ()=>{ const p=20, s=-1, unit='adhérents'; // assimilé "comptable"
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(200, 600, mult);
+          return {Vi,p,s,unit,
+            txt:`L'an dernier, un club de sport comptait ${Vi} adhérents. Le nombre de membres a diminué de ${p}%.`,
+            ask:`Quel est le nombre d'adhérents cette année ?`};},
+    // 2 — Population ville (hausse) — COMPTE
+    ()=>{ const p=rint(8,25), s=+1, unit='habitants';
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(3800, 12000, mult);
+          return {Vi,p,s,unit,
+            txt:`La population d'une petite ville était de ${Vi} habitants. Elle a augmenté de ${p}%.`,
+            ask:`Combien d'habitants compte-t-elle maintenant ?`};},
+    // 3 — Billet de cinéma (hausse) — €
+    ()=>{ const p=rint(5,18), s=+1, unit='€';
+          const Vi = (rint(90,140)/10); // 9,0 à 14,0 €
+          return {Vi,p,s,unit,
+            txt:`Le prix d'un billet de cinéma était de ${Vi.toFixed(1)} €. Il augmente de ${p}%.`,
+            ask:`Quel est le nouveau prix \\(\\)(en €) ?`};},
+    // 4 — Colis (baisse) — kg
+    ()=>{ const p=rint(10,35), s=-1, unit='kg';
+          const Vi = (rint(12,22)/10); // 1,2 à 2,2 kg
+          return {Vi,p,s,unit,
+            txt:`La masse d'un colis était de ${Vi.toFixed(1)} kg avant évaporation. Elle diminue de ${p}%.`,
+            ask:`Quelle est la masse \\(\\)(en kg) après évaporation ?`};},
+    // 5 — Librairie (hausse) — €
+    ()=>{ const p=rint(10,30), s=+1, unit='€';
+          const Vi = rint(120,240);
+          return {Vi,p,s,unit,
+            txt:`Le chiffre d'affaires d'une librairie était de ${Vi} €. Il progresse de ${p}%.`,
+            ask:`Quel est le nouveau chiffre d'affaires \\(\\)(en €) ?`};},
+    // 6 — Réservoir (baisse) — L
+    ()=>{ const p=rint(10,25), s=-1, unit='L';
+          const Vi = rint(45,80);
+          return {Vi,p,s,unit,
+            txt:`Le volume d'eau d'un réservoir était de ${Vi} L. En raison d'une fuite, il baisse de ${p}%.`,
+            ask:`Quel est le volume restant \\(\\)(en L) ?`};},
+    // 7 — Conso élec (hausse) — kWh
+    ()=>{ const p=rint(5,20), s=+1, unit='kWh';
+          const Vi = rint(320,560);
+          return {Vi,p,s,unit,
+            txt:`La consommation électrique annuelle d'un foyer était de ${Vi} kWh. Elle augmente de ${p}%.`,
+            ask:`Calculer la nouvelle consommation \\(\\)(en kWh).`};},
+    // 8 — Distance (hausse) — km
+    ()=>{ const p=rint(6,18), s=+1, unit='km';
+          const Vi = (rint(14,26)/10);
+          return {Vi,p,s,unit,
+            txt:`La distance moyenne parcourue chaque jour était de ${Vi.toFixed(1)} km. Elle augmente de ${p}%.`,
+            ask:`Quelle est la nouvelle distance \\(\\)(en km) ?`};},
+    // 9 — Loyer (baisse) — €
+    ()=>{ const p=rint(10,30), s=-1, unit='€';
+          const Vi = rint(1100,2200);
+          return {Vi,p,s,unit,
+            txt:`Le loyer annuel d'un local était de ${Vi} €. Après négociation, il diminue de ${p}%.`,
+            ask:`Quel est le nouveau loyer \\(\\)(en €) ?`};},
+    // 10 — Serre (hausse) — m²
+    ()=>{ const p=rint(5,20), s=+1, unit='m²';
+          const Vi = (rint(60,95)/10);
+          return {Vi,p,s,unit,
+            txt:`La surface cultivée d'une serre était de ${Vi.toFixed(1)} m². On l'agrandit de ${p}%.`,
+            ask:`Quelle est la nouvelle surface \\(\\)(en m²) ?`};},
+    // 11 — Smartphone (baisse) — €
+    ()=>{ const p=rint(12,30), s=-1, unit='€';
+          const Vi = rint(180,260);
+          return {Vi,p,s,unit,
+            txt:`Le prix d'un smartphone était de ${Vi} €. Pendant les soldes, il baisse de ${p}%.`,
+            ask:`Quel est le prix soldé \\(\\)(en €) ?`};},
+    // 12 — Pas (hausse) — COMPTE
+    ()=>{ const p=rint(5,18), s=+1, unit='pas';
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(4200, 6800, mult);
+          return {Vi,p,s,unit,
+            txt:`Le nombre de pas quotidiens d'une personne était de ${Vi}. Il augmente de ${p}%.`,
+            ask:`Combien de pas maintenant \\(\\)(arrondi au pas) ?`};},
+    // 13 — Température liquide (baisse) — °C (valeur)
+    ()=>{ const p=rint(10,25), s=-1, unit='°C';
+          const Vi = (rint(150,280)/10);
+          return {Vi,p,s,unit,
+            txt:`La température d'un liquide était de ${Vi.toFixed(1)} °C et diminue de ${p}%.`,
+            ask:`Quelle est la nouvelle température \\(\\)(en °C) ?`};},
+    // 14 — Panier e-commerce (hausse) — €
+    ()=>{ const p=rint(8,22), s=+1, unit='€';
+          const Vi = rint(85,140);
+          return {Vi,p,s,unit,
+            txt:`Le panier moyen en e-commerce était de ${Vi} €. Il augmente de ${p}%.`,
+            ask:`Quel est le nouveau panier moyen \\(\\)(en €) ?`};},
+    // 15 — Taux humidité (baisse) — % (valeur)
+    ()=>{ const p=rint(10,30), s=-1, unit='%';
+          const Vi = rint(18,38);
+          return {Vi,p,s,unit,
+            txt:`Le taux d'humidité d'une pièce était de ${Vi}%. Il baisse de ${p}%.`,
+            ask:`Quel est le nouveau taux \\(\\)(en %) ?`};},
+    // 16 — Vitesse coureur (hausse) — km/h
+    ()=>{ const p=rint(5,20), s=+1, unit='km/h';
+          const Vi = rint(120,240);
+          return {Vi,p,s,unit,
+            txt:`La vitesse moyenne d'un coureur était de ${Vi} km/h (home-trainer). Elle augmente de ${p}%.`,
+            ask:`Quelle est la nouvelle vitesse \\(\\)(en km/h) ?`};},
+    // 17 — Fût (baisse) — L
+    ()=>{ const p=rint(5,20), s=-1, unit='L';
+          const Vi = (rint(18,35)/10);
+          return {Vi,p,s,unit,
+            txt:`La contenance utile d'un fût est de ${Vi.toFixed(1)} L et diminue de ${p}%.`,
+            ask:`Quelle est la contenance restante \\(\\)(en L) ?`};},
+    // 18 — Budget courses (hausse) — €
+    ()=>{ const p=rint(10,25), s=+1, unit='€';
+          const Vi = rint(320,580);
+          return {Vi,p,s,unit,
+            txt:`Le budget mensuel « courses » d'un foyer était de ${Vi} €. Il augmente de ${p}%.`,
+            ask:`Quel est le nouveau budget \\(\\)(en €) ?`};},
+    // 19 — Production atelier (baisse) — kg
+    ()=>{ const p=rint(5,18), s=-1, unit='kg';
+          const Vi = rint(160,260);
+          return {Vi,p,s,unit,
+            txt:`La production d'un atelier était de ${Vi} kg par semaine. Elle diminue de ${p}%.`,
+            ask:`Quelle est la nouvelle production \\(\\)(en kg) ?`};},
+    // 20 — Abonnés (hausse) — COMPTE
+    ()=>{ const p=rint(8,22), s=+1, unit='abonnés';
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(120000, 280000, mult);
+          return {Vi,p,s,unit,
+            txt:`Une chaîne comptait ${Vi} abonnés. Elle progresse de ${p}%.`,
+            ask:`Combien d’abonnés compte-t-elle maintenant ?`};},
+  ];
+
+  const mk = choice(BANK5)();
+
+  // t en décimal + Vf exact (entier garanti pour les unités "comptables")
+  mk.t  = mk.s * mk.p / 100;
+  mk.Vf = mk.Vi * (100 + mk.s*mk.p) / 100;
+
+  return mk;
+  },
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <p>${st.txt}</p>
+        <p>${st.ask} (répondre, si nécessaire,  à <strong>0,01 près</strong>).</p>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse :</strong></div>
+        <div class="input-line"><input id="vf5" type="text" placeholder=""></div>
+      </div>
+      <div id="res" class="res"></div>
+    `;
+  },
+  correct(host, st){
+    const inner = innerHost(host); addTicks(inner);
+    const v = parseNumberFR_noPct($('#vf5',inner).value);
+    const ok = Number.isFinite(v) && same02(v, st.Vf);
+    setTickForInput($('#vf5',inner), ok);
+    const res = $('#res',inner);
+    res.textContent = ok ? 'Correct.' : 'Incorrect.';
+    res.className = 'res ' + (ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  // --- Ex. 5 : remplacer la fonction solution ---
+solution(host, st){
+  const inner = innerHost(host);
+  const p = Math.round(Math.abs(st.t)*100);         // p en %
+  const kind = st.t>=0 ? 'Augmenter' : 'Diminuer';  // phrase
+  const signe = st.t>=0 ? '+' : '−';
+  const c = 1 + st.t;
+
+  $('#res',inner).innerHTML = [
+    // Phrase demandée
+    `<p>${kind} de \\(${p}\\%\\) revient à multiplier par :</p>`,
+    `<p>\\( c = 1 ${signe} \\dfrac{${p}}{100} = ${fmtIntOrDec(c,4)} \\)</p><br>`,
+
+    // Suite de la rédaction
+    `<p>\\( V_f = V_i \\times c \\)</p>`,
+	    `<p>\\( V_f  = ${fmtIntOrDec(st.Vi,2)} \\times ${fmtIntOrDec(c,4)} \\)</p>`,
+    `<p>\\( V_f ${eqSignTex(st.Vf, rto(st.Vf,2))} \\; \\mathbf{${fmtIntOrDec(rto(st.Vf,2),2)}} ${st.unit?('\\;\\text{'+st.unit.replace('%','%')+'}'):''} \\)</p>`
+  ].join('');
+  $('#res',inner).className='res';
+  retypeset(inner);
+},
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+// ================== Ex. 6 — Vf & taux → Vi (banque de 20) ==================
+const ex6 = {
+  id: 'vf_taux_vers_vi_banque20',
+  title: "Ex. 6 — Évolution : on connaît Vf et le taux, on cherche Vi",
+  gen(){
+     const rint = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+  const choice = A => A[Math.floor(Math.random()*A.length)];
+  const gcd = (a,b)=> b ? gcd(b, a%b) : Math.abs(a);
+
+  // renvoie un entier multiple de m dans [min,max]
+  function pickMultiple(min, max, m){
+    const kmin = Math.ceil(min / m), kmax = Math.floor(max / m);
+    return (kmax < kmin) ? m * kmin : rint(kmin, kmax) * m;
+  }
+
+  // Pour que Vf = Vi*(100 + s*p)/100 soit ENTIER :
+  // Vi doit être multiple de 100 / gcd(100, 100 + s*p)
+  function needMultipleForIntegerVf(p, s){
+    const num = 100 + s*p;
+    const g = gcd(100, num);
+    return 100 / g; // diviseur minimal de Vi
+    // ex: p=20, s=+1 → num=120, gcd(100,120)=20 → Vi multiple de 5
+  }
+
+  // Liste des unités "comptables"
+  const COUNT_UNITS = new Set(['habitants','abonnés','pas','élèves','logements','arbres']);
+
+  // Chaque item fabrique: {Vi(int), p(%), s(+1/-1), Vf, unit, txt, ask, isCount}
+  const BANK6 = [
+    // 1 — Céréales (hausse) : pas "comptable" → Vi entier, Vf peut être décimal
+    ()=>{ const p=20, s=+1, unit='g';
+          const Vi=rint(280,520);
+          const Vf = Vi * (1 + s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La masse de céréales dans un paquet est augmentée de ${p}%. `
+               + `La masse après promotion d’un paquet est ${fmtIntOrDec(Vf,2)} g.`,
+            ask:`Quelle était la masse \\(\\)(en g) d’un paquet avant la promotion ?`};},
+
+    // 2 — Article soldé (baisse)
+    ()=>{ const p=rint(10,30), s=-1, unit='€';
+          const Vi=rint(160,320);
+          const Vf = Vi * (1 + s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Un article a subi une remise de ${p}%. Son prix après remise est ${fmtIntOrDec(Vf,2)} €.`,
+            ask:`Quel était son prix initial \\(\\)(en €) ?`};},
+
+    // 3 — Population (hausse) — COMPTE
+    ()=>{ const p=rint(5,22), s=+1, unit='habitants';
+          const mult = needMultipleForIntegerVf(p,s);      // assure Vf entier
+          const Vi = pickMultiple(4200, 7600, mult);       // Vi entier multiple
+          const Vf = Vi * (100 + s*p) / 100;               // entier garanti
+          return {Vi,p,s,Vf,unit,
+            txt:`La population d’un village a augmenté de ${p}%. Elle est maintenant de ${Vf} habitants.`,
+            ask:`Combien d’habitants avant l’augmentation ?`};},
+
+    // 4 — Séchage (baisse)
+    ()=>{ const p=rint(10,30), s=-1, unit='kg';
+          const Vi=rint(6,20);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Après séchage, la masse d’un échantillon a baissé de ${p}% et est de ${fmtIntOrDec(Vf,2)} kg. `,
+            ask:`Quelle était la masse initiale \\(\\)(en kg) ?`};},
+
+    // 5 — Cinéma (hausse)
+    ()=>{ const p=rint(5,20), s=+1, unit='€';
+          const Vi=rint(8,14);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le prix d’un billet de cinéma a augmenté de ${p}%. Il vaut maintenant ${fmtIntOrDec(Vf,2)} €.`,
+            ask:`Quel était l’ancien prix \\(\\)(en €) ?`};},
+
+    // 6 — Réservoir (baisse)
+    ()=>{ const p=rint(10,25), s=-1, unit='L';
+          const Vi=rint(40,120);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Après une fuite de ${p}%, il reste ${fmtIntOrDec(Vf,2)} L dans le réservoir.`,
+            ask:`Quel volume contenait-il au départ \\(\\)(en L) ?`};},
+
+    // 7 — Distance/jour (hausse)
+    ()=>{ const p=rint(6,20), s=+1, unit='km';
+          const Vi=rint(6,18);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La distance moyenne journalière a augmenté de ${p}%. Elle est désormais de ${fmtIntOrDec(Vf,2)} km.`,
+            ask:`Quelle était la distance avant l’augmentation \\(\\)(en km) ?`};},
+
+    // 8 — Loyer (baisse)
+    ()=>{ const p=rint(8,22), s=-1, unit='€';
+          const Vi=rint(800,2000);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le loyer annuel est passé à ${fmtIntOrDec(Vf,2)} € après une négociation d'une baisse de ${p}%.`,
+            ask:`Quel était le loyer initial \\(\\)(en €) ?`};},
+
+    // 9 — Serre (hausse)
+    ()=>{ const p=rint(5,20), s=+1, unit='m²';
+          const Vi=rint(20,80);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La surface d’une serre a augmenté de ${p}%. Elle est maintenant de ${fmtIntOrDec(Vf,2)} m².`,
+            ask:`Quelle surface avant agrandissement \\(\\)(en m²) ?`};},
+
+    // 10 — Smartphone (baisse)
+    ()=>{ const p=rint(10,30), s=-1, unit='€';
+          const Vi=rint(180,260);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le prix d’un smartphone est de ${fmtIntOrDec(Vf,2)} € pendant des soldes à −${p}%, .`,
+            ask:`Quel était le prix avant les soldes \\(\\)(en €) ?`};},
+
+    // 11 — Pas/jour (hausse) — COMPTE
+    ()=>{ const p=rint(5,18), s=+1, unit='pas';
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(3500, 7000, mult);
+          const Vf = Vi * (100 + s*p) / 100;               // entier
+          return {Vi,p,s,Vf,unit,
+            txt:`Le nombre de pas quotidiens a augmenté de ${p}%. Il est désormais de ${Vf}.`,
+            ask:`Combien de pas auparavant \\(\\)(arrondir à l’entier) ?`};},
+
+    // 12 — Panier moyen (hausse)
+    ()=>{ const p=rint(8,22), s=+1, unit='€';
+          const Vi=rint(60,120);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le panier moyen a augmenté de ${p}%. Il atteint ${fmtIntOrDec(Vf,2)} €.`,
+            ask:`Quel était le panier moyen avant hausse \\(\\)(en €) ?`};},
+
+    // 13 — Humidité (baisse) (valeur % mesurée, peut rester décimale)
+    ()=>{ const p=rint(10,30), s=-1, unit='%';
+          const Vi=rint(30,80);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le taux d’humidité est maintenant de ${fmtIntOrDec(Vf,2)}%. Il a baissé de ${p}%.`,
+            ask:`Quel était le taux initial \\(\\)(en %) ?`};},
+
+    // 14 — Vitesse (hausse)
+    ()=>{ const p=rint(5,20), s=+1, unit='km/h';
+          const Vi=rint(15,40);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La vitesse sur home-trainer a augmenté de ${p}%. Elle vaut ${fmtIntOrDec(Vf,2)} km/h.`,
+            ask:`Quelle était la vitesse initiale \\(\\)(en km/h) ?`};},
+
+    // 15 — Contenance (baisse)
+    ()=>{ const p=rint(8,22), s=-1, unit='L';
+          const Vi=rint(10,30);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Après prélèvements de ${p}%, la contenance est de ${fmtIntOrDec(Vf,2)} L.`,
+            ask:`Quelle est la contenance au départ \\(\\)(en L) ?`};},
+
+    // 16 — Budget (hausse)
+    ()=>{ const p=rint(10,25), s=+1, unit='€';
+          const Vi=rint(280,620);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le budget « courses » a augmenté de ${p}%. Il est maintenant de ${fmtIntOrDec(Vf,2)} €.`,
+            ask:`Quel était le budget initial \\(\\)(en €) ?`};},
+
+    // 17 — Production (baisse)
+    ()=>{ const p=rint(5,18), s=-1, unit='kg';
+          const Vi=rint(140,260);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La production hebdomadaire est tombée à ${fmtIntOrDec(Vf,2)} kg après une baisse de ${p}%.`,
+            ask:`Quelle était la production avant la baisse \\(\\)(en kg) ?`};},
+
+    // 18 — Menu (hausse)
+    ()=>{ const p=rint(8,22), s=+1, unit='€';
+          const Vi=rint(10,24);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`Le prix d’un menu augmente de ${p}%. Il coûte désormais ${fmtIntOrDec(Vf,2)} €.`,
+            ask:`Quel était l’ancien prix \\(\\)(en €) ?`};},
+
+    // 19 — Distance entraînement (hausse)
+    ()=>{ const p=rint(10,25), s=+1, unit='km';
+          const Vi=rint(8,22);
+          const Vf=Vi*(1+s*p/100);
+          return {Vi,p,s,Vf,unit,
+            txt:`La distance d’entraînement grimpe de ${p}%. Elle atteint ${fmtIntOrDec(Vf,2)} km.`,
+            ask:`Distance avant hausse \\(\\) (en km) ?`};},
+
+    // 20 — Abonnés (hausse) — COMPTE
+    ()=>{ const p=rint(10,25), s=+1, unit='abonnés';
+          const mult = needMultipleForIntegerVf(p,s);
+          const Vi = pickMultiple(120000, 280000, mult);    // Vi integer multiple
+          const Vf = Vi * (100 + s*p) / 100;               // entier garanti
+          return {Vi,p,s,Vf,unit,
+            txt:`Une chaîne compte maintenant ${Vf} abonnés après une hausse de ${p}%.`,
+            ask:`Combien d’abonnés avant la hausse ?`};},
+  ];
+
+  const it = choice(BANK6)();
+  // t en décimal (pour la correction & solution existantes)
+  it.t = it.s * it.p / 100;
+  return it;
+},
+  render(host, st){
+    const inner = innerHost(host);
+    inner.innerHTML = `
+      <div class="consigne">
+        <p>${st.txt}</p>
+        <p>${st.ask}</p>
+      </div>
+      <div class="row">
+        <div class="col-label"><strong>Réponse :</strong></div>
+        <div class="input-line"><input id="vi6" type="text" placeholder=""></div>
+      </div>
+      <div id="res" class="res"></div>
+    `;
+  },
+  correct(host, st){
+    const inner = innerHost(host); addTicks(inner);
+    const v = parseNumberFR_noPct($('#vi6',inner).value);
+    const ok = Number.isFinite(v) && same02(v, st.Vi);
+    setTickForInput($('#vi6',inner), ok);
+    const res = $('#res',inner);
+    res.textContent = ok ? 'Correct.' : 'Incorrect.';
+    res.className = 'res ' + (ok?'res-ok':'res-ko');
+    return {ok,total:1};
+  },
+  // --- Ex. 6 : remplacer la fonction solution ---
+solution(host, st){
+  const inner = innerHost(host);
+  const p = Math.round(Math.abs(st.t)*100);         // p en %
+  const kind = st.t>=0 ? 'Augmenter' : 'Diminuer';
+  const signe = st.t>=0 ? '+' : '−';
+  const c = 1 + st.t;
+
+  $('#res',inner).innerHTML = [
+    // Phrase demandée
+    `<p>${kind} de \\(${p}\\%\\) revient à multiplier par :</p>`,
+    `<p>\\( c = 1 ${signe} \\dfrac{${p}}{100} = ${fmtIntOrDec(c,4)} \\)</p><br>`,
+
+    // Suite de la rédaction
+    `<p>\\( V_i = \\dfrac{V_f}{c}  \\)</p>`,
+	    `<p>\\( V_i =  \\dfrac{${fmtIntOrDec(st.Vf,2)}}{${fmtIntOrDec(c,4)}} \\)</p>`,
+
+    `<p>\\( V_i ${eqSignTex(st.Vi, rto(st.Vi,2))} \\; \\mathbf{${fmtIntOrDec(rto(st.Vi,2),2)}} ${st.unit?('\\;\\text{'+st.unit.replace('%','%')+'}'):''} \\)</p>`
+  ].join('');
+  $('#res',inner).className='res';
+  retypeset(inner);
+},
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+
+
 /* ================== Registre & moteur ================== */
-const REGISTRY=[ex1,ex2,ex3,ex4];
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5, ex6];
 window.REGISTRY=REGISTRY;
 
 let scoreOK=0, scoreTot=0;
@@ -737,10 +1200,13 @@ function freezePdfLayout(root){
       title: document.title.replace(/\s+–.+$/,'').trim(),
       max: 40,
       leadByDefId: {
-        'cm_depuis_taux' : 'Exercice 1 — Coefficient multiplicateur et évolution',
-        'type_et_taux_depuis_c': 'Exercice 2 — Coefficient multiplicateur et évolution',
-        'taux_calc_3cas_bis': 'Exercice 3 — Coefficient multiplicateur & taux d’évolution (3 cas)',
-        'cm_taux_contextes': 'Exercice 4 — Coefficient multiplicateur & taux d’évolution (contexte)',
+        'cm_depuis_taux' : 'Exercice 1',
+        'type_et_taux_depuis_c': 'Exercice 2',
+        'taux_calc_3cas_bis': 'Exercice 3',
+        'cm_taux_contextes': 'Exercice 4',
+		'vi_taux_vers_vf_banque20': 'Exercice 5',
+  'vf_taux_vers_vi_banque20': 'Exercice 6'
+		
       },
       // Énoncé: cases vides ; Correction: bloc #res
       beforeRender(def, st, isSolution){

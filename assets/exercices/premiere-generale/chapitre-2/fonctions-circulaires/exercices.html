@@ -521,8 +521,19 @@ function makeYTicksFromStep(yMin, yMax, step){
 
 
 function drawTrigGraph(f, a, b, mount, opts={}){
-  const W=620, H=260, m=36;
-  const x0=m, y0=m, w=W-2*m, h=H-2*m;
+  const W=620, H=260;
+
+  // marges de base
+  const mT=36, mR=36, mB=36, mL=36;
+
+  // 🆕 petit retrait à gauche si l’axe Y est collé au bord (a≈0)
+  const needLeftGutter = Math.abs(a) < 1e-9;
+  const gutterLeft = needLeftGutter ? 22 : 0;  // 22 px suffisent pour le “−”
+
+  // zone de tracé
+  const x0 = mL + gutterLeft, y0 = mT;
+  const w  = W - (mL + mR + gutterLeft);
+  const h  = H - (mT + mB);
   const N=800, xs=[...Array(N)].map((_,i)=>a+(b-a)*i/(N-1));
   const ys=xs.map(x=>f(x));
   let yMin=Math.min(...ys), yMax=Math.max(...ys);
@@ -668,20 +679,31 @@ xTicks.forEach(t=>{
   svg.appendChild(tl);
 
   if (t.kind === 'pi' && t.latex) {
-    // ⬇️ place le label LaTeX sous l’axe
-    const fo = document.createElementNS(svgNS,'foreignObject');
-    fo.setAttribute('x', xpx - 26);
-    fo.setAttribute('y', yAxisLine + (t.major ? 8 : 6)); // ← dessous
-    fo.setAttribute('width', 52);
-    fo.setAttribute('height', 24);
-    const div = document.createElement('div');
-    div.style.textAlign = 'center';
-    div.style.fontSize = (t.major ? '13px' : '12px');
-    div.innerHTML = `\\(${t.latex}\\)`;
-    fo.appendChild(div);
-    svg.appendChild(fo);
-    MathJax?.typesetPromise?.([fo]).catch(()=>{});
-  } else {
+  const fo = document.createElementNS(svgNS,'foreignObject');
+
+  // un peu plus large/haut + positionné légèrement plus bas que l’axe
+  const boxW = 64;                      // avant 52
+  const boxH = 32;                      // avant 24
+  fo.setAttribute('x', xpx - boxW / 2);
+  fo.setAttribute('y', yAxisLine + (t.major ? 10 : 8)); // un poil plus bas
+  fo.setAttribute('width', boxW);
+  fo.setAttribute('height', boxH);
+  fo.setAttribute('style', 'overflow: visible');        // évite la coupe du dénominateur
+
+  const div = document.createElement('div');
+  div.style.textAlign = 'center';
+  div.style.fontSize  = (t.major ? '13px' : '12px');
+  div.style.lineHeight = '1.1';
+  div.style.padding = '0 2px';
+  div.innerHTML = `\\(${t.latex}\\)`;
+
+  fo.appendChild(div);
+  svg.appendChild(fo);
+
+  // typeset uniquement ce label
+  MathJax?.typesetPromise?.([fo]).catch(()=>{});
+} else {
+
     // ⬇️ entiers & autres labels sous l’axe
     const lab = (t.label ?? '') || (t.kind==='int' ? String(Math.round(t.x)) : '');
     if (lab) {
@@ -956,7 +978,7 @@ const Acoef = coefLatex(st.A);
   // 3) Son pur : f(t)=A sin(ωt+φ) — T, A, φ via f(0)=0
   const ex3 = {
     id:'trig3_son',
-    title:'Son pur : \(f(t)=A\\sin(\\omega t+\\varphi)\)',
+    title:'Son pur : f(t)=A sin(ωt+φ)',
     gen(){
       const T=[0.02,0.04][Math.floor(Math.random()*2)];
       const A=[200,250,300][Math.floor(Math.random()*3)];
@@ -1083,7 +1105,7 @@ solution(host,st){
   // 4) Générateur TB (VLF) : U(t)=A cos(ωt+φ), T connu, U(0)=±A
   const ex4 = {
     id:'trig4_vlf',
-    title:'Tension TB : \(U(t)=A\\cos(\\omega t+\\varphi)\)',
+    title:'Tension TB : U(t)=A cos(ωt+φ)',
     gen(){
       const T=[20,30,40][Math.floor(Math.random()*3)];
       const A=[2,3,5][Math.floor(Math.random()*3)];
@@ -1196,10 +1218,10 @@ solution(host,st){
     reset(host){ $('#res',host).textContent=''; }
   };
 
-  // 5) f(x)=k cos(bx) — période & nombre de solutions
+  // 5) f(x)=A cos(ωx) — période & nombre de solutions
   const ex5 = {
     id:'trig5_ex24',
-    title:'Ex. type — \(f(x)=k\\cos(bx)\) : période & solutions',
+    title:'Ex. type — f(x)=A cos(ωx) : période, solutions, variations',
     gen(){
       const b=[2,3][Math.floor(Math.random()*2)];
       const k=[2,3,4][Math.floor(Math.random()*3)];
@@ -1292,10 +1314,10 @@ solution(host,st){
     reset(host){ $('#res',host).textContent=''; }
   };
 
-  // 6) f(x)=k sin(bx) — période & solutions + tableau de variations (sur [0;2π])
+  // 6) f(x)=A sin(ωx) — période & solutions + tableau de variations (sur [0;2π])
   const ex6 = {
     id:'trig6_ex25',
-    title:'Ex. type — \(f(x)=k\\sin(bx)\) : période, solutions, variations',
+    title:'Ex. type — f(x)=A sin(ωx) : période, solutions, variations',
     gen(){
       const b=[2,3][Math.floor(Math.random()*2)];
       const k=[3,4][Math.floor(Math.random()*2)];

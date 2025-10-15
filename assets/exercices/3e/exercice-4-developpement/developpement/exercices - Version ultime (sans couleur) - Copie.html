@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seconde – Chapitre 0 – Développement</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.55}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .row{display:grid;grid-template-columns:1fr;gap:10px}
+  .statement.equ{font-size:18px}
+  .statement .consigne{opacity:.8;margin-bottom:6px}
+  .equ{font-variant-numeric:tabular-nums}
+  #host .input-wrap{display:flex;align-items:center}
+  #res.small{font-size:15px}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px}
+  .step{margin:.2rem 0}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Chapitre 0 – <strong>Développement</strong></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Saisie & réponses acceptées :</strong>
+      <p style="margin:.5rem 0 0 0">
+        Répondre avec l’expression <em>développée et réduite</em> (par exemple&nbsp;: <code>−12x^2 + 18x + 54</code>).<br>
+        Puissances en <code>x^n</code>.<br>
+        <code>x</code>&nbsp;pour&nbsp;<code>1x</code>,&nbsp;<code>−x</code>&nbsp;pour&nbsp;<code>−1x</code>. Le signe affiché est <strong>−</strong> (Unicode).
+      </p>
+    </div>
+
+  </div>
+
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script src="../../../../js/math-kbd.multiplicatif.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+
+<script>
+(function(){
+'use strict';
+
+/* Attendre DevRules + algebraicEqual */
+function whenReady(cb){
+  function ok(){ return window.DevRules && window.algebraicEqual; }
+  if (ok()) return cb();
+  var t=0, i=setInterval(function(){
+    if (ok()){ clearInterval(i); cb(); }
+    else if ((t+=50)>5000){ clearInterval(i); console.warn('Dépendances non chargées'); }
+  },50);
+}
+
+whenReady(function(){
+
+/* ==== Utils ==== */
+function $(s,r){ return (r||document).querySelector(s); }
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function nz(a,b){ var v=0; while(v===0) v=rnd(a,b); return v; }
+function uniqConsec(arr){ var r=[]; for(var i=0;i<arr.length;i++){ if(!r.length || r[r.length-1]!==arr[i]) r.push(arr[i]); } return r; }
+
+/* ==== Aliases DevRules ==== */
+var UMINUS = DevRules.consts.UMINUS;
+var polyHTMLDesc = DevRules.polyHTMLDesc, supPow = DevRules.supPow;
+var kStr=DevRules.kStr, kxStr=DevRules.kxStr;
+var polyMul=DevRules.polyMul, polyAdd=DevRules.polyAdd, scalarMul=DevRules.scalarMul;
+
+/* ==== Rendu ==== */
+function mkRow(host, enonceHTML, consigneHTML){
+  host.innerHTML='';
+  var wrap=document.createElement('div'); wrap.className='row';
+  var st=document.createElement('div'); st.className='statement equ';
+  var cons = consigneHTML!=null ? consigneHTML : '<div class="consigne small">Développer et réduire :</div>';
+  st.innerHTML = cons + (enonceHTML ? '<div>'+enonceHTML+'</div>' : '');
+  wrap.appendChild(st);
+  var inpWrap=document.createElement('div'); inpWrap.className='input-wrap';
+  inpWrap.innerHTML = '<div class="ans-row" style="display:flex;align-items:center;gap:6px"><span class="equ" aria-hidden="true">F =</span><input type="text" id="reponse" placeholder="…" style="flex:1;min-width:0"></div>';
+  wrap.appendChild(inpWrap);
+  var res=document.createElement('div'); res.id='res'; wrap.appendChild(res);
+  host.appendChild(wrap);
+  var inp=$('#reponse',host);
+  if (inp){
+    inp.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){ e.preventDefault(); check(); }
+    });
+  }
+}
+
+/* ====== Affichage steps & auto-remplissage (anti-doublon) ====== */
+function showSteps(host, steps, autofill){
+  var norm = function(s){ return DevRules.normalizeSigns ? DevRules.normalizeSigns(s) : s; };
+  steps = uniqConsec(steps.map(norm));   // supprime les lignes consécutives identiques
+  var inp=$('#reponse',host);
+  if(inp && autofill) inp.value=autofill;
+  $('#res',host).innerHTML = '<div class="steps">'+steps.map(function(t){return '<div class="step">'+t+'</div>';}).join('')+'</div>';
+  $('#res',host).className='small';
+}
+
+/* ==== Évaluation & format pour la case de saisie ==== */
+function normalizeExpr(s){
+  if(!s) return '';
+  s = s.replace(/·/g,'*').replace(/×/g,'*');
+  s = s.replace(/−/g,'-');
+  s = s.replace(/\s+/g,' ').trim();
+  return s;
+}
+function polyToExpr(poly){
+  var parts=[], lead=true;
+  for (var p=poly.length-1;p>=0;p--){
+    var c=poly[p]; if(!c) continue;
+    var a=Math.abs(c);
+    var s = (c<0? (lead? '-' : ' - ') : (lead? '' : ' + '));
+    if (p===0) parts.push(s+a);
+    else if (p===1) parts.push(s+(a===1?'x':a+'x'));
+    else parts.push(s+(a===1?'x^'+p : (a+'x^'+p))); // la saisie élève accepte ^ ; l’affichage utilise Unicode ailleurs
+    lead=false;
+  }
+  return parts.join('');
+}
+function equalPolyVsExpr(poly, expr){
+  try{
+    var lhs = polyToExpr(poly);
+    var rhs = normalizeExpr(expr);
+    return algebraicEqual(lhs, rhs);
+  }catch(_){ return false; }
+}
+
+/* ==== Étapes : distribution → calcul des produits → conclusion ==== */
+function termStr(c, p, lead){
+  var a=Math.abs(c), U=UMINUS;
+  var s=(c<0?(lead?U+' ':' '+U+' '):(lead?'':' + '));
+  if(p===0) return s+a;
+  if(p===1) return s+(a===1?'x':a+'x');
+  return s+(a===1?'x'+supPow(p):a+'x'+supPow(p)); // Unicode pour l’affichage
+}
+function sumTerms(terms){
+  var out=[], lead=true;
+  for(var i=0;i<terms.length;i++){
+    var t=terms[i]; if(!t) continue;
+    var c=t.c, p=t.p; if(!c) continue;
+    out.push(termStr(c,p,lead)); lead=false;
+  }
+  return out.length?out.join(''):'0';
+}
+
+/* pour éviter “+ − …” dans les énoncés composés */
+function plusJoinSigned(n, render){
+  return (n<0 ? (' '+UMINUS+' '+render(Math.abs(n))) : (' + '+render(n)));
+}
+
+/* ==== Exercices ==== */
+function genPolyLE4(){
+  var deg=rnd(1,4), P=new Array(deg+1).fill(0);
+  for(var i=0;i<=deg;i++){ P[i]=rnd(-9,9); }
+  var hasX=false; for(var k=1;k<P.length;k++){ if(P[k]){ hasX=true; break; } }
+  if(!hasX) P[1]=nz(-9,9);
+  return P;
+}
+
+/* 1) k(ax+b) */
+var ex1={ id:'dev1', title:'k(ax+b)',
+  gen:function(){ var k=nz(-9,9), a=nz(-9,9), b=rnd(-12,12); var P=[b,a], poly=scalarMul(k,P);
+    var enonce='F = '+kStr(k)+' ('+polyHTMLDesc(P)+')'; return {k:k,P:P,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){ showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P),'F = '+sumTerms([{c:s.k*s.P[1],p:1},{c:s.k*s.P[0],p:0}]),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly)); },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 2) k × (polynôme ≤ 4) — exclut k=1 ; k=-1 → “− ( … )” */
+var ex2={ id:'dev2', title:'k × (polynôme ≤ 4)',
+  gen:function(){ var k=nz(-9,9); while(k===1) k=nz(-9,9); var P=genPolyLE4();
+    var poly=scalarMul(k,P);
+    var enonce='F = '+(k===-1? (UMINUS+' ') : (kStr(k)+' '))+'('+polyHTMLDesc(P)+')';
+    return {k:k,P:P,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var parts=[]; for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p}); }
+    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 3) (ax+b)(cx+d) — a,b,c,d ≠ 0 */
+var ex3={ id:'dev3', title:'(ax+b)(cx+d)',
+  gen:function(){ var a=nz(-9,9), b=nz(-10,10), c=nz(-9,9), d=nz(-10,10);
+    var P=[b,a], Q=[d,c], poly=polyMul(P,Q);
+    var enonce='F = ( '+polyHTMLDesc(P)+' ) ( '+polyHTMLDesc(Q)+' )';
+    return {P:P,Q:Q,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var a=s.P[1]||0,b=s.P[0]||0,c=s.Q[1]||0,d=s.Q[0]||0;
+    var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
+    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_PQ(s.P,s.Q),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 4) kx × (polynôme ≤ 4) */
+var ex4={ id:'dev4', title:'kx × (polynôme ≤ 4)',
+  gen:function(){ var k=nz(-9,9), P=genPolyLE4(); var poly=scalarMul(k,[0].concat(P));
+    var enonce='F = '+kxStr(k)+' ('+polyHTMLDesc(P)+')';
+    return {k:k,P:P,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var parts=[]; for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p+1}); }
+    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kxP(s.k,s.P),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 5) k(ax+b) + l(cx+d) — évite “+ − …” dans l’énoncé */
+var ex5={ id:'dev5', title:'k(ax+b) + l(cx+d)',
+  gen:function(){ var k=nz(-9,9), l=nz(-9,9), a=nz(-9,9), b=rnd(-10,10), c=nz(-9,9), d=rnd(-10,10);
+    var P=[b,a], Q=[d,c], poly=polyAdd(scalarMul(k,P), scalarMul(l,Q));
+    var part1 = kStr(k)+' ('+polyHTMLDesc(P)+')';
+    var part2 = plusJoinSigned(l, function(n){ return n; })+' ('+polyHTMLDesc(Q)+')';
+    var enonce='F = '+part1+part2;
+    return {k:k,l:l,P:P,Q:Q,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var parts=[];
+    for(var p=s.P.length-1;p>=0;p--){ var c=s.P[p]; if(c) parts.push({c:s.k*c,p:p}); }
+    for(var q=s.Q.length-1;q>=0;q--){ var d=s.Q[q]; if(d) parts.push({c:s.l*d,p:q}); }
+    showSteps(h, ['F = '+s.enonce.slice(4),'F = '+DevRules.dist_kP(s.k,s.P)+' + '+DevRules.dist_kP(s.l,s.Q),'F = '+sumTerms(parts),'F = '+polyHTMLDesc(s.poly)], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 6) (ax+b)(cx+d) + k(ex+f) — distribution correcte (pas de produit par AB) */
+var ex6={ id:'dev6', title:'(ax+b)(cx+d) + k(ex+f)',
+  gen:function(){ var a=nz(-6,6), b=rnd(-10,10), c=nz(-6,6), d=rnd(-10,10), e=nz(-6,6), f=rnd(-10,10), k=nz(-6,6);
+    var P=[b,a], Q=[d,c], R=[f,e]; var prod=polyMul(P,Q), poly=polyAdd(prod, scalarMul(k,R));
+    var enonce='F = ( '+polyHTMLDesc(P)+' ) ( '+polyHTMLDesc(Q)+' )'
+             + plusJoinSigned(k, function(n){ return n; })+' ('+polyHTMLDesc(R)+')';
+    return {P:P,Q:Q,R:R,k:k,prod:prod,poly:poly,enonce:enonce}; },
+  render:function(h,s){
+    var cons = '<div class="consigne small"><strong>Développer, réduire et ordonner :</strong></div>';
+    mkRow(h, s.enonce, cons);
+  },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var a=s.P[1]||0,b=s.P[0]||0,c=s.Q[1]||0,d=s.Q[0]||0,e=s.R[1]||0,f=s.R[0]||0;
+    var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
+    if(e) parts.push({c:s.k*e,p:1});   // + k*e × x     (PAS multiplié par AB)
+    if(f) parts.push({c:s.k*f,p:0});   // + k*f         (PAS multiplié par AB)
+    showSteps(h, [
+      'F = '+s.enonce.slice(4),
+      'F = '+DevRules.dist_PQ(s.P,s.Q)+' + '+DevRules.dist_kP(s.k,s.R),
+      'F = '+sumTerms(parts),            // ← 3e ligne attendue (Unicode pour x²)
+      'F = '+polyHTMLDesc(s.poly)
+    ], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* ======= 7) Vrai/Faux — “Affirmation : …” (Unicode xⁿ, jamais 1x) ======= */
+function unicodeTermNoOne(c,p){
+  var a=Math.abs(c);
+  if(p===0) return ''+a;
+  if(p===1) return (a===1?'x':a+'x');
+  return (a===1?'x'+supPow(p):a+'x'+supPow(p)); // Unicode
+}
+function unicodePolyNoOne(poly){
+  var out=[], first=true;
+  for(var p=poly.length-1;p>=0;p--){
+    var c=poly[p]; if(!c) continue;
+    var seg = unicodeTermNoOne(c,p);
+    if(first){ out.push((c<0? UMINUS+' ':'') + seg); }
+    else     { out.push((c<0? ' '+UMINUS+' ':' + ') + seg); }
+    first=false;
+  }
+  return out.length?out.join(''):'0';
+}
+var ex7={ id:'dev7', title:'Vérifier un développement (Vrai/Faux)',
+  gen:function(){
+    var a=nz(-6,6), b=rnd(-9,9), c=nz(-6,6), d=rnd(-9,9);
+    var P=[b,a], Q=[d,c], prod=polyMul(P,Q);
+    var makeFalse=Math.random()<0.5, shown=prod.slice();
+    if(makeFalse){
+      var idx=rnd(0,shown.length-1);
+      shown[idx]+= (shown[idx]===0?1:(Math.random()<0.5?1:-1))*rnd(1,5);
+    }
+    return {P:P,Q:Q,prod:prod,shown:shown,makeFalse:makeFalse};
+  },
+  render:function(host,st){
+    var affirm = '( '+unicodePolyNoOne(st.P)+' ) ( '+unicodePolyNoOne(st.Q)+' ) = '+unicodePolyNoOne(st.shown);
+    var cons = '<div class="small"><strong>Affirmation&nbsp;:</strong> '+affirm+'</div>';
+    mkRow(host, /*enonceHTML*/'', cons);   // seulement la ligne Affirmation
+    var inp=$('#reponse',host); if(inp) inp.placeholder='… (taper Vrai ou Faux)';
+  },
+  correct:function(h,st){
+    var v=(($('#reponse',h)||{}).value||'').trim().toLowerCase();
+    var ok = (v==='vrai' && st.makeFalse===false) || (v==='faux' && st.makeFalse===true);
+    $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1};
+  },
+  solution:function(h,st){
+    var steps=[
+      '7me exercice :',
+      'F = ( '+polyHTMLDesc(st.P)+' ) ( '+polyHTMLDesc(st.Q)+' )',
+      'F = '+DevRules.dist_PQ(st.P,st.Q),
+      (function(){
+        var a=st.P[1]||0,b=st.P[0]||0,c=st.Q[1]||0,d=st.Q[0]||0;
+        var parts=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(function(t){return !!t.c;});
+        return 'F = '+sumTerms(parts);
+      })(),
+      'F = '+polyHTMLDesc(st.prod),
+      'La proposition est '+(st.makeFalse?'fausse':'vraie')
+    ];
+    showSteps(h, steps, null);
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 8) (ax+b)^2 — consigne unique demandée */
+var ex8={ id:'dev8', title:'(ax+b)^2 (sans identité)',
+  gen:function(){ var a=nz(-9,9), b=rnd(-12,12); var P=[b,a], poly=polyMul(P,P);
+    var enonce='F = ( '+polyHTMLDesc(P)+' )'+supPow(2);
+    return {P:P,poly:poly,enonce:enonce}; },
+  render:function(h,s){
+    var cons = '<div class="consigne small"><strong>Développer sans utiliser d’identités remarquables :</strong></div>';
+    mkRow(h, s.enonce, cons);
+  },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){
+    var a=s.P[1]||0, b=s.P[0]||0;
+    var step2 = 'F = ( '+polyHTMLDesc(s.P)+' ) ( '+polyHTMLDesc(s.P)+' )';
+    var step3 = 'F = '+DevRules.dist_PQ(s.P, s.P);
+    var parts=[{c:a*a,p:2},{c:a*b,p:1},{c:b*a,p:1},{c:b*b,p:0}];
+    var step4 = 'F = '+sumTerms(parts);
+    var step5 = 'F = '+polyHTMLDesc(s.poly);
+    showSteps(h, ['F = ( '+polyHTMLDesc(s.P)+' )'+supPow(2), step2, step3, step4, step5], polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+/* 9) (ax+b)(cx+d)(ex+f) — inchangé */
+var ex9={ id:'dev9', title:'(ax+b)(cx+d)(ex+f)',
+  gen:function(){ var a=nz(-9,9), b=rnd(-4,4), c=nz(-9,9), d=rnd(-4,4), e=nz(-9,9), f=rnd(-4,4);
+    var A=[b,a], B=[d,c], C=[f,e], AB=polyMul(A,B), poly=polyMul(AB,C);
+    var enonce='F = ( '+polyHTMLDesc(A)+' ) ( '+polyHTMLDesc(B)+' ) ( '+polyHTMLDesc(C)+' )';
+    return {A:A,B:B,C:C,AB:AB,poly:poly,enonce:enonce}; },
+  render:function(h,s){ mkRow(h,s.enonce); },
+  correct:function(h,s){ var ok=equalPolyVsExpr(s.poly, ($('#reponse',h)||{}).value||''); $('#res',h).innerHTML=ok?'✔':'✘'; return {ok:ok,total:1}; },
+  solution:function(h,s){ 
+    var a=s.A[1]||0,b=s.A[0]||0,c=s.B[1]||0,d=s.B[0]||0;
+    var partsAB=[{c:a*c,p:2},{c:a*d,p:1},{c:b*c,p:1},{c:b*d,p:0}].filter(t=>!!t.c);
+    var e=s.C[1]||0, f=s.C[0]||0;
+    var steps=[
+      'F = ( '+polyHTMLDesc(s.A)+' ) ( '+polyHTMLDesc(s.B)+' ) ( '+polyHTMLDesc(s.C)+' )',
+      'F = ['+DevRules.dist_PQ(s.A,s.B)+'] ( '+polyHTMLDesc(s.C)+' )',
+	  'F = ['+sumTerms(partsAB)+'] ( '+polyHTMLDesc(s.C)+' )',
+      'F = ( '+polyHTMLDesc(s.AB)+' ) ( '+polyHTMLDesc(s.C)+' )',
+      'F = '+(e?DevRules.dist_kxP(e,s.AB):'') + (e&&f?' + ':'') + (f?DevRules.dist_kP(f,s.AB):''),
+      'F = '+(function(){ var arr=[]; for(var p2=s.AB.length-1;p2>=0;p2--){ var co=s.AB[p2]; if(!co) continue; if(e) arr.push({c:co*e,p:p2+1}); if(f) arr.push({c:co*f,p:p2}); } return sumTerms(arr); })(),
+      'F = '+polyHTMLDesc(s.poly)
+    ];
+    showSteps(h, steps, polyToExpr(s.poly));
+  },
+  reset:function(h){ var i=$('#reponse',h); if(i) i.value=''; $('#res',h).textContent=''; }
+};
+
+var REGISTRY=[ex1,ex2,ex3,ex4,ex5,ex6,ex7,ex8,ex9];
+window.REGISTRY=REGISTRY;
+
+/* ==== Score & actions ==== */
+var scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function buildOne(){
+  var sel=$("#exo-select"), host=$("#host"), def=REGISTRY.find(function(e){return e.id===sel.value;});
+  if(!def) return;
+  var state=def.gen();
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(state);
+  def.render(host,state);
+  $('#res',host).textContent='';
+}
+function check(){
+  var host=$("#host");
+  var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+  if(!def) return;
+  var st = JSON.parse(host.dataset.state||'{}');
+  var r = def.correct(host, st);
+  scoreTot += r.total; scoreOK += r.ok?1:0; updateScore();
+}
+function solution(){
+  var host=$("#host");
+  var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+  if(!def) return;
+  var st = JSON.parse(host.dataset.state||'{}');
+  def.solution(host, st);
+}
+function resetAll(){
+  var host=$("#host");
+  var def=REGISTRY.find(function(e){return e.id===host.dataset.active;});
+  if(!def) return;
+  var st = JSON.parse(host.dataset.state||'{}'); def.reset(host, st);
+}
+
+/* ==== Init ==== */
+(function init(){
+  var sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map(function(e){ return '<option value="'+e.id+'">'+e.title+'</option>'; }).join('');
+  sel.addEventListener('change', buildOne);
+  $("#btn-new").addEventListener('click', buildOne);
+  $("#btn-check").addEventListener('click', check);
+  $("#btn-solution").addEventListener('click', solution);
+  $("#btn-reset").addEventListener('click', resetAll);
+  buildOne();
+
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title: 'Seconde – Chapitre 0 – Développement',
+      max: 50,
+      lead: '',
+      leadByDefId: { dev1:'',dev2:'',dev3:'',dev4:'',dev5:'',dev6:'',dev7:'',dev8:'' ,dev9:'' },
+      mountAfterSelector: '.card.small'
+    });
+  }
+})();
+}); // fin whenReady
+})(); // fin IIFE englobante
+</script>
+
+</body>
+</html>

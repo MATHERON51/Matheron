@@ -1,0 +1,1546 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Première – Probabilités conditionnelles (définitions & propriétés)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    'lab'
+    'inp'
+    'res';
+  gap:10px; align-items:start;
+}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .input-line input[type=text]{width:100%}
+.row .res{grid-area:res; padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+.eq em { margin: 0 .28em; }
+.mx { display:inline-block; margin:0 .28em; }
+sub { font-size: .8em; vertical-align: -0.25em; }
+
+.equ-offscreen{position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  .equ-offscreen .c-label{display:none !important;}
+}
+
+.row.right{
+  display:grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-areas:
+    "lab inp"
+    "res res";
+  gap:10px 14px;
+  align-items:center;
+}
+.row.right .col-label{ grid-area:lab; }
+.row.right .input-line{ grid-area:inp; display:flex; justify-content:flex-end; }
+.row.right .input-line input[type=text]{ width:100% }
+
+@media (max-width:680px){
+  .row.right{
+    grid-template-columns:1fr;
+    grid-template-areas: "lab" "inp" "res";
+  }
+}
+
+.tbl{border-collapse:collapse;border:1px solid #bbb}
+.tbl td,.tbl th{border:1px solid #bbb;padding:6px;text-align:center}
+@media print{
+  .tbl{border:1px solid #000}
+  .tbl td,.tbl th{border:1px solid #000}
+}
+
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+
+.mselect{position:relative; display:inline-block; min-width:180px}
+.ms-btn{display:flex; align-items:center; justify-content:space-between; width:100%;
+  padding:8px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer}
+.ms-menu{position:absolute; z-index:20; top:100%; left:0; right:0; max-height:240px; overflow:auto;
+  border:1px solid #ddd; background:#fff; border-radius:8px; margin-top:4px; box-shadow:0 6px 16px rgba(0,0,0,.08); display:none}
+.ms-item{padding:8px 10px; cursor:pointer}
+.ms-item:hover{background:#f3f4f6}
+.mselect.open .ms-menu{display:block}
+
+</style>
+
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="wrap" style="padding:0 18px">
+      <div class="controls">
+        <label for="exo-select">Type d’exercice :</label>
+        <select id="exo-select"></select>
+        <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+        <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+        <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+        <div class="score" id="score">Score : 0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div id="host"></div>
+    </div>
+
+    <div class="card small">
+      <div><strong>Saisie & réponses acceptées :</strong></div>
+      <ul class="tips">
+        <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,375</code> ou <code>0.375</code>).</li>
+        <li>Fractions : forme <code>a/b</code> (ex. <code>3/8</code>).</li>
+        <li>Pourcentages : forme <code>xx%</code> (ex. <code>37,5%</code>). Si le champ <strong>exige</strong> un « % », la forme décimale est refusée.</li>
+        <li>Quand une réponse demande une <strong>notation</strong>, écrire au format \(P(A)\), \(P(A\\cap B)\), \(P_{A}(B)\) (i.e. \(P(B\\mid A)\)), \(P(A\\cup B)\), etc.</li>
+        <li>Entrée ⏎ déclenche « Vérifier » depuis une barre de saisie de l’énoncé.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+/* ========= Mini utilitaires ========= */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = L => L[rnd(0,L.length-1)];
+function innerHost(host){ if(!host.dataset.active){ host.dataset.active=''; host.innerHTML='<div class="inner"></div>'; } return host.querySelector('.inner'); }
+
+function retypeset(root=document){
+  try{
+    if (window.MathJax?.typesetPromise) return MathJax.typesetPromise([root]);
+    if (window.MathJax?.typeset) MathJax.typeset([root]);
+  }catch(_){}
+}
+
+/* ===== parse nombres / % / fractions ===== */
+const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s = stripSignUnicode(String(s||'').trim());
+  if(!s) return NaN;
+  if(/%/.test(s)) return NaN;
+  s = s.replace(',', '.');
+  return parseFloat(s);
+}
+function parsePercent(s){
+  s = stripSignUnicode(String(s||'').trim());
+  const m = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(!m) return NaN;
+  return parseFloat(m[1].replace(',', '.'))/100;
+}
+// accepte décimal, fraction, % — renvoie un nombre dans [0,1]
+function parseProbFlexible(s){
+  s = stripSignUnicode(String(s||'').trim());
+  // fraction a/b
+  let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+  if(m){
+    const a = parseInt(m[1],10), b = parseInt(m[2],10);
+    if(b>0) return a/b;
+  }
+  // %
+  const p = parsePercent(s);
+  if(Number.isFinite(p)) return p;
+  // décimal
+  const d = parseFloat(s.replace(',', '.'));
+  return Number.isFinite(d) ? d : NaN;
+}
+function same(a,b,eps=1e-6){ return Math.abs(a-b)<=eps; }
+
+/* ====== rendu commun ====== */
+function stripHints(html){ return String(html||'').replace(/<small[\s\S]*?<\/small>/gi,''); }
+
+function renderRows(host, consigneText, blocks, right=false){
+  const root = innerHost(host); root.innerHTML='';
+  const hint = document.createElement('div');
+  hint.className='hint consigne';
+  hint.innerHTML='<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+  root.appendChild(hint);
+
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
+    + blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
+
+  blocks.forEach(b=>{
+    const row=document.createElement('div'); row.className = right ? 'row right' : 'row';
+    const lab=document.createElement('div'); lab.className='col-label'; lab.innerHTML=b.labelHTML||''; row.appendChild(lab);
+    const incol=document.createElement('div'); incol.className='input-line';
+    if(b.rightHTML!==undefined) incol.innerHTML=b.rightHTML;
+    else if(b.id) incol.innerHTML='<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+    row.appendChild(incol);
+    root.appendChild(row);
+  });
+  root.appendChild(Object.assign(document.createElement('div'),{className:'res',id:'res'}));
+  retypeset(root);
+}
+
+function addTicks(){
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if(!inp.nextElementSibling || !inp.nextElementSibling.classList?.contains('tick'))
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+  });
+}
+function setTick(inp, state){
+  const t = inp.nextElementSibling?.classList?.contains('tick') ? inp.nextElementSibling : null;
+  if(!t) return;
+  if(state==null){ t.textContent=''; t.classList.remove('ok','ko'); return; }
+  if(state){ t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko'); }
+  else     { t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok'); }
+}
+function allFilled(){
+  let ok=true;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if((inp.value||'').trim()==='') ok=false;
+  });
+  return ok;
+}
+
+// affiche avec au plus 2 décimales (trim des zéros), évite les horreurs binaires
+const d2 = x => {
+  const v = Math.round(x*100)/100;
+  let s = v.toFixed(2);
+  s = s.replace(/\.?0+$/,'');   // "0.50" -> "0.5", "0.00" -> "0"
+  return s;
+};
+// --- POLYFILL : rendu "plusieurs questions l'une sous l'autre" ---
+if (typeof renderRowsUnderQuestions === 'undefined') {
+  function renderRowsUnderQuestions(host, consigneText, blocks){
+    const root = (function innerHost(h){
+      if(!h.dataset.active){ h.dataset.active=''; h.innerHTML='<div class="inner"></div>'; }
+      return h.querySelector('.inner');
+    })(host);
+    root.innerHTML = '';
+
+    // Consigne visible
+    const hint = document.createElement('div');
+    hint.className = 'hint consigne';
+    hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+    root.appendChild(hint);
+
+    // Version "offscreen" pour export PDF
+    const off = document.createElement('div');
+    off.className = 'equ-offscreen';
+    off.innerHTML =
+      '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'
+      + consigneText + '</span></div>'
+      + blocks.map(b => '<div class="equation">'+ (b.labelHTML||'') +'</div>').join('');
+    root.appendChild(off);
+
+    // Questions + inputs
+    blocks.forEach(b=>{
+      const row = document.createElement('div'); row.className='row';
+      const lab = document.createElement('div'); lab.className='col-label';
+      lab.innerHTML = b.labelHTML || '';
+      row.appendChild(lab);
+
+      const incol = document.createElement('div'); incol.className='input-line';
+      if (b.rightHTML !== undefined) incol.innerHTML = b.rightHTML;
+      else if (b.id) incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+      row.appendChild(incol);
+
+      root.appendChild(row);
+    });
+
+    // Zone résultat
+    root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+
+    // (si MathJax est là)
+    try{ if(window.MathJax?.typesetPromise) MathJax.typesetPromise([root]); else if(window.MathJax?.typeset) MathJax.typeset([root]); }catch(_){}
+  }
+}
+
+// --- POLYFILL : rendu "question à gauche, saisie/SELECT à droite"
+if (typeof renderRowsInputRight === 'undefined') {
+  function renderRowsInputRight(host, consigneText, blocks){
+    // 1) host / inner
+    function innerHost(h){
+      if(!h.dataset.active){ h.dataset.active=''; h.innerHTML='<div class="inner"></div>'; }
+      return h.querySelector('.inner');
+    }
+    const root = innerHost(host);
+    root.innerHTML = '';
+
+    // 2) Consigne visible
+    const hint = document.createElement('div');
+    hint.className = 'hint consigne';
+    hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
+    root.appendChild(hint);
+
+    // 3) Version offscreen (PDF)
+    const off = document.createElement('div');
+    off.className = 'equ-offscreen';
+    off.innerHTML =
+      '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>' +
+      blocks.map(b => '<div class="equation">'+ (b.labelHTML||'') +'</div>').join('');
+    root.appendChild(off);
+
+    // 4) Lignes : libellé à gauche, champ à droite
+    blocks.forEach(b=>{
+      const row = document.createElement('div'); row.className = 'row right';
+      const lab = document.createElement('div'); lab.className = 'col-label';
+      lab.innerHTML = b.labelHTML || '';
+      row.appendChild(lab);
+
+      const incol = document.createElement('div'); incol.className = 'input-line';
+      if (b.rightHTML !== undefined) {
+        incol.innerHTML = b.rightHTML;                      // ex. <select …>
+      } else if (b.id) {
+        incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+      } else {
+        incol.innerHTML = '';
+      }
+      row.appendChild(incol);
+
+      root.appendChild(row);
+    });
+
+    // 5) Zone résultat
+    root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+
+    // 6) MathJax
+    try{
+      if (window.MathJax?.typesetPromise) MathJax.typesetPromise([root]);
+      else if (window.MathJax?.typeset)   MathJax.typeset([root]);
+    }catch(_){}
+  }
+}
+
+
+// sujets féminins (sinon masculin)
+const FEM_SUBJECTS = new Set([
+  'pièces','analyses','commandes','factures','machines','candidatures',
+  'questions','expéditions','échantillons'
+]);
+
+function toSingularFR(plur){ return String(plur||'').trim().replace(/s$/,''); }
+function startsWithVowelLikeFR(w){ return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(String(w||'')); }
+function defDetFR(noun, isFem){ return startsWithVowelLikeFR(noun) ? "l’"+noun : (isFem?"la ":"le ")+noun; }
+function indefDetFR(noun, isFem){ return (isFem?"une ":"un ")+noun; }
+
+// met la proposition au singulier (verbes + quelques adjectifs fréquents)
+function singularizePropFR(s, isFem=false){
+  let t = String(s||'').trim();
+
+  // verbes au début
+  const vb = [
+    [/^sont\b/i, 'est'],
+    [/^ont\b/i, 'a'],
+    [/^proviennent\b/i, 'provient'],
+    [/^contiennent\b/i, 'contient'],
+    [/^arrivent\b/i, 'arrive'],
+    [/^concernent\b/i, 'concerne'],
+    [/^commandent\b/i, 'commande'],
+    [/^paient\b/i, 'paie'],
+    [/^utilisent\b/i, 'utilise'],
+    [/^respectent\b/i, 'respecte'],
+  ];
+  vb.forEach(([re, rep]) => { t = t.replace(re, rep); });
+
+  // pluriels fréquents → singuliers
+  const adj = [
+    [/\burgents\b/gi, 'urgent'],
+    [/\bfériés\b/gi, 'férié'],
+    [/\bfragiles\b/gi, 'fragile'],
+    [/\bpublics\b/gi, 'public'],
+    [/\bréservés\b/gi, 'réservé'],
+    [/\bterminés\b/gi, 'terminé'],
+    [/\bdirects\b/gi, 'direct'],
+    [/\bélectriques\b/gi, 'électrique'],
+    [/\bmeublés\b/gi, 'meublé'],
+    [/\bcomplets\b/gi, 'complet'],
+    [/\bréglés\b/gi, 'réglé'],
+    [/\bannulés\b/gi, 'annulé'],
+
+    // féminins pluriels
+    [/\bcomplètes\b/gi, 'complète'],
+    [/\bréglées\b/gi, 'réglée'],
+    [/\bannulées\b/gi, 'annulée'],
+    [/\binternationales\b/gi, 'internationale'],
+    [/\burgentes\b/gi, 'urgente'],
+  ];
+  adj.forEach(([re, rep]) => { t = t.replace(re, rep); });
+
+  // "des X…" → "un/une X…" quand ça suit un verbe de contenu (concerne/contient/provient…)
+  t = t.replace(/\bdes\s+([a-zàâäéèêëîïôöùûü\-']+?)s\b/gi, (_m, w) => (isFem?'une ':'un ')+w);
+
+  return t;
+}
+
+// A̅ / B̅ en texte (fonctionne dans <option>)
+const BAR = {
+  A: 'A\u0305',   // A̅
+  B: 'B\u0305'    // B̅
+};
+function msOptionsLatex(){
+  return [
+    {v:'', latex:'\\text{— choisir —}'},
+    {v:'PA', latex:'P(A)'}, {v:'PB', latex:'P(B)'},
+    {v:'PnotA', latex:'P(\\overline{A})'}, {v:'PnotB', latex:'P(\\overline{B})'},
+    {v:'interAB', latex:'P(A\\cap B)'},
+    {v:'interAbarB', latex:'P(A\\cap \\overline{B})'},
+    {v:'interABarB', latex:'P(\\overline{A}\\cap B)'},
+    {v:'unionAB', latex:'P(A\\cup B)'},
+    {v:'unionAbarB', latex:'P(A\\cup \\overline{B})'},
+    {v:'unionABarB', latex:'P(\\overline{A}\\cup B)'},
+    {v:'condAB', latex:'P_{A}(B)'},
+    {v:'condABbar', latex:'P_{A}(\\overline{B})'},
+    {v:'condBA', latex:'P_{B}(A)'},
+    {v:'condBAbar', latex:'P_{B}(\\overline{A})'},
+  ];
+}
+
+function mkMathSelectHTML(selectId, width=220){
+  const opts = msOptionsLatex();
+  const items = opts.map(o =>
+    `<div class="ms-item" data-v="${o.v}" data-latex="${o.latex}">\\(${o.latex}\\)</div>`
+  ).join('');
+return `
+  <div class="mselect" data-for="${selectId}" style="min-width:${width}px">
+    <button type="button" class="ms-btn">
+      <span class="ms-label">\\(\\text{— choisir —}\\)</span><span>▾</span>
+    </button>
+    <div class="ms-menu">${items}</div>
+    <input type="hidden" id="${selectId}" value="">
+    <span class="tick"></span>      
+  </div>`;
+
+}
+
+
+// Active le composant (à appeler après insertion dans le DOM)
+function initMathSelect(root=document){
+  root.querySelectorAll('.mselect').forEach(box=>{
+    if(box.dataset.bound) return; box.dataset.bound='1';
+    const btn = box.querySelector('.ms-btn');
+    const menu = box.querySelector('.ms-menu');
+    const label= box.querySelector('.ms-label');
+    const hidden= box.querySelector('input[type=hidden]');
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.mselect.open').forEach(b=>{ if(b!==box) b.classList.remove('open'); });
+      box.classList.toggle('open');
+    });
+    menu.addEventListener('click', e=>{
+  const it = e.target.closest('.ms-item'); if(!it) return;
+  hidden.value = it.dataset.v || '';
+  // Injecte EXACTEMENT une paire de délimiteurs LaTeX :
+  label.innerHTML = '\\(' + (it.dataset.latex || '') + '\\)';
+  box.classList.remove('open');
+  try{ MathJax.typesetPromise([box]); }catch(_){}
+});
+
+  });
+  // fermeture globale
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.mselect')) document.querySelectorAll('.mselect.open').forEach(b=>b.classList.remove('open'));
+  }, {passive:true});
+}
+
+function setTickForInput(el, state){
+  // el = <input type="hidden"> du sélecteur ou un vrai input
+  if(!el) return;
+  // cherche d’abord un tick dans le sélecteur custom
+  let box = el.closest('.mselect');
+  let t = box ? box.querySelector('.tick') : null;
+
+  // sinon, fallback : tick placé juste après l’input (cas texte)
+  if(!t && el.nextElementSibling && el.nextElementSibling.classList?.contains('tick')){
+    t = el.nextElementSibling;
+  }
+  if(!t) return;
+
+  if(state==null){ t.textContent=''; t.classList.remove('ok','ko'); return; }
+  if(state){ t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko'); }
+  else     { t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok'); }
+}
+
+/* ======= EXERCICES ======= */
+
+/* ===== Exercice 1 — Sélecteur (Type 1..4 ou Mélange) =====
+   Types :
+   1) Soient A,B : P(A), P(B), P(A∩B) → P_A(B)      (i.e. P(B|A))
+   2) Soient A,B : P(A), P_A(B), P(B) → P(A∩B), P_B(A)
+   3) Soient E,F : P(E), P_E(F) → P(E∩F)
+   4) Soient A,B : P(A), P(B), P(A∪B) → P(A∩B), P_B(A), P_A(B)
+*/
+const ex1 = {
+  id:'pc_mix4',
+  title:'Probas & probas conditionnelles — sélecteur (ou mélange)',
+gen(){
+  const rInt = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const asDec = n => +(n/100).toFixed(2);
+const gcd = (a,b)=> b?gcd(b,a%b):Math.abs(a);
+const lcm = (a,b)=> Math.abs(a*b)/gcd(a,b);
+
+  // ------- Type 1 : P(B|A)=P(A∩B)/P(A) -> 2 décimales garanties
+  // Choix : pA = a/100, pB = b/100 (a,b en points). On fixe i = (a*k)/100
+  // avec k multiple de 100/gcd(a,100) -> P(B|A)=k/100 a ≤ 2 décimales.
+function gen_t1(){
+  while(true){
+    const a = rInt(20,85);            // P(A) en points
+    const b = rInt(20,85);            // P(B) en points
+    if (Math.abs(a-b) < 5) continue;  // <-- anti-égalité / trop proches
+
+    const step = 100 / gcd(a,100);
+    const kMax = Math.floor(100*Math.min(a,b)/a);
+    const Ks=[];
+    for(let k=step; k<=Math.min(95,kMax); k+=step) Ks.push(k);
+    if(!Ks.length) continue;
+
+    const k = Ks[rInt(0,Ks.length-1)];
+    const i = Math.floor(a*k/100);        // intersection (points)
+    const cond = i / a;                   // P(B|A)
+    if(cond >= 0.05 && cond <= 0.95)
+      return { pA:asDec(a), pB:asDec(b), pInt:asDec(i) };
+  }
+}
+
+// === Type 2 : 0.05 ≤ P_A(B) ≤ 0.95, 0.05 ≤ P_B(A) ≤ 0.95 et |P(A)-P(B)| ≥ 0.05
+function gen_t2(){
+  while(true){
+    const a = rInt(25,85);                         // P(A)
+    const step = 100 / gcd(a,100);
+    const Ks=[]; for(let k=step; k<=95; k+=step) if(k>=5 && k<=95) Ks.push(k);
+    if(!Ks.length) continue;
+    const k = Ks[rInt(0,Ks.length-1)];             // P_A(B)=k/100
+
+    const i = Math.floor(a*k/100);                 // intersection en points
+    const CAND = [20,25,40,50,60,75,80];           // b avec 2 déc. garanties
+    const okB = CAND.filter(b => b >= i+2 && b <= 90 && (100*i)%b===0 && Math.abs(b-a)>=5);
+    if(!okB.length) continue;
+
+    const b = okB[rInt(0,okB.length-1)];
+    const condBA = i / b;                          // P_B(A)
+    if(condBA >= 0.05 && condBA <= 0.95)
+      return { pA:asDec(a), pB:asDec(b), pInt:asDec(i), pA_B:asDec(k) };
+  }
+}
+
+  // ------- Type 3 : P(E∩F)=P(E)*P_E(F) avec produit à 2 déc.
+  // Choix : pE=a/100 et P_E(F)=k/100 avec k multiple de 100/gcd(a,100) -> (a*k)/10000 a 2 décimales.
+// ------- Type 3 (patch) : garantit un k multiple du pas ; produit à 2 déc. ; jamais NaN
+function gen_t3(){
+  while (true) {
+    const a = rInt(20, 80);              // P(E) en points
+    const g = gcd(a, 100);
+    const step = 100 / g;                // k doit être multiple de ce pas
+
+    // candidats k dans [5,95] multiples de step
+    const Ks = [];
+    const start = Math.ceil(Math.max(5, step) / step) * step;
+    for (let k = start; k <= 95; k += step) Ks.push(k);
+
+    if (!Ks.length) continue;            // pas de k possible → on retente un autre a
+
+    const k = Ks[rInt(0, Ks.length - 1)];
+    return { pE: asDec(a), pF_E: asDec(k) };
+  }
+}
+
+
+  // ------- Type 4 : pA, pB pris dans {20,25,40,50,80} (diviseurs de 100).
+  // On tire une intersection m/100 cohérente -> P_B(A)=m/b et P_A(B)=m/a ont ≤2 déc.
+ function gen_t4(){
+  const D = [20,25,40,50,60,75,80];
+  while(true){
+    const a = D[rInt(0,D.length-1)];
+    let b = D[rInt(0,D.length-1)];
+    if (Math.abs(a-b) < 5) continue;               // <-- anti-égalité / trop proches
+
+    const mMin = Math.max(1, a + b - 100);
+    const mMax = Math.min(a, b) - 2;
+
+    const gA = gcd(a,100), gB = gcd(b,100);
+    const stepM = lcm(a/gA, b/gB);                 // 2 déc. pour m/a et m/b
+
+    const Ms=[]; const start = Math.ceil(mMin/stepM)*stepM;
+    for(let m=start; m<=mMax; m+=stepM){
+      const pa = m/a, pb = m/b;
+      if(pa >= 0.05 && pa <= 0.95 && pb >= 0.05 && pb <= 0.95) Ms.push(m);
+    }
+    if(!Ms.length) continue;
+
+    const m = Ms[rInt(0,Ms.length-1)];
+    const u = a + b - m;
+    return { pA:asDec(a), pB:asDec(b), pU:asDec(u), pInt:asDec(m) };
+  }
+}
+
+  return {
+    bank: { t1: gen_t1(), t2: gen_t2(), t3: gen_t3(), t4: gen_t4() },
+    variant: 'mix'
+  };
+},
+
+
+
+  /* petit utilitaire : récupère le type actif (t1..t4), en tirant si 'mix' */
+  _activeType(st){
+    if(st.variant && st.variant!=='mix') return st.variant;
+    const L=['t1','t2','t3','t4'];
+    return L[Math.floor(Math.random()*L.length)];
+  },
+
+  render(host, st){
+  // 1) état courant (mémorise le choix utilisateur)
+  const prev = host.dataset.variant || st.variant || 'mix';
+  host.dataset.variant = prev;
+
+  const typeNow = (prev==='mix') ? this._activeType(st) : prev;
+  host.dataset.typeNow = typeNow; // utilisé par correct/solution
+
+  // 2) Construire les blocs en fonction du type
+  const B=[];
+  if(typeNow==='t1'){
+    const {pA,pB,pInt}=st.bank.t1;
+    B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cap B)=${pInt}\\).<br> Calculer \\(P_A(B)\\).`, id:'q1'});
+  }
+  if(typeNow==='t2'){
+    const {pA,pB,pInt,pA_B}=st.bank.t2;
+B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P_A(B)=${pA_B}\\) et \\(P(B)=${pB}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q2'});
+B.push({labelHTML:`Puis calculer \\(P_B(A)\\).`, id:'q2b'});
+
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+    B.push({labelHTML:`Soient \\(E\\) et \\(F\\) deux événements tels que : \\(P(E)=${pE}\\) et \\(P_E(F)=${pF_E}\\).<br> Calculer \\(P(E\\cap F)\\).`, id:'q3'});
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;
+    B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cup B)=${pU}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q4'});
+    B.push({labelHTML:`Puis \\(P_B(A)\\).`, id:'q4b'});
+    B.push({labelHTML:`Et \\(P_A(B)\\).`, id:'q4c'});
+  }
+
+  // 3) Rendu principal
+  renderRows(host, 'Répondre en décimal, fraction ou % (quand pertinent).', B);
+
+  // 4) Insérer le sélecteur tout en haut (après que renderRows a vidé/posé le DOM)
+  const selectHTML =
+    `<div class="controls" style="gap:8px;margin-bottom:8px">
+       <label style="font-weight:600">Type :</label>
+       <select id="ex1-type">
+         <option value="mix">🔀 Mélange</option>
+         <option value="t1">Type 1 — \\(P_A(B)\\) avec \\(P(A),P(B),P(A\\cap B)\\)</option>
+         <option value="t2">Type 2 — \\(P(A\\cap B)\\), \\(P_B(A)\\) avec \\(P(A),P_A(B),P(B)\\)</option>
+         <option value="t3">Type 3 — \\(P(E\\cap F)\\) avec \\(P(E),P_E(F)\\)</option>
+         <option value="t4">Type 4 — depuis \\(P(A),P(B),P(A\\cup B)\\)</option>
+       </select>
+     </div>`;
+
+  const inner = document.querySelector('#host .inner');
+  inner.insertAdjacentHTML('afterbegin', selectHTML);
+  const sel = document.querySelector('#ex1-type');
+  sel.value = prev; // reflète le choix actuel
+
+  // 5) Changement de type sans régénérer les nombres
+  sel.addEventListener('change', (e)=>{
+    host.dataset.variant = e.target.value;     // mémorise
+    this.render(host, st);                     // re-render (les valeurs de st.bank restent)
+  });
+
+  retypeset(inner);
+}
+,
+
+  correct(host, st){
+    const typeNow = host.dataset.typeNow || this._activeType(st);
+    // parseur flexible proba
+    const parseProb = s => {
+      s = String(s||'').trim();
+      let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+      if(m){ const a=parseInt(m[1],10), b=parseInt(m[2],10); return b>0 ? a/b : NaN; }
+      const p = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+      if(p) return parseFloat(p[1].replace(',', '.'))/100;
+      const d = parseFloat(s.replace(',', '.'));
+      return Number.isFinite(d) ? d : NaN;
+    };
+
+    let ok=false;
+    if(typeNow==='t1'){
+      const {pA,pB,pInt}=st.bank.t1;
+      const v = parseProb($('#q1',host).value);
+      ok = Number.isFinite(v) && Math.abs(v - pInt/pA) <= 1e-3;
+    }
+    if(typeNow==='t2'){
+      const {pA,pB,pInt}=st.bank.t2;
+      const v1 = parseProb($('#q2',host).value);
+      const v2 = parseProb($('#q2b',host).value);
+      ok = Number.isFinite(v1) && Number.isFinite(v2)
+        && Math.abs(v1 - pInt) <= 1e-3
+        && Math.abs(v2 - pInt/pB) <= 1e-3;
+    }
+    if(typeNow==='t3'){
+      const {pE,pF_E}=st.bank.t3;
+      const v = parseProb($('#q3',host).value);
+      ok = Number.isFinite(v) && Math.abs(v - pE*pF_E) <= 1e-3;
+    }
+    if(typeNow==='t4'){
+      const {pA,pB,pU,pInt}=st.bank.t4;
+      const inter = pA + pB - pU;
+      const v = parseProb($('#q4',host).value);
+      const vB = parseProb($('#q4b',host).value);
+      const vA = parseProb($('#q4c',host).value);
+      ok = Number.isFinite(v) && Number.isFinite(vB) && Number.isFinite(vA)
+        && Math.abs(v - inter) <= 1e-3
+        && Math.abs(vB - inter/pB) <= 1e-3
+        && Math.abs(vA - inter/pA) <= 1e-3;
+    }
+
+    $('#res',host).innerHTML = ok ? '✔' :
+      '✘ Formules utiles : \\(P(B\\mid A)=\\frac{P(A\\cap B)}{P(A)}\\), \\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)\\).';
+    $('#res',host).className = ok ? 'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+
+  solution(host, st){
+    const typeNow = host.dataset.typeNow || this._activeType(st);
+    let html='';
+    if(typeNow==='t1'){
+  const {pA,pInt}=st.bank.t1;
+  html = `<p>\\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${pInt}}{${pA}}=${d2(pInt/pA)}\\).</p>`;
+}
+
+if(typeNow==='t2'){
+  const {pA,pB,pInt,pA_B}=st.bank.t2;
+  html = `<p>\\(P(A\\cap B)=P(A)\\times P_A(B)=${pA}\\times ${pA_B}=${d2(pInt)}\\).</p>
+          <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${pInt}}{${pB}}=${d2(pInt/pB)}\\).</p>`;
+}
+
+if(typeNow==='t3'){
+  const {pE,pF_E}=st.bank.t3;
+  html = `<p>\\(P(E\\cap F)=P(E)\\times P_E(F)=${pE}\\times ${pF_E}=${d2(pE*pF_E)}\\).</p>`;
+}
+
+if(typeNow==='t4'){
+  const {pA,pB,pU}=st.bank.t4;
+  const inter = pA + pB - pU;
+  html = `<p>\\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)=${pA}+${pB}-${pU}=${d2(inter)}\\).</p>
+          <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${d2(inter)}}{${pB}}=${d2(inter/ st.bank.t4.pB)}\\)
+             <br> \\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${d2(inter)}}{${pA}}=${d2(inter/ st.bank.t4.pA)}\\).</p>`;
+}
+
+    $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
+  },
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+
+/* ========= Exercice 2 — Identifier la bonne notation =========
+   Objectif : écrire la notation correspondant à chaque phrase.
+   • Deux conditionnelles (P_A(B) et P_B(A) — on accepte aussi P(B|A), P(A|B))
+   • Une intersection (P(A∩B))
+   • Une réunion      (P(A∪B))
+   Les phrases sont contextuelles : sujet + deux propriétés naturelles.
+*/
+/* ========= Exercice 2 — Identifier la notation (2 conditionnelles, 1 ∩, 1 ∪, avec au moins une négation) ========= */
+const ex2 = {
+  id: 'classif_cond_union_inter',
+  title: 'Identifier la notation (2 conditionnelles, 1 intersection, 1 réunion — avec négations possibles)',
+
+  /* ---------- Banque de contextes : sujet + A et B en 2 formes (sg/pl) ---------- */
+/* ---------- Banque de 50 contextes (A/B en sg + pl, genre indiqué) ---------- */
+/* ---------- Banque de 50 contextes (A/B en sg + pl, genre indiqué) ---------- */
+_CTX: [
+  { subj:'courriels', g:'m',
+    A:{sg:"provient d’un client",                 pl:"proviennent d’un client"},
+    B:{sg:"contient le mot « urgent »",           pl:"contiennent le mot « urgent »"} },
+
+  { subj:'pièces', g:'f',
+    A:{sg:"est conforme",                         pl:"sont conformes"},
+    B:{sg:"est contrôlée au laser",               pl:"sont contrôlées au laser"} },
+
+  { subj:'dossiers', g:'m',
+    A:{sg:"est complet",                          pl:"sont complets"},
+    B:{sg:"est validé par le responsable",        pl:"sont validés par le responsable"} },
+
+  { subj:'élèves', g:'m',
+    A:{sg:"a rendu le devoir",                    pl:"ont rendu le devoir"},
+    B:{sg:"participe au club de maths",           pl:"participent au club de maths"} },
+
+  { subj:'étudiants', g:'m',
+    A:{sg:"suit l’option informatique",           pl:"suivent l’option informatique"},
+    B:{sg:"fait du sport universitaire",          pl:"font du sport universitaire"} },
+
+  { subj:'livres', g:'m',
+    A:{sg:"est emprunté",                         pl:"sont empruntés"},
+    B:{sg:"est un ouvrage scientifique",          pl:"sont des ouvrages scientifiques"} },
+
+  { subj:'véhicules', g:'m',
+    A:{sg:"est électrique",                       pl:"sont électriques"},
+    B:{sg:"est utilitaire",                       pl:"sont utilitaires"} },
+
+  { subj:'logements', g:'m',
+    A:{sg:"est meublé",                           pl:"sont meublés"},
+    B:{sg:"dispose d’un balcon",                  pl:"disposent d’un balcon"} },
+
+  { subj:'commandes', g:'f',
+    A:{sg:"est livrée à l’heure",                 pl:"sont livrées à l’heure"},
+    B:{sg:"est expédiée en express",              pl:"sont expédiées en express"} },
+
+  { subj:'paquets', g:'m',
+    A:{sg:"est fragile",                          pl:"sont fragiles"},
+    B:{sg:"est assuré",                           pl:"sont assurés"} },
+
+  { subj:'jours', g:'m',
+    A:{sg:"est pluvieux",                         pl:"sont pluvieux"},
+    B:{sg:"est venteux",                          pl:"sont venteux"} },
+
+  /* #12 corrigé : deux propriétés compatibles */
+  { subj:'trajets', g:'m',
+    A:{sg:"subit un retard",                      pl:"subissent un retard"},
+    B:{sg:"passe par une déviation",              pl:"passent par une déviation"} },
+
+  { subj:'trains', g:'m',
+    A:{sg:"est direct",                           pl:"sont directs"},
+    B:{sg:"arrive à l’heure",                     pl:"arrivent à l’heure"} },
+
+  { subj:'candidatures', g:'f',
+    A:{sg:"est admissible",                       pl:"sont admissibles"},
+    B:{sg:"est prioritaire",                      pl:"sont prioritaires"} },
+
+  { subj:'capteurs', g:'m',
+    A:{sg:"est calibré",                          pl:"sont calibrés"},
+    B:{sg:"est connecté",                         pl:"sont connectés"} },
+
+  { subj:'projets', g:'m',
+    A:{sg:"respecte le budget",                   pl:"respectent le budget"},
+    B:{sg:"respecte le délai",                    pl:"respectent le délai"} },
+
+  { subj:'produits', g:'m',
+    A:{sg:"est en stock",                         pl:"sont en stock"},
+    B:{sg:"est bio",                              pl:"sont bio"} },
+
+  { subj:'fichiers', g:'m',
+    A:{sg:"est compressé",                        pl:"sont compressés"},
+    B:{sg:"est chiffré",                          pl:"sont chiffrés"} },
+
+  { subj:'questions', g:'f',
+    A:{sg:"porte sur l’algèbre",                  pl:"portent sur l’algèbre"},
+    B:{sg:"est à choix multiple",                 pl:"sont à choix multiple"} },
+
+  { subj:'échantillons', g:'m',
+    A:{sg:"est conforme",                         pl:"sont conformes"},
+    B:{sg:"est stérile",                          pl:"sont stériles"} },
+
+  { subj:'visites', g:'f',
+    A:{sg:"est guidée",                           pl:"sont guidées"},
+    B:{sg:"est gratuite",                         pl:"sont gratuites"} },
+
+  { subj:'photos', g:'f',
+    A:{sg:"est nette",                            pl:"sont nettes"},
+    B:{sg:"est sous-exposée",                     pl:"sont sous-exposées"} },
+
+  { subj:'articles', g:'m',
+    A:{sg:"est publié en ligne",                  pl:"sont publiés en ligne"},
+    B:{sg:"est relu par un pair",                 pl:"sont relus par un pair"} },
+
+  { subj:'messages', g:'m',
+    A:{sg:"est non lu",                           pl:"sont non lus"},
+    B:{sg:"contient une pièce jointe",            pl:"contiennent une pièce jointe"} },
+
+  /* #25 corrigé : plus de contradiction avec « manqué » */
+  { subj:'appels', g:'m',
+    A:{sg:"provient d’un contact connu",          pl:"proviennent d’un contact connu"},
+    B:{sg:"dure plus de cinq minutes",            pl:"durent plus de cinq minutes"} },
+
+  { subj:'livraisons', g:'f',
+    A:{sg:"est partielle",                        pl:"sont partielles"},
+    B:{sg:"est réfrigérée",                       pl:"sont réfrigérées"} },
+
+  { subj:'colis', g:'m',
+    A:{sg:"est volumineux",                       pl:"sont volumineux"},
+    B:{sg:"est suivi",                            pl:"sont suivis"} },
+
+  /* #28 ajusté : « payée » compatible avec « réglée par virement » */
+  { subj:'factures', g:'f',
+    A:{sg:"est payée",                            pl:"sont payées"},
+    B:{sg:"est réglée par virement",              pl:"sont réglées par virement"} },
+
+  /* #30 ajusté : les deux peuvent coexister */
+  { subj:'réunions', g:'f',
+    A:{sg:"est prévue aujourd’hui",               pl:"sont prévues aujourd’hui"},
+    B:{sg:"se tient en visioconférence",          pl:"se tiennent en visioconférence"} },
+
+  { subj:'machines', g:'f',
+    A:{sg:"est en maintenance",                   pl:"sont en maintenance"},
+    B:{sg:"est connectée au réseau",              pl:"sont connectées au réseau"} },
+
+  { subj:'interventions', g:'f',
+    A:{sg:"est urgente",                          pl:"sont urgentes"},
+    B:{sg:"est planifiée",                        pl:"sont planifiées"} },
+
+  { subj:'tickets', g:'m',
+    A:{sg:"est résolu",                           pl:"sont résolus"},
+    B:{sg:"est prioritaire",                      pl:"sont prioritaires"} },
+
+  { subj:'réservations', g:'f',
+    A:{sg:"est remboursable",                     pl:"sont remboursables"},
+    B:{sg:"est modifiable",                       pl:"sont modifiables"} },
+
+  { subj:'chambres', g:'f',
+    A:{sg:"donne sur la mer",                     pl:"donnent sur la mer"},
+    B:{sg:"est climatisée",                       pl:"sont climatisées"} },
+
+  { subj:'patients', g:'m',
+    A:{sg:"est diabétique",                       pl:"sont diabétiques"},
+    B:{sg:"est suivi chaque mois",                pl:"sont suivis chaque mois"} },
+
+  { subj:'clients', g:'m',
+    A:{sg:"est fidèle depuis trois ans",          pl:"sont fidèles depuis trois ans"},
+    B:{sg:"est abonné à la newsletter",           pl:"sont abonnés à la newsletter"} },
+
+  { subj:'comptes', g:'m',
+    A:{sg:"est vérifié",                          pl:"sont vérifiés"},
+    B:{sg:"est premium",                          pl:"sont premium"} },
+
+  { subj:'publications', g:'f',
+    A:{sg:"est en accès libre",                   pl:"sont en accès libre"},
+    B:{sg:"est illustrée",                        pl:"sont illustrées"} },
+
+  { subj:'expériences', g:'f',
+    A:{sg:"est reproductible",                    pl:"sont reproductibles"},
+    B:{sg:"est documentée",                       pl:"sont documentées"} },
+
+  { subj:'mesures', g:'f',
+    A:{sg:"est précise",                          pl:"sont précises"},
+    B:{sg:"est supérieure au seuil",              pl:"sont supérieures au seuil"} },
+
+  { subj:'capteurs IoT', g:'m',
+    A:{sg:"émet un signal anormal",               pl:"émettent un signal anormal"},
+    B:{sg:"est alimenté par batterie",            pl:"sont alimentés par batterie"} },
+
+  { subj:'emails marketing', g:'m',
+    A:{sg:"est ouvert",                           pl:"sont ouverts"},
+    B:{sg:"contient un coupon",                   pl:"contiennent un coupon"} },
+
+  { subj:'sessions', g:'f',
+    A:{sg:"est active",                           pl:"sont actives"},
+    B:{sg:"est sécurisée",                        pl:"sont sécurisées"} },
+
+  { subj:'profils', g:'m',
+    A:{sg:"est public",                           pl:"sont publics"},
+    B:{sg:"est complet",                          pl:"sont complets"} },
+
+  { subj:'réponses', g:'f',
+    A:{sg:"est correcte",                         pl:"sont correctes"},
+    B:{sg:"est justifiée",                        pl:"sont justifiées"} },
+
+  { subj:'trajets domicile-travail', g:'m',
+    A:{sg:"se fait en vélo",                      pl:"se font en vélo"},
+    B:{sg:"prend moins de vingt minutes",         pl:"prennent moins de vingt minutes"} },
+
+  /* #47 corrigé : deux propriétés compatibles */
+  { subj:'commandes en ligne', g:'f',
+    A:{sg:"est livrée à domicile",                pl:"sont livrées à domicile"},
+    B:{sg:"est livrée dans la journée",           pl:"sont livrées dans la journée"} },
+
+  { subj:'inscriptions', g:'f',
+    A:{sg:"est validée",                          pl:"sont validées"},
+    B:{sg:"est payée par carte",                  pl:"sont payées par carte"} },
+
+  { subj:'vols', g:'m',
+    A:{sg:"est long-courrier",                    pl:"sont long-courriers"},
+    B:{sg:"part à l’heure",                       pl:"partent à l’heure"} },
+
+  { subj:'livraisons express', g:'f',
+    A:{sg:"est internationale",                   pl:"sont internationales"},
+    B:{sg:"est suivie",                           pl:"sont suivies"} }
+],
+
+
+
+  /* ---------------------- Outils grammaire & tirages ---------------------- */
+  _defDet(noun, g){ return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(noun) ? "l’"+noun : (g==='f'?"la ":"le ")+noun; },
+  _indefDet(noun, g){ return (g==='f'?"une ":"un ")+noun; },
+  _singular(pl){ return String(pl).replace(/s$/,''); },
+
+  _negate(phrase){
+  let p = phrase.trim();
+
+  // Correction pour les verbes composés (commence par "provient", "contient", etc.)
+  const verbNeg = [
+    [/^est\b/i,             "n’est pas"],
+    [/^sont\b/i,            "ne sont pas"],
+    [/^a\b/i,               "n’a pas"],
+    [/^ont\b/i,             "n’ont pas"],
+    [/^fait\b/i,            "ne fait pas"],
+    [/^font\b/i,            "ne font pas"],
+    [/^contient\b/i,        "ne contient pas"],
+    [/^contiennent\b/i,     "ne contiennent pas"],
+    [/^provient\b/i,        "ne provient pas"],
+    [/^proviennent\b/i,     "ne proviennent pas"],
+    [/^dispose\b/i,         "ne dispose pas"],
+    [/^disposent\b/i,       "ne disposent pas"],
+    [/^respecte\b/i,        "ne respecte pas"],
+    [/^respectent\b/i,      "ne respectent pas"],
+    [/^arrive\b/i,          "n’arrive pas"],
+    [/^arrivent\b/i,        "n’arrivent pas"],
+    [/^porte\b/i,           "ne porte pas"],
+    [/^portent\b/i,         "ne portent pas"],
+    [/^donne\b/i,           "ne donne pas"],
+    [/^donnent\b/i,         "ne donnent pas"],
+    [/^prend\b/i,           "ne prend pas"],
+    [/^prennent\b/i,        "ne prennent pas"],
+    [/^se fait\b/i,         "ne se fait pas"],
+    [/^se font\b/i,         "ne se font pas"]
+  ];
+
+  for (const [re, rep] of verbNeg) {
+    if (re.test(p)) return p.replace(re, rep);
+  }
+
+  // Cas générique : si ça commence par une voyelle → "n’", sinon "ne"
+  const startsVowel = /^[aeiouyhàâäéèêëîïôöùûü]/i.test(p);
+  return (startsVowel ? "n’" : "ne ") + p + " pas";
+},
+
+
+  _shareTooMuch(a,b){ // rejette A/B trop proches lexicalement
+    const tok = s => s.toLowerCase().normalize('NFD').replace(/[^a-zàâäéèêëîïôöùûü\-']/g,' ').split(/\s+/).filter(x=>x.length>=4);
+    const A = new Set(tok(a)), B = new Set(tok(b));
+    let common=0; A.forEach(w=>{ if(B.has(w)) common++; });
+    const small = Math.min(A.size||1, B.size||1);
+    return common / small >= 0.6; // >60% commun -> trop proche
+  },
+
+  _pct(a,b){ return Math.floor(Math.random()*(b-a+1))+a; },
+
+  gen(){
+    // 1) contexte distinct (évite A/B trop proches)
+    let ctx;
+    for(let tries=0; tries<30; tries++){
+      const c = this._CTX[Math.floor(Math.random()*this._CTX.length)];
+      if(!this._shareTooMuch(c.A.sg, c.B.sg)) { ctx=c; break; }
+    }
+    if(!ctx) ctx = this._CTX[0];
+
+    // 2) % réalistes
+    const pctUnion = this._pct(35,90);
+    const pctInter = this._pct(5,40);
+    const pctCond  = ()=> this._pct(12,88);
+
+    // 3) Fabrique les 4 items (ordre mélangé)
+    const make = {
+      union : { tag:'union', txt: p => `${p}% des ${ctx.subj} ${ctx.A.pl} ou ${ctx.B.pl}.`, p: pctUnion },
+      inter : { tag:'inter', txt: p => `${p}% des ${ctx.subj} ${ctx.A.pl} et ${ctx.B.pl}.`,       p: pctInter },
+      condAB: { tag:'condAB',txt: p => `Parmi les ${ctx.subj} qui ${ctx.A.pl}, ${p}% ${ctx.B.pl} aussi.`,       p: pctCond() },
+      condBA: { tag:'condBA',txt: p => `Sur les ${ctx.subj} qui ${ctx.B.pl}, ${p}% ${ctx.A.pl} également.`,     p: pctCond() },
+    };
+    let pool = [make.union, make.inter, make.condAB, make.condBA].map(o => ({...o, p: (typeof o.p==='function'?o.p():o.p)}));
+
+    // 4) Injecte une NÉGATION dans l’un des 4 (aléatoirement)
+    const negIdx = Math.floor(Math.random()*pool.length);
+    pool = pool.map((o,i)=>{
+      if(i!==negIdx) return o;
+      if(o.tag==='union'){
+        // A ∪ \bar B (ou \bar A ∪ B) -> choisissez une des deux
+        const flip = Math.random()<0.5;
+        const txt = flip
+          ? (p => `${p}% des ${ctx.subj} ${ctx.A.pl} ou ${this._negate(ctx.B.pl)}.`)
+          : (p => `${p}% des ${ctx.subj} ${this._negate(ctx.A.pl)} ou ${ctx.B.pl}.`);
+        return {...o, tag: flip?'unionAbarB':'unionABarB', txt};
+      }
+      if(o.tag==='inter'){
+        // A ∩ \bar B (ou \bar A ∩ B)
+        const flip = Math.random()<0.5;
+        const txt = flip
+          ? (p => `${p}% des ${ctx.subj} ${ctx.A.pl} et ${this._negate(ctx.B.pl)}.`)
+          : (p => `${p}% des ${ctx.subj} ${this._negate(ctx.A.pl)} et ${ctx.B.pl}.`);
+        return {...o, tag: flip?'interAbarB':'interABarB', txt};
+      }
+      if(o.tag==='condAB'){
+        // P( \bar B | A )
+        const txt = p => `Parmi les ${ctx.subj} qui ${ctx.A.pl}, ${p}% ${this._negate(ctx.B.pl)}.`;
+        return {...o, tag:'condABbar', txt};
+      }
+      if(o.tag==='condBA'){
+        // P( \bar A | B )
+        const txt = p => `Sur les ${ctx.subj} qui ${ctx.B.pl}, ${p}% ${this._negate(ctx.A.pl)}.`;
+        return {...o, tag:'condBAbar', txt};
+      }
+      return o;
+    });
+
+    // 5) Mélange et numérote
+    pool.sort(()=>Math.random()-0.5);
+    const labels=['a','b','c','d'];
+    const items = pool.map((o,i)=>({ id:`q${i+1}`, letter:labels[i], tag:o.tag, text:o.txt(o.p) }));
+
+    return { ctx, items };
+  },
+
+  /* ====== 1) Liste d'options proposées dans le <select> ====== */
+_options(){
+  const Abar = BAR.A, Bbar = BAR.B;
+  return [
+    {v:'',                text:'— choisir —'},
+
+    // simples
+    {v:'PA',              text:'P(A)'},
+    {v:'PB',              text:'P(B)'},
+    {v:'PnotA',           text:`P(${Abar})`},
+    {v:'PnotB',           text:`P(${Bbar})`},
+
+    // intersections
+    {v:'interAB',         text:'P(A∩B)'},
+    {v:'interAbarB',      text:`P(A∩${Bbar})`},
+    {v:'interABarB',      text:`P(${Abar}∩B)`},
+
+    // réunions
+    {v:'unionAB',         text:'P(A∪B)'},
+    {v:'unionAbarB',      text:`P(A∪${Bbar})`},
+    {v:'unionABarB',      text:`P(${Abar}∪B)`},
+
+    // conditionnelles (sachant en indice)
+    {v:'condAB',          text:'P_A(B)'},
+    {v:'condABbar',       text:`P_A(${Bbar})`},
+    {v:'condBA',          text:'P_B(A)'},
+    {v:'condBAbar',       text:`P_B(${Abar})`},
+  ];
+},
+
+
+/* ====== 2) Rendu : intro + 4 phrases + SELECT (au lieu d’input texte) ====== */
+render(host, st){
+  const sing = this._singular(st.ctx.subj);
+  const intro =
+    `On choisit au hasard ${this._indefDet(sing, st.ctx.g)}. <br>`+
+    `On considère les événements suivants : <br>`+
+    `\\(A\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.A.sg} », `+
+    `\\(B\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.B.sg} ».`;
+
+  const hint =
+    `Choisir la notation : <em>conditionnelle</em> \\(P(\\cdot\\mid\\cdot)\\) ou \\(P_{\\,\\cdot}(\\cdot)\\), `+
+    `<em>intersection</em> \\(P(\\cdot\\cap\\cdot)\\), <em>réunion</em> \\(P(\\cdot\\cup\\cdot)\\). `+
+    `Pour les phrases négatives, les options avec \\(A'\\) / \\(B'\\) sont disponibles.`;
+
+  const opts = this._options().map(o=>`<option value="${o.v}">${o.text}</option>`).join('');
+
+  const blocks = [
+    { labelHTML: intro },
+   ... st.items.map(it => ({
+  labelHTML: `${it.letter} ) ${it.text}<br>`,
+  rightHTML: mkMathSelectHTML(it.id, 220)   // ← remplace <select>
+}))
+
+  ];
+
+  renderRowsInputRight(
+    host,
+    "Pour chaque affirmation, indiquer s’il s’agit d’une probabilité conditionnelle, d’une intersection ou d’une réunion en donnant la notation correspondante.",
+    blocks
+  );
+initMathSelect(host);
+try{ MathJax.typesetPromise([host]); }catch(_){}
+
+retypeset(host);
+},
+
+/* ====== 3) Correction : compare le code sélectionné au tag attendu ====== */
+correct(host, st){
+  const ACCEPT = {
+    condAB:['condAB'], condBA:['condBA'],
+    condABbar:['condABbar'], condBAbar:['condBAbar'],
+    inter:['interAB'], interAbarB:['interAbarB'], interABarB:['interABarB'],
+    union:['unionAB'], unionAbarB:['unionAbarB'], unionABarB:['unionABarB'],
+  };
+
+  let anyWrong = false;
+  let anyAnswered = false;
+  let allAnswered = true;
+
+  st.items.forEach(it=>{
+    const sel = document.getElementById(it.id); // <input type="hidden">
+    const val = sel ? sel.value : '';
+
+    if(!val){            // rien de choisi -> pas de tick, pas de sanction
+      setTickForInput(sel, null);
+      allAnswered = false;
+      return;
+    }
+
+    anyAnswered = true;
+    const ok = (ACCEPT[it.tag] || []).includes(val);
+    setTickForInput(sel, ok);
+    if(!ok) anyWrong = true;
+  });
+
+  
+
+  // Score : on ne compte point que si tout est répondu ET correct
+  return { ok: allAnswered && !anyWrong, total: 1 };
+},
+
+
+
+/* ====== 4) (Optionnel) Solution : affiche la bonne option en LaTeX ====== */
+solution(host, st){
+  const latex = {
+    condAB:'\\(P_A(B)\\)', condBA:'\\(P_B(A)\\)',
+    condABbar:'\\(P_A(\\overline{B})\\)', condBAbar:'\\(P_B(\\overline{A})\\)',
+    inter:'\\(P(A\\cap B)\\)', interAbarB:'\\(P(A\\cap \\overline{B})\\)', interABarB:'\\(P(\\overline{A}\\cap B)\\)',
+    union:'\\(P(A\\cup B)\\)', unionAbarB:'\\(P(A\\cup \\overline{B})\\)', unionABarB:'\\(P(\\overline{A}\\cup B)\\)'
+  };
+  const html = st.items.map(it => `<p>${it.letter}) ${latex[it.tag]||''}</p>`).join('');
+  $('#res',host).innerHTML = html;
+  $('#res',host).className='res-ok';
+  retypeset($('#res',host));
+},
+
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+/* ===== Exercice 3 — Banque (20) type « CDD / moins de 30 ans » ===== */
+const EX3_BANK = (() => {
+  const ctxs = [
+    {D:'l’employé est en CDD', J:'l’employé a moins de 30 ans', d:'D', j:'J', pop:'Dans l’administration'},
+    {D:'le client possède un abonnement Premium', J:'le client a moins de 25 ans', d:'P', j:'J', pop:'Dans la base clients'},
+    {D:'le véhicule est électrique', J:'le véhicule a moins de 3 ans', d:'E', j:'A', pop:'Dans le parc auto'},
+    {D:'le patient est fumeur', J:'le patient a moins de 30 ans', d:'F', j:'J', pop:'Dans le cabinet'}
+  ];
+  const L=[];
+  for(let k=0;k<20;k++){
+    const c = choice(ctxs);
+    const pD = rnd(15,35)/100;
+    const pJ_D = rnd(45,80)/100;      // « 60% des CDD ont <30 ans »-like
+    const pJ_notD = rnd(15,45)/100;   // « 30% des CDI ont <30 ans »-like
+    L.push({c, pD, pJ_D, pJ_notD});
+  }
+  return L;
+})();
+
+const ex3 = {
+  id:'bank_cdd30',
+  title:'Traduire les données & calculer une conjonction',
+  gen(){ return choice(EX3_BANK); },
+  render(host, st){
+    const c = st.c;
+    const pD = Math.round(st.pD*100);
+    const pJ_D = Math.round(st.pJ_D*100);
+    const pJ_notD = Math.round(st.pJ_notD*100);
+    const rows = [
+      {labelHTML:`${c.pop}. On considère \\(D:\\) « ${c.D} » et \\(J:\\) « ${c.J} ».`, rightHTML:''},
+      {labelHTML:`a) Traduire : \\(P(${c.d})\\), \\(P_{${c.d}}(${c.j})\\), \\(P_{\\overline{${c.d}}}(${c.j})\\).<br><small>D’après : ${pD}% ; ${pJ_D}% ; ${pJ_notD}%</small>`, id:'e3a'},
+      {labelHTML:`b) Déterminer \\(P(${c.d}\\cap ${c.j})\\).`, id:'e3b'}
+    ];
+    renderRows(host,'Écrire les probabilités puis calculer une conjonction. Les valeurs peuvent être en %, fraction ou décimal.', rows, true);
+  },
+  correct(host, st){
+    const c=st.c, pD=st.pD, pJ_D=st.pJ_D;
+    // a) on attend un texte qui contient les 3 notations (on reste souple)
+    const a = String($('#e3a',host).value||'').replace(/\s+/g,'');
+    const okA = a.includes(`P(${c.d})`) && a.includes(`P_${c.d}(${c.j})`) && a.includes(`P_\\overline{${c.d}}(${c.j})`);
+    const b = parseProbFlexible($('#e3b',host).value);
+    const exp = pD * pJ_D;
+    const okB = Number.isFinite(b) && same(b,exp,1e-3);
+    const ok = okA && okB;
+    $('#res',host).innerHTML = ok ? '✔' : '✘ Astuce : \\(P(D\\cap J)=P(D)\\times P_D(J)\\).';
+    $('#res',host).className = ok?'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const c=st.c;
+    const L = [
+      `a) \\(P(${c.d})=${st.pD.toFixed(2)}\\), \\(P_{${c.d}}(${c.j})=${st.pJ_D.toFixed(2)}\\), \\(P_{\\overline{${c.d}}}(${c.j})=${st.pJ_notD.toFixed(2)}\\).`,
+      `b) \\(P(${c.d}\\cap ${c.j})=P(${c.d})\\times P_{${c.d}}(${c.j})=${(st.pD*st.pJ_D).toFixed(3)}\\).`
+    ].map(x=>`<p>${x}</p>`).join('');
+    $('#res',host).innerHTML=L; $('#res',host).className='res-ok'; retypeset($('#res',host));
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ===== Exercice 4 — Banque (20) type « SAV : pannes A/B » ===== */
+const EX4_BANK = (() => {
+  const scenes = [
+    {A:'panne A', B:'panne B', a:'A', b:'B', who:'Un SAV a constaté'},
+    {A:'défaut majeur', B:'défaut mineur', a:'M', b:'m', who:'Un contrôle qualité observe'},
+    {A:'bug logiciel', B:'défaut matériel', a:'L', b:'H', who:'Un service technique note'}
+  ];
+  const L=[];
+  for(let k=0;k<20;k++){
+    const s=choice(scenes);
+    const pA=rnd(20,45)/100, pB=rnd(25,55)/100;
+    let pAB=rnd(2,10)/100; // intersection
+    if(pAB>Math.min(pA,pB)-0.01) pAB=Math.min(pA,pB)-0.02;
+    L.push({s,pA,pB,pAB});
+  }
+  return L;
+})();
+const ex4 = {
+  id:'bank_sav',
+  title:'Conditionnelle « donnée A » : calculer \(P_B(A)\) ou \(P_A(B)\)',
+  gen(){ return choice(EX4_BANK); },
+  render(host, st){
+    const s=st.s;
+    const rows = [
+      {labelHTML:`${s.who} que les retours sont dus à \\(${Math.round(st.pA*100)}\\,\\%\\) à « ${s.A} », à \\(${Math.round(st.pB*100)}\\,\\%\\) à « ${s.B} » et à \\(${Math.round(st.pAB*100)}\\,\\%\\) à leur simultanéité.`, rightHTML:''},
+      {labelHTML:`Un appareil présente « ${s.A} ». Déterminer la probabilité pour qu’il ait aussi « ${s.B} ».`, id:'e4'}
+    ];
+    renderRows(host,'Répondre en %, fraction ou décimal.', rows, true);
+  },
+  correct(host, st){
+    const v = parseProbFlexible($('#e4',host).value);
+    const exp = st.pAB / st.pA; // P(B|A) = P(A∩B)/P(A)
+    const ok = Number.isFinite(v) && same(v,exp,1e-3);
+    $('#res',host).innerHTML = ok ? '✔' : '✘ Formule : \\(P_{A}(B)=\\dfrac{P(A\\cap B)}{P(A)}\\).';
+    $('#res',host).className = ok?'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+    $('#res',host).innerHTML =
+      `<p>\\(P_{A}(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${st.pAB.toFixed(3)}}{${st.pA.toFixed(3)}}=${(st.pAB/st.pA).toFixed(3)}\\).</p>`;
+    $('#res',host).className='res-ok'; retypeset($('#res',host));
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ===== Exercice 5 — Banque (20) type « Commerciaux / voiture de fonction » ===== */
+const EX5_BANK = (() => {
+  const places = [
+    {C:'l’employé interrogé est un commercial', V:'l’employé possède une voiture de fonction', c:'C', v:'V', who:'Dans l’entreprise'},
+    {C:'l’agent interrogé travaille au service support', V:'l’agent dispose d’un poste portable', c:'S', v:'P', who:'Dans l’organisation'},
+    {C:'l’étudiant interrogé suit la filière info', V:'l’étudiant dispose d’un ordinateur prêté', c:'I', v:'O', who:'Dans la promo'}
+  ];
+  const L=[];
+  for(let k=0;k<20;k++){
+    const p=choice(places);
+    const pC = rnd(55,85)/100;
+    const pV_C = rnd(60,90)/100;
+    const pV_notC = rnd(5,25)/100;
+    L.push({p, pC, pV_C, pV_notC});
+  }
+  return L;
+})();
+
+const ex5 = {
+  id:'bank_commercial_voiture',
+  title:'Déduire & calculer \(P(C\\cap V)\) et \(P(\\overline{C}\\cap V)\)',
+  gen(){ return choice(EX5_BANK); },
+  render(host, st){
+    const p = st.p;
+    const rows = [
+      {labelHTML:`${p.who}, on interroge au hasard un employé. Soient \\(C:\\) « ${p.C} » et \\(V:\\) « ${p.V} ».`, rightHTML:''},
+      {labelHTML:`1a) Donner \\(P(${p.c})\\) et \\(P(\\overline{${p.c}})\\).`, id:'e5_1a'},
+      {labelHTML:`1b) Donner \\(P_{${p.c}}(${p.v})\\) et \\(P_{\\overline{${p.c}}}(${p.v})\\).`, id:'e5_1b'},
+      {labelHTML:`2a) Définir par une phrase l’événement \\(${p.c}\\cap ${p.v}\\). Puis calculer \\(P(${p.c}\\cap ${p.v})\\).`, id:'e5_2a'},
+      {labelHTML:`2b) Définir par une phrase l’événement \\(\\overline{${p.c}}\\cap ${p.v}\\). Puis calculer \\(P(\\overline{${p.c}}\\cap ${p.v})\\).`, id:'e5_2b'}
+    ];
+    renderRows(host, 'Compléter : notations puis calculs (valeurs en %, décimal ou fraction).', rows);
+  },
+  correct(host, st){
+    const p=st.p;
+    // 1a / 1b : on vérifie juste que les notations attendues apparaissent (souplesse)
+    const a = String($('#e5_1a',host).value||'').replace(/\s+/g,'');
+    const b = String($('#e5_1b',host).value||'').replace(/\s+/g,'');
+    const ok1a = a.includes(`P(${p.c})`) && a.includes(`P(\\overline{${p.c}})`);
+    const ok1b = b.includes(`P_${p.c}(${p.v})`) && b.includes(`P_\\overline{${p.c}}(${p.v})`);
+    // 2a : texte + nombre
+    const t2a = String($('#e5_2a',host).value||'');
+    const num2a = parseProbFlexible(t2a);
+    const exp2a = st.pC * st.pV_C;
+    const ok2aText = /commercial|voiture|fonction|portable|support|info|ordinateur|prêté/i.test(t2a);
+    const ok2aNum = Number.isFinite(num2a) && same(num2a, exp2a, 1e-3);
+    // 2b
+    const t2b = String($('#e5_2b',host).value||'');
+    const num2b = parseProbFlexible(t2b);
+    const exp2b = (1-st.pC) * st.pV_notC;
+    const ok2bText = /non|pas|sans|n’/i.test(t2b) || /overline/.test(t2b);
+    const ok2bNum = Number.isFinite(num2b) && same(num2b, exp2b, 1e-3);
+
+    const ok = ok1a && ok1b && ok2aText && ok2aNum && ok2bText && ok2bNum;
+    $('#res',host).innerHTML = ok ? '✔' :
+      '✘ Rappels : \\(P(C\\cap V)=P(C)\\,P_C(V)\\) et \\(P(\\overline{C}\\cap V)=P(\\overline{C})\\,P_{\\overline{C}}(V)\\).';
+    $('#res',host).className = ok?'res-ok':'res-ko';
+    return {ok,total:1};
+  },
+  solution(host, st){
+    const p=st.p, pc=st.pC, pvC=st.pV_C, pvNc=st.pV_notC;
+    const html = [
+      `1a) \\(P(${p.c})=${pc.toFixed(2)}\\) ; \\(P(\\overline{${p.c}})=${(1-pc).toFixed(2)}\\).`,
+      `1b) \\(P_{${p.c}}(${p.v})=${pvC.toFixed(2)}\\) ; \\(P_{\\overline{${p.c}}}(${p.v})=${pvNc.toFixed(2)}\\).`,
+      `2a) \\(${p.c}\\cap ${p.v}\\) : « ${p.C} ET ${p.V} ». \\(P=${(pc*pvC).toFixed(3)}\\).`,
+      `2b) \\(\\overline{${p.c}}\\cap ${p.v}\\) : « non-${p.C} ET ${p.V} ». \\(P=${((1-pc)*pvNc).toFixed(3)}\\).`
+    ].map(x=>`<p>${x}</p>`).join('');
+    $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
+  },
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ====== REGISTRY + moteur ====== */
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
+  addTicks();
+}
+function check(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
+  if(!allFilled()){ $('#res',host).textContent=''; $('#res',host).className='res'; return; }
+  const st = JSON.parse(host.dataset.state||'{}');
+  const r = def.correct(host, st);
+  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+}
+function solution(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
+  const st = JSON.parse(host.dataset.state||'{}'); def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def&&def.reset) def.reset(host);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  innerHost(document.getElementById('host'));
+  const sel=$('#exo-select');
+  REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  document.addEventListener('keydown', ev=>{
+    const a=document.activeElement;
+    if(ev.key==='Enter' && a && a.matches('#host input[type=text]') && !a.closest('.equ-offscreen')){
+      ev.preventDefault(); try{ check(); }catch(_){}
+    }
+  });
+
+  // PDF si présent (même API que tes fiches)
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title:'Première – Probabilités conditionnelles',
+      max:50,
+      mountAfterSelector:'.card.small',
+      beforeRender(def, st, withSolutions){
+        const tmp = document.createElement('div');
+        tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+        def.render(tmp, st);
+        if(!withSolutions){
+          const off = tmp.querySelector('.equ-offscreen');
+          return off ? off.innerHTML : '';
+        } else if(def.solution){
+          def.solution(tmp, st);
+          return tmp.querySelector('#res')?.innerHTML || '';
+        }
+        return '';
+      }
+    });
+  }
+});
+})();
+</script>
+
+<!-- JS fournis -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/fraction-sign-clarity.dom.v3.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn'); clone.type='button'; clone.removeAttribute('id');
+          clone.addEventListener('click',(e)=>{e.preventDefault(); src.click();});
+          bar.appendChild(clone);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center',behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r=parseFloat(c.getAttribute('r')||'5'); if(r<10) c.setAttribute('r','12'); c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+</body>
+</html>

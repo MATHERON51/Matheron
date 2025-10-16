@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Première — Probabilités conditionnelles (banque structurée)</title>
+
+<!-- (Optionnel) Si tes feuilles existent déjà dans ton projet, tu peux les réactiver :
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+<link rel="stylesheet" href="../../../../css/ticks.css">
+-->
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e8e8e8;--ok:#11823b;--ko:#b00020;--nu:#999}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 18px;z-index:5}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  select,button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer}
+  button.primary{background:#0b57d0;border-color:#0a4fc0;color:#fff}
+  button.ghost{background:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .lead{margin:.3rem 0 0.8rem}
+  .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin:.4rem 0}
+  .row label{display:block}
+  .row input{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit}
+  .tick{display:inline-block;width:22px;height:22px;border-radius:999px;border:2px solid var(--line)}
+  .tick.ok{background:#e9f6ee;border-color:#c7ecd3;position:relative}
+  .tick.ok::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ok);font-weight:700}
+  .tick.ko{background:#fdeaea;border-color:#f6c5c5;position:relative}
+  .tick.ko::after{content:"✗";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ko);font-weight:700}
+  .tick.nu{background:#f4f4f4;border-color:#ddd}
+  .muted{color:#666}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .steps{background:#f7f9ff;border:1px solid #dfe7ff;border-radius:12px;padding:12px 14px}
+  .foot{display:flex;justify-content:space-between;align-items:center;color:#444}
+  .score{font-weight:600}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .note{color:#555;font-size:.95rem}
+  /* Impression simple si pas d’exo-pdf-kit */
+  @media print{
+    .header,.toolbar .pdf-btn{display:none}
+    .wrap{padding:0}
+    .card{border:none;border-radius:0}
+  }
+  /* --- Arbre de proba (SVG) --- */
+.tree-wrap{margin-top:10px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.tree-wrap svg{min-width:560px;height:260px;display:block}
+.tree-edge{stroke:#1e293b;stroke-width:2}
+.tree-node{fill:#0b57d0}
+.tree-text{font:14px/1.2 system-ui,Segoe UI,Roboto,Arial;fill:#0f172a}
+.tree-small{font-size:12px;fill:#334155}
+.tree-leaf{font-weight:600}
+
+  
+</style>
+
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+
+</head>
+<body>
+  <div class="header">
+    <div class="toolbar">
+      <strong>Première — Probabilités conditionnelles</strong>
+      <span class="muted">• Banque structurée</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="toolbar">
+        <button class="primary" id="btn-new">Nouvel énoncé</button>
+        <button id="btn-check">Vérifier</button>
+        <button id="btn-sol">Solution</button>
+        <button class="ghost" id="btn-reset">Réinitialiser</button>
+        <span class="score" id="score">Score : 0 / 0</span>
+        <span style="flex:1"></span>
+        <button class="ghost pdf-btn" id="btn-pdf">Générer un PDF</button>
+      </div>
+      <p class="lead" id="lead">
+        Traduire, calculer, puis interpréter à partir du contexte aléatoire ci-dessous.
+      </p>
+
+      <div id="context" class="card" style="margin-top:8px;"></div>
+
+      <div class="two">
+        <div class="card">
+          <h3>Événements</h3>
+          <p id="events" class="note"></p>
+          <h3>Questions</h3>
+          <div class="row">
+<label for="qPJ">b) Calculer \(P(J)\) (arrondi au \(10^{-3}\)) :</label>
+            <input id="qPJ" class="in">
+            <span id="tPJ" class="tick nu"></span>
+          </div>
+          <div class="row">
+<label for="qPcap">c) Calculer \(P(D\cap J)\) (arrondi au \(10^{-3}\)) :</label>
+            <input id="qPcap" class="in">
+            <span id="tPcap" class="tick nu"></span>
+          </div>
+          <div class="row">
+<label for="qPcapbar">d) Calculer \(P(\overline D\cap J)\) (arrondi au \(10^{-3}\)) :</label>
+            <input id="qPcapbar" class="in">
+            <span id="tPcapbar" class="tick nu"></span>
+          </div>
+          <div class="row">
+<label for="qCond">e) Calculer \(P_J(D)=P(D\mid J)\) (arrondi au \(10^{-3}\)) :</label>
+            <input id="qCond" class="in">
+            <span id="tCond" class="tick nu"></span>
+          </div>
+          <p class="note">Saisies acceptées : décimal (0.468) ou pourcentage (46.8%). « ≈ » sera utilisé en correction.</p>
+        </div>
+
+        <div class="card">
+          <h3>Correction</h3>
+          <div id="solution" class="steps"></div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="mono" id="debug"></div>
+        <div class="muted">Entrée ⏎ déclenche « Vérifier » quand un champ est actif.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===================== Utilitaires ===================== */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+function rint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rpct(min,max,step=1){
+  const p = rint(Math.round(min/step), Math.round(max/step)) * step;
+  return +(p/100).toFixed(4);
+}
+function choose(A){ return A[Math.floor(Math.random()*A.length)]; }
+function setTick(el,stat){ el.className = 'tick ' + (stat||'nu'); }
+function pctStr(p){ return `${Math.round(p*100)}%`; }
+function decStr(p,k=3){ return (+p).toFixed(k); }
+function parseUserProba(v){
+  if(!v) return NaN;
+  v = (''+v).trim().replace(',', '.');
+  // tolère formats : 0.468  |  46.8%  |  46%
+  if(v.endsWith('%')){
+    const x = parseFloat(v.slice(0,-1));
+    if(isFinite(x)) return x/100;
+    return NaN;
+  }
+  const x = parseFloat(v);
+  return isFinite(x) ? x : NaN;
+}
+function m(s){ return `\\(${s}\\)`; }      // inline math
+function md(s){ return `\\[${s}\\]`; }     // display math
+
+
+function treeTex(P){
+  // Tout en display-math pour une mise en page propre
+  const s = String.raw;
+  return md(s`
+  \begin{array}{l}
+    \textbf{Arbre des probabilités} \\[2pt]
+    \begin{array}{lcl}
+      D~(${(P.pD*100).toFixed(0)}\%) &\to& J~(${(P.pJ_D*100).toFixed(0)}\%) ~~\Rightarrow~~ P(D\cap J) = ${P.pDJ.toFixed(3)}\\quad(\text{soit }${Math.round(P.pDJ*100)}\%)\\
+                                     && \overline{J}~(${(100 - P.pJ_D*100).toFixed(0)}\%) ~~\Rightarrow~~ P(D\cap \overline{J}) = ${(P.pD - P.pDJ).toFixed(3)}\\quad(\text{soit }${Math.round((P.pD-P.pDJ)*100)}\%)\\[6pt]
+      \overline{D}~(${(P.pNotD*100).toFixed(0)}\%) &\to& J~(${(P.pJ_notD*100).toFixed(0)}\%) ~~\Rightarrow~~ P(\overline{D}\cap J) = ${P.pDbarJ.toFixed(3)}\\quad(\text{soit }${Math.round(P.pDbarJ*100)}\%)\\
+                                     && \overline{J}~(${(100 - P.pJ_notD*100).toFixed(0)}\%) ~~\Rightarrow~~ P(\overline{D}\cap \overline{J}) = ${(P.pNotD - P.pDbarJ).toFixed(3)}\\quad(\text{soit }${Math.round((P.pNotD-P.pDbarJ)*100)}\%)
+    \end{array}
+  \end{array}
+  `);
+}
+// Overbar "D̄" / "J̄" en texte SVG (pas de TeX dans SVG)
+const overTxt = s => s + '\u0305'; // combine overline
+const fmtPct0 = p => `${Math.round(p*100)}%`;
+const fmtPct = p => `${(p*100).toFixed(0)}%`;
+const fmtDec = (p,k=3) => p.toFixed(k);
+
+// Construit un petit arbre SVG lisible
+function buildTreeSVG(P, labels={D:'D', J:'J'}){
+  const D = labels.D || 'D', J = labels.J || 'J';
+  const Dbar = overTxt(D), Jbar = overTxt(J);
+  // positions
+  const X0=60,  Y0=120;            // racine
+  const X1=220, Y1a=80,  Y1b=160;  // D, D̄
+  const X2=420, Y2a=50,  Y2b=110, Y2c=140, Y2d=200; // feuilles
+  // valeurs utiles
+  const pD = P.pD, pDb = P.pNotD, pJD = P.pJ_D, pJDb = P.pJ_notD;
+  const pDJ = P.pDJ, pDbarJ = P.pDbarJ;
+
+  // labels d’arêtes
+  const lab = {
+    root_D  : `P(${D}) = ${fmtPct0(pD)}`,
+    root_Db : `P(${Dbar}) = ${fmtPct0(pDb)}`,
+    D_J     : `P(${J}|${D}) = ${fmtPct0(pJD)}`,
+    D_Jb    : `P(${Jbar}|${D}) = ${fmtPct0(1-pJD)}`,
+    Db_J    : `P(${J}|${Dbar}) = ${fmtPct0(pJDb)}`,
+    Db_Jb   : `P(${Jbar}|${Dbar}) = ${fmtPct0(1-pJDb)}`
+  };
+  // labels feuilles (conjointes)
+  const leaf = {
+    DJ      : `P(${D}∩${J}) = ${fmtDec(pDJ)}  (${fmtPct0(pDJ)})`,
+    DJb     : `P(${D}∩${Jbar}) = ${fmtDec(pD - pDJ)}  (${fmtPct0(pD - pDJ)})`,
+    DbJ     : `P(${Dbar}∩${J}) = ${fmtDec(pDbarJ)}  (${fmtPct0(pDbarJ)})`,
+    DbJb    : `P(${Dbar}∩${Jbar}) = ${fmtDec(pDb - pDbarJ)}  (${fmtPct0(pDb - pDbarJ)})`
+  };
+
+  return `
+  <div class="tree-wrap">
+  <svg viewBox="0 0 540 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Arbre des probabilités">
+    <!-- edges -->
+    <line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y1a}" class="tree-edge"/>
+    <line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y1b}" class="tree-edge"/>
+
+    <line x1="${X1}" y1="${Y1a}" x2="${X2}" y2="${Y2a}" class="tree-edge"/>
+    <line x1="${X1}" y1="${Y1a}" x2="${X2}" y2="${Y2b}" class="tree-edge"/>
+
+    <line x1="${X1}" y1="${Y1b}" x2="${X2}" y2="${Y2c}" class="tree-edge"/>
+    <line x1="${X1}" y1="${Y1b}" x2="${X2}" y2="${Y2d}" class="tree-edge"/>
+
+    <!-- nodes -->
+    <circle cx="${X0}" cy="${Y0}" r="4" class="tree-node"/>
+    <circle cx="${X1}" cy="${Y1a}" r="4" class="tree-node"/>
+    <circle cx="${X1}" cy="${Y1b}" r="4" class="tree-node"/>
+    <circle cx="${X2}" cy="${Y2a}" r="4" class="tree-node"/>
+    <circle cx="${X2}" cy="${Y2b}" r="4" class="tree-node"/>
+    <circle cx="${X2}" cy="${Y2c}" r="4" class="tree-node"/>
+    <circle cx="${X2}" cy="${Y2d}" r="4" class="tree-node"/>
+
+    <!-- labels arêtes niveau 1 -->
+    <text x="${(X0+X1)/2 - 6}" y="${(Y0+Y1a)/2 - 6}" class="tree-small tree-text">${lab.root_D}</text>
+    <text x="${(X0+X1)/2 - 6}" y="${(Y0+Y1b)/2 + 16}" class="tree-small tree-text">${lab.root_Db}</text>
+
+    <!-- labels arêtes niveau 2 (à droite de D) -->
+    <text x="${(X1+X2)/2 - 6}" y="${(Y1a+Y2a)/2 - 6}" class="tree-small tree-text">${lab.D_J}</text>
+    <text x="${(X1+X2)/2 - 6}" y="${(Y1a+Y2b)/2 + 16}" class="tree-small tree-text">${lab.D_Jb}</text>
+
+    <!-- labels arêtes niveau 2 (à droite de D̄) -->
+    <text x="${(X1+X2)/2 - 6}" y="${(Y1b+Y2c)/2 - 6}" class="tree-small tree-text">${lab.Db_J}</text>
+    <text x="${(X1+X2)/2 - 6}" y="${(Y1b+Y2d)/2 + 16}" class="tree-small tree-text">${lab.Db_Jb}</text>
+
+    <!-- feuilles : textes conjoints -->
+    <text x="${X2+10}" y="${Y2a+4}" class="tree-text tree-leaf">${leaf.DJ}</text>
+    <text x="${X2+10}" y="${Y2b+4}" class="tree-text tree-leaf">${leaf.DJb}</text>
+    <text x="${X2+10}" y="${Y2c+4}" class="tree-text tree-leaf">${leaf.DbJ}</text>
+    <text x="${X2+10}" y="${Y2d+4}" class="tree-text tree-leaf">${leaf.DbJb}</text>
+
+    <!-- étiquettes des sommets -->
+    <text x="${X1-16}" y="${Y1a-10}" class="tree-text">${D}</text>
+    <text x="${X1-16}" y="${Y1b-10}" class="tree-text">${Dbar}</text>
+    <text x="${X2-10}" y="${Y2a-10}" class="tree-text">${J}</text>
+    <text x="${X2-10}" y="${Y2b-10}" class="tree-text">${Jbar}</text>
+    <text x="${X2-10}" y="${Y2c-10}" class="tree-text">${J}</text>
+    <text x="${X2-10}" y="${Y2d-10}" class="tree-text">${Jbar}</text>
+  </svg>
+  </div>`;
+}
+
+/* ===================== Rendu LaTeX ===================== */
+function mjx(){ if(window.MathJax && MathJax.typeset){ MathJax.typeset(); } }
+
+/* ===================== Banque structurée ===================== */
+const PROBA_BANK = [
+  {
+    id:"B01_cookie_A", title:"Cookies & fournisseur A",
+    templates:[
+      "Un client prend un cookie au hasard. {pD} des cookies proviennent du fournisseur A. Parmi ceux du fournisseur A, {pJ_D} sont au chocolat ; parmi les autres, {pJ_notD} sont au chocolat."
+    ],
+    D:"provient du fournisseur A", J:"cookie au chocolat",
+    constraints:{ pD:[30,60], pJ_D:[45,80], pJ_notD:[10,45] }
+  },
+  {
+    id:"B02_urnes", title:"Deux urnes, couleur de boule",
+    templates:[
+      "On choisit au hasard une urne (U ou V) selon une règle qui donne {pD} pour U. Dans U, {pJ_D} des boules sont rouges ; dans V, {pJ_notD} sont rouges."
+    ],
+    D:"urne U choisie", J:"boule rouge",
+    constraints:{ pD:[30,60], pJ_D:[30,80], pJ_notD:[10,55] }
+  },
+  {
+    id:"B03_portique", title:"Aéroport — portique",
+    templates:[
+      "{pD} des voyageurs portent un objet métallique. Si le voyageur en porte, le portique sonne dans {pJ_D} des cas ; sinon, il sonne quand même dans {pJ_notD} des cas."
+    ],
+    D:"porte un objet métallique", J:"portique qui sonne",
+    constraints:{ pD:[0.2,2.0], pJ_D:[90,99], pJ_notD:[1,5] } // pD faible
+  },
+  {
+    id:"B04_test_medical", title:"Dépistage médical",
+    templates:[
+      "La maladie M touche {pD} de la population. Si une personne est malade, le test est positif dans {pJ_D} des cas ; si elle n’est pas malade, le test est positif dans {pJ_notD} des cas."
+    ],
+    D:"personne atteinte de M", J:"test positif",
+    constraints:{ pD:[1,6], pJ_D:[90,99], pJ_notD:[0.5,5] }
+  },
+  {
+    id:"B05_sites_defaut", title:"Deux sites & défaut",
+    templates:[
+      "Le site A fournit {pD} des pièces. Parmi celles du site A, {pJ_D} sont défectueuses ; parmi celles du site B, {pJ_notD} sont défectueuses."
+    ],
+    D:"provenance site A", J:"pièce défectueuse",
+    constraints:{ pD:[55,80], pJ_D:[0.5,3], pJ_notD:[2,7] }
+  },
+  {
+    id:"B06_cantine_cafe", title:"Cantine — choix & café",
+    templates:[
+      "À la cantine, {pD} des clients prennent le menu A. Parmi ceux qui prennent A, {pJ_D} prennent un café ; parmi ceux qui ne prennent pas A, {pJ_notD} prennent un café."
+    ],
+    D:"prend le menu A", J:"prend un café",
+    constraints:{ pD:[25,55], pJ_D:[40,80], pJ_notD:[20,60] }
+  },
+  {
+    id:"B07_assurance", title:"Assurance — option & sinistre",
+    templates:[
+      "Dans le portefeuille, {pD} des assurés ont l’option X. Parmi eux, {pJ_D} ont déclaré un sinistre l’an dernier ; parmi les autres, {pJ_notD} en ont déclaré un."
+    ],
+    D:"a l’option X", J:"a eu un sinistre",
+    constraints:{ pD:[15,35], pJ_D:[5,20], pJ_notD:[1,10] }
+  },
+  {
+    id:"B08_stock_conforme", title:"Stock — conformité",
+    templates:[
+      "Le stock mélange deux fournisseurs : {pD} viennent de A. Taux de conformité : {pJ_D} sur A, {pJ_notD} sur B."
+    ],
+    D:"vient de A", J:"pièce conforme",
+    constraints:{ pD:[30,70], pJ_D:[85,99], pJ_notD:[60,90] }
+  },
+  {
+    id:"B09_restaurant_cafe", title:"Restaurant — dessert & café",
+    templates:[
+      "{pD} des clients prennent des macarons. Parmi eux, {pJ_D} prennent un café ; parmi ceux sans dessert, {pJ_notD} prennent un café."
+    ],
+    D:"prend des macarons", J:"prend un café",
+    constraints:{ pD:[25,45], pJ_D:[50,80], pJ_notD:[70,95] }
+  },
+  {
+    id:"B10_salon_effets", title:"Salon coiffure — deux prestations",
+    templates:[
+      "Parmi les clients, {pD} demandent une coloration. Parmi ceux qui ne la demandent pas, {pJ_notD} demandent l’effet « coup de soleil ». Par ailleurs, {pJ_D} demandent les deux."
+    ],
+    D:"demande une coloration", J:"demande l’effet « coup de soleil »",
+    constraints:{ pD:[30,50], pJ_D:[5,20], pJ_notD:[10,30] }
+  },
+  {
+    id:"B11_examen_reussite", title:"Examen — groupes & réussite",
+    templates:[
+      "{pD} des candidats appartiennent au groupe A. La probabilité de réussite dans A est {pJ_D}, chez les autres elle est {pJ_notD}."
+    ],
+    D:"appartient au groupe A", J:"réussit l’examen",
+    constraints:{ pD:[20,60], pJ_D:[60,95], pJ_notD:[20,60] }
+  },
+  {
+    id:"B12_capteurs", title:"Capteurs — dépassement de seuil",
+    templates:[
+      "Dans le parc, {pD} sont des capteurs A. Quand c’est un A, dépassement dans {pJ_D} des cas ; sinon, dans {pJ_notD} des cas."
+    ],
+    D:"capteur de type A", J:"mesure un dépassement",
+    constraints:{ pD:[20,50], pJ_D:[5,30], pJ_notD:[1,15] }
+  }
+];
+
+/* ===================== Moteur de calcul & génération ===================== */
+function deriveProbas(pD, pJ_D, pJ_notD){
+  const pNotD = 1 - pD;
+  const pDJ   = pD * pJ_D;
+  const pDbarJ = pNotD * pJ_notD;
+  const pJ    = pDJ + pDbarJ;
+  const pD_given_J = pJ > 0 ? pDJ / pJ : NaN;
+  return { pD, pNotD, pJ_D, pJ_notD, pDJ, pDbarJ, pJ, pD_given_J };
+}
+function makeProblem(item){
+  const C = item.constraints;
+  const pD       = rpct(C.pD[0], C.pD[1], C.pStep ?? 1);
+  const pJ_D     = rpct(C.pJ_D[0], C.pJ_D[1], C.jStep ?? 1);
+  const pJ_notD  = rpct(C.pJ_notD[0], C.pJ_notD[1], C.jStep ?? 1);
+
+  const ctx = choose(item.templates)
+    .replace(/\{pD\}/g, `${Math.round(pD*100)}%`)
+    .replace(/\{pJ_D\}/g, `${Math.round(pJ_D*100)}%`)
+    .replace(/\{pJ_notD\}/g, `${Math.round(pJ_notD*100)}%`)
+    .replace(/\{D\}/g, item.D)
+    .replace(/\{J\}/g, item.J);
+
+  const P = deriveProbas(pD,pJ_D,pJ_notD);
+
+  // build solution (.steps), ≈ for rounded displays:
+// build solution (.steps), ≈ pour tout arrondi :
+const k = 3;
+const lines = [];
+const bothRaw = (p)=> `${Math.round(p*100)}\\%\\;\\text{(soit }${p.toFixed(k)}\\text{)}`;
+
+// a) Traduction (tout en mode math)
+lines.push(
+  `<p>a) ${m(`P(D) = ${bothRaw(P.pD)}`)} ; `
++ `${m(`P(${over('D')}) = ${bothRaw(P.pNotD)}`)} ; `
++ `${m(`P_{D}(J) = ${bothRaw(P.pJ_D)}`)} ; `
++ `${m(`P_{${over('D')}}(J) = ${bothRaw(P.pJ_notD)}`)}.</p>`
+);
+
+// b) P(J)
+lines.push(`<p>b) ${m(`P(J) = P_{D}(J)\\,P(D) + P_{${over('D')}}(J)\\,P(${over('D')})`)}</p>`);
+lines.push(`<p>&nbsp;&nbsp;&nbsp;&nbsp;${m(`${P.pJ_D.toFixed(k)}\\times${P.pD.toFixed(k)} + ${P.pJ_notD.toFixed(k)}\\times${P.pNotD.toFixed(k)} = ${P.pJ.toFixed(k)}`)}</p>`);
+lines.push(`<p>&nbsp;&nbsp;&nbsp;&nbsp;${m(`P(J) \\approx ${bothRaw(P.pJ)}`)}</p>`);
+
+// c) P(D∩J)
+lines.push(`<p>c) ${m(`P(D\\cap J) = P_{D}(J)\\,P(D) = ${P.pJ_D.toFixed(k)}\\times${P.pD.toFixed(k)} = ${P.pDJ.toFixed(k)}`)}</p>`);
+lines.push(`<p>&nbsp;&nbsp;&nbsp;&nbsp;${m(`P(D\\cap J) \\approx ${bothRaw(P.pDJ)}`)}</p>`);
+
+// d) P(\bar D ∩ J)
+lines.push(`<p>d) ${m(`P(${over('D')}\\cap J) = P_{${over('D')}}(J)\\,P(${over('D')}) = ${P.pJ_notD.toFixed(k)}\\times${P.pNotD.toFixed(k)} = ${P.pDbarJ.toFixed(k)}`)}</p>`);
+lines.push(`<p>&nbsp;&nbsp;&nbsp;&nbsp;${m(`P(${over('D')}\\cap J) \\approx ${bothRaw(P.pDbarJ)}`)}</p>`);
+
+// e) P_J(D)
+if(Number.isFinite(P.pD_given_J)){
+  lines.push(`<p>e) ${m(`P_J(D) = \\dfrac{P(D\\cap J)}{P(J)} = ${P.pDJ.toFixed(k)}\\,/\\,${P.pJ.toFixed(k)} = ${P.pD_given_J.toFixed(k)}`)}</p>`);
+  lines.push(`<p>&nbsp;&nbsp;&nbsp;&nbsp;${m(`P_J(D) \\approx ${bothRaw(P.pD_given_J)}`)}</p>`);
+  lines.push(`<p>f) Interprétation — Parmi les cas où « ${item.J} » est vrai, environ ${m(`${Math.round(P.pD_given_J*100)}\\%`)} proviennent de « ${item.D} ».</p>`);
+}else{
+  lines.push(`<p>e) ${m(`P_J(D)`)} n’est pas défini car ${m(`P(J)=0`)}.</p>`);
+}
+
+
+const treeHTML = buildTreeSVG(P, {D:'D', J:'J'});
+return {
+  id:item.id, title:item.title,
+  contextHTML:`<p>${ctx}</p>`,
+  eventsHTML:`On considère \\(D\\) : « ${item.D} » et \\(J\\) : « ${item.J} ».`,
+  params:{pD,pJ_D,pJ_notD}, derived:P,
+  stepsHTML:`<div class="steps">${lines.join('')}${treeHTML}</div>`
+};
+
+
+
+}
+function over(X){ return `\\overline{${X}}`; }
+
+/* ===================== Page — logique UI ===================== */
+let ST = null; // état courant (énoncé + réponses attendues)
+let score = {ok:0, tot:0};
+
+function newProblem(){
+  const item = choose(PROBA_BANK);
+  ST = makeProblem(item);
+  $('#context').innerHTML = ST.contextHTML;
+  $('#events').innerHTML = ST.eventsHTML;
+  $('#solution').innerHTML = '';
+  $$('#tPJ,#tPcap,#tPcapbar,#tCond').forEach(el=>setTick(el,'nu'));
+  $$('#qPJ,#qPcap,#qPcapbar,#qCond').forEach(el=>el.value='');
+  // 👉 force le rendu math des labels
+  mjx();
+}
+
+
+function checkOne(inputSel, tickSel, expected){
+  const v = parseUserProba($(inputSel).value);
+  if(Number.isNaN(v)) { setTick($(tickSel),'ko'); return {ok:false,nu:false}; }
+  // tolérance 5e-3 sur la valeur (arrondi au millième) :
+  const ok = Math.abs(v - expected) <= 0.005 + 1e-12;
+  setTick($(tickSel), ok?'ok':'ko');
+  return {ok,nu:false};
+}
+
+function verify(){
+  if(!ST) return;
+  const P = ST.derived;
+  const res = [];
+  res.push(checkOne('#qPJ', '#tPJ', P.pJ));
+  res.push(checkOne('#qPcap', '#tPcap', P.pDJ));
+  res.push(checkOne('#qPcapbar', '#tPcapbar', P.pDbarJ));
+  if(Number.isFinite(P.pD_given_J)){
+    res.push(checkOne('#qCond', '#tCond', P.pD_given_J));
+  }else{
+    // si non défini, on attend « ND », mais on ne sanctionne pas s'il est vide
+    const raw = $('#qCond').value.trim().toUpperCase();
+    const ok = (raw === 'ND' || raw === 'N.D' || raw === 'N/D');
+    setTick($('#tCond'), ok?'ok':'ko');
+    res.push({ok});
+  }
+  // score (cumule sur la session)
+  const oks = res.filter(r=>r.ok).length;
+  score.ok += oks; score.tot += res.length;
+  $('#score').textContent = `Score : ${score.ok} / ${score.tot}`;
+}
+
+function showSolution(){
+  if(!ST) return;
+  $('#solution').innerHTML = ST.stepsHTML;
+  mjx();
+  // Remplir automatiquement les champs (notation décimale) :
+  const P = ST.derived;
+  $('#qPJ').value = decStr(P.pJ,3);
+  $('#qPcap').value = decStr(P.pDJ,3);
+  $('#qPcapbar').value = decStr(P.pDbarJ,3);
+  $('#qCond').value = Number.isFinite(P.pD_given_J) ? decStr(P.pD_given_J,3) : 'ND';
+}
+
+function resetAll(){
+  score = {ok:0,tot:0};
+  $('#score').textContent = `Score : 0 / 0`;
+$$('#qPJ,#qPcap,#qPcapbar,#qCond').forEach(el=>el.value='');
+$$('#tPJ,#tPcap,#tPcapbar,#tCond').forEach(el=>setTick(el,'nu'));
+
+  $('#solution').innerHTML = '';
+}
+
+function genPDF(){
+  // Si ton kit PDF est présent, on l’utilise ; sinon, fallback impression
+  if(window.ExoPDF && ExoPDF.init){
+    // Exemple minimal — adapte si besoin à ton pipeline :
+    ExoPDF.init({
+      title:'Première — Probabilités conditionnelles',
+      max: 20,
+      lead: 'Traduire, calculer P(J), P(D∩J), P(\\overline D ∩ J) et P_J(D), puis interpréter.',
+      leadByDefId: {}
+    });
+  }else{
+    window.print();
+  }
+}
+
+/* Entrée = Vérifier */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && document.activeElement?.classList.contains('in')){
+    e.preventDefault();
+    verify();
+  }
+});
+
+/* Boutons */
+$('#btn-new').addEventListener('click', newProblem);
+$('#btn-check').addEventListener('click', verify);
+$('#btn-sol').addEventListener('click', showSolution);
+$('#btn-reset').addEventListener('click', resetAll);
+$('#btn-pdf').addEventListener('click', genPDF);
+
+/* Démarrage */
+/* Démarrage */
+newProblem();
+mjx();
+
+</script>
+
+</body>
+</html>

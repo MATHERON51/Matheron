@@ -99,6 +99,7 @@ sub { font-size: .8em; vertical-align: -0.25em; }
 .line-full p { margin: 0; }
 
 
+
 </style>
 
 <script>
@@ -142,7 +143,6 @@ sub { font-size: .8em; vertical-align: -0.25em; }
         <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,375</code> ou <code>0.375</code>).</li>
         <li>Fractions : forme <code>a/b</code> (ex. <code>3/8</code>).</li>
         <li>Pourcentages : forme <code>xx%</code> (ex. <code>37,5%</code>). Si le champ <strong>exige</strong> un « % », la forme décimale est refusée.</li>
-        <li>Quand une réponse demande une <strong>notation</strong>, écrire au format \(P(A)\), \(P(A\\cap B)\), \(P_{A}(B)\) (i.e. \(P(B\\mid A)\)), \(P(A\\cup B)\), etc.</li>
         <li>Entrée ⏎ déclenche « Vérifier » depuis une barre de saisie de l’énoncé.</li>
       </ul>
     </div>
@@ -200,22 +200,30 @@ function parseProbFlexible(s){
   return Number.isFinite(d) ? d : NaN;
 }
 function same(a,b,eps=1e-6){ return Math.abs(a-b)<=eps; }
+// --- arrondis & signe "=" / "≈" (en LaTeX)
+function roundTo(x, n){ const f = 10**n; return Math.round(x*f)/f; }
+function isRounded(x, n){ return Math.abs(x - roundTo(x,n)) > 1e-12; }
+function approxSign(x, n){ return isRounded(x,n) ? '\\approx' : '='; }
+
+// formats pratiques (point décimal inchangé)
+function fmtDec(x, n){
+  const v = roundTo(x, n);
+  // même logique que d2 : coupe les zéros inutiles
+  let s = v.toFixed(n).replace(/\.?0+$/,'');
+  return s;
+}
 
 /* ====== rendu commun ====== */
 function stripHints(html){ return String(html||'').replace(/<small[\s\S]*?<\/small>/gi,''); }
 
 function renderRows(host, consigneText, blocks, right=false){
   const root = innerHost(host); root.innerHTML='';
-  const hint = document.createElement('div');
-  hint.className='hint consigne';
-  hint.innerHTML='<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
-  root.appendChild(hint);
 
   const off = document.createElement('div');
   off.className='equ-offscreen';
-  off.innerHTML = '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>'
-    + blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
   root.appendChild(off);
+
 
  blocks.forEach(b=>{
   const hasInput = (b.rightHTML !== undefined) || !!b.id;
@@ -259,12 +267,28 @@ function addTicks(){
   });
 }
 function setTick(inp, state){
-  const t = inp.nextElementSibling?.classList?.contains('tick') ? inp.nextElementSibling : null;
+  const t = (inp && inp.nextElementSibling && inp.nextElementSibling.classList?.contains('tick'))
+    ? inp.nextElementSibling
+    : (inp?.closest('.mselect')?.querySelector('.tick') || null);
   if(!t) return;
-  if(state==null){ t.textContent=''; t.classList.remove('ok','ko'); return; }
-  if(state){ t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko'); }
-  else     { t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok'); }
+
+  // normalisation de l'état : true/'ok'/1 → ok ; false/'ko'/0 → ko ; null/undefined → clear
+  let val = null;
+  if (state === null || state === undefined) val = null;
+  else if (state === true || state === 1 || state === 'ok') val = 'ok';
+  else if (state === false || state === 0 || state === 'ko') val = 'ko';
+  else val = state ? 'ok' : 'ko';
+
+  if(val === null){
+    t.textContent=''; t.classList.remove('ok','ko');
+  }else if(val === 'ok'){
+    t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko');
+  }else{
+    t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok');
+  }
 }
+
+
 function allFilled(){
   let ok=true;
   $$('#host input[type=text]').forEach(inp=>{
@@ -290,20 +314,12 @@ if (typeof renderRowsUnderQuestions === 'undefined') {
     })(host);
     root.innerHTML = '';
 
-    // Consigne visible
-    const hint = document.createElement('div');
-    hint.className = 'hint consigne';
-    hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
-    root.appendChild(hint);
 
-    // Version "offscreen" pour export PDF
-    const off = document.createElement('div');
-    off.className = 'equ-offscreen';
-    off.innerHTML =
-      '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'
-      + consigneText + '</span></div>'
-      + blocks.map(b => '<div class="equation">'+ (b.labelHTML||'') +'</div>').join('');
-    root.appendChild(off);
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
+
 
     // Questions + inputs
 blocks.forEach(b=>{
@@ -357,20 +373,10 @@ if (typeof renderRowsInputRight === 'undefined') {
     const root = innerHost(host);
     root.innerHTML = '';
 
-    // 2) Consigne visible
-    const hint = document.createElement('div');
-    hint.className = 'hint consigne';
-    hint.innerHTML = '<span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span>';
-    root.appendChild(hint);
-
-    // 3) Version offscreen (PDF)
-    const off = document.createElement('div');
-    off.className = 'equ-offscreen';
-    off.innerHTML =
-      '<div class="consigne"><span class="c-label">Consigne :</span> <span class="c-text">'+consigneText+'</span></div>' +
-      blocks.map(b => '<div class="equation">'+ (b.labelHTML||'') +'</div>').join('');
-    root.appendChild(off);
-
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
     // 4) Lignes : libellé à gauche, champ à droite SI et seulement si un input existe
     blocks.forEach(b=>{
       const hasInput = (b.rightHTML !== undefined) || !!b.id;
@@ -724,6 +730,33 @@ function mkMathSelectHTMLLetters(selectId, width=220, L='A', M='B'){
     </div>`;
 }
 
+// Supprime l’agent initial "le/la/l’ … (interrogé)" au début d’une phrase
+function stripAgent(s){
+  if(!s) return s;
+
+  // classes utiles (unicode)
+  const SP   = `[\\s\\u00A0]+`;                 // espace ou NBSP
+  const DET  = `(?:l[’']|le|la|les)`;           // l’ / l' / le / la / les
+  const WORD = `[\\p{L}0-9’'\\-]+`;             // mots avec lettres, apostrophes, tirets (u-flag)
+
+  // verbe (avec option "n’/n' " devant)
+  const BASE = `(?:est|a|possède|dispose|bénéficie|travaille|appartient|gère|couvre|effectue|suit|dirige|traite|utilise|tient)`;
+  const VERB = `(?:(?:n[’']\\s*)?${BASE})`;
+
+  // sujet (avec ou sans "interrogé(e)") suivi d'un verbe : on retire seulement le sujet
+  const pattern =
+    `^${DET}${SP}${WORD}(?:${SP}${WORD})*` +                    // GN : "le membre d’équipage", "l’agent", …
+    `(?:${SP}interrogé(?:e)?(?:${SP}${WORD})*)?` +              // éventuel "interrogé(e) ..."
+    `${SP}(?=${VERB}(?:${SP}|$))`;                              // lookahead : verbe conservé
+
+  const re = new RegExp(pattern, 'iu');
+
+  return s.replace(re, '').replace(/\s+/g,' ').trim();
+}
+
+
+
+
 
 
 /* ======= EXERCICES ======= */
@@ -865,20 +898,27 @@ function gen_t3(){
   const B=[];
   if(typeNow==='t1'){
     const {pA,pB,pInt}=st.bank.t1;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
     B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cap B)=${pInt}\\).<br> Calculer \\(P_A(B)\\).`, id:'q1'});
   }
   if(typeNow==='t2'){
     const {pA,pB,pInt,pA_B}=st.bank.t2;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
 B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P_A(B)=${pA_B}\\) et \\(P(B)=${pB}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q2'});
 B.push({labelHTML:`Puis calculer \\(P_B(A)\\).`, id:'q2b'});
 
   }
   if(typeNow==='t3'){
     const {pE,pF_E}=st.bank.t3;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
     B.push({labelHTML:`Soient \\(E\\) et \\(F\\) deux événements tels que : \\(P(E)=${pE}\\) et \\(P_E(F)=${pF_E}\\).<br> Calculer \\(P(E\\cap F)\\).`, id:'q3'});
   }
   if(typeNow==='t4'){
-    const {pA,pB,pU}=st.bank.t4;
+    const {pA,pB,pU}=st.bank.t4;  
+    B.push({labelHTML:`<b>Exercice :</b><br>`});
     B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cup B)=${pU}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q4'});
     B.push({labelHTML:`Puis \\(P_B(A)\\).`, id:'q4b'});
     B.push({labelHTML:`Et \\(P_A(B)\\).`, id:'q4c'});
@@ -886,6 +926,7 @@ B.push({labelHTML:`Puis calculer \\(P_B(A)\\).`, id:'q2b'});
 
   // 3) Rendu principal
   renderRows(host, 'Répondre en décimal, fraction ou % (quand pertinent).', B);
+addTicks();
 
   // 4) Insérer le sélecteur tout en haut (après que renderRows a vidé/posé le DOM)
   const selectHTML =
@@ -909,91 +950,96 @@ B.push({labelHTML:`Puis calculer \\(P_B(A)\\).`, id:'q2b'});
   sel.addEventListener('change', (e)=>{
     host.dataset.variant = e.target.value;     // mémorise
     this.render(host, st);                     // re-render (les valeurs de st.bank restent)
-  });
+   addTicks();                                // ⬅️ AJOUT pour injecter les ✓
+
+ });
 
   retypeset(inner);
 }
 ,
 
   correct(host, st){
-    const typeNow = host.dataset.typeNow || this._activeType(st);
-    // parseur flexible proba
-    const parseProb = s => {
-      s = String(s||'').trim();
-      let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
-      if(m){ const a=parseInt(m[1],10), b=parseInt(m[2],10); return b>0 ? a/b : NaN; }
-      const p = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
-      if(p) return parseFloat(p[1].replace(',', '.'))/100;
-      const d = parseFloat(s.replace(',', '.'));
-      return Number.isFinite(d) ? d : NaN;
-    };
+  const typeNow = host.dataset.typeNow || this._activeType(st);
+  const get = id => $('#'+id,host);
+  const val = id => (get(id)?.value || '').trim();
+  const P = s => parseProbFlexible(s);         // parseur commun (%, fraction, décimal)
+  const same = (a,b)=>Math.abs(a-b)<=1e-3;
 
-    let ok=false;
-    if(typeNow==='t1'){
-      const {pA,pB,pInt}=st.bank.t1;
-      const v = parseProb($('#q1',host).value);
-      ok = Number.isFinite(v) && Math.abs(v - pInt/pA) <= 1e-3;
-    }
-    if(typeNow==='t2'){
-      const {pA,pB,pInt}=st.bank.t2;
-      const v1 = parseProb($('#q2',host).value);
-      const v2 = parseProb($('#q2b',host).value);
-      ok = Number.isFinite(v1) && Number.isFinite(v2)
-        && Math.abs(v1 - pInt) <= 1e-3
-        && Math.abs(v2 - pInt/pB) <= 1e-3;
-    }
-    if(typeNow==='t3'){
-      const {pE,pF_E}=st.bank.t3;
-      const v = parseProb($('#q3',host).value);
-      ok = Number.isFinite(v) && Math.abs(v - pE*pF_E) <= 1e-3;
-    }
-    if(typeNow==='t4'){
-      const {pA,pB,pU,pInt}=st.bank.t4;
-      const inter = pA + pB - pU;
-      const v = parseProb($('#q4',host).value);
-      const vB = parseProb($('#q4b',host).value);
-      const vA = parseProb($('#q4c',host).value);
-      ok = Number.isFinite(v) && Number.isFinite(vB) && Number.isFinite(vA)
-        && Math.abs(v - inter) <= 1e-3
-        && Math.abs(vB - inter/pB) <= 1e-3
-        && Math.abs(vA - inter/pA) <= 1e-3;
-    }
+  let allFilled = true, allOK = true;
 
-    $('#res',host).innerHTML = ok ? '✔' :
-      '✘ Formules utiles : \\(P(B\\mid A)=\\frac{P(A\\cap B)}{P(A)}\\), \\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)\\).';
-    $('#res',host).className = ok ? 'res-ok':'res-ko';
-    return {ok,total:1};
-  },
+  function checkOne(id, expected){
+    const el = get(id);
+    if(!el){ return; }
+    const raw = val(id);
+    if(!raw){ setTick(el, null); allFilled = false; allOK = false; return; }
+    const num = P(raw);
+    const ok  = Number.isFinite(num) && same(num, expected);
+    setTick(el, ok);
+    if(!ok) allOK = false;
+  }
 
-  solution(host, st){
-    const typeNow = host.dataset.typeNow || this._activeType(st);
-    let html='';
-    if(typeNow==='t1'){
-  const {pA,pInt}=st.bank.t1;
-  html = `<p>\\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${pInt}}{${pA}}=${d2(pInt/pA)}\\).</p>`;
-}
+  if(typeNow==='t1'){
+    const {pA,pInt}=st.bank.t1;
+    checkOne('q1', pInt/pA);
+  }
+  if(typeNow==='t2'){
+    const {pB,pInt}=st.bank.t2;
+    checkOne('q2',  pInt);       // P(A∩B)
+    checkOne('q2b', pInt/pB);    // P_B(A)
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+    checkOne('q3', pE*pF_E);
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;
+    const inter = pA + pB - pU;
+    checkOne('q4',  inter);      // P(A∩B)
+    checkOne('q4b', inter/pB);   // P_B(A)
+    checkOne('q4c', inter/pA);   // P_A(B)
+  }
 
-if(typeNow==='t2'){
-  const {pA,pB,pInt,pA_B}=st.bank.t2;
-  html = `<p>\\(P(A\\cap B)=P(A)\\times P_A(B)=${pA}\\times ${pA_B}=${d2(pInt)}\\).</p>
-          <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${pInt}}{${pB}}=${d2(pInt/pB)}\\).</p>`;
-}
+  // Pas de message global : vider #res
+  const res = $('#res',host);
+  if(res){ res.innerHTML=''; res.className='res'; }
 
-if(typeNow==='t3'){
-  const {pE,pF_E}=st.bank.t3;
-  html = `<p>\\(P(E\\cap F)=P(E)\\times P_E(F)=${pE}\\times ${pF_E}=${d2(pE*pF_E)}\\).</p>`;
-}
+return { ok: allFilled && allOK, total: 1, allAnswered: allFilled };
+},
 
-if(typeNow==='t4'){
-  const {pA,pB,pU}=st.bank.t4;
-  const inter = pA + pB - pU;
-  html = `<p>\\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)=${pA}+${pB}-${pU}=${d2(inter)}\\).</p>
-          <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${d2(inter)}}{${pB}}=${d2(inter/ st.bank.t4.pB)}\\)
-             <br> \\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${d2(inter)}}{${pA}}=${d2(inter/ st.bank.t4.pA)}\\).</p>`;
-}
 
-    $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
-  },
+solution(host, st){
+  const typeNow = host.dataset.typeNow || this._activeType(st);
+  let html='';
+  if(typeNow==='t1'){
+    const {pA,pInt}=st.bank.t1;
+    const val = pInt/pA, s = approxSign(val, 2);
+    html = `<p>\\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${pInt}}{${pA}}\\;${s}\\;${fmtDec(val,2)}\\).</p>`;
+  }
+  if(typeNow==='t2'){
+    const {pA,pB,pInt,pA_B}=st.bank.t2;
+    const s1 = approxSign(pInt, 2);
+    const s2 = approxSign(pInt/pB, 2);
+    html = `<p>\\(P(A\\cap B)=P(A)\\times P_A(B)=${pA}\\times ${pA_B}\\;${s1}\\;${fmtDec(pInt,2)}\\).</p>
+            <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${pInt}}{${pB}}\\;${s2}\\;${fmtDec(pInt/pB,2)}\\).</p>`;
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+    const val = pE*pF_E, s = approxSign(val, 2);
+    html = `<p>\\(P(E\\cap F)=P(E)\\times P_E(F)=${pE}\\times ${pF_E}\\;${s}\\;${fmtDec(val,2)}\\).</p>`;
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;
+    const inter = pA + pB - pU;
+    const sI = approxSign(inter, 2);
+    const sB = approxSign(inter/pB, 2);
+    const sA = approxSign(inter/pA, 2);
+    html = `<p>\\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)=${pA}+${pB}-${pU}\\;${sI}\\;${fmtDec(inter,2)}\\).</p>
+            <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${fmtDec(inter,2)}}{${pB}}\\;${sB}\\;${fmtDec(inter/pB,2)}\\)
+             <br> \\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${fmtDec(inter,2)}}{${pA}}\\;${sA}\\;${fmtDec(inter/pA,2)}\\).</p>`;
+  }
+  $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
+},
+
 
   reset(host){ innerHost(host).innerHTML=''; }
 };
@@ -1339,7 +1385,14 @@ _CTX: [
     // 5) Mélange et numérote
     pool.sort(()=>Math.random()-0.5);
     const labels=['a','b','c','d'];
-    const items = pool.map((o,i)=>({ id:`q${i+1}`, letter:labels[i], tag:o.tag, text:o.txt(o.p) }));
+const items = pool.map((o,i)=>({
+  id: `q${i+1}`,
+  letter: labels[i],
+  tag: o.tag,
+  text: o.txt(o.p),
+  pPct: o.p,          // ex. 37  (en %)
+  pDec: o.p / 100     // ex. 0.37 (décimal)
+}));
 
     return { ctx, items };
   },
@@ -1378,11 +1431,12 @@ _options(){
 /* ====== 2) Rendu : intro + 4 phrases + SELECT (au lieu d’input texte) ====== */
 render(host, st){
   const sing = this._singular(st.ctx.subj);
-  const intro =
+  const intro =`<b>Exercice :</b><br>`+
     `On choisit au hasard ${this._indefDet(sing, st.ctx.g)}. <br>`+
     `On considère les événements suivants : <br>`+
     `\\(A\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.A.sg} », `+
-    `\\(B\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.B.sg} ».`;
+    `\\(B\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.B.sg} ».<br>`+
+`Pour chaque affirmation, indiquer s’il s’agit d’une probabilité conditionnelle, d’une intersection ou d’une réunion en donnant la notation correspondante.`;
 
   const hint =
     `Choisir la notation : <em>conditionnelle</em> \\(P(\\cdot\\mid\\cdot)\\) ou \\(P_{\\,\\cdot}(\\cdot)\\), `+
@@ -1443,24 +1497,47 @@ correct(host, st){
   
 
   // Score : on ne compte point que si tout est répondu ET correct
-  return { ok: allAnswered && !anyWrong, total: 1 };
+return { ok: allAnswered && !anyWrong, total: 1, allAnswered };
 },
 
 
 
 /* ====== 4) (Optionnel) Solution : affiche la bonne option en LaTeX ====== */
 solution(host, st){
-  const latex = {
-    condAB:'\\(P_A(B)\\)', condBA:'\\(P_B(A)\\)',
-    condABbar:'\\(P_A(\\overline{B})\\)', condBAbar:'\\(P_B(\\overline{A})\\)',
-    inter:'\\(P(A\\cap B)\\)', interAbarB:'\\(P(A\\cap \\overline{B})\\)', interABarB:'\\(P(\\overline{A}\\cap B)\\)',
-    union:'\\(P(A\\cup B)\\)', unionAbarB:'\\(P(A\\cup \\overline{B})\\)', unionABarB:'\\(P(\\overline{A}\\cup B)\\)'
+  // symboles SANS délimiteurs MathJax
+  const sym = {
+    condAB:    'P_{A}(B)',
+    condBA:    'P_{B}(A)',
+    condABbar: 'P_{A}(\\overline{B})',
+    condBAbar: 'P_{B}(\\overline{A})',
+    inter:     'P(A\\cap B)',
+    interAbarB:'P(A\\cap \\overline{B})',
+    interABarB:'P(\\overline{A}\\cap B)',
+    union:     'P(A\\cup B)',
+    unionAbarB:'P(A\\cup \\overline{B})',
+    unionABarB:'P(\\overline{A}\\cup B)'
   };
-  const html = st.items.map(it => `<p>${it.letter}) ${latex[it.tag]||''}</p>`).join('');
+
+  // format décimal FR : virgule et troncature propre
+  const decFR = x => {
+    const v = Math.round(x*1000)/1000;             // 3 déc. max
+    return v.toString().replace('.', ',').replace(/,?0+$/,'');
+  };
+
+  const html = st.items.map(it => {
+    const s = sym[it.tag] || 'P(?)';
+    const pc = Number.isFinite(it.pPct) ? it.pPct : '';
+    const dc = Number.isFinite(it.pDec) ? decFR(it.pDec) : '';
+    // Ex: \( P_A(B) = 42\% = 0,42 \)
+    const rhs = `\\( ${s}\\;=\\;${dc} \\)`;
+    return `<p>${it.letter}) ${it.text} se traduit par : ${rhs}</p>`;
+  }).join('');
+
   $('#res',host).innerHTML = html;
-  $('#res',host).className='res-ok';
+  $('#res',host).className = 'res-ok';
   retypeset($('#res',host));
 },
+
 
 
   reset(host){ innerHost(host).innerHTML=''; }
@@ -1582,13 +1659,14 @@ render(host, st){
   const P = x => `${Math.round(x*100)}%`;
   const {Ddef, Jdef} = buildDJDefs(c);
 
-  // ----- 1) ÉNONCÉ (qui sera rendu hors .row)
+  // 1) Énoncé (lead) plein large
   const leadHTML =
+  `<b>Exercice :</b><br>`+
     `${c.pop}, ` + phraseStatsSansPop(c, pD, pJ_D, pJ_notD)
     + `<br>On considère \\(D:\\) « ${Ddef} » et \\(J:\\) « ${Jdef} ».`
-    + `<br><br>a) Traduire les données en terme de probabilités, en utilisant les événements \\(D\\) et \\(J\\).`;
+    + `<br><br>a) Traduire les données en termes de probabilités, en utilisant les événements \\(D\\) et \\(J\\).`;
 
-  // ----- 2) LIGNES AVEC CHAMP (seulement celles-ci passent par renderRows)
+  // 2) Lignes avec inputs uniquement
   const rowsRest = [
     { labelHTML: `• ${P(pD)} des ${c.group} ${c.Dpl}.`,
       rightHTML: mkMathSelectHTMLLetters('e3s1', 220, 'D','J') },
@@ -1600,24 +1678,28 @@ render(host, st){
       rightHTML:`<input id="e3b" class="in" style="width:120px"> <span id="t3b" class="tick"></span>` }
   ];
 
-  // Rendu des SEULES lignes avec input (mise en page à droite)
+  // 3) Rendu (sans consigne)
   renderRows(host, '', rowsRest, true);
 
-  // ----- 3) INSÉRER L’ÉNONCÉ en dehors des .row
+  // 4) Insérer le LEAD :
   const inner = host.querySelector('.inner');
-  const hint  = inner.querySelector('.hint.consigne');     // juste après la consigne éventuelle
-  (hint || inner).insertAdjacentHTML('afterend', `<div class="lead">${leadHTML}</div>`);
+  // 4.a) Écran : lead au-dessus de la première .row
+  const firstRow = inner.querySelector('.row');
+  const leadDiv = document.createElement('div');
+  leadDiv.className = 'lead';
+  leadDiv.innerHTML = leadHTML;
+  if (firstRow) inner.insertBefore(leadDiv, firstRow);
+  else inner.appendChild(leadDiv); // fallback si pas de row
 
-  // ----- 4) Version offscreen (PDF) : on ajoute l’énoncé juste après la consigne
+  // 4.b) PDF/offscreen : lead en premier élément de .equ-offscreen
   const off = inner.querySelector('.equ-offscreen');
-  const consOff = off?.querySelector('.consigne');
-  if (consOff) consOff.insertAdjacentHTML('afterend', `<div class="equation">${stripHints(leadHTML)}</div>`);
+  if (off) off.insertAdjacentHTML('afterbegin', `<div class="equation">${stripHints(leadHTML)}</div>`);
 
-  // ----- 5) Activer les sélecteurs + MathJax
+  // 5) Activer les sélecteurs + MathJax
   initMathSelect(host);
   try{ MathJax.typesetPromise([host]); }catch(_){}
-},
-
+}
+,
 
 
 correct(host, st){
@@ -1653,37 +1735,35 @@ correct(host, st){
     allAnswered = false;
   }else{
     const okb = same(bVal, bExp, 1e-3);
-    setTick(get('e3b'), okb ? 'ok' : 'ko');
+setTick(get('e3b'), okb);
     if(!okb) anyWrong = true;
   }
 
   const okGlobal = allAnswered && !anyWrong;
 
 
-  return { ok: okGlobal, total: 1 };
+return { ok: okGlobal, total: 1, allAnswered };
 }
 ,
   solution(host, st){
   const { c, pD, pJ_D, pJ_notD } = st;
-  const P = x => (Math.round(x * 1000) / 1000).toString().replace('.', ',');
-    const P1 = x => `${Math.round(x*100)}%`;
+  const Pct = x => `${Math.round(x*100)}%`;
+  const v = pD * pJ_D, s = approxSign(v, 2);
 
   const html = `
-  <p><b>a)</b><br>
-  • ${P1(pD)} des ${c.group} ${c.Dpl}, donc&nbsp;\\(P(D)=${pD.toFixed(2)}\\).<br>
-  • Parmi ceux qui ${c.Dpl}, ${P1(pJ_D)} ${c.Jpl} donc&nbsp;\\(P_{D}(J)=${pJ_D.toFixed(2)}\\).<br>
-  • Parmi ceux qui ${negatePl(c.Dpl)}, ${P1(pJ_notD)} ${c.Jpl} donc&nbsp;\\(P_{\\overline{D}}(J)=${pJ_notD.toFixed(2)}\\).</p>
-
-  <p><b>b)</b><br>
-  \\(P(D\\cap J)=P(D)\\times P_D(J)=${pD.toFixed(2)}\\times ${pJ_D.toFixed(2)}=${(pD*pJ_D).toFixed(2)}\\).</p>
-  `;
-
+    <p><b>a)</b><br>
+      • ${Pct(pD)} des ${c.group} ${c.Dpl} donc \\(P(D)=${fmtDec(pD,2)}\\).<br>
+      • Parmi ceux qui ${c.Dpl}, ${Pct(pJ_D)} ${c.Jpl} donc \\(P_{D}(J)=${fmtDec(pJ_D,2)}\\).<br>
+      • Parmi ceux qui ${negatePl(c.Dpl)}, ${Pct(pJ_notD)} ${c.Jpl} donc \\(P_{\\overline{D}}(J)=${fmtDec(pJ_notD,2)}\\).
+    </p>
+    <p><b>b)</b><br>
+      \\(P(D\\cap J)=P(D)\\times P_D(J)=${fmtDec(pD,2)}\\times ${fmtDec(pJ_D,2)}=${fmtDec(v,4)}\\).
+    </p>`;
   $('#res',host).innerHTML = html;
   $('#res',host).className = 'res-ok';
   retypeset($('#res',host));
-}
+},
 
-,
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
@@ -1858,7 +1938,7 @@ const ex4 = {
   const { c, pA, pB, pU } = st;
 
   // Intro avec les pourcentages
-  const intro = c.txt
+  const intro = `<b>Exercice :</b><br>`+ c.txt
     .replace('{PA}', Math.round(pA*100))
     .replace('{PB}', Math.round(pB*100))
     .replace('{PU}', Math.round(pU*100));
@@ -1868,11 +1948,11 @@ const ex4 = {
                  `<b>${c.A}</b> : « ${c.unit} ${c.Asg} » et <b>${c.B}</b> : « ${c.unit} ${c.Bsg} ».`;
 
   // Questions
-  const qA = `a) On choisit ${c.unit} au hasard dans la population. ` +
+  const qA = `a) On choisit ${c.unit} au hasard dans la population.<br> ` +
              `Déterminer la probabilité qu’il ${c.Asg} et ${c.Bsg}.`;
 
   const qB = `b) On choisit au hasard ${c.unit} ` +
-             `qui ${c.Asg}. Déterminer la probabilité qu’il ${c.Bsg}.`;
+             `qui ${c.Asg}. <br>Déterminer la probabilité (arrondie à 0,01 près) qu’il ${c.Bsg}.`;
 
   // Rendu : intro, ligne événements, puis questions
   const rows = [
@@ -1882,58 +1962,70 @@ const ex4 = {
     { labelHTML: qB, id: 'e4_cond' }
   ];
 
-  renderRows(host, 'Répondre en %, fraction ou décimal.', rows, true);
+  renderRows(host, ' ', rows, true);
 }
 ,
 
   correct(host, st){
-  const interExp = st.pA + st.pB - st.pU;   // P(A∩B)
-  const condExp  = interExp / st.pA;        // P_A(B)
+  // Attendus
+  const interExp = st.pA + st.pB - st.pU;  // P(A∩B)
+  const condExp  = interExp / st.pA;       // P_A(B)
 
+  // Récup champs
   const iEl = document.getElementById('e4_inter');
   const cEl = document.getElementById('e4_cond');
 
+  // Parse (%, fraction, décimal)
   const vInter = parseProbFlexible(iEl?.value);
   const vCond  = parseProbFlexible(cEl?.value);
 
-  const okInter = Number.isFinite(vInter) && same(vInter, interExp, 1e-3);
-  const okCond  = Number.isFinite(vCond)  && same(vCond,  condExp,  1e-3);
+  // Équivalence « à 0,01 près » : on compare les arrondis à 2 décimales
+  const eq2 = (x, y) => Math.round(x * 100) === Math.round(y * 100);
 
-  // ✔/✘ sur les champs (booleans, pas "ok"/"ko")
-  setTick(iEl, Number.isFinite(vInter) ? okInter : null);
-  setTick(cEl, Number.isFinite(vCond)  ? okCond  : null);
+  let allFilled = true, allOK = true;
 
-  const allFilledNow = Number.isFinite(vInter) && Number.isFinite(vCond);
-  const ok = allFilledNow && okInter && okCond;
-
-  // Message résultat (on peut rester “verbal” ici, la notation formelle est pour la solution)
-  let msg = '';
-  if (!allFilledNow){
-    msg = 'Complète les deux réponses puis clique sur « Vérifier ».';
-  } else if (ok){
-    msg = '✔ Bien joué ! Les deux probabilités sont correctes.';
+  // a) P(A∩B)
+  if (!Number.isFinite(vInter)) {
+    setTick(iEl, null);         // neutre si non rempli
+    allFilled = false; allOK = false;
   } else {
-    msg = '✘ Indice : l’intersection se déduit de « au moins un des deux » ; la probabilité conditionnelle est “parmi ceux qui …”.';
+    const ok = eq2(vInter, interExp);
+    setTick(iEl, ok);
+    if (!ok) allOK = false;
   }
 
-  const res = document.getElementById('res');
-  res.innerHTML = msg;
-  res.className = ok ? 'res res-ok' : 'res res-ko';
-  try{ MathJax.typesetPromise([res]); }catch(_){}
+  // b) P_A(B) (annoncé « arrondie à 0,01 près »)
+  if (!Number.isFinite(vCond)) {
+    setTick(cEl, null);
+    allFilled = false; allOK = false;
+  } else {
+    const ok = eq2(vCond, condExp);
+    setTick(cEl, ok);
+    if (!ok) allOK = false;
+  }
 
-  return { ok, total: 1 };
+  // Pas de message global
+  const res = document.getElementById('res');
+  if (res){ res.innerHTML=''; res.className='res'; }
+
+  return { ok: allFilled && allOK, total: 1, allAnswered: allFilled };
+}
+,
+
+
+
+solution(host, st){
+  const { A, B } = st.c;
+  const inter = st.pA + st.pB - st.pU;
+  const sI = approxSign(inter, 2);
+  const sC = approxSign(inter/st.pA, 2);
+  const html =
+    `<p>a) \\(P(${A}\\cap ${B}) = P(${A}) + P(${B}) - P(${A}\\cup ${B}) = ${fmtDec(st.pA,2)} + ${fmtDec(st.pB,2)} - ${fmtDec(st.pU,2)}\\;${sI}\\;${fmtDec(inter,2)}\\).</p>
+     <p>b) \\(P_{${A}}(${B}) = \\dfrac{P(${A}\\cap ${B})}{P(${A})} = \\dfrac{${fmtDec(inter,2)}}{${fmtDec(st.pA,2)}}\\;${sC}\\;${fmtDec(inter/st.pA,2)}\\).</p>`;
+  const res = document.getElementById('res'); res.innerHTML = html; res.className = 'res-ok';
+  try{ MathJax.typesetPromise([res]); }catch(_){}
 },
 
-
-  solution(host, st){
-    const { A, B } = st.c;
-    const inter = st.pA + st.pB - st.pU;
-    const html =
-      `<p>a) \\(P(${A}\\cap ${B}) = P(${A}) + P(${B}) - P(${A}\\cup ${B}) = ${st.pA.toFixed(2)} + ${st.pB.toFixed(2)} - ${st.pU.toFixed(2)} = ${inter.toFixed(2)}\\).</p>
-       <p>b) \\(P_{${A}}(${B}) = \\dfrac{P(${A}\\cap ${B})}{P(${A})} = \\dfrac{${inter.toFixed(2)}}{${st.pA.toFixed(2)}} = ${(inter/st.pA).toFixed(2)}\\).</p>`;
-    const res = document.getElementById('res'); res.innerHTML = html; res.className = 'res-ok';
-    try{ MathJax.typesetPromise([res]); }catch(_){}
-  },
 
   reset(host){ innerHost(host).innerHTML=''; }
 };
@@ -1941,74 +2033,387 @@ const ex4 = {
 
 
 /* ===== Exercice 5 — Banque (20) type « Commerciaux / voiture de fonction » ===== */
+/* ===== Exercice 5 — Banque (20) type « catégorie C / “avantage” V » =====
+   - C : appartenance (est …)
+   - V : avantage/possession (dispose/possède …)
+   - Contraintes de tirage :
+       30% ≤ P(C) ≤ 85%
+       55% ≤ P_C(V) ≤ 90%
+        5% ≤ P_{¬C}(V) ≤ 30%
+       et P_C(V) − P_{¬C}(V) ≥ 0.25 pour marquer une vraie différence.
+*/
+/* ================== EXO 5 — Banque "vraies phrases" (20 contextes) ==================
+   Chaque entrée fournit :
+   - context  : 1re phrase (lieu) au singulier ("Dans un lycée, on interroge au hasard un enseignant.")
+   - group    : nom du groupe au pluriel (enseignants, conseillers…)
+   - c, v     : lettres des événements
+   - Csg/Vsg  : définitions singulier pour la ligne "On considère les événements …"
+   - Cpl/Vpl  : formulations au pluriel (affirmatives) pour les phrases en %
+   - CnegPl   : négation au pluriel parfaitement française
+   Les nombres sont tirés avec : 30–85% pour P(C), 60–90% pour P_C(V), 5–25% pour P_¬C(V).
+   On impose P_C(V) - P_¬C(V) ≥ 25 points pour marquer une vraie différence.
+*/
 const EX5_BANK = (() => {
-  const places = [
-    {C:'l’employé interrogé est un commercial', V:'l’employé possède une voiture de fonction', c:'C', v:'V', who:'Dans l’entreprise'},
-    {C:'l’agent interrogé travaille au service support', V:'l’agent dispose d’un poste portable', c:'S', v:'P', who:'Dans l’organisation'},
-    {C:'l’étudiant interrogé suit la filière info', V:'l’étudiant dispose d’un ordinateur prêté', c:'I', v:'O', who:'Dans la promo'}
+  const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+  const CTX = [
+    { context:"Dans un lycée, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"G", v:"U",
+      Csg:"l’enseignant interrogé est professeur principal",
+      Vsg:"l’enseignant dispose d’une salle dédiée",
+      Cpl:"sont professeurs principaux",
+      Vpl:"disposent d’une salle dédiée",
+	  	  Cnegsg:"l’enseignant interrogé n'est pas professeurs principal",
+      CnegPl:"ne sont pas professeurs principaux" },
+
+    { context:"Dans une banque, on interroge au hasard un conseiller.",
+      group:"conseillers", c:"G", v:"U",
+      Csg:"le conseiller interrogé gère un portefeuille « premium »",
+      Vsg:"le conseiller dispose d’un bureau individuel",
+      Cpl:"gèrent un portefeuille « premium »",
+      Vpl:"disposent d’un bureau individuel",
+	  	  Cnegsg:"le conseiller interrogé ne gère pas de portefeuille « premium »",
+      CnegPl:"ne gèrent pas de portefeuille « premium »" },
+
+    { context:"Dans un hôpital, on interroge au hasard un infirmier.",
+      group:"infirmiers", c:"N", v:"R",
+      Csg:"l’infirmier interrogé travaille de nuit",
+      Vsg:"l’infirmier bénéficie d’une prime spécifique",
+      Cpl:"travaillent de nuit",
+      Vpl:"bénéficient d’une prime spécifique",
+	  	  Cnegsg:"l’infirmier interrogé ne travaille pas de nuit",
+      CnegPl:"ne travaillent pas de nuit" },
+
+    { context:"Au siège social d’une entreprise, on interroge au hasard un salarié.",
+      group:"salariés", c:"K", v:"P",
+      Csg:"le salarié interrogé est cadre",
+      Vsg:"le salarié dispose d’une place de parking réservée",
+      Cpl:"sont cadres",
+      Vpl:"disposent d’une place de parking réservée",
+	  	  Cnegsg:"le salarié interrogé n'est pas cadre",
+      CnegPl:"ne sont pas cadres" },
+
+    { context:"Dans une usine, on interroge au hasard un ouvrier.",
+      group:"ouvriers", c:"M", v:"B",
+      Csg:"l’ouvrier interrogé appartient à l’atelier de montage",
+      Vsg:"l’ouvrier possède un badge d’accès étendu",
+      Cpl:"appartiennent à l’atelier de montage",
+      Vpl:"possèdent un badge d’accès étendu",
+	  	  Cnegsg:"l’ouvrier interrogé n’appartient pas à l’atelier de montage",
+      CnegPl:"n’appartiennent pas à l’atelier de montage" },
+
+    { context:"Dans un centre d’appels, on interroge au hasard un conseiller.",
+      group:"conseillers", c:"R", v:"H",
+      Csg:"le conseiller interrogé est en équipe « réclamations »",
+      Vsg:"le conseiller a un casque antibruit fourni",
+      Cpl:"sont en équipe « réclamations »",
+      Vpl:"ont un casque antibruit fourni",
+	  	  Cnegsg:"le conseiller interrogé n'est pas en équipe « réclamations »",
+      CnegPl:"ne sont pas en équipe « réclamations »" },
+
+    { context:"À la mairie, on interroge au hasard un agent.",
+      group:"agents", c:"E", v:"G",
+      Csg:"l’agent interrogé travaille à l’état civil",
+      Vsg:"l’agent tient un poste à guichet",
+      Cpl:"travaillent à l’état civil",
+      Vpl:"tiennent un poste à guichet",
+	  	  Cnegsg:"l’agent interrogé ne travaille pas à l’état civil",
+      CnegPl:"ne travaillent pas à l’état civil" },
+
+    { context:"Dans une ESN, on interroge au hasard un collaborateur.",
+      group:"collaborateurs", c:"T", v:"S",
+      Csg:"le collaborateur interrogé est consultant",
+      Vsg:"le collaborateur utilise un smartphone professionnel",
+      Cpl:"sont consultants",
+      Vpl:"utilisent un smartphone professionnel",
+	  	  Cnegsg:"le collaborateur interrogé n'est pas consultant",
+      CnegPl:"ne sont pas consultants" },
+
+    { context:"Dans un lycée, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"P", v:"L",
+      Csg:"l’enseignant interrogé est professeur principal",
+      Vsg:"l’enseignant dispose d’une salle dédiée",
+      Cpl:"sont professeurs principaux",
+      Vpl:"disposent d’une salle dédiée",
+	  	  Cnegsg:"l’enseignant interrogé n'est pas professeur principal",
+      CnegPl:"ne sont pas professeurs principaux" },
+
+    { context:"Dans une rédaction, on interroge au hasard un journaliste.",
+      group:"journalistes", c:"J", v:"R",
+      Csg:"le journaliste interrogé couvre l’actualité locale",
+      Vsg:"le journaliste dispose d’un véhicule de reportage",
+      Cpl:"couvrent l’actualité locale",
+      Vpl:"disposent d’un véhicule de reportage",
+	  	  Cnegsg:"le journaliste interrogé ne couvre pas l’actualité locale",
+      CnegPl:"ne couvrent pas l’actualité locale" },
+
+    { context:"Dans une entreprise de logistique, on interroge au hasard un chauffeur.",
+      group:"chauffeurs", c:"L", v:"B",
+      Csg:"le chauffeur interrogé effectue des trajets longue distance",
+      Vsg:"le chauffeur possède un badge télépéage",
+      Cpl:"effectuent des trajets longue distance",
+      Vpl:"possèdent un badge télépéage",
+	  	  Cnegsg:"le chauffeur interrogé n’effectue pas de trajets longue distance",
+      CnegPl:"n’effectuent pas de trajets longue distance" },
+
+    { context:"Dans un cabinet médical, on interroge au hasard un praticien.",
+      group:"praticiens", c:"S", v:"D",
+      Csg:"le praticien interrogé est spécialiste",
+      Vsg:"le praticien dispose d’un secrétariat dédié",
+      Cpl:"sont spécialistes",
+      Vpl:"disposent d’un secrétariat dédié",
+	  	  Cnegsg:"le praticien interrogé n'est pas spécialiste",
+      CnegPl:"ne sont pas spécialistes" },
+
+    { context:"Dans un studio de développement, on interroge au hasard un développeur.",
+      group:"développeurs", c:"L", v:"E",
+      Csg:"le développeur interrogé est ingénieur",
+      Vsg:"le développeur a un poste double-écran fourni",
+      Cpl:"sont ingénieurs",
+      Vpl:"ont un poste double-écran fourni",
+	  	  Cnegsg:"le développeur interrogé n'est pas ingénieur",
+      CnegPl:"ne sont pas ingénieurs" },
+
+    { context:"Dans un centre de recherche, on interroge au hasard un ingénieur.",
+      group:"ingénieurs", c:"Q", v:"M",
+      Csg:"l’ingénieur interrogé travaille sur un projet stratégique",
+      Vsg:"l’ingénieur dispose d’un budget matériel dédié",
+      Cpl:"travaillent sur un projet stratégique",
+      Vpl:"disposent d’un budget matériel dédié",
+	  	  Cnegsg:"l’ingénieur interrogé ne travaille pas sur un projet stratégique",
+      CnegPl:"ne travaillent pas sur un projet stratégique" },
+
+    { context:"Dans une université, on interroge au hasard un étudiant.",
+      group:"étudiants", c:"I", v:"O",
+      Csg:"l’étudiant interrogé suit la filière informatique",
+      Vsg:"l’étudiant dispose d’un ordinateur prêté",
+      Cpl:"suivent la filière informatique",
+      Vpl:"disposent d’un ordinateur prêté",
+	  	  Cnegsg:"l’étudiant interrogé ne suit pas la filière informatique",
+      CnegPl:"ne suivent pas la filière informatique" },
+
+    { context:"Dans une entreprise de services, on interroge au hasard un technicien.",
+      group:"techniciens", c:"M", v:"K",
+      Csg:"le technicien interrogé est en maintenance préventive",
+      Vsg:"le technicien possède un véhicule d’intervention",
+      Cpl:"sont en maintenance préventive",
+      Vpl:"possèdent un véhicule d’intervention",
+	  	  Cnegsg:"le technicien interrogé n'est pas en maintenance préventive",
+      CnegPl:"ne sont pas en maintenance préventive" },
+
+    { context:"Dans un réseau d’agences, on interroge au hasard un responsable.",
+      group:"responsables", c:"D", v:"V",
+      Csg:"le responsable interrogé dirige un grand magasin",
+      Vsg:"le responsable a un véhicule de service",
+      Cpl:"dirigent un grand magasin",
+      Vpl:"ont un véhicule de service",	  
+	  Cnegsg:"le responsable interrogé ne dirige pas un grand magasin",
+      CnegPl:"ne dirigent pas un grand magasin" },
+
+    { context:"À l’état civil, on interroge au hasard un agent.",
+      group:"agents", c:"C", v:"I",
+      Csg:"l’agent interrogé traite les dossiers de cartes d’identité",
+      Vsg:"l’agent dispose d’un guichet attitré",
+      Cpl:"traitent les dossiers de cartes d’identité",
+      Vpl:"disposent d’un guichet attitré",
+	  	  Cnegsg:"l’agent interrogé ne traite pas les dossiers de cartes d’identité",
+      CnegPl:"ne traitent pas les dossiers de cartes d’identité" },
+
+    { context:"Dans une compagnie aérienne, on interroge au hasard un membre d’équipage.",
+      group:"membres d’équipage", c:"N", v:"F",
+      Csg:"le membre d’équipage interrogé est pilote",
+      Vsg:"le membre d’équipage bénéficie d’un planning flexible",
+      Cpl:"sont pilotes",
+      Vpl:"bénéficient d’un planning flexible",
+	  	  Cnegsg:"le membre d’équipage n'est pas pilote",
+      CnegPl:"ne sont pas pilotes" },
+
+    { context:"Dans une école primaire, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"D", v:"A",
+      Csg:"l’enseignant interrogé est directeur délégué",
+      Vsg:"l’enseignant possède un bureau administratif attitré",
+      Cpl:"sont directeurs délégués",
+      Vpl:"possèdent un bureau administratif attitré",
+	  Cnegsg:"l’enseignant n'est pas directeur délégué",
+      CnegPl:"ne sont pas directeurs délégués" }
   ];
-  const L=[];
-  for(let k=0;k<20;k++){
-    const p=choice(places);
-    const pC = rnd(55,85)/100;
-    const pV_C = rnd(60,90)/100;
-    const pV_notC = rnd(5,25)/100;
-    L.push({p, pC, pV_C, pV_notC});
-  }
-  return L;
+
+  const BANK = CTX.map(p=>{
+    let pC, pV_C, pV_notC;
+    let guard=0;
+    do{
+      pC      = rnd(30,85)/100;
+      pV_C    = rnd(60,90)/100;
+      pV_notC = rnd( 5,25)/100;
+      guard++;
+      if(guard>100) break;
+    }while( (pV_C - pV_notC) < 0.25 );
+    return { p, pC, pV_C, pV_notC };
+  });
+
+  return BANK;
 })();
+
+
 
 const ex5 = {
   id:'bank_commercial_voiture',
   title:'Phrase et calcul',
   gen(){ return choice(EX5_BANK); },
-  render(host, st){
-    const p = st.p;
-    const rows = [
-      {labelHTML:`${p.who}, on interroge au hasard un employé. Soient \\(C:\\) « ${p.C} » et \\(V:\\) « ${p.V} ».`, rightHTML:''},
-      {labelHTML:`1a) Donner \\(P(${p.c})\\) et \\(P(\\overline{${p.c}})\\).`, id:'e5_1a'},
-      {labelHTML:`1b) Donner \\(P_{${p.c}}(${p.v})\\) et \\(P_{\\overline{${p.c}}}(${p.v})\\).`, id:'e5_1b'},
-      {labelHTML:`2a) Définir par une phrase l’événement \\(${p.c}\\cap ${p.v}\\). Puis calculer \\(P(${p.c}\\cap ${p.v})\\).`, id:'e5_2a'},
-      {labelHTML:`2b) Définir par une phrase l’événement \\(\\overline{${p.c}}\\cap ${p.v}\\). Puis calculer \\(P(\\overline{${p.c}}\\cap ${p.v})\\).`, id:'e5_2b'}
-    ];
-    renderRows(host, 'Compléter : notations puis calculs (valeurs en %, décimal ou fraction).', rows);
-  },
-  correct(host, st){
-    const p=st.p;
-    // 1a / 1b : on vérifie juste que les notations attendues apparaissent (souplesse)
-    const a = String($('#e5_1a',host).value||'').replace(/\s+/g,'');
-    const b = String($('#e5_1b',host).value||'').replace(/\s+/g,'');
-    const ok1a = a.includes(`P(${p.c})`) && a.includes(`P(\\overline{${p.c}})`);
-    const ok1b = b.includes(`P_${p.c}(${p.v})`) && b.includes(`P_\\overline{${p.c}}(${p.v})`);
-    // 2a : texte + nombre
-    const t2a = String($('#e5_2a',host).value||'');
-    const num2a = parseProbFlexible(t2a);
-    const exp2a = st.pC * st.pV_C;
-    const ok2aText = /commercial|voiture|fonction|portable|support|info|ordinateur|prêté/i.test(t2a);
-    const ok2aNum = Number.isFinite(num2a) && same(num2a, exp2a, 1e-3);
-    // 2b
-    const t2b = String($('#e5_2b',host).value||'');
-    const num2b = parseProbFlexible(t2b);
-    const exp2b = (1-st.pC) * st.pV_notC;
-    const ok2bText = /non|pas|sans|n’/i.test(t2b) || /overline/.test(t2b);
-    const ok2bNum = Number.isFinite(num2b) && same(num2b, exp2b, 1e-3);
+// ↯ PATCH : remplace ex5.render par ceci
+render(host, st){
+const p = st.p;
+  const Pct = x => Math.round(x*100) + "%";
 
-    const ok = ok1a && ok1b && ok2aText && ok2aNum && ok2bText && ok2bNum;
-    $('#res',host).innerHTML = ok ? '✔' :
-      '✘ Rappels : \\(P(C\\cap V)=P(C)\\,P_C(V)\\) et \\(P(\\overline{C}\\cap V)=P(\\overline{C})\\,P_{\\overline{C}}(V)\\).';
-    $('#res',host).className = ok?'res-ok':'res-ko';
-    return {ok,total:1};
+  // --- Énoncé en français (avec %)
+  const lead =`<b>Exercice :</b><br>`+
+  `${p.context}
+    <br>${Pct(st.pC)} des ${p.group} ${p.Cpl}.
+    Parmi eux, ${Pct(st.pV_C)} ${p.Vpl}.<br>
+    Parmi ceux qui ${p.CnegPl}, ${Pct(st.pV_notC)} ${p.Vpl}.
+    <br><br>On considère les événements :
+    \\(${p.c}\\) : « ${p.Csg} » et \\(${p.v}\\) : « ${p.Vsg} ».
+  `;
+
+  // --- petits helpers ---
+  // "P( ... ) = [input]" inline
+  const probField = (id, latex, w=140) =>
+    `<span class="pre">\\(${latex}=\\)</span> ${mkInput(id, w)} <span class="tick"></span>`;
+
+  // deux champs côte à côte
+  const pair = (htmlLeft, htmlRight) =>
+    `<div class="pair" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+       ${htmlLeft}
+       ${htmlRight}
+     </div>`;
+
+  // phrase + "P(...)= [input]"
+  const phrasePlusProb = (idTxt, placeholderTxt, idProb, latexProb) =>
+    `<div class="pair" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+       <span class="pre">Phrase :</span> ${mkInput(idTxt, 600)} <span class="tick"></span>
+       ${probField(idProb, latexProb, 160)}
+     </div>`;
+
+  const rows = [
+    { labelHTML: lead }, // bloc texte seul
+
+    // 1a) "P(C) = [ ]" et "P(C̄) = [ ]"
+    { labelHTML:`1a) Donner \\(P(${p.c})\\) et \\(P(\\overline{${p.c}})\\).`,
+      rightHTML: pair(
+        probField('e5_1a_c',    `P(${p.c})`),
+        probField('e5_1a_cbar', `P(\\overline{${p.c}})`)
+      )
+    },
+
+    // 1b) "P_C(V) = [ ]" et "P_{C̄}(V) = [ ]"
+    { labelHTML:`1b) Donner \\(P_{${p.c}}(${p.v})\\) et \\(P_{\\overline{${p.c}}}(${p.v})\\).`,
+      rightHTML: pair(
+        probField('e5_1b_c',    `P_{${p.c}}(${p.v})`),          // s’affiche P_C(V)
+        probField('e5_1b_cbar', `P_{\\overline{${p.c}}}(${p.v})`)
+      )
+    },
+
+    // 2a) phrase + "P(C∩V) = [ ]"
+    { labelHTML:`2a) Définir par une phrase l’événement \\(${p.c}\\cap ${p.v}\\). Puis calculer \\(P(${p.c}\\cap ${p.v})\\).`,
+      rightHTML: phrasePlusProb(
+        'e5_2a_txt', `ex : « ${p.Csg} ET ${p.Vsg} »`,
+        'e5_2a_val', `P(${p.c}\\cap ${p.v})`
+      )
+    },
+
+    // 2b) phrase + "P(C̄∩V) = [ ]"
+    { labelHTML:`2b) Définir par une phrase l’événement \\(\\overline{${p.c}}\\cap ${p.v}\\). Puis calculer \\(P(\\overline{${p.c}}\\cap ${p.v})\\).`,
+      rightHTML: phrasePlusProb(
+        'e5_2b_txt', `ex : « non-${p.Csg} ET ${p.Vsg} »`,
+        'e5_2b_val', `P(\\overline{${p.c}}\\cap ${p.v})`
+      )
+    },
+  ];
+
+  renderRows(host, 'Compléter : notations puis calculs (valeurs en %, décimal ou fraction).', rows);
+  try{ MathJax.typesetPromise([host]); }catch(_){}
+}
+,
+  correct(host, st){
+   const p = st.p;
+
+  const $ = id => document.getElementById(id);
+  const v = id => ( $(id)?.value || '' ).trim();
+
+  function parseProbFlexible(s){
+    s = String(s||'').trim().replace(/−/g,'-');
+    if (!s) return NaN;
+    let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+    if (m){ const a=+m[1], b=+m[2]; if (b>0) return a/b; }
+    m = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+    if (m) return parseFloat(m[1].replace(',','.'))/100;
+    const d = parseFloat(s.replace(',','.'));
+    return Number.isFinite(d) ? d : NaN;
+  }
+  const same = (a,b,eps=1e-3)=>Math.abs(a-b)<=eps;
+
+  let allFilled = true;
+  let allCorrect = true;
+
+  function checkProb(id, expected){
+    const el = $(id);
+    const s  = v(id);
+    if (s===''){ setTick(el, null); allFilled=false; allCorrect=false; return; }
+    const num = parseProbFlexible(s);
+    const ok  = Number.isFinite(num) && same(num, expected);
+    setTick(el, ok);                 // <- BOOLÉEN
+    if (!ok) allCorrect=false;
+  }
+  function checkPhrase(id, requireNeg=false){
+    const el = $(id);
+    const s  = v(id);
+    if (s===''){ setTick(el, null); allFilled=false; allCorrect=false; return; }
+    const hasEt  = /( et |∩)/i.test(s);
+    const hasNeg = /(non|ne\s|n’|n')/i.test(s) || /overline|complément/i.test(s);
+    const ok = requireNeg ? (hasEt && hasNeg) : hasEt;
+    setTick(el, ok);                 // <- BOOLÉEN
+    if (!ok) allCorrect=false;
+  }
+
+  // 1a
+  checkProb('e5_1a_c',    st.pC);
+  checkProb('e5_1a_cbar', 1 - st.pC);
+
+  // 1b
+  checkProb('e5_1b_c',    st.pV_C);
+  checkProb('e5_1b_cbar', st.pV_notC);
+
+  // 2a
+  checkPhrase('e5_2a_txt', false);
+  checkProb  ('e5_2a_val', st.pC * st.pV_C);
+
+  // 2b
+  checkPhrase('e5_2b_txt', true);
+  checkProb  ('e5_2b_val', (1 - st.pC) * st.pV_notC);
+
+  // ⛔️ Plus de message global : on vide #res
+  const res = document.getElementById('res');
+  if (res){ res.innerHTML=''; res.className='res'; }
+
+return { ok: allFilled && allCorrect, total: 1, allAnswered: allFilled };
   },
-  solution(host, st){
-    const p=st.p, pc=st.pC, pvC=st.pV_C, pvNc=st.pV_notC;
-    const html = [
-      `1a) \\(P(${p.c})=${pc.toFixed(2)}\\) ; \\(P(\\overline{${p.c}})=${(1-pc).toFixed(2)}\\).`,
-      `1b) \\(P_{${p.c}}(${p.v})=${pvC.toFixed(2)}\\) ; \\(P_{\\overline{${p.c}}}(${p.v})=${pvNc.toFixed(2)}\\).`,
-      `2a) \\(${p.c}\\cap ${p.v}\\) : « ${p.C} ET ${p.V} ». \\(P=${(pc*pvC).toFixed(3)}\\).`,
-      `2b) \\(\\overline{${p.c}}\\cap ${p.v}\\) : « non-${p.C} ET ${p.V} ». \\(P=${((1-pc)*pvNc).toFixed(3)}\\).`
-    ].map(x=>`<p>${x}</p>`).join('');
-    $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
-  },
+ solution(host, st){
+  const p=st.p, pc=st.pC, pvC=st.pV_C, pvNc=st.pV_notC;
+  const Pct = x => Math.round(x*100) + "%";
+
+  const html = [
+    `1a) ${Pct(st.pC)} des ${p.group} ${p.Cpl} donc \\(P(${p.c})=${pc.toFixed(2)}\\) <br> \\(P(\\overline{${p.c}})=1-P(${p.c})=${(1-pc).toFixed(2)}\\).`,
+    `1b) Parmi les ${p.group} qui ${p.Cpl}, ${Pct(st.pV_C)} ${p.Vpl} donc \\(P_{${p.c}}(${p.v})=${pvC.toFixed(2)}\\) <br>
+     Parmi ceux qui ${p.CnegPl}, ${Pct(st.pV_notC)} ${p.Vpl} donc \\(P_{\\overline{${p.c}}}(${p.v})=${pvNc.toFixed(2)}\\).`,
+    `2a) \\(${p.c}\\cap ${p.v}\\) : « ${p.Csg} ET ${stripAgent(p.Vsg)} ». <br>\\(P(${p.c}\\cap ${p.v})=P(${p.c})\\times P_{${p.c}}(${p.v})=${pc.toFixed(2)} \\times ${pvC.toFixed(2)}=${(pc*pvC).toFixed(4)}\\).`,
+    `2b) \\(\\overline{${p.c}}\\cap ${p.v}\\) : « ${p.Cnegsg} ET ${stripAgent(p.Vsg)} ». <br>\\(P(\\overline{${p.c}}\\cap ${p.v})=P(\\overline{${p.c}})\\times P_{\\overline{${p.c}}}(${p.v})=${(1-pc).toFixed(2)} \\times ${pvNc.toFixed(2)}=${((1-pc)*pvNc).toFixed(4)}\\).`
+  ].map(x=>`<p>${x}</p>`).join('');
+
+  $('#res',host).innerHTML = html;
+  $('#res',host).className='res-ok';
+  retypeset($('#res',host));
+},
+
   reset(host){ innerHost(host).innerHTML=''; }
 };
 
@@ -2030,12 +2435,23 @@ function buildOne(){
   addTicks();
 }
 function check(){
-  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def) return;
-  if(!allFilled()){ $('#res',host).textContent=''; $('#res',host).className='res'; return; }
+  const host = $('#host');
+  const def  = REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
   const st = JSON.parse(host.dataset.state||'{}');
-  const r = def.correct(host, st);
-  if(r){ scoreOK += (r.ok?1:0); scoreTot += (r.total||1); updateScore(); }
+
+  // Lance la correction (les correct() doivent laisser neutre les champs vides)
+  const r = def.correct(host, st) || {ok:false, total:1, allAnswered:false};
+
+  // Score uniquement si toutes les réponses sont saisies ET correctes
+  if(r.allAnswered){
+    scoreOK += (r.ok ? 1 : 0);
+    scoreTot += (r.total || 1);
+    updateScore();
+  }
 }
+
+
 function solution(){
   const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
   const st = JSON.parse(host.dataset.state||'{}'); def.solution(host, st);
@@ -2085,6 +2501,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 });
+
+
+
 })();
 </script>
 

@@ -7,7 +7,6 @@
 */
 (function(){
   // … en haut du fichier, dans DEFAULTS :
-// vers le début (DEFAULTS)
 const DEFAULTS = {
   title: document.title.replace(/\s+–.+$/,'').trim() || 'Fiche d’exercices',
   lead: '',
@@ -16,9 +15,8 @@ const DEFAULTS = {
   leadByDefId: null,
   beforeGen: null,
   beforeRender: null,
-  hideStatementInCorrige: false   // ← NOUVEAU
+  autoPrint: false      // ⟵ NOUVEAU : pas d’impression auto
 };
-
 
 // --- PRE-RENDER MathJax (dans la page courante) ---
 async function __prerenderMathHTML(fragmentHTML){
@@ -331,10 +329,9 @@ async function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, 
     const lead = (opts.leadByDefId && def.id && opts.leadByDefId[def.id]) || opts.lead || DEFAULTS.lead;
 
 const blocEnonce = `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}</div>`;
-const blocCorrige = `<div class="ex"><span class="n">${i}.</span>${lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${opts.hideStatementInCorrige ? '' : enonceHTML}
-  <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
-</div>`;
-
+    const blocCorrige = `<div class="ex"><span class="n">${i}.</span> ${lead && lead.trim() ? `<span class="lead">${lead}</span>` : ``} ${enonceHTML}
+       <div class="solution"><div class="title">Corrigé</div>${corrigeHTML}</div>
+    </div>`;
     // ⬇️ PRÉ-RENDU MATHJAX ICI
     enonces.push( await __prerenderMathHTML(blocEnonce) );
     corriges.push( await __prerenderMathHTML(blocCorrige) );

@@ -1,0 +1,2554 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Première – Probabilités conditionnelles (définitions & propriétés)</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui, Segoe UI, Roboto, Arial; margin:0; background:#fafafa; color:#111; line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;white-space:nowrap;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+
+
+
+.eq em { margin: 0 .28em; }
+.mx { display:inline-block; margin:0 .28em; }
+sub { font-size: .8em; vertical-align: -0.25em; }
+
+.equ-offscreen{position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important;}
+@media print{
+  .hint{display:none !important;}
+  .equ-offscreen{position:static !important; width:auto !important; height:auto !important; overflow:visible !important;}
+  .equ-offscreen .c-label{display:none !important;}
+}
+
+
+
+/* une ligne = juste label + (éventuellement) input ; pas de zone 'res' dans la grille */
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    'lab'
+    'inp';
+  gap:10px; align-items:start;
+}
+
+/* résultat global (#res) stylé hors des .row */
+.res{ padding:12px; border-radius:10px; background:#f7f7f7 }
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+/* layout à droite uniquement s’il y a un input (ton JS le fait déjà) */
+.row.right{
+  display:grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-areas: "lab inp";
+  gap:10px 14px;
+  align-items:center;
+}
+
+@media (max-width:680px){
+  .row.right{
+    grid-template-columns:1fr;
+    grid-template-areas: "lab" "inp";
+  }
+}
+
+
+.tbl{border-collapse:collapse;border:1px solid #bbb}
+.tbl td,.tbl th{border:1px solid #bbb;padding:6px;text-align:center}
+@media print{
+  .tbl{border:1px solid #000}
+  .tbl td,.tbl th{border:1px solid #000}
+}
+
+.tick{display:inline-block;min-width:1.2em;margin-left:8px;font-weight:700}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+
+.mselect{position:relative; display:inline-block; min-width:180px}
+.ms-btn{display:flex; align-items:center; justify-content:space-between; width:100%;
+  padding:8px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer}
+.ms-menu{position:absolute; z-index:20; top:100%; left:0; right:0; max-height:240px; overflow:auto;
+  border:1px solid #ddd; background:#fff; border-radius:8px; margin-top:4px; box-shadow:0 6px 16px rgba(0,0,0,.08); display:none}
+.ms-item{padding:8px 10px; cursor:pointer}
+.ms-item:hover{background:#f3f4f6}
+.mselect.open .ms-menu{display:block}
+
+.line-full { margin: 6px 0 10px; }
+.line-full p { margin: 0; }
+
+
+
+</style>
+
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: {'[+]': ['bbox']},
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="wrap" style="padding:0 18px">
+      <div class="controls">
+        <label for="exo-select">Type d’exercice :</label>
+        <select id="exo-select"></select>
+        <button id="btn-new" class="btn">🔀 Nouvel énoncé</button>
+        <button id="btn-check" class="btn">✅ Vérifier</button>
+        <button id="btn-solution" class="btn">💡 Solution</button>
+        <button id="btn-reset" class="btn">♻️ Réinitialiser</button>
+        <div class="score" id="score">Score : 0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div id="host"></div>
+    </div>
+
+    <div class="card small">
+      <div><strong>Saisie & réponses acceptées :</strong></div>
+      <ul class="tips">
+        <li>Décimaux : virgule <em>ou</em> point (ex. <code>0,375</code> ou <code>0.375</code>).</li>
+        <li>Fractions : forme <code>a/b</code> (ex. <code>3/8</code>).</li>
+        <li>Pourcentages : forme <code>xx%</code> (ex. <code>37,5%</code>). Si le champ <strong>exige</strong> un « % », la forme décimale est refusée.</li>
+        <li>Entrée ⏎ déclenche « Vérifier » depuis une barre de saisie de l’énoncé.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div data-math-kbd style="display:flex; justify-content:center"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+/* ========= Mini utilitaires ========= */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = L => L[rnd(0,L.length-1)];
+function innerHost(host){ if(!host.dataset.active){ host.dataset.active=''; host.innerHTML='<div class="inner"></div>'; } return host.querySelector('.inner'); }
+
+function retypeset(root=document){
+  try{
+    if (window.MathJax?.typesetPromise) return MathJax.typesetPromise([root]);
+    if (window.MathJax?.typeset) MathJax.typeset([root]);
+  }catch(_){}
+}
+
+/* ===== parse nombres / % / fractions ===== */
+const stripSignUnicode = s => String(s||'').replace(/−/g,'-');
+function parseNumberFR(s){
+  s = stripSignUnicode(String(s||'').trim());
+  if(!s) return NaN;
+  if(/%/.test(s)) return NaN;
+  s = s.replace(',', '.');
+  return parseFloat(s);
+}
+function parsePercent(s){
+  s = stripSignUnicode(String(s||'').trim());
+  const m = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+  if(!m) return NaN;
+  return parseFloat(m[1].replace(',', '.'))/100;
+}
+// accepte décimal, fraction, % — renvoie un nombre dans [0,1]
+function parseProbFlexible(s){
+  s = stripSignUnicode(String(s||'').trim());
+  // fraction a/b
+  let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+  if(m){
+    const a = parseInt(m[1],10), b = parseInt(m[2],10);
+    if(b>0) return a/b;
+  }
+  // %
+  const p = parsePercent(s);
+  if(Number.isFinite(p)) return p;
+  // décimal
+  const d = parseFloat(s.replace(',', '.'));
+  return Number.isFinite(d) ? d : NaN;
+}
+function same(a,b,eps=1e-6){ return Math.abs(a-b)<=eps; }
+// --- arrondis & signe "=" / "≈" (en LaTeX)
+function roundTo(x, n){ const f = 10**n; return Math.round(x*f)/f; }
+function isRounded(x, n){ return Math.abs(x - roundTo(x,n)) > 1e-12; }
+function approxSign(x, n){ return isRounded(x,n) ? '\\approx' : '='; }
+
+// formats pratiques (point décimal inchangé)
+function fmtDec(x, n){
+  const v = roundTo(x, n);
+  // même logique que d2 : coupe les zéros inutiles
+  let s = v.toFixed(n).replace(/\.?0+$/,'');
+  return s;
+}
+
+/* ====== rendu commun ====== */
+function stripHints(html){ return String(html||'').replace(/<small[\s\S]*?<\/small>/gi,''); }
+
+function renderRows(host, consigneText, blocks, right=false){
+  const root = innerHost(host); root.innerHTML='';
+
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
+
+
+ blocks.forEach(b=>{
+  const hasInput = (b.rightHTML !== undefined) || !!b.id;
+
+  // ⬇️ TEXTE SEUL → pas de .row, juste un bloc plein large
+  if (!hasInput) {
+    const div = document.createElement('div');
+    div.className = 'line-full';
+    div.innerHTML = b.labelHTML || '';
+    root.appendChild(div);
+    return; // <- important
+  }
+
+  // ⬇️ LIGNE AVEC CHAMP → grille à droite
+  const row = document.createElement('div');
+  row.className = (right ? 'row right' : 'row');
+
+  const lab = document.createElement('div');
+  lab.className = 'col-label';
+  lab.innerHTML = b.labelHTML || '';
+  row.appendChild(lab);
+
+  const incol = document.createElement('div');
+  incol.className = 'input-line';
+  if (b.rightHTML !== undefined) incol.innerHTML = b.rightHTML;
+  else if (b.id) incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+  row.appendChild(incol);
+
+  root.appendChild(row);
+});
+
+  root.appendChild(Object.assign(document.createElement('div'),{className:'res',id:'res'}));
+  retypeset(root);
+}
+
+function addTicks(){
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if(!inp.nextElementSibling || !inp.nextElementSibling.classList?.contains('tick'))
+      inp.insertAdjacentHTML('afterend','<span class="tick"></span>');
+  });
+}
+function setTick(inp, state){
+  const t = (inp && inp.nextElementSibling && inp.nextElementSibling.classList?.contains('tick'))
+    ? inp.nextElementSibling
+    : (inp?.closest('.mselect')?.querySelector('.tick') || null);
+  if(!t) return;
+
+  // normalisation de l'état : true/'ok'/1 → ok ; false/'ko'/0 → ko ; null/undefined → clear
+  let val = null;
+  if (state === null || state === undefined) val = null;
+  else if (state === true || state === 1 || state === 'ok') val = 'ok';
+  else if (state === false || state === 0 || state === 'ko') val = 'ko';
+  else val = state ? 'ok' : 'ko';
+
+  if(val === null){
+    t.textContent=''; t.classList.remove('ok','ko');
+  }else if(val === 'ok'){
+    t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko');
+  }else{
+    t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok');
+  }
+}
+
+
+function allFilled(){
+  let ok=true;
+  $$('#host input[type=text]').forEach(inp=>{
+    if(inp.closest('.equ-offscreen')) return;
+    if((inp.value||'').trim()==='') ok=false;
+  });
+  return ok;
+}
+
+// affiche avec au plus 2 décimales (trim des zéros), évite les horreurs binaires
+const d2 = x => {
+  const v = Math.round(x*100)/100;
+  let s = v.toFixed(2);
+  s = s.replace(/\.?0+$/,'');   // "0.50" -> "0.5", "0.00" -> "0"
+  return s;
+};
+// --- POLYFILL : rendu "plusieurs questions l'une sous l'autre" ---
+if (typeof renderRowsUnderQuestions === 'undefined') {
+  function renderRowsUnderQuestions(host, consigneText, blocks){
+    const root = (function innerHost(h){
+      if(!h.dataset.active){ h.dataset.active=''; h.innerHTML='<div class="inner"></div>'; }
+      return h.querySelector('.inner');
+    })(host);
+    root.innerHTML = '';
+
+
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
+
+
+    // Questions + inputs
+blocks.forEach(b=>{
+  const hasInput = (b.rightHTML !== undefined) || !!b.id;
+
+  // ⬇️ TEXTE SEUL → pas de .row, juste un bloc plein large
+  if (!hasInput) {
+    const div = document.createElement('div');
+    div.className = 'line-full';
+    div.innerHTML = b.labelHTML || '';
+    root.appendChild(div);
+    return; // <- important
+  }
+
+  // ⬇️ LIGNE AVEC CHAMP → grille à droite
+  const row = document.createElement('div');
+  row.className = (right ? 'row right' : 'row');
+
+  const lab = document.createElement('div');
+  lab.className = 'col-label';
+  lab.innerHTML = b.labelHTML || '';
+  row.appendChild(lab);
+
+  const incol = document.createElement('div');
+  incol.className = 'input-line';
+  if (b.rightHTML !== undefined) incol.innerHTML = b.rightHTML;
+  else if (b.id) incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+  row.appendChild(incol);
+
+  root.appendChild(row);
+});
+
+
+    // Zone résultat
+    root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+
+    // (si MathJax est là)
+    try{ if(window.MathJax?.typesetPromise) MathJax.typesetPromise([root]); else if(window.MathJax?.typeset) MathJax.typeset([root]); }catch(_){}
+  }
+}
+
+// --- POLYFILL : rendu "question à gauche, saisie/SELECT à droite"
+// --- POLYFILL : rendu "question à gauche, saisie/SELECT à droite" (auto-pleine largeur si pas d'input)
+if (typeof renderRowsInputRight === 'undefined') {
+  function renderRowsInputRight(host, consigneText, blocks){
+    // 1) host / inner
+    function innerHost(h){
+      if(!h.dataset.active){ h.dataset.active=''; h.innerHTML='<div class="inner"></div>'; }
+      return h.querySelector('.inner');
+    }
+    const root = innerHost(host);
+    root.innerHTML = '';
+
+  const off = document.createElement('div');
+  off.className='equ-offscreen';
+  off.innerHTML = blocks.map(b => '<div class="equation">'+ stripHints(b.labelHTML||'') +'</div>').join('');
+  root.appendChild(off);
+    // 4) Lignes : libellé à gauche, champ à droite SI et seulement si un input existe
+    blocks.forEach(b=>{
+      const hasInput = (b.rightHTML !== undefined) || !!b.id;
+
+      const row = document.createElement('div');
+      row.className = hasInput ? 'row right' : 'row';
+
+      const lab = document.createElement('div');
+      lab.className = 'col-label';
+      lab.innerHTML = b.labelHTML || '';
+      row.appendChild(lab);
+
+      if (hasInput) {
+        const incol = document.createElement('div');
+        incol.className = 'input-line';
+        if (b.rightHTML !== undefined) {
+          incol.innerHTML = b.rightHTML;                // ex. <select …> ou mselect custom
+        } else if (b.id) {
+          incol.innerHTML = '<input id="'+b.id+'" type="text" placeholder="'+(b.placeholder||'')+'">';
+        }
+        row.appendChild(incol);
+      }
+
+      root.appendChild(row);
+    });
+
+    // 5) Zone résultat
+    root.appendChild(Object.assign(document.createElement('div'), { className:'res', id:'res' }));
+
+    // 6) MathJax
+    try{
+      if (window.MathJax?.typesetPromise) MathJax.typesetPromise([root]);
+      else if (window.MathJax?.typeset)   MathJax.typeset([root]);
+    }catch(_){}
+  }
+}
+
+
+
+// sujets féminins (sinon masculin)
+const FEM_SUBJECTS = new Set([
+  'pièces','analyses','commandes','factures','machines','candidatures',
+  'questions','expéditions','échantillons'
+]);
+
+function toSingularFR(plur){ return String(plur||'').trim().replace(/s$/,''); }
+function startsWithVowelLikeFR(w){ return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(String(w||'')); }
+function defDetFR(noun, isFem){ return startsWithVowelLikeFR(noun) ? "l’"+noun : (isFem?"la ":"le ")+noun; }
+function indefDetFR(noun, isFem){ return (isFem?"une ":"un ")+noun; }
+
+// met la proposition au singulier (verbes + quelques adjectifs fréquents)
+function singularizePropFR(s, isFem=false){
+  let t = String(s||'').trim();
+
+  // verbes au début
+  const vb = [
+    [/^sont\b/i, 'est'],
+    [/^ont\b/i, 'a'],
+    [/^proviennent\b/i, 'provient'],
+    [/^contiennent\b/i, 'contient'],
+    [/^arrivent\b/i, 'arrive'],
+    [/^concernent\b/i, 'concerne'],
+    [/^commandent\b/i, 'commande'],
+    [/^paient\b/i, 'paie'],
+    [/^utilisent\b/i, 'utilise'],
+    [/^respectent\b/i, 'respecte'],
+  ];
+  vb.forEach(([re, rep]) => { t = t.replace(re, rep); });
+
+  // pluriels fréquents → singuliers
+  const adj = [
+    [/\burgents\b/gi, 'urgent'],
+    [/\bfériés\b/gi, 'férié'],
+    [/\bfragiles\b/gi, 'fragile'],
+    [/\bpublics\b/gi, 'public'],
+    [/\bréservés\b/gi, 'réservé'],
+    [/\bterminés\b/gi, 'terminé'],
+    [/\bdirects\b/gi, 'direct'],
+    [/\bélectriques\b/gi, 'électrique'],
+    [/\bmeublés\b/gi, 'meublé'],
+    [/\bcomplets\b/gi, 'complet'],
+    [/\bréglés\b/gi, 'réglé'],
+    [/\bannulés\b/gi, 'annulé'],
+
+    // féminins pluriels
+    [/\bcomplètes\b/gi, 'complète'],
+    [/\bréglées\b/gi, 'réglée'],
+    [/\bannulées\b/gi, 'annulée'],
+    [/\binternationales\b/gi, 'internationale'],
+    [/\burgentes\b/gi, 'urgente'],
+  ];
+  adj.forEach(([re, rep]) => { t = t.replace(re, rep); });
+
+  // "des X…" → "un/une X…" quand ça suit un verbe de contenu (concerne/contient/provient…)
+  t = t.replace(/\bdes\s+([a-zàâäéèêëîïôöùûü\-']+?)s\b/gi, (_m, w) => (isFem?'une ':'un ')+w);
+
+  return t;
+}
+
+// A̅ / B̅ en texte (fonctionne dans <option>)
+const BAR = {
+  A: 'A\u0305',   // A̅
+  B: 'B\u0305'    // B̅
+};
+function msOptionsLatex(){
+  return [
+    {v:'', latex:'\\text{— choisir —}'},
+    {v:'PA', latex:'P(A)'}, {v:'PB', latex:'P(B)'},
+    {v:'PnotA', latex:'P(\\overline{A})'}, {v:'PnotB', latex:'P(\\overline{B})'},
+    {v:'interAB', latex:'P(A\\cap B)'},
+    {v:'interAbarB', latex:'P(A\\cap \\overline{B})'},
+    {v:'interABarB', latex:'P(\\overline{A}\\cap B)'},
+    {v:'unionAB', latex:'P(A\\cup B)'},
+    {v:'unionAbarB', latex:'P(A\\cup \\overline{B})'},
+    {v:'unionABarB', latex:'P(\\overline{A}\\cup B)'},
+    {v:'condAB', latex:'P_{A}(B)'},
+    {v:'condABbar', latex:'P_{A}(\\overline{B})'},
+    {v:'condBA', latex:'P_{B}(A)'},
+    {v:'condBAbar', latex:'P_{B}(\\overline{A})'},
+  ];
+}
+
+function mkMathSelectHTML(selectId, width=220){
+  const opts = msOptionsLatex();
+  const items = opts.map(o =>
+    `<div class="ms-item" data-v="${o.v}" data-latex="${o.latex}">\\(${o.latex}\\)</div>`
+  ).join('');
+return `
+  <div class="mselect" data-for="${selectId}" style="min-width:${width}px">
+    <button type="button" class="ms-btn">
+      <span class="ms-label">\\(\\text{— choisir —}\\)</span><span>▾</span>
+    </button>
+    <div class="ms-menu">${items}</div>
+    <input type="hidden" id="${selectId}" value="">
+    <span class="tick"></span>      
+  </div>`;
+
+}
+
+
+// Active le composant (à appeler après insertion dans le DOM)
+function initMathSelect(root=document){
+  root.querySelectorAll('.mselect').forEach(box=>{
+    if(box.dataset.bound) return; box.dataset.bound='1';
+    const btn = box.querySelector('.ms-btn');
+    const menu = box.querySelector('.ms-menu');
+    const label= box.querySelector('.ms-label');
+    const hidden= box.querySelector('input[type=hidden]');
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.mselect.open').forEach(b=>{ if(b!==box) b.classList.remove('open'); });
+      box.classList.toggle('open');
+    });
+    menu.addEventListener('click', e=>{
+  const it = e.target.closest('.ms-item'); if(!it) return;
+  hidden.value = it.dataset.v || '';
+  // Injecte EXACTEMENT une paire de délimiteurs LaTeX :
+  label.innerHTML = '\\(' + (it.dataset.latex || '') + '\\)';
+  box.classList.remove('open');
+  try{ MathJax.typesetPromise([box]); }catch(_){}
+});
+
+  });
+  // fermeture globale
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.mselect')) document.querySelectorAll('.mselect.open').forEach(b=>b.classList.remove('open'));
+  }, {passive:true});
+}
+
+function setTickForInput(el, state){
+  // el = <input type="hidden"> du sélecteur ou un vrai input
+  if(!el) return;
+  // cherche d’abord un tick dans le sélecteur custom
+  let box = el.closest('.mselect');
+  let t = box ? box.querySelector('.tick') : null;
+
+  // sinon, fallback : tick placé juste après l’input (cas texte)
+  if(!t && el.nextElementSibling && el.nextElementSibling.classList?.contains('tick')){
+    t = el.nextElementSibling;
+  }
+  if(!t) return;
+
+  if(state==null){ t.textContent=''; t.classList.remove('ok','ko'); return; }
+  if(state){ t.textContent='✔'; t.classList.add('ok'); t.classList.remove('ko'); }
+  else     { t.textContent='✘'; t.classList.add('ko'); t.classList.remove('ok'); }
+}
+// helper minimal pour générer un <input> largeur w (px)
+window.mkInput = function mkInput(id, w = 120, placeholder = ""){
+  return `<input id="${id}" class="in" style="width:${w}px"
+           autocomplete="off" inputmode="decimal" placeholder="${placeholder}">`;
+};
+
+
+function negatePl(frase){
+  let s = String(frase||'').trim();
+
+  // Si déjà négative, on ne touche pas
+  if (/\bne\b|\bn’|\bn'/i.test(s)) return s;
+
+  // Cas ciblés (pluriel)
+  const R = [
+    [/^sont\b/i, "ne sont pas"],
+    [/^ont\b/i, "n’ont pas"],
+    [/^utilisent\b/i, "n’utilisent pas"],
+    [/^parlent\b/i, "ne parlent pas"],
+    [/^voyagent\b/i, "ne voyagent pas"],
+    [/^suivent\b/i, "ne suivent pas"],
+    [/^trient\b/i, "ne trient pas"],
+    [/^possèdent\b/i, "ne possèdent pas"],
+    [/^s’entraînent\b/i, "ne s’entraînent pas"],
+    [/^participent\b/i, "ne participent pas"],
+    [/^travaillent\b/i, "ne travaillent pas"],
+    [/^postent\b/i, "ne postent pas"],
+    [/^prennent\b/i, "ne prennent pas"],
+    [/^bénéficient\b/i, "ne bénéficient pas"],
+    [/^détiennent\b/i, "ne détiennent pas"],
+    [/^font\b/i, "ne font pas"],
+    [/^habitent\b/i, "n’habitent pas"],
+    [/^lisent\b/i, "ne lisent pas"],
+    [/^préfèrent\b/i, "ne préfèrent pas"],
+    [/^se\b/i, "ne se"],              // ex. "se tiennent" → "ne se tiennent pas"
+    [/^s([’'])/i, "ne s$1"]          // ex. "s’absentent" → "ne s’absentent pas"
+  ];
+  for (const [re, rep] of R){ if (re.test(s)) { s = s.replace(re, rep); break; } }
+
+  // Si on n'a pas matché un verbe connu : négation générique
+  if (!/\bne\b|\bn’|\bn'/i.test(s)) {
+    const startsVowel = /^[aeiouyhàâäéèêëîïôöùûü]/i.test(s);
+    s = (startsVowel ? "n’" : "ne ") + s + " pas";
+  }
+  // Compléter le "pas" pour les formes "ne se …"
+  if (/^ne se\b/i.test(s) && !/\bpas\b/i.test(s)) s += " pas";
+  if (/^ne s[’']/i.test(s) && !/\bpas\b/i.test(s)) s += " pas";
+  return s;
+}
+
+
+
+
+// Version "avec population" (si tu l'utilises encore)
+function phraseDonnees(c, pD, pJ_D, pJ_notD) {
+  const P = x => `${Math.round(x * 100)}%`;
+  const s1 = `${c.pop}, ${P(pD)} des ${c.group} ${c.Dpl}.`;
+  const s2 = `Parmi eux, ${P(pJ_D)} ${c.Jpl}.`;
+  const s3 = `Parmi ceux qui ${negatePl(c.Dpl)}, ${P(pJ_notD)} ${c.Jpl}.`;
+  return `${s1} ${s2} ${s3}`;
+}
+
+// Version "sans pop" (utilisée dans ex3.render via leadHTML)
+function phraseStatsSansPop(c, pD, pJ_D, pJ_notD){
+  const P = x => `${Math.round(x*100)}%`;
+  const s1 = `${P(pD)} des ${c.group} ${c.Dpl}.<br>`;
+  const s2 = `Parmi eux, ${P(pJ_D)} ${c.Jpl}.<br>`;
+  const s3 = `Parmi ceux qui ${negatePl(c.Dpl)}, ${P(pJ_notD)} ${c.Jpl}.`;
+  return `${s1} ${s2} ${s3}`;
+}
+
+
+// Heuristique : "son/sa" selon le mot qui suit ("son" si voyelle, "sa" si féminin probable, sinon "son")
+function _possessifSingulier(nextWord){
+  const w = String(nextWord||'').trim();
+  if (/^[aeiouyhàâäéèêëîïôöùûü]/i.test(w)) return 'son';      // voyelle → "son"
+  if (/[ée]$/i.test(w)) return 'sa';                           // féminin probable → "sa"
+  return 'son';                                                // défaut
+}
+
+// Passe "pluriel → singulier" + mini post-traitements d'accords
+function _toSingPhrase(txt){
+  let t = String(txt||'').trim();
+
+  // Verbes fréquents au pluriel → singulier
+  const vb = [
+    [/^sont\b/i,'est'], [/^ont\b/i,'a'], [/^utilisent\b/i,'utilise'],
+    [/^parlent\b/i,'parle'], [/^voyagent\b/i,'voyage'], [/^suivent\b/i,'suit'],
+    [/^trient\b/i,'trie'], [/^possèdent\b/i,'possède'], [/^s’entraînent\b/i,'s’entraîne'],
+    [/^participent\b/i,'participe'], [/^travaillent\b/i,'travaille'], [/^postent\b/i,'poste'],
+    [/^prennent\b/i,'prend'], [/^bénéficient\b/i,'bénéficie'], [/^détiennent\b/i,'détient'],
+    [/^font\b/i,'fait'], [/^habitent\b/i,'habite'], [/^lisent\b/i,'lit'],
+    [/^préfèrent\b/i,'préfère'], [/^mangent\b/i,'mange']
+  ];
+  vb.forEach(([re, rep]) => { t = t.replace(re, rep); });
+
+  // Accord juste après "est" (cas typique : "est propriétaires" → "est propriétaire")
+  t = t.replace(/\best\s+([a-zàâäéèêëîïôöùûü\-']+?)s(\b)/gi, 'est $1$2');
+
+  // Possessifs pluriels → singulier
+  t = t.replace(/\bleurs\b/gi, 'ses');
+
+  // "leur + nom" → "son/sa + nom"
+  t = t.replace(/\bleur\s+([a-zàâäéèêëîïôöùûü\-']+)/gi, (_m, w) => _possessifSingulier(w) + ' ' + w);
+
+  return t;
+}
+
+function buildDJDefs(c){
+  // nom du groupe au singulier + déterminant défini
+  const sing = (c.groupSing || c.group || '').trim().replace(/s$/,'');
+  const det  = /^[aeiouyhàâäéèêëîïôöùûü]/i.test(sing) ? "l’" : (c.g==='f' ? "la " : "le ");
+
+  return {
+    Ddef: `${det}${sing} ${_toSingPhrase(c.Dpl)}`,
+    Jdef: `${det}${sing} ${_toSingPhrase(c.Jpl)}`
+  };
+}
+
+
+
+// --- Phrase statistiques SANS répéter c.pop (on l’écrira nous-mêmes avant) ---
+
+
+function msOptionsLatexLetters(L='A', M='B'){
+  const Lbar = `\\overline{${L}}`, Mbar = `\\overline{${M}}`;
+  return [
+    {v:'',                 latex:'\\text{— choisir —}'},
+    // simples
+    {v:`P${L}`,            latex:`P(${L})`},
+    {v:`P${M}`,            latex:`P(${M})`},
+    {v:`Pnot${L}`,         latex:`P(${Lbar})`},
+    {v:`Pnot${M}`,         latex:`P(${Mbar})`},
+    // intersections
+    {v:`inter${L}${M}`,    latex:`P(${L}\\cap ${M})`},
+    {v:`inter${L}bar${M}`, latex:`P(${L}\\cap ${Mbar})`},
+    {v:`interbar${L}${M}`, latex:`P(${Lbar}\\cap ${M})`},
+    // réunions (utile si tu en veux plus tard)
+    {v:`union${L}${M}`,    latex:`P(${L}\\cup ${M})`},
+    {v:`union${L}bar${M}`, latex:`P(${L}\\cup ${Mbar})`},
+    {v:`unionbar${L}${M}`, latex:`P(${Lbar}\\cup ${M})`},
+    // conditionnelles (sachant en indice)
+    {v:`cond${L}_${M}`,        latex:`P_{${L}}(${M})`},          // P_M(L) si tu inverses L/M
+    {v:`cond${L}_bar${M}`,     latex:`P_{${L}}(${Mbar})`},
+    {v:`cond${M}_${L}`,        latex:`P_{${M}}(${L})`},
+    {v:`cond${M}_bar${L}`,     latex:`P_{${M}}(${Lbar})`},
+    // conditionnelles avec "sachant" complémentaire
+    {v:`condbar${L}_${M}`,     latex:`P_{${Lbar}}(${M})`},
+    {v:`condbar${M}_${L}`,     latex:`P_{${Mbar}}(${L})`}
+  ];
+}
+
+function mkMathSelectHTMLLetters(selectId, width=220, L='A', M='B'){
+  const opts = msOptionsLatexLetters(L,M);
+  const items = opts.map(o =>
+    `<div class="ms-item" data-v="${o.v}" data-latex="${o.latex}">\\(${o.latex}\\)</div>`
+  ).join('');
+  return `
+    <div class="mselect" data-for="${selectId}" style="min-width:${width}px">
+      <button type="button" class="ms-btn">
+        <span class="ms-label">\\(\\text{— choisir —}\\)</span><span>▾</span>
+      </button>
+      <div class="ms-menu">${items}</div>
+      <input type="hidden" id="${selectId}" value="">
+      <span class="tick"></span>
+    </div>`;
+}
+
+// Supprime l’agent initial "le/la/l’ … (interrogé)" au début d’une phrase
+function stripAgent(s){
+  if(!s) return s;
+
+  // classes utiles (unicode)
+  const SP   = `[\\s\\u00A0]+`;                 // espace ou NBSP
+  const DET  = `(?:l[’']|le|la|les)`;           // l’ / l' / le / la / les
+  const WORD = `[\\p{L}0-9’'\\-]+`;             // mots avec lettres, apostrophes, tirets (u-flag)
+
+  // verbe (avec option "n’/n' " devant)
+  const BASE = `(?:est|a|possède|dispose|bénéficie|travaille|appartient|gère|couvre|effectue|suit|dirige|traite|utilise|tient)`;
+  const VERB = `(?:(?:n[’']\\s*)?${BASE})`;
+
+  // sujet (avec ou sans "interrogé(e)") suivi d'un verbe : on retire seulement le sujet
+  const pattern =
+    `^${DET}${SP}${WORD}(?:${SP}${WORD})*` +                    // GN : "le membre d’équipage", "l’agent", …
+    `(?:${SP}interrogé(?:e)?(?:${SP}${WORD})*)?` +              // éventuel "interrogé(e) ..."
+    `${SP}(?=${VERB}(?:${SP}|$))`;                              // lookahead : verbe conservé
+
+  const re = new RegExp(pattern, 'iu');
+
+  return s.replace(re, '').replace(/\s+/g,' ').trim();
+}
+
+
+
+
+
+
+/* ======= EXERCICES ======= */
+
+/* ===== Exercice 1 — Sélecteur (Type 1..4 ou Mélange) =====
+   Types :
+   1) Soient A,B : P(A), P(B), P(A∩B) → P_A(B)      (i.e. P(B|A))
+   2) Soient A,B : P(A), P_A(B), P(B) → P(A∩B), P_B(A)
+   3) Soient E,F : P(E), P_E(F) → P(E∩F)
+   4) Soient A,B : P(A), P(B), P(A∪B) → P(A∩B), P_B(A), P_A(B)
+*/
+const ex1 = {
+  id:'pc_mix4',
+  title:'Calculs et propriétes',
+gen(){
+  const rInt = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const asDec = n => +(n/100).toFixed(2);
+const gcd = (a,b)=> b?gcd(b,a%b):Math.abs(a);
+const lcm = (a,b)=> Math.abs(a*b)/gcd(a,b);
+
+  // ------- Type 1 : P(B|A)=P(A∩B)/P(A) -> 2 décimales garanties
+  // Choix : pA = a/100, pB = b/100 (a,b en points). On fixe i = (a*k)/100
+  // avec k multiple de 100/gcd(a,100) -> P(B|A)=k/100 a ≤ 2 décimales.
+function gen_t1(){
+  while(true){
+    const a = rInt(20,85);            // P(A) en points
+    const b = rInt(20,85);            // P(B) en points
+    if (Math.abs(a-b) < 5) continue;  // <-- anti-égalité / trop proches
+
+    const step = 100 / gcd(a,100);
+    const kMax = Math.floor(100*Math.min(a,b)/a);
+    const Ks=[];
+    for(let k=step; k<=Math.min(95,kMax); k+=step) Ks.push(k);
+    if(!Ks.length) continue;
+
+    const k = Ks[rInt(0,Ks.length-1)];
+    const i = Math.floor(a*k/100);        // intersection (points)
+    const cond = i / a;                   // P(B|A)
+    if(cond >= 0.05 && cond <= 0.95)
+      return { pA:asDec(a), pB:asDec(b), pInt:asDec(i) };
+  }
+}
+
+// === Type 2 : 0.05 ≤ P_A(B) ≤ 0.95, 0.05 ≤ P_B(A) ≤ 0.95 et |P(A)-P(B)| ≥ 0.05
+function gen_t2(){
+  while(true){
+    const a = rInt(25,85);                         // P(A)
+    const step = 100 / gcd(a,100);
+    const Ks=[]; for(let k=step; k<=95; k+=step) if(k>=5 && k<=95) Ks.push(k);
+    if(!Ks.length) continue;
+    const k = Ks[rInt(0,Ks.length-1)];             // P_A(B)=k/100
+
+    const i = Math.floor(a*k/100);                 // intersection en points
+    const CAND = [20,25,40,50,60,75,80];           // b avec 2 déc. garanties
+    const okB = CAND.filter(b => b >= i+2 && b <= 90 && (100*i)%b===0 && Math.abs(b-a)>=5);
+    if(!okB.length) continue;
+
+    const b = okB[rInt(0,okB.length-1)];
+    const condBA = i / b;                          // P_B(A)
+    if(condBA >= 0.05 && condBA <= 0.95)
+      return { pA:asDec(a), pB:asDec(b), pInt:asDec(i), pA_B:asDec(k) };
+  }
+}
+
+  // ------- Type 3 : P(E∩F)=P(E)*P_E(F) avec produit à 2 déc.
+  // Choix : pE=a/100 et P_E(F)=k/100 avec k multiple de 100/gcd(a,100) -> (a*k)/10000 a 2 décimales.
+// ------- Type 3 (patch) : garantit un k multiple du pas ; produit à 2 déc. ; jamais NaN
+function gen_t3(){
+  while (true) {
+    const a = rInt(20, 80);              // P(E) en points
+    const g = gcd(a, 100);
+    const step = 100 / g;                // k doit être multiple de ce pas
+
+    // candidats k dans [5,95] multiples de step
+    const Ks = [];
+    const start = Math.ceil(Math.max(5, step) / step) * step;
+    for (let k = start; k <= 95; k += step) Ks.push(k);
+
+    if (!Ks.length) continue;            // pas de k possible → on retente un autre a
+
+    const k = Ks[rInt(0, Ks.length - 1)];
+    return { pE: asDec(a), pF_E: asDec(k) };
+  }
+}
+
+
+  // ------- Type 4 : pA, pB pris dans {20,25,40,50,80} (diviseurs de 100).
+  // On tire une intersection m/100 cohérente -> P_B(A)=m/b et P_A(B)=m/a ont ≤2 déc.
+ function gen_t4(){
+  const D = [20,25,40,50,60,75,80];
+  while(true){
+    const a = D[rInt(0,D.length-1)];
+    let b = D[rInt(0,D.length-1)];
+    if (Math.abs(a-b) < 5) continue;               // <-- anti-égalité / trop proches
+
+    const mMin = Math.max(1, a + b - 100);
+    const mMax = Math.min(a, b) - 2;
+
+    const gA = gcd(a,100), gB = gcd(b,100);
+    const stepM = lcm(a/gA, b/gB);                 // 2 déc. pour m/a et m/b
+
+    const Ms=[]; const start = Math.ceil(mMin/stepM)*stepM;
+    for(let m=start; m<=mMax; m+=stepM){
+      const pa = m/a, pb = m/b;
+      if(pa >= 0.05 && pa <= 0.95 && pb >= 0.05 && pb <= 0.95) Ms.push(m);
+    }
+    if(!Ms.length) continue;
+
+    const m = Ms[rInt(0,Ms.length-1)];
+    const u = a + b - m;
+    return { pA:asDec(a), pB:asDec(b), pU:asDec(u), pInt:asDec(m) };
+  }
+}
+
+  return {
+    bank: { t1: gen_t1(), t2: gen_t2(), t3: gen_t3(), t4: gen_t4() },
+    variant: 'mix'
+  };
+},
+
+
+
+  /* petit utilitaire : récupère le type actif (t1..t4), en tirant si 'mix' */
+  _activeType(st){
+    if(st.variant && st.variant!=='mix') return st.variant;
+    const L=['t1','t2','t3','t4'];
+    return L[Math.floor(Math.random()*L.length)];
+  },
+
+  render(host, st){
+  // 1) état courant (mémorise le choix utilisateur)
+  const prev = host.dataset.variant || st.variant || 'mix';
+  host.dataset.variant = prev;
+
+  const typeNow = (prev==='mix') ? this._activeType(st) : prev;
+  host.dataset.typeNow = typeNow; // utilisé par correct/solution
+
+  // 2) Construire les blocs en fonction du type
+  const B=[];
+  if(typeNow==='t1'){
+    const {pA,pB,pInt}=st.bank.t1;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
+    B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cap B)=${pInt}\\).<br> Calculer \\(P_A(B)\\).`, id:'q1'});
+  }
+  if(typeNow==='t2'){
+    const {pA,pB,pInt,pA_B}=st.bank.t2;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
+B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P_A(B)=${pA_B}\\) et \\(P(B)=${pB}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q2'});
+B.push({labelHTML:`Puis calculer \\(P_B(A)\\).`, id:'q2b'});
+
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+	    B.push({labelHTML:`<b>Exercice :</b><br>`});
+
+    B.push({labelHTML:`Soient \\(E\\) et \\(F\\) deux événements tels que : \\(P(E)=${pE}\\) et \\(P_E(F)=${pF_E}\\).<br> Calculer \\(P(E\\cap F)\\).`, id:'q3'});
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;  
+    B.push({labelHTML:`<b>Exercice :</b><br>`});
+    B.push({labelHTML:`Soient \\(A\\) et \\(B\\) deux événements tels que : \\(P(A)=${pA}\\), \\(P(B)=${pB}\\) et \\(P(A\\cup B)=${pU}\\).<br> Calculer \\(P(A\\cap B)\\).`, id:'q4'});
+    B.push({labelHTML:`Puis \\(P_B(A)\\).`, id:'q4b'});
+    B.push({labelHTML:`Et \\(P_A(B)\\).`, id:'q4c'});
+  }
+
+  // 3) Rendu principal
+  renderRows(host, 'Répondre en décimal, fraction ou % (quand pertinent).', B);
+addTicks();
+
+  // 4) Insérer le sélecteur tout en haut (après que renderRows a vidé/posé le DOM)
+  const selectHTML =
+    `<div class="controls" style="gap:8px;margin-bottom:8px">
+       <label style="font-weight:600">Type :</label>
+       <select id="ex1-type">
+         <option value="mix">🔀 Mélange</option>
+         <option value="t1">Type 1 — \\(P_A(B)\\) avec \\(P(A),P(B),P(A\\cap B)\\)</option>
+         <option value="t2">Type 2 — \\(P(A\\cap B)\\), \\(P_B(A)\\) avec \\(P(A),P_A(B),P(B)\\)</option>
+         <option value="t3">Type 3 — \\(P(E\\cap F)\\) avec \\(P(E),P_E(F)\\)</option>
+         <option value="t4">Type 4 — depuis \\(P(A),P(B),P(A\\cup B)\\)</option>
+       </select>
+     </div>`;
+
+  const inner = document.querySelector('#host .inner');
+  inner.insertAdjacentHTML('afterbegin', selectHTML);
+  const sel = document.querySelector('#ex1-type');
+  sel.value = prev; // reflète le choix actuel
+
+  // 5) Changement de type sans régénérer les nombres
+  sel.addEventListener('change', (e)=>{
+    host.dataset.variant = e.target.value;     // mémorise
+    this.render(host, st);                     // re-render (les valeurs de st.bank restent)
+   addTicks();                                // ⬅️ AJOUT pour injecter les ✓
+
+ });
+
+  retypeset(inner);
+}
+,
+
+  correct(host, st){
+  const typeNow = host.dataset.typeNow || this._activeType(st);
+  const get = id => $('#'+id,host);
+  const val = id => (get(id)?.value || '').trim();
+  const P = s => parseProbFlexible(s);         // parseur commun (%, fraction, décimal)
+  const same = (a,b)=>Math.abs(a-b)<=1e-3;
+
+  let allFilled = true, allOK = true;
+
+  function checkOne(id, expected){
+    const el = get(id);
+    if(!el){ return; }
+    const raw = val(id);
+    if(!raw){ setTick(el, null); allFilled = false; allOK = false; return; }
+    const num = P(raw);
+    const ok  = Number.isFinite(num) && same(num, expected);
+    setTick(el, ok);
+    if(!ok) allOK = false;
+  }
+
+  if(typeNow==='t1'){
+    const {pA,pInt}=st.bank.t1;
+    checkOne('q1', pInt/pA);
+  }
+  if(typeNow==='t2'){
+    const {pB,pInt}=st.bank.t2;
+    checkOne('q2',  pInt);       // P(A∩B)
+    checkOne('q2b', pInt/pB);    // P_B(A)
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+    checkOne('q3', pE*pF_E);
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;
+    const inter = pA + pB - pU;
+    checkOne('q4',  inter);      // P(A∩B)
+    checkOne('q4b', inter/pB);   // P_B(A)
+    checkOne('q4c', inter/pA);   // P_A(B)
+  }
+
+  // Pas de message global : vider #res
+  const res = $('#res',host);
+  if(res){ res.innerHTML=''; res.className='res'; }
+
+return { ok: allFilled && allOK, total: 1, allAnswered: allFilled };
+},
+
+
+solution(host, st){
+  const typeNow = host.dataset.typeNow || this._activeType(st);
+  let html='';
+  if(typeNow==='t1'){
+    const {pA,pInt}=st.bank.t1;
+    const val = pInt/pA, s = approxSign(val, 2);
+    html = `<p>\\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${pInt}}{${pA}}\\;${s}\\;${fmtDec(val,2)}\\).</p>`;
+  }
+  if(typeNow==='t2'){
+    const {pA,pB,pInt,pA_B}=st.bank.t2;
+    const s1 = approxSign(pInt, 2);
+    const s2 = approxSign(pInt/pB, 2);
+    html = `<p>\\(P(A\\cap B)=P(A)\\times P_A(B)=${pA}\\times ${pA_B}\\;${s1}\\;${fmtDec(pInt,2)}\\).</p>
+            <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${pInt}}{${pB}}\\;${s2}\\;${fmtDec(pInt/pB,2)}\\).</p>`;
+  }
+  if(typeNow==='t3'){
+    const {pE,pF_E}=st.bank.t3;
+    const val = pE*pF_E, s = approxSign(val, 2);
+    html = `<p>\\(P(E\\cap F)=P(E)\\times P_E(F)=${pE}\\times ${pF_E}\\;${s}\\;${fmtDec(val,2)}\\).</p>`;
+  }
+  if(typeNow==='t4'){
+    const {pA,pB,pU}=st.bank.t4;
+    const inter = pA + pB - pU;
+    const sI = approxSign(inter, 2);
+    const sB = approxSign(inter/pB, 2);
+    const sA = approxSign(inter/pA, 2);
+    html = `<p>\\(P(A\\cap B)=P(A)+P(B)-P(A\\cup B)=${pA}+${pB}-${pU}\\;${sI}\\;${fmtDec(inter,2)}\\).</p>
+            <p>\\(P_B(A)=\\dfrac{P(A\\cap B)}{P(B)}=\\dfrac{${fmtDec(inter,2)}}{${pB}}\\;${sB}\\;${fmtDec(inter/pB,2)}\\)
+             <br> \\(P_A(B)=\\dfrac{P(A\\cap B)}{P(A)}=\\dfrac{${fmtDec(inter,2)}}{${pA}}\\;${sA}\\;${fmtDec(inter/pA,2)}\\).</p>`;
+  }
+  $('#res',host).innerHTML = html; $('#res',host).className='res-ok'; retypeset($('#res',host));
+},
+
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+
+/* ========= Exercice 2 — Identifier la bonne notation =========
+   Objectif : écrire la notation correspondant à chaque phrase.
+   • Deux conditionnelles (P_A(B) et P_B(A) — on accepte aussi P(B|A), P(A|B))
+   • Une intersection (P(A∩B))
+   • Une réunion      (P(A∪B))
+   Les phrases sont contextuelles : sujet + deux propriétés naturelles.
+*/
+/* ========= Exercice 2 — Identifier la notation (2 conditionnelles, 1 ∩, 1 ∪, avec au moins une négation) ========= */
+const ex2 = {
+  id: 'classif_cond_union_inter',
+  title: 'Identifier la notation',
+
+  /* ---------- Banque de contextes : sujet + A et B en 2 formes (sg/pl) ---------- */
+/* ---------- Banque de 50 contextes (A/B en sg + pl, genre indiqué) ---------- */
+/* ---------- Banque de 50 contextes (A/B en sg + pl, genre indiqué) ---------- */
+_CTX: [
+  { subj:'courriels', g:'m',
+    A:{sg:"provient d’un client",                 pl:"proviennent d’un client"},
+    B:{sg:"contient le mot « urgent »",           pl:"contiennent le mot « urgent »"} },
+
+  { subj:'pièces', g:'f',
+    A:{sg:"est conforme",                         pl:"sont conformes"},
+    B:{sg:"est contrôlée au laser",               pl:"sont contrôlées au laser"} },
+
+  { subj:'dossiers', g:'m',
+    A:{sg:"est complet",                          pl:"sont complets"},
+    B:{sg:"est validé par le responsable",        pl:"sont validés par le responsable"} },
+
+  { subj:'élèves', g:'m',
+    A:{sg:"a rendu le devoir",                    pl:"ont rendu le devoir"},
+    B:{sg:"participe au club de maths",           pl:"participent au club de maths"} },
+
+  { subj:'étudiants', g:'m',
+    A:{sg:"suit l’option informatique",           pl:"suivent l’option informatique"},
+    B:{sg:"fait du sport universitaire",          pl:"font du sport universitaire"} },
+
+  { subj:'livres', g:'m',
+    A:{sg:"est emprunté",                         pl:"sont empruntés"},
+    B:{sg:"est un ouvrage scientifique",          pl:"sont des ouvrages scientifiques"} },
+
+  { subj:'véhicules', g:'m',
+    A:{sg:"est électrique",                       pl:"sont électriques"},
+    B:{sg:"est utilitaire",                       pl:"sont utilitaires"} },
+
+  { subj:'logements', g:'m',
+    A:{sg:"est meublé",                           pl:"sont meublés"},
+    B:{sg:"dispose d’un balcon",                  pl:"disposent d’un balcon"} },
+
+  { subj:'commandes', g:'f',
+    A:{sg:"est livrée à l’heure",                 pl:"sont livrées à l’heure"},
+    B:{sg:"est expédiée en express",              pl:"sont expédiées en express"} },
+
+  { subj:'paquets', g:'m',
+    A:{sg:"est fragile",                          pl:"sont fragiles"},
+    B:{sg:"est assuré",                           pl:"sont assurés"} },
+
+  { subj:'jours', g:'m',
+    A:{sg:"est pluvieux",                         pl:"sont pluvieux"},
+    B:{sg:"est venteux",                          pl:"sont venteux"} },
+
+  /* #12 corrigé : deux propriétés compatibles */
+  { subj:'trajets', g:'m',
+    A:{sg:"subit un retard",                      pl:"subissent un retard"},
+    B:{sg:"passe par une déviation",              pl:"passent par une déviation"} },
+
+  { subj:'trains', g:'m',
+    A:{sg:"est direct",                           pl:"sont directs"},
+    B:{sg:"arrive à l’heure",                     pl:"arrivent à l’heure"} },
+
+  { subj:'candidatures', g:'f',
+    A:{sg:"est admissible",                       pl:"sont admissibles"},
+    B:{sg:"est prioritaire",                      pl:"sont prioritaires"} },
+
+  { subj:'capteurs', g:'m',
+    A:{sg:"est calibré",                          pl:"sont calibrés"},
+    B:{sg:"est connecté",                         pl:"sont connectés"} },
+
+  { subj:'projets', g:'m',
+    A:{sg:"respecte le budget",                   pl:"respectent le budget"},
+    B:{sg:"respecte le délai",                    pl:"respectent le délai"} },
+
+  { subj:'produits', g:'m',
+    A:{sg:"est en stock",                         pl:"sont en stock"},
+    B:{sg:"est bio",                              pl:"sont bio"} },
+
+  { subj:'fichiers', g:'m',
+    A:{sg:"est compressé",                        pl:"sont compressés"},
+    B:{sg:"est chiffré",                          pl:"sont chiffrés"} },
+
+  { subj:'questions', g:'f',
+    A:{sg:"porte sur l’algèbre",                  pl:"portent sur l’algèbre"},
+    B:{sg:"est à choix multiple",                 pl:"sont à choix multiple"} },
+
+  { subj:'échantillons', g:'m',
+    A:{sg:"est conforme",                         pl:"sont conformes"},
+    B:{sg:"est stérile",                          pl:"sont stériles"} },
+
+  { subj:'visites', g:'f',
+    A:{sg:"est guidée",                           pl:"sont guidées"},
+    B:{sg:"est gratuite",                         pl:"sont gratuites"} },
+
+  { subj:'photos', g:'f',
+    A:{sg:"est nette",                            pl:"sont nettes"},
+    B:{sg:"est sous-exposée",                     pl:"sont sous-exposées"} },
+
+  { subj:'articles', g:'m',
+    A:{sg:"est publié en ligne",                  pl:"sont publiés en ligne"},
+    B:{sg:"est relu par un pair",                 pl:"sont relus par un pair"} },
+
+  { subj:'messages', g:'m',
+    A:{sg:"est non lu",                           pl:"sont non lus"},
+    B:{sg:"contient une pièce jointe",            pl:"contiennent une pièce jointe"} },
+
+  /* #25 corrigé : plus de contradiction avec « manqué » */
+  { subj:'appels', g:'m',
+    A:{sg:"provient d’un contact connu",          pl:"proviennent d’un contact connu"},
+    B:{sg:"dure plus de cinq minutes",            pl:"durent plus de cinq minutes"} },
+
+  { subj:'livraisons', g:'f',
+    A:{sg:"est partielle",                        pl:"sont partielles"},
+    B:{sg:"est réfrigérée",                       pl:"sont réfrigérées"} },
+
+  { subj:'colis', g:'m',
+    A:{sg:"est volumineux",                       pl:"sont volumineux"},
+    B:{sg:"est suivi",                            pl:"sont suivis"} },
+
+  /* #28 ajusté : « payée » compatible avec « réglée par virement » */
+  { subj:'factures', g:'f',
+    A:{sg:"est payée",                            pl:"sont payées"},
+    B:{sg:"est réglée par virement",              pl:"sont réglées par virement"} },
+
+  /* #30 ajusté : les deux peuvent coexister */
+  { subj:'réunions', g:'f',
+    A:{sg:"est prévue aujourd’hui",               pl:"sont prévues aujourd’hui"},
+    B:{sg:"se tient en visioconférence",          pl:"se tiennent en visioconférence"} },
+
+  { subj:'machines', g:'f',
+    A:{sg:"est en maintenance",                   pl:"sont en maintenance"},
+    B:{sg:"est connectée au réseau",              pl:"sont connectées au réseau"} },
+
+  { subj:'interventions', g:'f',
+    A:{sg:"est urgente",                          pl:"sont urgentes"},
+    B:{sg:"est planifiée",                        pl:"sont planifiées"} },
+
+  { subj:'tickets', g:'m',
+    A:{sg:"est résolu",                           pl:"sont résolus"},
+    B:{sg:"est prioritaire",                      pl:"sont prioritaires"} },
+
+  { subj:'réservations', g:'f',
+    A:{sg:"est remboursable",                     pl:"sont remboursables"},
+    B:{sg:"est modifiable",                       pl:"sont modifiables"} },
+
+  { subj:'chambres', g:'f',
+    A:{sg:"donne sur la mer",                     pl:"donnent sur la mer"},
+    B:{sg:"est climatisée",                       pl:"sont climatisées"} },
+
+  { subj:'patients', g:'m',
+    A:{sg:"est diabétique",                       pl:"sont diabétiques"},
+    B:{sg:"est suivi chaque mois",                pl:"sont suivis chaque mois"} },
+
+  { subj:'clients', g:'m',
+    A:{sg:"est fidèle depuis trois ans",          pl:"sont fidèles depuis trois ans"},
+    B:{sg:"est abonné à la newsletter",           pl:"sont abonnés à la newsletter"} },
+
+  { subj:'comptes', g:'m',
+    A:{sg:"est vérifié",                          pl:"sont vérifiés"},
+    B:{sg:"est premium",                          pl:"sont premium"} },
+
+  { subj:'publications', g:'f',
+    A:{sg:"est en accès libre",                   pl:"sont en accès libre"},
+    B:{sg:"est illustrée",                        pl:"sont illustrées"} },
+
+  { subj:'expériences', g:'f',
+    A:{sg:"est reproductible",                    pl:"sont reproductibles"},
+    B:{sg:"est documentée",                       pl:"sont documentées"} },
+
+  { subj:'mesures', g:'f',
+    A:{sg:"est précise",                          pl:"sont précises"},
+    B:{sg:"est supérieure au seuil",              pl:"sont supérieures au seuil"} },
+
+  { subj:'capteurs IoT', g:'m',
+    A:{sg:"émet un signal anormal",               pl:"émettent un signal anormal"},
+    B:{sg:"est alimenté par batterie",            pl:"sont alimentés par batterie"} },
+
+  { subj:'emails marketing', g:'m',
+    A:{sg:"est ouvert",                           pl:"sont ouverts"},
+    B:{sg:"contient un coupon",                   pl:"contiennent un coupon"} },
+
+  { subj:'sessions', g:'f',
+    A:{sg:"est active",                           pl:"sont actives"},
+    B:{sg:"est sécurisée",                        pl:"sont sécurisées"} },
+
+  { subj:'profils', g:'m',
+    A:{sg:"est public",                           pl:"sont publics"},
+    B:{sg:"est complet",                          pl:"sont complets"} },
+
+  { subj:'réponses', g:'f',
+    A:{sg:"est correcte",                         pl:"sont correctes"},
+    B:{sg:"est justifiée",                        pl:"sont justifiées"} },
+
+  { subj:'trajets domicile-travail', g:'m',
+    A:{sg:"se fait en vélo",                      pl:"se font en vélo"},
+    B:{sg:"prend moins de vingt minutes",         pl:"prennent moins de vingt minutes"} },
+
+  /* #47 corrigé : deux propriétés compatibles */
+  { subj:'commandes en ligne', g:'f',
+    A:{sg:"est livrée à domicile",                pl:"sont livrées à domicile"},
+    B:{sg:"est livrée dans la journée",           pl:"sont livrées dans la journée"} },
+
+  { subj:'inscriptions', g:'f',
+    A:{sg:"est validée",                          pl:"sont validées"},
+    B:{sg:"est payée par carte",                  pl:"sont payées par carte"} },
+
+  { subj:'vols', g:'m',
+    A:{sg:"est long-courrier",                    pl:"sont long-courriers"},
+    B:{sg:"part à l’heure",                       pl:"partent à l’heure"} },
+
+  { subj:'livraisons express', g:'f',
+    A:{sg:"est internationale",                   pl:"sont internationales"},
+    B:{sg:"est suivie",                           pl:"sont suivies"} }
+],
+
+
+
+  /* ---------------------- Outils grammaire & tirages ---------------------- */
+  _defDet(noun, g){ return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(noun) ? "l’"+noun : (g==='f'?"la ":"le ")+noun; },
+  _indefDet(noun, g){ return (g==='f'?"une ":"un ")+noun; },
+  _singular(pl){ return String(pl).replace(/s$/,''); },
+
+  _negate(phrase){
+  let p = phrase.trim();
+
+  // Correction pour les verbes composés (commence par "provient", "contient", etc.)
+  const verbNeg = [
+    [/^est\b/i,             "n’est pas"],
+    [/^sont\b/i,            "ne sont pas"],
+    [/^a\b/i,               "n’a pas"],
+    [/^ont\b/i,             "n’ont pas"],
+    [/^fait\b/i,            "ne fait pas"],
+    [/^font\b/i,            "ne font pas"],
+    [/^contient\b/i,        "ne contient pas"],
+    [/^contiennent\b/i,     "ne contiennent pas"],
+    [/^provient\b/i,        "ne provient pas"],
+    [/^proviennent\b/i,     "ne proviennent pas"],
+    [/^dispose\b/i,         "ne dispose pas"],
+    [/^disposent\b/i,       "ne disposent pas"],
+    [/^respecte\b/i,        "ne respecte pas"],
+    [/^respectent\b/i,      "ne respectent pas"],
+    [/^arrive\b/i,          "n’arrive pas"],
+    [/^arrivent\b/i,        "n’arrivent pas"],
+    [/^porte\b/i,           "ne porte pas"],
+    [/^portent\b/i,         "ne portent pas"],
+    [/^donne\b/i,           "ne donne pas"],
+    [/^donnent\b/i,         "ne donnent pas"],
+    [/^prend\b/i,           "ne prend pas"],
+    [/^prennent\b/i,        "ne prennent pas"],
+    [/^se fait\b/i,         "ne se fait pas"],
+    [/^se font\b/i,         "ne se font pas"]
+  ];
+
+  for (const [re, rep] of verbNeg) {
+    if (re.test(p)) return p.replace(re, rep);
+  }
+
+  // Cas générique : si ça commence par une voyelle → "n’", sinon "ne"
+  const startsVowel = /^[aeiouyhàâäéèêëîïôöùûü]/i.test(p);
+  return (startsVowel ? "n’" : "ne ") + p + " pas";
+},
+
+
+  _shareTooMuch(a,b){ // rejette A/B trop proches lexicalement
+    const tok = s => s.toLowerCase().normalize('NFD').replace(/[^a-zàâäéèêëîïôöùûü\-']/g,' ').split(/\s+/).filter(x=>x.length>=4);
+    const A = new Set(tok(a)), B = new Set(tok(b));
+    let common=0; A.forEach(w=>{ if(B.has(w)) common++; });
+    const small = Math.min(A.size||1, B.size||1);
+    return common / small >= 0.6; // >60% commun -> trop proche
+  },
+
+  _pct(a,b){ return Math.floor(Math.random()*(b-a+1))+a; },
+
+  gen(){
+    // 1) contexte distinct (évite A/B trop proches)
+    let ctx;
+    for(let tries=0; tries<30; tries++){
+      const c = this._CTX[Math.floor(Math.random()*this._CTX.length)];
+      if(!this._shareTooMuch(c.A.sg, c.B.sg)) { ctx=c; break; }
+    }
+    if(!ctx) ctx = this._CTX[0];
+
+    // 2) % réalistes
+    const pctUnion = this._pct(35,90);
+    const pctInter = this._pct(5,40);
+    const pctCond  = ()=> this._pct(12,88);
+
+    // 3) Fabrique les 4 items (ordre mélangé)
+    const make = {
+      union : { tag:'union', txt: p => `${p}% des ${ctx.subj} ${ctx.A.pl} ou ${ctx.B.pl}.`, p: pctUnion },
+      inter : { tag:'inter', txt: p => `${p}% des ${ctx.subj} ${ctx.A.pl} et ${ctx.B.pl}.`,       p: pctInter },
+      condAB: { tag:'condAB',txt: p => `Parmi les ${ctx.subj} qui ${ctx.A.pl}, ${p}% ${ctx.B.pl} aussi.`,       p: pctCond() },
+      condBA: { tag:'condBA',txt: p => `Sur les ${ctx.subj} qui ${ctx.B.pl}, ${p}% ${ctx.A.pl} également.`,     p: pctCond() },
+    };
+    let pool = [make.union, make.inter, make.condAB, make.condBA].map(o => ({...o, p: (typeof o.p==='function'?o.p():o.p)}));
+
+    // 4) Injecte une NÉGATION dans l’un des 4 (aléatoirement)
+    const negIdx = Math.floor(Math.random()*pool.length);
+    pool = pool.map((o,i)=>{
+      if(i!==negIdx) return o;
+      if(o.tag==='union'){
+        // A ∪ \bar B (ou \bar A ∪ B) -> choisissez une des deux
+        const flip = Math.random()<0.5;
+        const txt = flip
+          ? (p => `${p}% des ${ctx.subj} ${ctx.A.pl} ou ${this._negate(ctx.B.pl)}.`)
+          : (p => `${p}% des ${ctx.subj} ${this._negate(ctx.A.pl)} ou ${ctx.B.pl}.`);
+        return {...o, tag: flip?'unionAbarB':'unionABarB', txt};
+      }
+      if(o.tag==='inter'){
+        // A ∩ \bar B (ou \bar A ∩ B)
+        const flip = Math.random()<0.5;
+        const txt = flip
+          ? (p => `${p}% des ${ctx.subj} ${ctx.A.pl} et ${this._negate(ctx.B.pl)}.`)
+          : (p => `${p}% des ${ctx.subj} ${this._negate(ctx.A.pl)} et ${ctx.B.pl}.`);
+        return {...o, tag: flip?'interAbarB':'interABarB', txt};
+      }
+      if(o.tag==='condAB'){
+        // P( \bar B | A )
+        const txt = p => `Parmi les ${ctx.subj} qui ${ctx.A.pl}, ${p}% ${this._negate(ctx.B.pl)}.`;
+        return {...o, tag:'condABbar', txt};
+      }
+      if(o.tag==='condBA'){
+        // P( \bar A | B )
+        const txt = p => `Sur les ${ctx.subj} qui ${ctx.B.pl}, ${p}% ${this._negate(ctx.A.pl)}.`;
+        return {...o, tag:'condBAbar', txt};
+      }
+      return o;
+    });
+
+    // 5) Mélange et numérote
+    pool.sort(()=>Math.random()-0.5);
+    const labels=['a','b','c','d'];
+const items = pool.map((o,i)=>({
+  id: `q${i+1}`,
+  letter: labels[i],
+  tag: o.tag,
+  text: o.txt(o.p),
+  pPct: o.p,          // ex. 37  (en %)
+  pDec: o.p / 100     // ex. 0.37 (décimal)
+}));
+
+    return { ctx, items };
+  },
+
+  /* ====== 1) Liste d'options proposées dans le <select> ====== */
+_options(){
+  const Abar = BAR.A, Bbar = BAR.B;
+  return [
+    {v:'',                text:'— choisir —'},
+
+    // simples
+    {v:'PA',              text:'P(A)'},
+    {v:'PB',              text:'P(B)'},
+    {v:'PnotA',           text:`P(${Abar})`},
+    {v:'PnotB',           text:`P(${Bbar})`},
+
+    // intersections
+    {v:'interAB',         text:'P(A∩B)'},
+    {v:'interAbarB',      text:`P(A∩${Bbar})`},
+    {v:'interABarB',      text:`P(${Abar}∩B)`},
+
+    // réunions
+    {v:'unionAB',         text:'P(A∪B)'},
+    {v:'unionAbarB',      text:`P(A∪${Bbar})`},
+    {v:'unionABarB',      text:`P(${Abar}∪B)`},
+
+    // conditionnelles (sachant en indice)
+    {v:'condAB',          text:'P_A(B)'},
+    {v:'condABbar',       text:`P_A(${Bbar})`},
+    {v:'condBA',          text:'P_B(A)'},
+    {v:'condBAbar',       text:`P_B(${Abar})`},
+  ];
+},
+
+
+/* ====== 2) Rendu : intro + 4 phrases + SELECT (au lieu d’input texte) ====== */
+render(host, st){
+  const sing = this._singular(st.ctx.subj);
+  const intro =`<b>Exercice :</b><br>`+
+    `On choisit au hasard ${this._indefDet(sing, st.ctx.g)}. <br>`+
+    `On considère les événements suivants : <br>`+
+    `\\(A\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.A.sg} », `+
+    `\\(B\\) : « ${this._defDet(sing, st.ctx.g)} ${st.ctx.B.sg} ».<br>`+
+`Pour chaque affirmation, indiquer s’il s’agit d’une probabilité conditionnelle, d’une intersection ou d’une réunion en donnant la notation correspondante.`;
+
+  const hint =
+    `Choisir la notation : <em>conditionnelle</em> \\(P(\\cdot\\mid\\cdot)\\) ou \\(P_{\\,\\cdot}(\\cdot)\\), `+
+    `<em>intersection</em> \\(P(\\cdot\\cap\\cdot)\\), <em>réunion</em> \\(P(\\cdot\\cup\\cdot)\\). `+
+    `Pour les phrases négatives, les options avec \\(A'\\) / \\(B'\\) sont disponibles.`;
+
+  const opts = this._options().map(o=>`<option value="${o.v}">${o.text}</option>`).join('');
+
+  const blocks = [
+    { labelHTML: intro },
+   ... st.items.map(it => ({
+  labelHTML: `${it.letter} ) ${it.text}<br>`,
+  rightHTML: mkMathSelectHTML(it.id, 220)   // ← remplace <select>
+}))
+
+  ];
+
+  renderRowsInputRight(
+    host,
+    "Pour chaque affirmation, indiquer s’il s’agit d’une probabilité conditionnelle, d’une intersection ou d’une réunion en donnant la notation correspondante.",
+    blocks
+  );
+initMathSelect(host);
+try{ MathJax.typesetPromise([host]); }catch(_){}
+
+retypeset(host);
+},
+
+/* ====== 3) Correction : compare le code sélectionné au tag attendu ====== */
+correct(host, st){
+  const ACCEPT = {
+    condAB:['condAB'], condBA:['condBA'],
+    condABbar:['condABbar'], condBAbar:['condBAbar'],
+    inter:['interAB'], interAbarB:['interAbarB'], interABarB:['interABarB'],
+    union:['unionAB'], unionAbarB:['unionAbarB'], unionABarB:['unionABarB'],
+  };
+
+  let anyWrong = false;
+  let anyAnswered = false;
+  let allAnswered = true;
+
+  st.items.forEach(it=>{
+    const sel = document.getElementById(it.id); // <input type="hidden">
+    const val = sel ? sel.value : '';
+
+    if(!val){            // rien de choisi -> pas de tick, pas de sanction
+      setTickForInput(sel, null);
+      allAnswered = false;
+      return;
+    }
+
+    anyAnswered = true;
+    const ok = (ACCEPT[it.tag] || []).includes(val);
+    setTickForInput(sel, ok);
+    if(!ok) anyWrong = true;
+  });
+
+  
+
+  // Score : on ne compte point que si tout est répondu ET correct
+return { ok: allAnswered && !anyWrong, total: 1, allAnswered };
+},
+
+
+
+/* ====== 4) (Optionnel) Solution : affiche la bonne option en LaTeX ====== */
+solution(host, st){
+  // symboles SANS délimiteurs MathJax
+  const sym = {
+    condAB:    'P_{A}(B)',
+    condBA:    'P_{B}(A)',
+    condABbar: 'P_{A}(\\overline{B})',
+    condBAbar: 'P_{B}(\\overline{A})',
+    inter:     'P(A\\cap B)',
+    interAbarB:'P(A\\cap \\overline{B})',
+    interABarB:'P(\\overline{A}\\cap B)',
+    union:     'P(A\\cup B)',
+    unionAbarB:'P(A\\cup \\overline{B})',
+    unionABarB:'P(\\overline{A}\\cup B)'
+  };
+
+  // format décimal FR : virgule et troncature propre
+  const decFR = x => {
+    const v = Math.round(x*1000)/1000;             // 3 déc. max
+    return v.toString().replace('.', ',').replace(/,?0+$/,'');
+  };
+
+  const html = st.items.map(it => {
+    const s = sym[it.tag] || 'P(?)';
+    const pc = Number.isFinite(it.pPct) ? it.pPct : '';
+    const dc = Number.isFinite(it.pDec) ? decFR(it.pDec) : '';
+    // Ex: \( P_A(B) = 42\% = 0,42 \)
+    const rhs = `\\( ${s}\\;=\\;${dc} \\)`;
+    return `<p>${it.letter}) ${it.text} se traduit par : ${rhs}</p>`;
+  }).join('');
+
+  $('#res',host).innerHTML = html;
+  $('#res',host).className = 'res-ok';
+  retypeset($('#res',host));
+},
+
+
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+/* ===== Exercice 3 — Banque (20) type « CDD / moins de 30 ans » ===== */
+const EX3_BANK = (() => {
+  const ctxs = [
+    { pop:"Parmi les internautes", group:"internautes",
+      Dpl:"possèdent un smartphone Android",
+      Jpl:"utilisent quotidiennement les réseaux sociaux" },
+
+    { pop:"Dans une grande entreprise", group:"salariés",
+      Dpl:"télétravaillent régulièrement",
+      Jpl:"habitent à plus de 30 km du lieu de travail" },
+
+    { pop:"Dans une étude sur la santé", group:"patients",
+      Dpl:"sont fumeurs",
+      Jpl:"ont moins de 30 ans" },
+
+    { pop:"Dans un lycée européen", group:"élèves",
+      Dpl:"ont participé au voyage scolaire",
+      Jpl:"parlent couramment anglais" },
+
+    { pop:"Chez les licenciés d’un club sportif", group:"sportifs",
+      Dpl:"s’entraînent plus de 5 fois par semaine",
+      Jpl:"suivent un régime spécifique" },
+
+    { pop:"Dans le parc automobile", group:"véhicules",
+      Dpl:"sont électriques",
+      Jpl:"ont moins de 3 ans" },
+
+    { pop:"Dans une commune française", group:"habitants",
+      Dpl:"trient leurs déchets",
+      Jpl:"possèdent un composteur" },
+
+    { pop:"Parmi les bacheliers", group:"candidats",
+      Dpl:"ont obtenu une mention",
+      Jpl:"sont en filière générale" },
+
+    { pop:"Parmi les voyageurs d’un train", group:"voyageurs",
+      Dpl:"ont une carte de réduction",
+      Jpl:"voyagent en première classe" },
+
+    { pop:"Dans une étude sur les logements", group:"logements",
+      Dpl:"sont chauffés au gaz",
+      Jpl:"sont récents (moins de 10 ans)" },
+
+    { pop:"Dans une école d’ingénieurs", group:"étudiants",
+  Dpl:"suivent un double diplôme", 
+  Jpl:"participent à un programme d’échange" },
+
+{ pop:"Dans une école d’ingénieurs", group:"étudiants",
+  Dpl:"suivent un double diplôme",
+  Jpl:"participent à un programme d’échange" },
+
+{ pop:"Parmi les foyers sondés", group:"ménages",
+  Dpl:"sont propriétaires de leur logement",
+  Jpl:"détiennent un animal domestique" },
+
+{ pop:"Chez les automobilistes français", group:"conducteurs",
+  Dpl:"ont plus de dix ans de permis",
+  Jpl:"ont déjà eu un accident responsable" },
+
+{ pop:"Dans un service hospitalier", group:"patients",
+  Dpl:"sont en hospitalisation de jour",
+  Jpl:"bénéficient d’un suivi psychologique" },
+
+{ pop:"Parmi les élèves d’un collège", group:"collégiens",
+  Dpl:"prennent le bus scolaire",
+  Jpl:"mangent à la cantine" },
+
+{ pop:"Chez les usagers d’un réseau social", group:"utilisateurs",
+  Dpl:"postent chaque semaine",
+  Jpl:"suivent plus de cent comptes" },
+
+{ pop:"Dans une entreprise de transport", group:"chauffeurs",
+  Dpl:"travaillent de nuit",
+  Jpl:"font des trajets longue distance" },
+
+{ pop:"Dans un sondage sur l’énergie", group:"habitants",
+  Dpl:"utilisent le chauffage électrique",
+  Jpl:"possèdent des panneaux solaires" },
+
+{ pop:"Parmi les salariés d’une start-up", group:"employés",
+  Dpl:"télétravaillent au moins trois jours par semaine",
+  Jpl:"participent à des projets open-source" },
+
+{ pop:"Dans un club de lecture", group:"membres",
+  Dpl:"lisent plus de dix livres par an",
+  Jpl:"préfèrent les romans contemporains" }
+
+
+  ];
+
+  const L = [];
+  for (let k=0; k<20; k++){
+    const c = ctxs[k % ctxs.length];
+    const pD       = rnd(15,35)/100;
+    const pJ_D     = rnd(45,80)/100;
+    const pJ_notD  = rnd(15,45)/100;
+    L.push({ c, pD, pJ_D, pJ_notD });
+  }
+  return L;
+})();
+
+
+
+
+
+
+const ex3 = {
+  id:'bank_cdd30',
+  title:'Traduire des données',
+  gen(){ return choice(EX3_BANK); },
+render(host, st){
+  const {c, pD, pJ_D, pJ_notD} = st;
+  const P = x => `${Math.round(x*100)}%`;
+  const {Ddef, Jdef} = buildDJDefs(c);
+
+  // 1) Énoncé (lead) plein large
+  const leadHTML =
+  `<b>Exercice :</b><br>`+
+    `${c.pop}, ` + phraseStatsSansPop(c, pD, pJ_D, pJ_notD)
+    + `<br>On considère \\(D:\\) « ${Ddef} » et \\(J:\\) « ${Jdef} ».`
+    + `<br><br>a) Traduire les données en termes de probabilités, en utilisant les événements \\(D\\) et \\(J\\).`;
+
+  // 2) Lignes avec inputs uniquement
+  const rowsRest = [
+    { labelHTML: `• ${P(pD)} des ${c.group} ${c.Dpl}.`,
+      rightHTML: mkMathSelectHTMLLetters('e3s1', 220, 'D','J') },
+    { labelHTML: `• Parmi ceux qui ${c.Dpl}, ${P(pJ_D)} ${c.Jpl}.`,
+      rightHTML: mkMathSelectHTMLLetters('e3s2', 220, 'D','J') },
+    { labelHTML: `• Parmi ceux qui ${negatePl(c.Dpl)}, ${P(pJ_notD)} ${c.Jpl}.`,
+      rightHTML: mkMathSelectHTMLLetters('e3s3', 220, 'D','J') },
+    { labelHTML:`b) Déterminer \\(P(D\\cap J)\\).`,
+      rightHTML:`<input id="e3b" class="in" style="width:120px"> <span id="t3b" class="tick"></span>` }
+  ];
+
+  // 3) Rendu (sans consigne)
+  renderRows(host, '', rowsRest, true);
+
+  // 4) Insérer le LEAD :
+  const inner = host.querySelector('.inner');
+  // 4.a) Écran : lead au-dessus de la première .row
+  const firstRow = inner.querySelector('.row');
+  const leadDiv = document.createElement('div');
+  leadDiv.className = 'lead';
+  leadDiv.innerHTML = leadHTML;
+  if (firstRow) inner.insertBefore(leadDiv, firstRow);
+  else inner.appendChild(leadDiv); // fallback si pas de row
+
+  // 4.b) PDF/offscreen : lead en premier élément de .equ-offscreen
+  const off = inner.querySelector('.equ-offscreen');
+  if (off) off.insertAdjacentHTML('afterbegin', `<div class="equation">${stripHints(leadHTML)}</div>`);
+
+  // 5) Activer les sélecteurs + MathJax
+  initMathSelect(host);
+  try{ MathJax.typesetPromise([host]); }catch(_){}
+}
+,
+
+
+correct(host, st){
+  const get = id => $('#'+id,host);
+  const val = id => (get(id)?.value || '').trim();
+
+  // 1) Sélecteurs : attendus avec mkMathSelectHTMLLetters('D','J')
+  // e3s1 : P(D)           -> 'PD'
+  // e3s2 : P_D(J)         -> 'condD_J'
+  // e3s3 : P_{\bar D}(J)  -> 'condbarD_J'
+  const s1 = get('e3s1'), s2 = get('e3s2'), s3 = get('e3s3');
+
+  let anyWrong = false, allAnswered = true;
+
+  function checkSelect(el, expected){
+    if(!el) return;
+    const v = (el.value||'').trim();
+    if(!v){ setTickForInput(el, null); allAnswered = false; return; }
+    const ok = (v === expected);
+    setTickForInput(el, ok);
+    if(!ok) anyWrong = true;
+  }
+  checkSelect(s1, 'PD');
+  checkSelect(s2, 'condD_J');
+  checkSelect(s3, 'condbarD_J');
+
+  // 2) Conjonction b) : P(D∩J) = P(D) × P_D(J)
+  const bVal = parseProbFlexible(val('e3b'));
+  const bExp = st.pD * st.pJ_D;
+
+  if(!Number.isFinite(bVal)){
+    setTick(get('e3b'), null);
+    allAnswered = false;
+  }else{
+    const okb = same(bVal, bExp, 1e-3);
+setTick(get('e3b'), okb);
+    if(!okb) anyWrong = true;
+  }
+
+  const okGlobal = allAnswered && !anyWrong;
+
+
+return { ok: okGlobal, total: 1, allAnswered };
+}
+,
+  solution(host, st){
+  const { c, pD, pJ_D, pJ_notD } = st;
+  const Pct = x => `${Math.round(x*100)}%`;
+  const v = pD * pJ_D, s = approxSign(v, 2);
+
+  const html = `
+    <p><b>a)</b><br>
+      • ${Pct(pD)} des ${c.group} ${c.Dpl} donc \\(P(D)=${fmtDec(pD,2)}\\).<br>
+      • Parmi ceux qui ${c.Dpl}, ${Pct(pJ_D)} ${c.Jpl} donc \\(P_{D}(J)=${fmtDec(pJ_D,2)}\\).<br>
+      • Parmi ceux qui ${negatePl(c.Dpl)}, ${Pct(pJ_notD)} ${c.Jpl} donc \\(P_{\\overline{D}}(J)=${fmtDec(pJ_notD,2)}\\).
+    </p>
+    <p><b>b)</b><br>
+      \\(P(D\\cap J)=P(D)\\times P_D(J)=${fmtDec(pD,2)}\\times ${fmtDec(pJ_D,2)}=${fmtDec(v,4)}\\).
+    </p>`;
+  $('#res',host).innerHTML = html;
+  $('#res',host).className = 'res-ok';
+  retypeset($('#res',host));
+},
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ===== Exercice 4 — Banque (20) énoncés contextuels "vrais" ===== */
+const EX4_BANK = (() => {
+  const ctxs = [
+    {
+      txt: `Dans une population, {PA} % des ménages possèdent une voiture, {PB} % possèdent un deux-roues et {PU} % possèdent au moins un véhicule (l’un des deux).`,
+      A: 'V', B: 'D',
+      Asg: 'possède une voiture', Bsg: 'possède un deux-roues',
+      Apl: 'possèdent une voiture', Bpl: 'possèdent un deux-roues',
+      unit: 'un ménage'
+    },
+    {
+      txt: `Dans une entreprise, {PA} % des employés travaillent sur site, {PB} % télétravaillent régulièrement et {PU} % exercent au moins l’une de ces deux modalités.`,
+      A: 'S', B: 'T',
+      Asg: 'travaille sur site', Bsg: 'télétravaille régulièrement',
+      Apl: 'travaillent sur site', Bpl: 'télétravaillent régulièrement',
+      unit: 'un employé'
+    },
+    {
+      txt: `Parmi les abonnés d’une plateforme, {PA} % ont un abonnement annuel, {PB} % ont choisi l’option « premium » et {PU} % disposent d’au moins l’un des deux avantages.`,
+      A: 'A', B: 'P',
+      Asg: 'a un abonnement annuel', Bsg: 'a choisi l’option premium',
+      Apl: 'ont un abonnement annuel', Bpl: 'ont choisi l’option premium',
+      unit: 'un abonné'
+    },
+    {
+      txt: `Dans un lycée, {PA} % des élèves pratiquent un sport collectif, {PB} % un instrument de musique et {PU} % au moins une de ces activités.`,
+      A: 'S', B: 'M',
+      Asg: 'pratique un sport collectif', Bsg: 'pratique un instrument de musique',
+      Apl: 'pratiquent un sport collectif', Bpl: 'pratiquent un instrument de musique',
+      unit: 'un élève'
+    },
+    {
+      txt: `Chez les clients d’un magasin, {PA} % paient par carte, {PB} % en espèces et {PU} % utilisent au moins un de ces deux moyens.`,
+      A: 'C', B: 'E',
+      Asg: 'paie par carte', Bsg: 'paie en espèces',
+      Apl: 'paient par carte', Bpl: 'paient en espèces',
+      unit: 'un client'
+    },
+    {
+      txt: `Dans un sondage, {PA} % des Français boivent du café, {PB} % du thé, et {PU} % consomment au moins l’un des deux.`,
+      A: 'C', B: 'T',
+      Asg: 'boit du café', Bsg: 'boit du thé',
+      Apl: 'boivent du café', Bpl: 'boivent du thé',
+      unit: 'un individu'
+    },
+    {
+      txt: `Dans une ville, {PA} % des habitants possèdent un chien, {PB} % un chat, et {PU} % ont au moins un des deux animaux.`,
+      A: 'C', B: 'H',
+      Asg: 'possède un chien', Bsg: 'possède un chat',
+      Apl: 'possèdent un chien', Bpl: 'possèdent un chat',
+      unit: 'un habitant'
+    },
+    {
+      txt: `Parmi les étudiants d’une université, {PA} % sont boursiers, {PB} % logent au CROUS et {PU} % sont dans au moins une de ces situations.`,
+      A: 'B', B: 'L',
+      Asg: 'est boursier', Bsg: 'loge au CROUS',
+      Apl: 'sont boursiers', Bpl: 'logent au CROUS',
+      unit: 'un étudiant'
+    },
+    {
+      txt: `Dans une entreprise, {PA} % des salariés ont reçu une formation interne, {PB} % une formation externe, et {PU} % au moins une des deux.`,
+      A: 'I', B: 'E',
+      Asg: 'a reçu une formation interne', Bsg: 'a reçu une formation externe',
+      Apl: 'ont reçu une formation interne', Bpl: 'ont reçu une formation externe',
+      unit: 'un salarié'
+    },
+    {
+      txt: `Parmi les ménages d’un quartier, {PA} % possèdent un jardin, {PB} % ont un balcon, et {PU} % disposent d’au moins l’un des deux.`,
+      A: 'J', B: 'B',
+      Asg: 'possède un jardin', Bsg: 'a un balcon',
+      Apl: 'possèdent un jardin', Bpl: 'ont un balcon',
+      unit: 'un ménage'
+    },
+    {
+      txt: `Dans un collège, {PA} % des élèves ont un téléphone portable, {PB} % une tablette, et {PU} % au moins l’un des deux.`,
+      A: 'T', B: 'P',
+      Asg: 'a un téléphone portable', Bsg: 'a une tablette',
+      Apl: 'ont un téléphone portable', Bpl: 'ont une tablette',
+      unit: 'un élève'
+    },
+    {
+      txt: `Parmi les automobilistes, {PA} % ont une assurance tous risques, {PB} % un véhicule électrique, et {PU} % au moins une de ces caractéristiques.`,
+      A: 'A', B: 'E',
+      Asg: 'a une assurance tous risques', Bsg: 'a un véhicule électrique',
+      Apl: 'ont une assurance tous risques', Bpl: 'ont un véhicule électrique',
+      unit: 'un automobiliste'
+    },
+    {
+      txt: `Dans une entreprise, {PA} % des salariés parlent anglais, {PB} % parlent espagnol, et {PU} % parlent au moins une des deux langues.`,
+      A: 'A', B: 'S',
+      Asg: 'parle anglais', Bsg: 'parle espagnol',
+      Apl: 'parlent anglais', Bpl: 'parlent espagnol',
+      unit: 'un salarié'
+    },
+    {
+      txt: `Chez les clients d’un site e-commerce, {PA} % commandent depuis un smartphone, {PB} % la nuit, et {PU} % effectuent au moins l’un des deux comportements.`,
+      A: 'S', B: 'N',
+      Asg: 'commande depuis un smartphone', Bsg: 'commande la nuit',
+      Apl: 'commandent depuis un smartphone', Bpl: 'commandent la nuit',
+      unit: 'un client'
+    },
+    {
+      txt: `Dans une entreprise, {PA} % des employés sont cadres, {PB} % ont plus de 45 ans, et {PU} % sont dans au moins une de ces situations.`,
+      A: 'C', B: 'A',
+      Asg: 'est cadre', Bsg: 'a plus de 45 ans',
+      Apl: 'sont cadres', Bpl: 'ont plus de 45 ans',
+      unit: 'un employé'
+    },
+    {
+      txt: `Dans un centre de loisirs, {PA} % des enfants font du foot, {PB} % de la natation, et {PU} % pratiquent au moins l’un des deux sports.`,
+      A: 'F', B: 'N',
+      Asg: 'fait du foot', Bsg: 'fait de la natation',
+      Apl: 'font du foot', Bpl: 'font de la natation',
+      unit: 'un enfant'
+    },
+    {
+      txt: `Parmi les internautes, {PA} % regardent des séries en ligne, {PB} % jouent à des jeux vidéo, et {PU} % font au moins l’un des deux.`,
+      A: 'S', B: 'J',
+      Asg: 'regarde des séries en ligne', Bsg: 'joue à des jeux vidéo',
+      Apl: 'regardent des séries en ligne', Bpl: 'jouent à des jeux vidéo',
+      unit: 'un individu'
+    },
+    {
+      txt: `Dans une entreprise, {PA} % des salariés utilisent un ordinateur portable, {PB} % un smartphone professionnel, et {PU} % disposent d’au moins l’un des deux.`,
+      A: 'O', B: 'S',
+      Asg: 'utilise un ordinateur portable', Bsg: 'utilise un smartphone professionnel',
+      Apl: 'utilisent un ordinateur portable', Bpl: 'utilisent un smartphone professionnel',
+      unit: 'un salarié'
+    },
+    {
+      txt: `Dans une étude, {PA} % des ménages possèdent un composteur, {PB} % un potager, et {PU} % au moins un des deux.`,
+      A: 'C', B: 'P',
+      Asg: 'possède un composteur', Bsg: 'possède un potager',
+      Apl: 'possèdent un composteur', Bpl: 'possèdent un potager',
+      unit: 'un ménage'
+    },
+    {
+      txt: `Parmi les voyageurs d’un train, {PA} % ont une carte de réduction, {PB} % voyagent en première classe, et {PU} % présentent au moins l’un des deux avantages.`,
+      A: 'R', B: 'P',
+      Asg: 'a une carte de réduction', Bsg: 'voyage en première classe',
+      Apl: 'ont une carte de réduction', Bpl: 'voyagent en première classe',
+      unit: 'un voyageur'
+    }
+  ];
+
+  // génération aléatoire cohérente
+  const L = [];
+  for (let i = 0; i < ctxs.length; i++) {
+    const c = ctxs[i];
+    const pA = rnd(30, 85) / 100;
+    const pB = rnd(20, 70) / 100;
+    const interMax = Math.min(pA, pB) - 0.01;
+    const interMin = Math.max(0.01, pA + pB - 0.99);
+    const pAB = +(rnd(Math.floor(interMin*100), Math.floor(interMax*100)) / 100).toFixed(2);
+    const pU = +(pA + pB - pAB).toFixed(2);
+    L.push({ c, pA, pB, pU });
+  }
+  return L;
+})();
+
+
+const ex4 = {
+  id: 'bank_inter_union_then_cond',
+  title: 'Intersection puis conditionnelle',
+
+  gen(){ return EX4_BANK[Math.floor(Math.random()*EX4_BANK.length)]; },
+
+ render(host, st){
+  const { c, pA, pB, pU } = st;
+
+  // Intro avec les pourcentages
+  const intro = `<b>Exercice :</b><br>`+ c.txt
+    .replace('{PA}', Math.round(pA*100))
+    .replace('{PB}', Math.round(pB*100))
+    .replace('{PU}', Math.round(pU*100));
+
+  // 🔹 Nouvelle ligne d’événements : lettres & contenus du contexte (forme plurielle)
+  const evLine = `On considère les événements :<br>` +
+                 `<b>${c.A}</b> : « ${c.unit} ${c.Asg} » et <b>${c.B}</b> : « ${c.unit} ${c.Bsg} ».`;
+
+  // Questions
+  const qA = `a) On choisit ${c.unit} au hasard dans la population.<br> ` +
+             `Déterminer la probabilité qu’il ${c.Asg} et ${c.Bsg}.`;
+
+  const qB = `b) On choisit au hasard ${c.unit} ` +
+             `qui ${c.Asg}. <br>Déterminer la probabilité (arrondie à 0,01 près) qu’il ${c.Bsg}.`;
+
+  // Rendu : intro, ligne événements, puis questions
+  const rows = [
+    { labelHTML: intro },
+    { labelHTML: evLine },
+    { labelHTML: qA, id: 'e4_inter' },
+    { labelHTML: qB, id: 'e4_cond' }
+  ];
+
+  renderRows(host, ' ', rows, true);
+}
+,
+
+  correct(host, st){
+  // Attendus
+  const interExp = st.pA + st.pB - st.pU;  // P(A∩B)
+  const condExp  = interExp / st.pA;       // P_A(B)
+
+  // Récup champs
+  const iEl = document.getElementById('e4_inter');
+  const cEl = document.getElementById('e4_cond');
+
+  // Parse (%, fraction, décimal)
+  const vInter = parseProbFlexible(iEl?.value);
+  const vCond  = parseProbFlexible(cEl?.value);
+
+  // Équivalence « à 0,01 près » : on compare les arrondis à 2 décimales
+  const eq2 = (x, y) => Math.round(x * 100) === Math.round(y * 100);
+
+  let allFilled = true, allOK = true;
+
+  // a) P(A∩B)
+  if (!Number.isFinite(vInter)) {
+    setTick(iEl, null);         // neutre si non rempli
+    allFilled = false; allOK = false;
+  } else {
+    const ok = eq2(vInter, interExp);
+    setTick(iEl, ok);
+    if (!ok) allOK = false;
+  }
+
+  // b) P_A(B) (annoncé « arrondie à 0,01 près »)
+  if (!Number.isFinite(vCond)) {
+    setTick(cEl, null);
+    allFilled = false; allOK = false;
+  } else {
+    const ok = eq2(vCond, condExp);
+    setTick(cEl, ok);
+    if (!ok) allOK = false;
+  }
+
+  // Pas de message global
+  const res = document.getElementById('res');
+  if (res){ res.innerHTML=''; res.className='res'; }
+
+  return { ok: allFilled && allOK, total: 1, allAnswered: allFilled };
+}
+,
+
+
+
+solution(host, st){
+  const { A, B } = st.c;
+  const inter = st.pA + st.pB - st.pU;
+  const sI = approxSign(inter, 2);
+  const sC = approxSign(inter/st.pA, 2);
+  const html =
+    `<p>a) \\(P(${A}\\cap ${B}) = P(${A}) + P(${B}) - P(${A}\\cup ${B}) = ${fmtDec(st.pA,2)} + ${fmtDec(st.pB,2)} - ${fmtDec(st.pU,2)}\\;${sI}\\;${fmtDec(inter,2)}\\).</p>
+     <p>b) \\(P_{${A}}(${B}) = \\dfrac{P(${A}\\cap ${B})}{P(${A})} = \\dfrac{${fmtDec(inter,2)}}{${fmtDec(st.pA,2)}}\\;${sC}\\;${fmtDec(inter/st.pA,2)}\\).</p>`;
+  const res = document.getElementById('res'); res.innerHTML = html; res.className = 'res-ok';
+  try{ MathJax.typesetPromise([res]); }catch(_){}
+},
+
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+
+
+/* ===== Exercice 5 — Banque (20) type « Commerciaux / voiture de fonction » ===== */
+/* ===== Exercice 5 — Banque (20) type « catégorie C / “avantage” V » =====
+   - C : appartenance (est …)
+   - V : avantage/possession (dispose/possède …)
+   - Contraintes de tirage :
+       30% ≤ P(C) ≤ 85%
+       55% ≤ P_C(V) ≤ 90%
+        5% ≤ P_{¬C}(V) ≤ 30%
+       et P_C(V) − P_{¬C}(V) ≥ 0.25 pour marquer une vraie différence.
+*/
+/* ================== EXO 5 — Banque "vraies phrases" (20 contextes) ==================
+   Chaque entrée fournit :
+   - context  : 1re phrase (lieu) au singulier ("Dans un lycée, on interroge au hasard un enseignant.")
+   - group    : nom du groupe au pluriel (enseignants, conseillers…)
+   - c, v     : lettres des événements
+   - Csg/Vsg  : définitions singulier pour la ligne "On considère les événements …"
+   - Cpl/Vpl  : formulations au pluriel (affirmatives) pour les phrases en %
+   - CnegPl   : négation au pluriel parfaitement française
+   Les nombres sont tirés avec : 30–85% pour P(C), 60–90% pour P_C(V), 5–25% pour P_¬C(V).
+   On impose P_C(V) - P_¬C(V) ≥ 25 points pour marquer une vraie différence.
+*/
+const EX5_BANK = (() => {
+  const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+  const CTX = [
+    { context:"Dans un lycée, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"G", v:"U",
+      Csg:"l’enseignant interrogé est professeur principal",
+      Vsg:"l’enseignant dispose d’une salle dédiée",
+      Cpl:"sont professeurs principaux",
+      Vpl:"disposent d’une salle dédiée",
+	  	  Cnegsg:"l’enseignant interrogé n'est pas professeurs principal",
+      CnegPl:"ne sont pas professeurs principaux" },
+
+    { context:"Dans une banque, on interroge au hasard un conseiller.",
+      group:"conseillers", c:"G", v:"U",
+      Csg:"le conseiller interrogé gère un portefeuille « premium »",
+      Vsg:"le conseiller dispose d’un bureau individuel",
+      Cpl:"gèrent un portefeuille « premium »",
+      Vpl:"disposent d’un bureau individuel",
+	  	  Cnegsg:"le conseiller interrogé ne gère pas de portefeuille « premium »",
+      CnegPl:"ne gèrent pas de portefeuille « premium »" },
+
+    { context:"Dans un hôpital, on interroge au hasard un infirmier.",
+      group:"infirmiers", c:"N", v:"R",
+      Csg:"l’infirmier interrogé travaille de nuit",
+      Vsg:"l’infirmier bénéficie d’une prime spécifique",
+      Cpl:"travaillent de nuit",
+      Vpl:"bénéficient d’une prime spécifique",
+	  	  Cnegsg:"l’infirmier interrogé ne travaille pas de nuit",
+      CnegPl:"ne travaillent pas de nuit" },
+
+    { context:"Au siège social d’une entreprise, on interroge au hasard un salarié.",
+      group:"salariés", c:"K", v:"P",
+      Csg:"le salarié interrogé est cadre",
+      Vsg:"le salarié dispose d’une place de parking réservée",
+      Cpl:"sont cadres",
+      Vpl:"disposent d’une place de parking réservée",
+	  	  Cnegsg:"le salarié interrogé n'est pas cadre",
+      CnegPl:"ne sont pas cadres" },
+
+    { context:"Dans une usine, on interroge au hasard un ouvrier.",
+      group:"ouvriers", c:"M", v:"B",
+      Csg:"l’ouvrier interrogé appartient à l’atelier de montage",
+      Vsg:"l’ouvrier possède un badge d’accès étendu",
+      Cpl:"appartiennent à l’atelier de montage",
+      Vpl:"possèdent un badge d’accès étendu",
+	  	  Cnegsg:"l’ouvrier interrogé n’appartient pas à l’atelier de montage",
+      CnegPl:"n’appartiennent pas à l’atelier de montage" },
+
+    { context:"Dans un centre d’appels, on interroge au hasard un conseiller.",
+      group:"conseillers", c:"R", v:"H",
+      Csg:"le conseiller interrogé est en équipe « réclamations »",
+      Vsg:"le conseiller a un casque antibruit fourni",
+      Cpl:"sont en équipe « réclamations »",
+      Vpl:"ont un casque antibruit fourni",
+	  	  Cnegsg:"le conseiller interrogé n'est pas en équipe « réclamations »",
+      CnegPl:"ne sont pas en équipe « réclamations »" },
+
+    { context:"À la mairie, on interroge au hasard un agent.",
+      group:"agents", c:"E", v:"G",
+      Csg:"l’agent interrogé travaille à l’état civil",
+      Vsg:"l’agent tient un poste à guichet",
+      Cpl:"travaillent à l’état civil",
+      Vpl:"tiennent un poste à guichet",
+	  	  Cnegsg:"l’agent interrogé ne travaille pas à l’état civil",
+      CnegPl:"ne travaillent pas à l’état civil" },
+
+    { context:"Dans une ESN, on interroge au hasard un collaborateur.",
+      group:"collaborateurs", c:"T", v:"S",
+      Csg:"le collaborateur interrogé est consultant",
+      Vsg:"le collaborateur utilise un smartphone professionnel",
+      Cpl:"sont consultants",
+      Vpl:"utilisent un smartphone professionnel",
+	  	  Cnegsg:"le collaborateur interrogé n'est pas consultant",
+      CnegPl:"ne sont pas consultants" },
+
+    { context:"Dans un lycée, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"P", v:"L",
+      Csg:"l’enseignant interrogé est professeur principal",
+      Vsg:"l’enseignant dispose d’une salle dédiée",
+      Cpl:"sont professeurs principaux",
+      Vpl:"disposent d’une salle dédiée",
+	  	  Cnegsg:"l’enseignant interrogé n'est pas professeur principal",
+      CnegPl:"ne sont pas professeurs principaux" },
+
+    { context:"Dans une rédaction, on interroge au hasard un journaliste.",
+      group:"journalistes", c:"J", v:"R",
+      Csg:"le journaliste interrogé couvre l’actualité locale",
+      Vsg:"le journaliste dispose d’un véhicule de reportage",
+      Cpl:"couvrent l’actualité locale",
+      Vpl:"disposent d’un véhicule de reportage",
+	  	  Cnegsg:"le journaliste interrogé ne couvre pas l’actualité locale",
+      CnegPl:"ne couvrent pas l’actualité locale" },
+
+    { context:"Dans une entreprise de logistique, on interroge au hasard un chauffeur.",
+      group:"chauffeurs", c:"L", v:"B",
+      Csg:"le chauffeur interrogé effectue des trajets longue distance",
+      Vsg:"le chauffeur possède un badge télépéage",
+      Cpl:"effectuent des trajets longue distance",
+      Vpl:"possèdent un badge télépéage",
+	  	  Cnegsg:"le chauffeur interrogé n’effectue pas de trajets longue distance",
+      CnegPl:"n’effectuent pas de trajets longue distance" },
+
+    { context:"Dans un cabinet médical, on interroge au hasard un praticien.",
+      group:"praticiens", c:"S", v:"D",
+      Csg:"le praticien interrogé est spécialiste",
+      Vsg:"le praticien dispose d’un secrétariat dédié",
+      Cpl:"sont spécialistes",
+      Vpl:"disposent d’un secrétariat dédié",
+	  	  Cnegsg:"le praticien interrogé n'est pas spécialiste",
+      CnegPl:"ne sont pas spécialistes" },
+
+    { context:"Dans un studio de développement, on interroge au hasard un développeur.",
+      group:"développeurs", c:"L", v:"E",
+      Csg:"le développeur interrogé est ingénieur",
+      Vsg:"le développeur a un poste double-écran fourni",
+      Cpl:"sont ingénieurs",
+      Vpl:"ont un poste double-écran fourni",
+	  	  Cnegsg:"le développeur interrogé n'est pas ingénieur",
+      CnegPl:"ne sont pas ingénieurs" },
+
+    { context:"Dans un centre de recherche, on interroge au hasard un ingénieur.",
+      group:"ingénieurs", c:"Q", v:"M",
+      Csg:"l’ingénieur interrogé travaille sur un projet stratégique",
+      Vsg:"l’ingénieur dispose d’un budget matériel dédié",
+      Cpl:"travaillent sur un projet stratégique",
+      Vpl:"disposent d’un budget matériel dédié",
+	  	  Cnegsg:"l’ingénieur interrogé ne travaille pas sur un projet stratégique",
+      CnegPl:"ne travaillent pas sur un projet stratégique" },
+
+    { context:"Dans une université, on interroge au hasard un étudiant.",
+      group:"étudiants", c:"I", v:"O",
+      Csg:"l’étudiant interrogé suit la filière informatique",
+      Vsg:"l’étudiant dispose d’un ordinateur prêté",
+      Cpl:"suivent la filière informatique",
+      Vpl:"disposent d’un ordinateur prêté",
+	  	  Cnegsg:"l’étudiant interrogé ne suit pas la filière informatique",
+      CnegPl:"ne suivent pas la filière informatique" },
+
+    { context:"Dans une entreprise de services, on interroge au hasard un technicien.",
+      group:"techniciens", c:"M", v:"K",
+      Csg:"le technicien interrogé est en maintenance préventive",
+      Vsg:"le technicien possède un véhicule d’intervention",
+      Cpl:"sont en maintenance préventive",
+      Vpl:"possèdent un véhicule d’intervention",
+	  	  Cnegsg:"le technicien interrogé n'est pas en maintenance préventive",
+      CnegPl:"ne sont pas en maintenance préventive" },
+
+    { context:"Dans un réseau d’agences, on interroge au hasard un responsable.",
+      group:"responsables", c:"D", v:"V",
+      Csg:"le responsable interrogé dirige un grand magasin",
+      Vsg:"le responsable a un véhicule de service",
+      Cpl:"dirigent un grand magasin",
+      Vpl:"ont un véhicule de service",	  
+	  Cnegsg:"le responsable interrogé ne dirige pas un grand magasin",
+      CnegPl:"ne dirigent pas un grand magasin" },
+
+    { context:"À l’état civil, on interroge au hasard un agent.",
+      group:"agents", c:"C", v:"I",
+      Csg:"l’agent interrogé traite les dossiers de cartes d’identité",
+      Vsg:"l’agent dispose d’un guichet attitré",
+      Cpl:"traitent les dossiers de cartes d’identité",
+      Vpl:"disposent d’un guichet attitré",
+	  	  Cnegsg:"l’agent interrogé ne traite pas les dossiers de cartes d’identité",
+      CnegPl:"ne traitent pas les dossiers de cartes d’identité" },
+
+    { context:"Dans une compagnie aérienne, on interroge au hasard un membre d’équipage.",
+      group:"membres d’équipage", c:"N", v:"F",
+      Csg:"le membre d’équipage interrogé est pilote",
+      Vsg:"le membre d’équipage bénéficie d’un planning flexible",
+      Cpl:"sont pilotes",
+      Vpl:"bénéficient d’un planning flexible",
+	  	  Cnegsg:"le membre d’équipage n'est pas pilote",
+      CnegPl:"ne sont pas pilotes" },
+
+    { context:"Dans une école primaire, on interroge au hasard un enseignant.",
+      group:"enseignants", c:"D", v:"A",
+      Csg:"l’enseignant interrogé est directeur délégué",
+      Vsg:"l’enseignant possède un bureau administratif attitré",
+      Cpl:"sont directeurs délégués",
+      Vpl:"possèdent un bureau administratif attitré",
+	  Cnegsg:"l’enseignant n'est pas directeur délégué",
+      CnegPl:"ne sont pas directeurs délégués" }
+  ];
+
+  const BANK = CTX.map(p=>{
+    let pC, pV_C, pV_notC;
+    let guard=0;
+    do{
+      pC      = rnd(30,85)/100;
+      pV_C    = rnd(60,90)/100;
+      pV_notC = rnd( 5,25)/100;
+      guard++;
+      if(guard>100) break;
+    }while( (pV_C - pV_notC) < 0.25 );
+    return { p, pC, pV_C, pV_notC };
+  });
+
+  return BANK;
+})();
+
+
+
+const ex5 = {
+  id:'bank_commercial_voiture',
+  title:'Phrase et calcul',
+  gen(){ return choice(EX5_BANK); },
+// ↯ PATCH : remplace ex5.render par ceci
+render(host, st){
+const p = st.p;
+  const Pct = x => Math.round(x*100) + "%";
+
+  // --- Énoncé en français (avec %)
+  const lead =`<b>Exercice :</b><br>`+
+  `${p.context}
+    <br>${Pct(st.pC)} des ${p.group} ${p.Cpl}.
+    Parmi eux, ${Pct(st.pV_C)} ${p.Vpl}.<br>
+    Parmi ceux qui ${p.CnegPl}, ${Pct(st.pV_notC)} ${p.Vpl}.
+    <br><br>On considère les événements :
+    \\(${p.c}\\) : « ${p.Csg} » et \\(${p.v}\\) : « ${p.Vsg} ».
+  `;
+
+  // --- petits helpers ---
+  // "P( ... ) = [input]" inline
+  const probField = (id, latex, w=140) =>
+    `<span class="pre">\\(${latex}=\\)</span> ${mkInput(id, w)} <span class="tick"></span>`;
+
+  // deux champs côte à côte
+  const pair = (htmlLeft, htmlRight) =>
+    `<div class="pair" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+       ${htmlLeft}
+       ${htmlRight}
+     </div>`;
+
+  // phrase + "P(...)= [input]"
+  const phrasePlusProb = (idTxt, placeholderTxt, idProb, latexProb) =>
+    `<div class="pair" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+       <span class="pre">Phrase :</span> ${mkInput(idTxt, 600)} <span class="tick"></span>
+       ${probField(idProb, latexProb, 160)}
+     </div>`;
+
+  const rows = [
+    { labelHTML: lead }, // bloc texte seul
+
+    // 1a) "P(C) = [ ]" et "P(C̄) = [ ]"
+    { labelHTML:`1a) Donner \\(P(${p.c})\\) et \\(P(\\overline{${p.c}})\\).`,
+      rightHTML: pair(
+        probField('e5_1a_c',    `P(${p.c})`),
+        probField('e5_1a_cbar', `P(\\overline{${p.c}})`)
+      )
+    },
+
+    // 1b) "P_C(V) = [ ]" et "P_{C̄}(V) = [ ]"
+    { labelHTML:`1b) Donner \\(P_{${p.c}}(${p.v})\\) et \\(P_{\\overline{${p.c}}}(${p.v})\\).`,
+      rightHTML: pair(
+        probField('e5_1b_c',    `P_{${p.c}}(${p.v})`),          // s’affiche P_C(V)
+        probField('e5_1b_cbar', `P_{\\overline{${p.c}}}(${p.v})`)
+      )
+    },
+
+    // 2a) phrase + "P(C∩V) = [ ]"
+    { labelHTML:`2a) Définir par une phrase l’événement \\(${p.c}\\cap ${p.v}\\). Puis calculer \\(P(${p.c}\\cap ${p.v})\\).`,
+      rightHTML: phrasePlusProb(
+        'e5_2a_txt', `ex : « ${p.Csg} ET ${p.Vsg} »`,
+        'e5_2a_val', `P(${p.c}\\cap ${p.v})`
+      )
+    },
+
+    // 2b) phrase + "P(C̄∩V) = [ ]"
+    { labelHTML:`2b) Définir par une phrase l’événement \\(\\overline{${p.c}}\\cap ${p.v}\\). Puis calculer \\(P(\\overline{${p.c}}\\cap ${p.v})\\).`,
+      rightHTML: phrasePlusProb(
+        'e5_2b_txt', `ex : « non-${p.Csg} ET ${p.Vsg} »`,
+        'e5_2b_val', `P(\\overline{${p.c}}\\cap ${p.v})`
+      )
+    },
+  ];
+
+  renderRows(host, 'Compléter : notations puis calculs (valeurs en %, décimal ou fraction).', rows);
+  try{ MathJax.typesetPromise([host]); }catch(_){}
+}
+,
+  correct(host, st){
+   const p = st.p;
+
+  const $ = id => document.getElementById(id);
+  const v = id => ( $(id)?.value || '' ).trim();
+
+  function parseProbFlexible(s){
+    s = String(s||'').trim().replace(/−/g,'-');
+    if (!s) return NaN;
+    let m = s.match(/^([-+]?\d+)\s*\/\s*(\d+)$/);
+    if (m){ const a=+m[1], b=+m[2]; if (b>0) return a/b; }
+    m = s.match(/^([-+]?[0-9]+(?:[.,][0-9]+)?)\s*%$/);
+    if (m) return parseFloat(m[1].replace(',','.'))/100;
+    const d = parseFloat(s.replace(',','.'));
+    return Number.isFinite(d) ? d : NaN;
+  }
+  const same = (a,b,eps=1e-3)=>Math.abs(a-b)<=eps;
+
+  let allFilled = true;
+  let allCorrect = true;
+
+  function checkProb(id, expected){
+    const el = $(id);
+    const s  = v(id);
+    if (s===''){ setTick(el, null); allFilled=false; allCorrect=false; return; }
+    const num = parseProbFlexible(s);
+    const ok  = Number.isFinite(num) && same(num, expected);
+    setTick(el, ok);                 // <- BOOLÉEN
+    if (!ok) allCorrect=false;
+  }
+  function checkPhrase(id, requireNeg=false){
+    const el = $(id);
+    const s  = v(id);
+    if (s===''){ setTick(el, null); allFilled=false; allCorrect=false; return; }
+    const hasEt  = /( et |∩)/i.test(s);
+    const hasNeg = /(non|ne\s|n’|n')/i.test(s) || /overline|complément/i.test(s);
+    const ok = requireNeg ? (hasEt && hasNeg) : hasEt;
+    setTick(el, ok);                 // <- BOOLÉEN
+    if (!ok) allCorrect=false;
+  }
+
+  // 1a
+  checkProb('e5_1a_c',    st.pC);
+  checkProb('e5_1a_cbar', 1 - st.pC);
+
+  // 1b
+  checkProb('e5_1b_c',    st.pV_C);
+  checkProb('e5_1b_cbar', st.pV_notC);
+
+  // 2a
+  checkPhrase('e5_2a_txt', false);
+  checkProb  ('e5_2a_val', st.pC * st.pV_C);
+
+  // 2b
+  checkPhrase('e5_2b_txt', true);
+  checkProb  ('e5_2b_val', (1 - st.pC) * st.pV_notC);
+
+  // ⛔️ Plus de message global : on vide #res
+  const res = document.getElementById('res');
+  if (res){ res.innerHTML=''; res.className='res'; }
+
+return { ok: allFilled && allCorrect, total: 1, allAnswered: allFilled };
+  },
+ solution(host, st){
+  const p=st.p, pc=st.pC, pvC=st.pV_C, pvNc=st.pV_notC;
+  const Pct = x => Math.round(x*100) + "%";
+
+  const html = [
+    `1a) ${Pct(st.pC)} des ${p.group} ${p.Cpl} donc \\(P(${p.c})=${pc.toFixed(2)}\\) <br> \\(P(\\overline{${p.c}})=1-P(${p.c})=${(1-pc).toFixed(2)}\\).`,
+    `1b) Parmi les ${p.group} qui ${p.Cpl}, ${Pct(st.pV_C)} ${p.Vpl} donc \\(P_{${p.c}}(${p.v})=${pvC.toFixed(2)}\\) <br>
+     Parmi ceux qui ${p.CnegPl}, ${Pct(st.pV_notC)} ${p.Vpl} donc \\(P_{\\overline{${p.c}}}(${p.v})=${pvNc.toFixed(2)}\\).`,
+    `2a) \\(${p.c}\\cap ${p.v}\\) : « ${p.Csg} ET ${stripAgent(p.Vsg)} ». <br>\\(P(${p.c}\\cap ${p.v})=P(${p.c})\\times P_{${p.c}}(${p.v})=${pc.toFixed(2)} \\times ${pvC.toFixed(2)}=${(pc*pvC).toFixed(4)}\\).`,
+    `2b) \\(\\overline{${p.c}}\\cap ${p.v}\\) : « ${p.Cnegsg} ET ${stripAgent(p.Vsg)} ». <br>\\(P(\\overline{${p.c}}\\cap ${p.v})=P(\\overline{${p.c}})\\times P_{\\overline{${p.c}}}(${p.v})=${(1-pc).toFixed(2)} \\times ${pvNc.toFixed(2)}=${((1-pc)*pvNc).toFixed(4)}\\).`
+  ].map(x=>`<p>${x}</p>`).join('');
+
+  $('#res',host).innerHTML = html;
+  $('#res',host).className='res-ok';
+  retypeset($('#res',host));
+},
+
+  reset(host){ innerHost(host).innerHTML=''; }
+};
+
+/* ====== REGISTRY + moteur ====== */
+const REGISTRY = [ex1, ex2, ex3, ex4, ex5];
+window.REGISTRY = REGISTRY;
+
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function buildOne(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def = REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st = def.gen();
+  host.dataset.active = def.id;
+  host.dataset.state = JSON.stringify(st);
+  def.render(host, st);
+  const res = $('#res',host); if(res){ res.textContent=''; res.className='res'; }
+  addTicks();
+}
+function check(){
+  const host = $('#host');
+  const def  = REGISTRY.find(e=>e.id===host.dataset.active);
+  if(!def) return;
+  const st = JSON.parse(host.dataset.state||'{}');
+
+  // Lance la correction (les correct() doivent laisser neutre les champs vides)
+  const r = def.correct(host, st) || {ok:false, total:1, allAnswered:false};
+
+  // Score uniquement si toutes les réponses sont saisies ET correctes
+  if(r.allAnswered){
+    scoreOK += (r.ok ? 1 : 0);
+    scoreTot += (r.total || 1);
+    updateScore();
+  }
+}
+
+
+function solution(){
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(!def||!def.solution) return;
+  const st = JSON.parse(host.dataset.state||'{}'); def.solution(host, st);
+}
+function resetAll(){
+  scoreOK=0; scoreTot=0; updateScore();
+  const host=$('#host'); const def=REGISTRY.find(e=>e.id===host.dataset.active); if(def&&def.reset) def.reset(host);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  innerHost(document.getElementById('host'));
+  const sel=$('#exo-select');
+  REGISTRY.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
+  sel.addEventListener('change', buildOne);
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', solution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  sel.value=REGISTRY[0].id; buildOne(); updateScore();
+
+  document.addEventListener('keydown', ev=>{
+    const a=document.activeElement;
+    if(ev.key==='Enter' && a && a.matches('#host input[type=text]') && !a.closest('.equ-offscreen')){
+      ev.preventDefault(); try{ check(); }catch(_){}
+    }
+  });
+
+  // PDF si présent (même API que tes fiches)
+  if(typeof ExoPDF!=='undefined' && ExoPDF && ExoPDF.init){
+    ExoPDF.init({
+      title:'Première – Probabilités conditionnelles',
+      max:50,
+      mountAfterSelector:'.card.small',
+      beforeRender(def, st, withSolutions){
+        const tmp = document.createElement('div');
+        tmp.style.position='fixed'; tmp.style.left='-10000px'; tmp.style.top='-10000px';
+        def.render(tmp, st);
+        if(!withSolutions){
+          const off = tmp.querySelector('.equ-offscreen');
+          return off ? off.innerHTML : '';
+        } else if(def.solution){
+          def.solution(tmp, st);
+          return tmp.querySelector('#res')?.innerHTML || '';
+        }
+        return '';
+      }
+    });
+  }
+});
+
+
+
+})();
+</script>
+
+<!-- JS fournis -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src="../../../../js/fraction-sign-clarity.dom.v3.js" defer></script>
+<script src="../../../../js/exo-pdf-kit.multiplicatif.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn'); clone.type='button'; clone.removeAttribute('id');
+          clone.addEventListener('click',(e)=>{e.preventDefault(); src.click();});
+          bar.appendChild(clone);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center',behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r=parseFloat(c.getAttribute('r')||'5'); if(r<10) c.setAttribute('r','12'); c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+</script>
+</body>
+</html>

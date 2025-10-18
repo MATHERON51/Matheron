@@ -1,35 +1,1472 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 4 – Fréquences marginales et conditionnelles</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fréquences marginales et conditionnelles</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.55}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{display:grid;grid-template-columns:1fr;grid-template-areas:'lab' 'inp' 'res';gap:10px;align-items:start}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .res{grid-area:res;padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+.tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
+.tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
+.tbl th{background:#f7f7f7}
+
+.steps{background:#f7f7f7;border:1px solid #e6e6e6;border-radius:10px;padding:10px}
+.steps .line{margin:.25rem 0;white-space:nowrap}
+.qno{display:inline-block;margin-right:.45em}
+
+svg{max-width:100%;height:auto;}
+
+.tick{display:inline-block;min-width:1.25em;margin-left:8px;font-weight:700;vertical-align:middle}
+.tick.ok{color:#059669}   /* ✓ vert */
+.tick.ko{color:#dc2626}   /* ✗ rouge */
+
+
+.tree-wrap svg{
+  position:absolute; inset:0; width:100%; height:100%;
+}
+.branch-input{
+  position:absolute; width:58px; padding:2px 4px; font-size:12px;
+  border:1px solid #cbd5e1; border-radius:6px; text-align:center; background:#fff;
+}
+.tree-wrap{
+  position:relative;
+  width:760px;         /* ou 640px, mais UNE seule valeur */
+  height:260px;
+  margin:6px 0 10px;
+}
+#tree3 svg{overflow:visible}
+.tree-wrap svg{position:absolute; inset:0; width:100%; height:100%}
+
+.branch-input{
+  position:absolute;width:58px;padding:2px 4px;font-size:12px;
+  border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:#fff
+}
+/* libellés posés dans la coupure du trait */
+
+/* Apparence en mode solution : les inputs deviennent des étiquettes */
+.branch-input.as-label{
+  border: none;
+  background: transparent;
+  pointer-events: none;
+  font-weight: 600;
+  width: auto;          /* pour épouser le contenu */
+  padding: 0;
+  text-align: left;
+}
+/* Ticks absolus pour l'arbre (à côté des inputs) */
+.tick.abs{
+  position:absolute;
+  margin:0;
+  font-weight:700;
+  min-width:auto;
+  color:#059669; /* vert par défaut */
+  z-index:3;
+}
+.tick.abs.ko{color:#dc2626}
+
+
+
+</style>
+
+<!-- MathJax (TeX inside \( ... \) or \[ ... \]) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<!-- JS clavier & kit PDF si besoin -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src="../../../../js/algebra-eval-patch.multiplicatif.js" defer></script>
+<script src="../../../../js/dev-rules-clean.dedup.js" defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 </head>
 <body>
-  <h1>Exercices – Fréquences marginales et conditionnelles</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Fréquences marginales et conditionnelles</strong> (Premiere Sti2D, chapitre 4) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-4</code></li>
-        <li>Thème (slug) : <code>frequences-marginales-et-conditionnelles</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">Seconde – Proportions échelonnées</h1>
   </div>
+  <div class="wrap">
+
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select">
+        <option value="ex2">Ex. — Tableau à double entrée (entiers uniquement)</option>
+      </select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <div class="hint">Saisir vos réponses dans les zones prévues. Pensez à mettre % quand c'est explicitement demandé</div>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ===== Utilitaires ===== */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const rchoice = L => L[rnd(0,L.length-1)];
+const stripSign = s => String(s||'').replace(/−/g,'-');
+const parseNum = s => { s=stripSign(String(s||'').trim()).replace(',','.'); return /^[-+]?(\\d+(\\.\\d*)?|\\.\\d+)$/.test(s)?parseFloat(s):NaN; };
+const parsePct = s => { s=stripSign(String(s||'').trim()).replace(',','.'); if(/%$/.test(s)) s=s.slice(0,-1).trim(); const v=parseFloat(s); return Number.isFinite(v)?v:NaN; };
+const unaccent = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+// "de" → "d’" si l’unité commence par une voyelle (accents gérés)
+// ex. d’élèves, de clients
+const de_ = (s) => {
+  const txt = String(s || '').trim();
+  const w = unaccent(txt).toLowerCase();
+  return /^[aeiouh]/.test(w) ? "d’" : "de ";
+};
+
+
+
+// Normalisation "robuste" : sans accents, pas de tirets/apostrophes, minuscules, espaces compressés
+const NORM = s => unaccent(String(s||'').toLowerCase())
+  .replace(/[-’']/g,' ')
+  .replace(/\s+/g,' ')
+  .trim();
+
+// Stopwords FR pour ne garder que les mots "noyaux"
+const STOP = new Set([
+  'de','des','du','d','l','la','le','les','sur','en','au','aux','avec','pour','chez','dans',
+  'moins','ans','seconde','service','menu','tribune','equipe','pass','jours','mobile','mobiles','point','relais','rang','premium','3'
+]);
+
+const isAlpha = s => /^[A-Za-zÀ-ÖØ-öø-ÿ\-]+$/.test(s);
+const INVAR = new Set(['vip','pass','3d','cdi','cdd','rh']); // mots invariants fréquents
+
+function pluralizeWord(raw){
+  const w = unaccent(raw).toLowerCase();
+  if (!isAlpha(w) || INVAR.has(w) || /[sxz]$/.test(w)) return raw; // déjà “pluriel” ou invariable
+
+  // cas simples suffisants pour nos libellés
+  if (/al$/.test(w) && !/(festival|bal|carnaval)$/.test(w)) return raw.replace(/al$/i,'aux');
+  if (/(eau|au|eu)$/.test(w) && !/(bleu|pneu)$/.test(w))     return raw + 'x';
+  return raw + 's';
+}
+
+const NON_PLUR = new Set([
+  // prépositions / articles courants
+  'de','des','du','d','l','la','le','les','au','aux','à','a',
+  'en','sur','sous','dans','entre','contre','avec','sans','chez','par','pour','vers'
+]);
+
+function pluralizeLabel(label){
+  return String(label||'')
+    .split(/(\s+)/) // garder les espaces
+    .map(tok => {
+      const base = unaccent(tok).toLowerCase();
+      // on pluralise seulement les mots « lexicaux » que l’on veut fléchir
+      if (!isAlpha(base)) return tok;
+      if (NON_PLUR.has(base)) return tok;   // ← NE PAS pluraliser « sur », « en », « à », …
+      if (INVAR.has(base))    return tok;   // invariants (VIP, pass, etc.)
+      return pluralizeWord(tok);
+    })
+    .join('');
+}
+
+
+// Remplacement ciblé "des <col>" → "des <col-pluriel>"
+function pluralizeInText(str, C){
+  const c1 = C.col1 || '', c2 = C.col2 || '';
+  const c1p = pluralizeLabel(c1), c2p = pluralizeLabel(c2);
+  return str
+    .replaceAll(` des ${c1} `, ` des ${c1p} `)
+    .replaceAll(` des ${c2} `, ` des ${c2p} `)
+    .replaceAll(` Des ${ucfirst(c1)} `, ` Des ${ucfirst(c1p)} `)
+    .replaceAll(` Des ${ucfirst(c2)} `, ` Des ${ucfirst(c2p)} `);
+}
+
+
+
+const splitTokens = s => NORM(s).split(' ').filter(w => w && !STOP.has(w));
+
+// Enlever le préfixe "ensemble de(s)/du/d'..." (pour E)
+function stripEnsemble(s){
+  return NORM(s).replace(/^ensemble\s+(des|de|du|d|de la|de l)\s+/,'');
+}
+
+// Variantes singulier/pluriel très simples
+function sVariants(w){
+  const out = new Set([w]);
+  if (w.endsWith('s')) out.add(w.slice(0,-1));
+  else out.add(w+'s');
+  if (w.endsWith('x')) out.add(w.slice(0,-1));
+  return Array.from(out);
+}
+
+// Construit l’ensemble des formes acceptées pour une étiquette (E ou F)
+function buildAcceptSet(label, isE=false){
+  const set = new Set();
+  const base = NORM(label);
+  if (base) set.add(base);
+
+  if (isE && base.startsWith('ensemble ')) {
+    const rem = stripEnsemble(label);
+    if (rem) set.add(rem);
+  }
+
+  const tokens = splitTokens(label);
+  if (tokens.length){
+    // On accepte le 1er et le dernier "mot noyau" (couvre "touristes étrangers" ET "joueurs de tennis")
+    const first = tokens[0];
+    const last  = tokens[tokens.length-1];
+    [first,last].forEach(t => sVariants(t).forEach(v => set.add(v)));
+  }
+  return Array.from(set);
+}
+
+// test de présence "mot entier" (limites de mots)
+function hasWord(hay, needle){
+  const h = NORM(hay);
+  const n = NORM(needle);
+  if (!n) return false;
+  const esc = n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return new RegExp(`\\b${esc}\\b`).test(h);
+}
+// % OBLIGATOIRE (ex: "12%" ou "12,5%") → retourne 12 ou 12.5
+function readPercentStrict(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(!/%$/.test(s)) return NaN;                // doit se terminer par %
+  s = s.slice(0,-1).trim().replace(',','.');
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+// Proportion souple: "12%" OU "0,12" (refuse "12")
+// → retourne la valeur en pourcents (12) pour comparer facilement
+function readProportionFlexible(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(/%$/.test(s)) return readPercentStrict(s);       // 12%
+  const v = parseNum(s);                               // 0.12 / 0,12
+  if(!Number.isFinite(v)) return NaN;
+  if(v < 0 || v > 1) return NaN;                       // refuse "12"
+  return v*100;                                        // 0.12 → 12
+}
+function svgAddPercentPlaceholders(svg, st, isSolution){
+  const NS = 'http://www.w3.org/2000/svg';
+  const makeG = () => svg.appendChild(document.createElementNS(NS,'g'));
+
+  // lis les coordonnées d’une ligne
+  const seg = id => {
+    const L = svg.querySelector('#'+id);
+    if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    return { x:(x1+x2)/2, y:(y1+y2)/2 };
+  };
+
+  // style commun
+  const font = '14px system-ui,Segoe UI,Roboto,Arial';
+
+  // fabrique un « input » SVG (énoncé) ou un label % (solution)
+  const drawBoxOrText = (P, value /* entier en % ou null */) => {
+    const g = makeG();
+    if(isSolution){
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', P.x);
+      t.setAttribute('y', P.y+5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('style', `font:${font}; fill:#111`);
+      t.textContent = `${Math.round(value)} %`;
+      g.appendChild(t);
+    }else{
+      const w=46, h=20, rx=4;
+      const r = document.createElementNS(NS,'rect');
+      r.setAttribute('x', P.x - w/2);
+      r.setAttribute('y', P.y - h/2);
+      r.setAttribute('width', w);
+      r.setAttribute('height', h);
+      r.setAttribute('rx', rx);
+      r.setAttribute('fill', '#fff');
+      r.setAttribute('stroke', '#cbd5e1');
+      g.appendChild(r);
+
+      // petit “%” grisé en guide
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', P.x + w/2 - 10);
+      t.setAttribute('y', P.y + 5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('style', `font:${font}; fill:#9ca3af`);
+      t.textContent = '%';
+      g.appendChild(t);
+    }
+  };
+
+  // points milieux des 6 segments (ids déjà dans ton SVG)
+  const M = {
+    // branches de niveau 1
+    pNV:  seg('seg_nv'),
+    pV:   seg('seg_v'),
+    // branches issues (ordre cohérent avec st.S / st.NS)
+    pSnv:  seg('nv_m'),
+    pNSnv: seg('nv_n'),
+    pNSv:  seg('v_n'),
+    pSv:   seg('v_m')
+  };
+
+  // si on est en solution → valeurs attendues
+  const values = {
+    pNV:   100 - st.pV,
+    pV:    st.pV,
+    pSv:   st.pS_v,
+    pNSv:  100 - st.pS_v,
+    pSnv:  st.pS_nv,
+    pNSnv: 100 - st.pS_nv
+  };
+
+  // dessiner
+  Object.entries(M).forEach(([k,P])=>{
+    if(!P) return;
+    drawBoxOrText(P, isSolution ? values[k] : null);
+  });
+}
+
+function svgAddPercentLabelsOffLine(svg, st, opts={}){
+  const NS = 'http://www.w3.org/2000/svg';
+  const font = opts.font || '14px system-ui,Segoe UI,Roboto,Arial';
+
+  // lit un segment par id → {x1,y1,x2,y2, mx,my, nx,ny}
+  const seg = id => {
+    const L = svg.querySelector('#'+id);
+    if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    // vecteur normal unitaire (perpendiculaire)
+    let vx=x2-x1, vy=y2-y1;
+    const len = Math.hypot(vx,vy) || 1;
+    const nx = -vy/len, ny = vx/len;
+    return { x1,y1,x2,y2, mx,my, nx,ny };
+  };
+
+  // place un texte à (mx,my) + d * (nx,ny) (au-dessus si s=+1, en dessous si s=-1)
+  const place = (S, value, sgn=+1, dist=opts.distance||14) => {
+    if(!S) return;
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', S.mx + sgn*dist*S.nx);
+    t.setAttribute('y', S.my + sgn*dist*S.ny + 5);     // +5 pour l’assise
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('style', `font:${font}; fill:#111`);
+    t.textContent = `${Math.round(value)} %`;
+    svg.appendChild(t);
+  };
+
+  // Segments (ids existants dans ton SVG)
+  const S = {
+    seg_nv : seg('seg_nv'),
+    seg_v  : seg('seg_v'),
+    nv_m   : seg('nv_m'),
+    nv_n   : seg('nv_n'),
+    v_n    : seg('v_n'),
+    v_m    : seg('v_m'),
+  };
+
+  // Valeurs attendues
+  const V = {
+    seg_nv : 100 - st.pV,
+    seg_v  : st.pV,
+    nv_m   : st.pS_nv,
+    nv_n   : 100 - st.pS_nv,
+    v_n    : 100 - st.pS_v,
+    v_m    : st.pS_v
+  };
+
+  // Choix des côtés : branches "hautes" → au-dessus (+1), "basses" → au-dessous (-1)
+  // seg_nv est la branche du haut, seg_v celle du bas (après layoutTree3).
+  const side = {
+    seg_nv : -1,
+    seg_v  : +1,
+    nv_n   : -1,   // issue haute de NV
+    nv_m   : +1,   // issue basse de NV
+    v_n    : -1,   // issue haute de V
+    v_m    : +1    // issue basse de V
+  };
+
+  // Dessin
+  Object.keys(S).forEach(k=>{
+    if(!S[k]) return;
+    place(S[k], V[k], side[k]);
+  });
+}
+
+// utilitaire robuste pour la largeur d'un <text> SVG
+function textWidth(t, svg){
+  // 1) getBBox (le plus fiable quand dispo)
+  try {
+    const bb = t.getBBox();
+    if (bb && isFinite(bb.width) && bb.width > 0) return bb.width;
+  } catch(_) {}
+
+  // 2) getComputedTextLength (souvent OK dans les moteurs "print")
+  if (typeof t.getComputedTextLength === 'function') {
+    const w = t.getComputedTextLength();
+    if (isFinite(w) && w > 0) return w;
+  }
+
+  // 3) boundingClientRect → re-projeter en unités viewBox
+  const r = svg.getBoundingClientRect?.();
+  const vb = svg.viewBox?.baseVal;
+  const br = t.getBoundingClientRect?.();
+  if (r && vb && br && r.width > 0) {
+    const sx = vb.width / r.width;
+    const w = br.width * sx;
+    if (isFinite(w) && w > 0) return w;
+  }
+
+  // 4) dernier recours : heuristique (8.5 px/char ~ 12–14px)
+  const n = (t.textContent || '').length;
+  return Math.max(10, n * 8.5);
+}
+// plus petit delta imposant pV*delta multiple de 100
+function gcd(a,b){ return b ? gcd(b, a%b) : Math.abs(a); }
+function deltaPoolFor(pV){
+  const Dmin = 100 / gcd(pV,100);                  // ex. pV=60 → Dmin=5
+  const CAND = [4,5,6,8,10,12,15,16,20];           // deltas plausibles
+  return CAND.filter(d => d % Dmin === 0);
+}
+// utilitaires arithmétiques
+function lcm(a,b){ return Math.abs(a*b) / gcd(a,b); }   // gcd existe déjà plus bas ; si besoin, remonte-le ici
+const denomFor = p => 100 / gcd(p,100);                 // ex. 30% -> besoin d'un multiple de 10
+
+/* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
+/* ====== Ex.1 contexts (A ⊂ F ⊂ E) ====== */
+const EX1_BANK = [
+  // 10 d'origine (A ⊂ F ⊂ E)
+  ()=>({theme:'camping', E:'ensemble des vacanciers', F:'touristes étrangers', A:'étrangers dormant sous une tente', pF:40, pAinF:60, asProportion:true}),
+  ()=>({theme:'bibliothèque', E:'ensemble des livres', F:'romans', A:'romans policiers', pF:rchoice([30,35,40,45]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'lycée', E:'ensemble des élèves', F:'élèves de seconde', A:'élèves de seconde demi-pensionnaires', pF:rchoice([25,30,35,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'ville', E:'ensemble des habitants', F:'habitants de moins de 25 ans', A:'moins de 25 ans étudiants', pF:rchoice([30,35,40,45]), pAinF:rchoice([50,60,70,80])}),
+  ()=>({theme:'usine', E:'ensemble des employés', F:'employés du service production', A:'production en horaires de nuit', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'site web', E:'ensemble des visiteurs', F:'visiteurs sur mobile', A:'visiteurs sur mobile réguliers', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'stade', E:'ensemble des spectateurs', F:'supporters de l’équipe A', A:'supporters A en tribune nord', pF:rchoice([35,40,45,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'parc', E:'ensemble des arbres', F:'conifères', A:'pins', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'club', E:'ensemble des membres', F:'joueurs de tennis', A:'tennis en compétition', pF:rchoice([25,30,35,40]), pAinF:rchoice([50,60,70])}),
+  ()=>({theme:'école', E:'ensemble des élèves', F:'demi-pensionnaires', A:'demi-pensionnaires prenant un menu végétarien', pF:rchoice([30,35,40,45]), pAinF:rchoice([40,50,60,70])}),
+
+  // 20 nouveaux (A clairement inclus dans F)
+  ()=>({theme:'supermarché', E:'ensemble des clients', F:'détenteurs de carte de fidélité', A:'détenteurs de carte ayant acheté des produits bio', pF:rchoice([35,40,45,50]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'entreprise', E:'ensemble des salariés', F:'salariés en télétravail', A:'salariés en télétravail au moins trois jours par semaine', pF:rchoice([25,30,35,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'université', E:'ensemble des étudiants', F:'étudiants en licence', A:'étudiants en licence inscrits en mathématiques', pF:rchoice([40,50,60]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'festival', E:'ensemble des visiteurs', F:'visiteurs munis d’un pass 3 jours', A:'visiteurs munis d’un pass 3 jours avec accès VIP', pF:rchoice([30,40,50]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'hôpital', E:'ensemble des patients', F:'patients en consultation', A:'patients en consultations de cardiologie', pF:rchoice([50,60,70]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'réseau social', E:'ensemble des utilisateurs', F:'utilisateurs actifs mensuels', A:'utilisateurs actifs ayant publié durant la dernière semaine', pF:rchoice([40,50,60,70]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'bibliothèque municipale', E:'ensemble des abonnés', F:'abonnés ayant emprunté ce mois-ci', A:'emprunteurs de romans graphiques', pF:rchoice([30,40,50]), pAinF:rchoice([25,35,45,55])}),
+  ()=>({theme:'métro', E:'ensemble des voyageurs', F:'voyageurs aux heures de pointe', A:'voyageurs aux heures de pointe titulaires d’un abonnement annuel', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60])}),
+  ()=>({theme:'club de sport', E:'ensemble des adhérents', F:'adhérents pratiquant le fitness', A:'adhérents pratiquant le fitness en cours collectifs', pF:rchoice([30,40,50]), pAinF:rchoice([40,55,60,70])}),
+  ()=>({theme:'parc automobile', E:'ensemble des véhicules', F:'véhicules hybrides', A:'véhicules hybrides rechargeables', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'e-commerce', E:'ensemble des commandes', F:'commandes livrées en point relais', A:'commandes livrées en point relais payées par carte cadeau', pF:rchoice([30,40,50]), pAinF:rchoice([20,30,40,50])}),
+  ()=>({theme:'tournoi', E:'ensemble des participants', F:'participants de moins de 18 ans', A:'participants de moins de 18 ans licenciés en club', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'restaurant', E:'ensemble des clients', F:'clients du service du midi', A:'clients du service du midi prenant un dessert', pF:rchoice([40,50,60]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'cinéma', E:'ensemble des spectateurs', F:'spectateurs de séances en 3D', A:'spectateurs de séances en 3D en rangs premium', pF:rchoice([20,25,30,35]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'ville (logement)', E:'ensemble des ménages', F:'ménages propriétaires', A:'propriétaires résidant en maison individuelle', pF:rchoice([40,50,60]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'collège', E:'ensemble des élèves', F:'demi-pensionnaires', A:'demi-pensionnaires avec menu sans porc', pF:rchoice([50,60,70]), pAinF:rchoice([10,20,30,40])}),
+  ()=>({theme:'musée', E:'ensemble des visiteurs', F:'visiteurs en visite guidée', A:'visiteurs en visite guidée en langue anglaise', pF:rchoice([20,30,40]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'association', E:'ensemble des membres', F:'bénévoles actifs', A:'bénévoles actifs présents le week-end', pF:rchoice([30,40,50]), pAinF:rchoice([40,50,60,70])}),
+  ()=>({theme:'banque', E:'ensemble des clients', F:'clients titulaires d’un compte courant', A:'clients titulaires d’un compte courant avec découvert autorisé', pF:rchoice([60,70,80]), pAinF:rchoice([30,40,50,60])}),
+  ()=>({theme:'jardin botanique', E:'ensemble des plantes', F:'plantes tropicales', A:'plantes tropicales en serre chaude', pF:rchoice([20,30,40]), pAinF:rchoice([40,50,60,70])})
+];
+
+function ctxToHTML(ctx){
+  const pAF = ctx.asProportion
+    ? String((ctx.pAinF/100).toFixed(1)).replace('.',',')
+    : ctx.pAinF + '\\,\\%';
+
+  const map = {
+    // 10 d'origine
+    'camping':        `Dans un camping, \\(${ctx.pF}\\,\\%\\) des vacanciers sont étrangers ; parmi ces étrangers, la proportion qui dorment sous une tente est \\(${pAF}\\).`,
+    'bibliothèque':   `Dans une bibliothèque, \\(${ctx.pF}\\,\\%\\) des livres sont des romans ; parmi ces romans, \\(${ctx.pAinF}\\,\\%\\) sont des policiers.`,
+    'lycée':          `Au lycée, \\(${ctx.pF}\\,\\%\\) des élèves sont en seconde ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont demi-pensionnaires.`,
+    'ville':          `Dans une ville, \\(${ctx.pF}\\,\\%\\) des habitants ont moins de 25 ans ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont étudiants.`,
+    'usine':          `Dans une usine, \\(${ctx.pF}\\,\\%\\) des employés travaillent à la production ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont en horaires de nuit.`,
+    'site web':       `Sur un site web, \\(${ctx.pF}\\,\\%\\) des visiteurs sont sur mobile ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont des visiteurs réguliers.`,
+    'stade':          `Au stade, \\(${ctx.pF}\\,\\%\\) des spectateurs supportent l’équipe A ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont en tribune nord.`,
+    'parc':           `Dans un parc, \\(${ctx.pF}\\,\\%\\) des arbres sont des conifères ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont des pins.`,
+    'club':           `Dans un club, \\(${ctx.pF}\\,\\%\\) des membres jouent au tennis ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) font de la compétition.`,
+    'école':          `Dans une école, \\(${ctx.pF}\\,\\%\\) des élèves sont demi-pensionnaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) prennent le menu végétarien.`,
+
+    // 20 nouveaux (même style)
+    'supermarché':            `Dans un supermarché, \\(${ctx.pF}\\,\\%\\) des clients détiennent une carte de fidélité ; parmi ces clients, \\(${ctx.pAinF}\\,\\%\\) ont acheté des produits bio.`,
+    'entreprise':             `Dans une entreprise, \\(${ctx.pF}\\,\\%\\) des salariés sont en télétravail ; parmi ceux-ci, \\(${ctx.pAinF}\\,\\%\\) télétravaillent au moins trois jours par semaine.`,
+    'université':             `À l’université, \\(${ctx.pF}\\,\\%\\) des étudiants sont en licence ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont inscrits en mathématiques.`,
+    'festival':               `Lors d’un festival, \\(${ctx.pF}\\,\\%\\) des visiteurs ont un pass 3 jours ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) disposent d’un accès VIP.`,
+    'hôpital':                `À l’hôpital, \\(${ctx.pF}\\,\\%\\) des patients sont en consultation ; parmi ces consultations, \\(${ctx.pAinF}\\,\\%\\) sont de cardiologie.`,
+    'réseau social':          `Sur un réseau social, \\(${ctx.pF}\\,\\%\\) des utilisateurs sont actifs chaque mois ; parmi ces actifs, \\(${ctx.pAinF}\\,\\%\\) ont publié durant la dernière semaine.`,
+    'bibliothèque municipale':`Dans une bibliothèque municipale, \\(${ctx.pF}\\,\\%\\) des abonnés ont emprunté ce mois-ci ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) ont pris des romans graphiques.`,
+    'métro':                  `Dans le métro, \\(${ctx.pF}\\,\\%\\) des voyageurs circulent aux heures de pointe ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) possèdent un abonnement annuel.`,
+    'club de sport':          `Dans un club de sport, \\(${ctx.pF}\\,\\%\\) des adhérents pratiquent le fitness ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) suivent des cours collectifs.`,
+    'parc automobile':        `Dans un parc automobile, \\(${ctx.pF}\\,\\%\\) des véhicules sont hybrides ; parmi ceux-ci, \\(${ctx.pAinF}\\,\\%\\) sont rechargeables.`,
+    'e-commerce':             `Sur un site d’e-commerce, \\(${ctx.pF}\\,\\%\\) des commandes sont livrées en point relais ; parmi ces commandes, \\(${ctx.pAinF}\\,\\%\\) sont payées par carte cadeau.`,
+    'tournoi':                `Dans un tournoi, \\(${ctx.pF}\\,\\%\\) des participants ont moins de 18 ans ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) sont licenciés en club.`,
+    'restaurant':             `Dans un restaurant, \\(${ctx.pF}\\,\\%\\) des clients viennent au service du midi ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) prennent un dessert.`,
+    'cinéma':                 `Au cinéma, \\(${ctx.pF}\\,\\%\\) des spectateurs assistent à des séances en 3D ; parmi ces spectateurs, \\(${ctx.pAinF}\\,\\%\\) sont en rangs premium.`,
+    'ville (logement)':       `Dans une ville, \\(${ctx.pF}\\,\\%\\) des ménages sont propriétaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) résident en maison individuelle.`,
+    'collège':                `Dans un collège, \\(${ctx.pF}\\,\\%\\) des élèves sont demi-pensionnaires ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) choisissent un menu sans porc.`,
+    'musée':                  `Dans un musée, \\(${ctx.pF}\\,\\%\\) des visiteurs suivent une visite guidée ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) la suivent en langue anglaise.`,
+    'association':            `Dans une association, \\(${ctx.pF}\\,\\%\\) des membres sont bénévoles actifs ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) interviennent le week-end.`,
+    'banque':                 `Dans une banque, \\(${ctx.pF}\\,\\%\\) des clients détiennent un compte courant ; parmi eux, \\(${ctx.pAinF}\\,\\%\\) disposent d’un découvert autorisé.`,
+    'jardin botanique':       `Dans un jardin botanique, \\(${ctx.pF}\\,\\%\\) des plantes sont tropicales ; parmi elles, \\(${ctx.pAinF}\\,\\%\\) sont en serre chaude.`
+  };
+
+  return map[ctx.theme];
+}
+
+
+/* ===== SVG — Diagramme A ⊂ F ⊂ E (compact, lignes calibrées) ===== */
+function vennSVG(){
+  return `
+  <svg viewBox="0 0 520 200" width="360" height="152" aria-label="Diagramme A inclus dans F inclus dans E">
+    <defs><style>
+      .r{fill:none;stroke:#6b7280;stroke-width:2}
+      .c{fill:#e5e7eb}
+      text{font:12px system-ui,Segoe UI,Roboto,Arial}
+    </style></defs>
+
+    <!-- Paramètres (centrés plus au milieu pour éloigner les boîtes) -->
+    <!-- E : centre (260,110), rx=190, ry=80  => bord gauche x=70, bord droit x=450 -->
+    <!-- F : centre (260,110), rx=130, ry=55  => bord droit de F : x=390 -->
+    <!-- A : centre (260,95),  rx=30,  ry=15  => bord gauche de A : x=230 -->
+
+    <!-- E et F -->
+    <ellipse class="r" cx="260" cy="110" rx="190" ry="80"></ellipse>
+    <ellipse class="r" cx="260" cy="110" rx="130" ry="55"></ellipse>
+
+    <!-- A -->
+    <ellipse class="c" cx="260" cy="95" rx="30" ry="15"></ellipse>
+    <ellipse class="r" cx="260" cy="95" rx="30" ry="15"></ellipse>
+
+    <!-- A : boîte bien à gauche, ne touche pas l'ellipse extérieure (bord ext = 70) -->
+    <rect class="r" x="20" y="84" width="26" height="22" rx="4"></rect>
+    <!-- Trait jusqu'au bord gauche de A (x=230) -->
+    <line class="r" x1="46" y1="95" x2="230" y2="95"></line>
+    <text x="28" y="100">A</text>
+
+    <!-- E : boîte plus haute, à distance du bord haut de E (y=30) -->
+    <rect class="r" x="247" y="0" width="26" height="22" rx="4"></rect>
+    <line class="r" x1="260" y1="22" x2="260" y2="30"></line>
+    <text x="254" y="15">E</text>
+
+    <!-- F : boîte très à droite, loin de l'ellipse extérieure (bord ext = 450) -->
+    <rect class="r" x="486" y="99" width="26" height="22" rx="4"></rect>
+    <!-- Trait HORIZONTAL jusqu'au bord droit de F (x=390, y=110) -->
+    <line class="r" x1="486" y1="110" x2="390" y2="110"></line>
+    <text x="494" y="114">F</text>
+  </svg>`;
+}
+const ucfirst = s => (s||'').slice(0,1).toUpperCase()+ (s||'').slice(1);
+
+// un entier avec pas (step)
+const rndStep = (min, max, step=1) => min + step * rnd(0, Math.floor((max-min)/step));
+
+// choisit N en fonction du thème
+function pickNForContext(C){
+  const S = EX2_NSPEC[C.t];
+  if(!S) return rchoice([24,28,30,32,36,40,44,48]); // fallback "classe"
+  if(S.pool)  return rchoice(S.pool);
+  if(S.range) return rndStep(S.range.min, S.range.max, S.range.step||1);
+  return rchoice([24,28,30,32,36,40,44,48]);
+}
+
+
+/* ====== Ex.2 — Banque de 30 contextes (avec nonA) ====== */
+/*
+Chaque contexte fournit :
+- U: description courte de l’univers
+- unit: nom du total N
+- col1 / col2: libellés colonnes (pluriel)
+- A: libellé court de la ligne « A »
+- nonA: libellé court naturel de la ligne « non A »
+- action: verbe/locution pour l’énoncé (« étudient l’anglais », …)
+*/
+const EX2_BANK = [
+  ()=>({t:'classe', U:'une classe', unit:'élèves', col1:'filles', col2:'garçons', A:'Anglais', nonA:'Pas anglais',
+        action:'étudient l’anglais', verb:'étudient',
+        actionNonA:"n’étudient pas l’anglais",
+        actionCol1:"sont des filles",
+        actionCol2:"sont des garçons"}),
+
+  ()=>({t:'college', U:'un collège', unit:'élèves', col1:'élèves de 6e', col2:'élèves de 3e', A:'Chorale', nonA:'Hors chorale',
+        action:'sont inscrits à la chorale', verb:'sont inscrits',
+        actionNonA:"sont hors chorale",
+        actionCol1:"sont des élèves de 6e",
+        actionCol2:"sont des élèves de 3e"}),
+
+  ()=>({t:'lycee', U:'un lycée', unit:'élèves', col1:'externes', col2:'internes', A:'Section euro', nonA:'Hors section euro',
+        action:'suivent la section européenne', verb:'suivent',
+        actionNonA:"sont hors section européenne",
+        actionCol1:"sont externes",
+        actionCol2:"sont internes"}),
+
+  ()=>({t:'clubSportif', U:'un club sportif', unit:'adhérents', col1:'jeunes', col2:'adultes', A:'Compétition', nonA:'Loisir',
+        action:'participent en compétition', verb:'participent',
+        actionNonA:"pratiquent en loisir",
+        actionCol1:"sont des jeunes",
+        actionCol2:"sont des adultes"}),
+
+  ()=>({t:'bibliotheque', U:'une bibliothèque', unit:'abonnés', col1:'jeunes', col2:'adultes', A:'Policiers', nonA:'Autres genres',
+        action:'empruntent des romans policiers', verb:'empruntent',
+        actionNonA:"empruntent d’autres genres",
+        actionCol1:"sont des jeunes",
+        actionCol2:"sont des adultes"}),
+
+  ()=>({t:'entrepriseCadres', U:'une entreprise', unit:'salariés', col1:'non-cadres', col2:'cadres', A:'Télétravail', nonA:'Sur site',
+        action:'télétravaillent', verb:'télétravaillent',
+        actionNonA:"travaillent sur site",
+        actionCol1:"sont non-cadres",
+        actionCol2:"sont cadres"}),
+
+  ()=>({t:'entrepriseTP', U:'une entreprise', unit:'salariés', col1:'temps partiel', col2:'temps plein', A:'Formation', nonA:'Sans formation',
+        action:'suivent une formation', verb:'suivent',
+        actionNonA:"sont sans formation",
+        actionCol1:"travaillent à temps partiel",
+        actionCol2:"travaillent à temps plein"}),
+
+  ()=>({t:'universite', U:'une université', unit:'étudiants', col1:'licence', col2:'master', A:'Maths', nonA:'Autres disciplines',
+        action:'sont inscrits en mathématiques', verb:'sont inscrits',
+        actionNonA:"sont inscrits dans d’autres disciplines",
+        actionCol1:"sont en licence",
+        actionCol2:"sont en master"}),
+
+  ()=>({t:'festival', U:'un festival', unit:'visiteurs', col1:'pass 1 jour', col2:'pass 3 jours', A:'VIP', nonA:'Sans VIP',
+        action:'disposent d’un accès VIP', verb:'disposent',
+        actionNonA:"sont sans accès VIP",
+        actionCol1:"ont un pass 1 jour",
+        actionCol2:"ont un pass 3 jours"}),
+
+  ()=>({t:'hopital', U:'un hôpital', unit:'séjours/visites', col1:'hospitalisations', col2:'consultations', A:'Cardiologie', nonA:'Autres spécialités',
+        action:'concernent la cardiologie', verb:'concernent',
+        actionNonA:"concernent d’autres spécialités",
+        actionCol1:"sont des hospitalisations",
+        actionCol2:"sont des consultations"}),
+
+  ()=>({t:'musee', U:'un musée', unit:'visiteurs', col1:'visite libre', col2:'visite guidée', A:'Audioguide', nonA:'Sans audioguide',
+        action:'prennent un audioguide', verb:'prennent',
+        actionNonA:"sont sans audioguide",
+        actionCol1:"sont en visite libre",
+        actionCol2:"sont en visite guidée"}),
+
+  ()=>({t:'stade', U:'un stade', unit:'spectateurs', col1:'tribune sud', col2:'tribune nord', A:'Support A', nonA:'Autre / neutre',
+        action:'supportent l’équipe A', verb:'supportent',
+        actionNonA:"sont neutres",
+        actionCol1:"sont en tribune sud",
+        actionCol2:"sont en tribune nord"}),
+
+  ()=>({t:'reseau', U:'un réseau social', unit:'utilisateurs', col1:'sur ordinateur', col2:'sur mobile', A:'Réguliers', nonA:'Occasionnels',
+        action:'sont des utilisateurs réguliers', verb:'sont',
+        actionNonA:"sont des utilisateurs occasionnels",
+        actionCol1:"se connectent sur ordinateur",
+        actionCol2:"se connectent sur mobile"}),
+
+  ()=>({t:'supermarche', U:'un supermarché', unit:'clients', col1:'sans carte fidélité', col2:'avec carte fidélité', A:'Bio', nonA:'Non bio',
+        action:'achètent des produits bio', verb:'achètent',
+        actionNonA:"achètent des produits non bio",
+        actionCol1:"n’ont pas de carte de fidélité",
+        actionCol2:"ont une carte de fidélité"}),
+
+  ()=>({t:'restaurant', U:'un restaurant', unit:'clients', col1:'service du soir', col2:'service du midi', A:'Dessert', nonA:'Sans dessert',
+        action:'prennent un dessert', verb:'prennent',
+        actionNonA:"sont sans dessert",
+        actionCol1:"sont au service du soir",
+        actionCol2:"sont au service du midi"}),
+
+  ()=>({t:'cinema', U:'un cinéma', unit:'spectateurs', col1:'séances 2D', col2:'séances 3D', A:'Premium', nonA:'Standard',
+        action:'sont placés en rangs premium', verb:'sont placés',
+        actionNonA:"sont en formule standard",
+        actionCol1:"assistent à des séances 2D",
+        actionCol2:"assistent à des séances 3D"}),
+
+  ()=>({t:'ville', U:'une ville', unit:'habitants', col1:'périphérie', col2:'centre-ville', A:'Vélo', nonA:'Autres modes',
+        action:'se déplacent à vélo', verb:'se déplacent',
+        actionNonA:"utilisent d’autres modes",
+        actionCol1:"habitent en périphérie",
+        actionCol2:"habitent en centre-ville"}),
+
+  ()=>({t:'transports', U:'les transports urbains', unit:'voyageurs', col1:'occasionnels', col2:'abonnés annuels', A:'Heures de pointe', nonA:'Heures creuses',
+        action:'voyagent aux heures de pointe', verb:'voyagent',
+        actionNonA:"voyagent en heures creuses",
+        actionCol1:"sont des voyageurs occasionnels",
+        actionCol2:"sont des abonnés annuels"}),
+
+  ()=>({t:'clubMusique', U:'un club de musique', unit:'adhérents', col1:'pianistes', col2:'guitaristes', A:'Ensemble', nonA:'Solo',
+        action:'jouent en ensemble', verb:'jouent',
+        actionNonA:"jouent en solo",
+        actionCol1:"sont pianistes",
+        actionCol2:"sont guitaristes"}),
+
+  ()=>({t:'ecommerce', U:'un site d’e-commerce', unit:'commandes', col1:'livrées à domicile', col2:'livrées en point relais', A:'Carte cadeau', nonA:'Autre paiement',
+        action:'sont payées par carte cadeau', verb:'sont payées',
+        actionNonA:"sont réglées par un autre moyen de paiement",
+        actionCol1:"sont livrées à domicile",
+        actionCol2:"sont livrées en point relais"}),
+
+  ()=>({t:'parcAuto', U:'un parc automobile', unit:'véhicules', col1:'essence', col2:'électriques', A:'Autopartage', nonA:'Usage privé',
+        action:'sont en autopartage', verb:'sont',
+        actionNonA:"sont à usage privé",
+        actionCol1:"sont à essence",
+        actionCol2:"sont électriques"}),
+
+  ()=>({t:'association', U:'une association', unit:'bénévoles', col1:'occasionnels', col2:'réguliers', A:'Week-end', nonA:'Hors week-end',
+        action:'sont présents le week-end', verb:'sont présents',
+        actionNonA:"sont hors week-end",
+        actionCol1:"sont des bénévoles occasionnels",
+        actionCol2:"sont des bénévoles réguliers"}),
+
+  ()=>({t:'clubSport', U:'un club de sport', unit:'adhérents', col1:'natation', col2:'fitness', A:'Cours collectifs', nonA:'Individuel',
+        action:'suivent des cours collectifs', verb:'suivent',
+        actionNonA:"sont en individuel",
+        actionCol1:"pratiquent la natation",
+        actionCol2:"pratiquent le fitness"}),
+
+  ()=>({t:'jardin', U:'un jardin botanique', unit:'plantes', col1:'tempérées', col2:'tropicales', A:'Serre chaude', nonA:'Extérieur',
+        action:'se trouvent en serre chaude', verb:'se trouvent',
+        actionNonA:"se trouvent en extérieur",
+        actionCol1:"sont des espèces tempérées",
+        actionCol2:"sont des espèces tropicales"}),
+
+  ()=>({t:'parc', U:'un parc', unit:'arbres', col1:'feuillus', col2:'conifères', A:'Étiquetés', nonA:'Non étiquetés',
+        action:'sont étiquetés', verb:'sont étiquetés',
+        actionNonA:"sont non étiquetés",
+        actionCol1:"sont des feuillus",
+        actionCol2:"sont des conifères"}),
+
+  ()=>({t:'biblioMunicipale', U:'une bibliothèque municipale', unit:'abonnés', col1:'abonnement standard', col2:'abonnement premium', A:'Numérique', nonA:'Papier uniquement',
+        action:'empruntent au format numérique', verb:'empruntent',
+        actionNonA:"empruntent au format papier uniquement",
+        actionCol1:"sont abonnés à l’abonnement standard",
+        actionCol2:"sont abonnés à l’abonnement premium"}),
+
+  ()=>({t:'serviceRH', U:'un service RH', unit:'employés', col1:'CDD', col2:'CDI', A:'Formation interne', nonA:'Sans formation interne',
+        action:'suivent une formation interne', verb:'suivent',
+        actionNonA:"sont sans formation interne",
+        actionCol1:"sont en CDD",
+        actionCol2:"sont en CDI"}),
+
+  ()=>({t:'marche', U:'un marché', unit:'commerçants', col1:'revendeurs', col2:'producteurs locaux', A:'Bio', nonA:'Non bio',
+        action:'vendent des produits bio', verb:'vendent',
+        actionNonA:"vendent des produits non bio",
+        actionCol1:"sont des revendeurs",
+        actionCol2:"sont des producteurs locaux"}),
+
+  ()=>({t:'hotel', U:'un hôtel', unit:'clients', col1:'tourisme', col2:'affaires', A:'Petit-déjeuner', nonA:'Sans petit-déjeuner',
+        action:'prennent le petit-déjeuner', verb:'prennent',
+        actionNonA:"sont sans petit-déjeuner",
+        actionCol1:"sont des clients « tourisme »",
+        actionCol2:"sont des clients « affaires »"}),
+
+  ()=>({t:'camping', U:'un camping', unit:'emplacements occupés', col1:'caravanes', col2:'tentes', A:'Électricité', nonA:'Sans électricité',
+        action:'disposent d’une prise électrique', verb:'disposent',
+        actionNonA:"sont sans électricité",
+        actionCol1:"sont pour caravanes",
+        actionCol2:"sont pour tentes"})
+];
+
+
+
+/* ====== Ex.2 — N réalistes par thème ====== */
+const EX2_NSPEC = {
+  // effectifs "classe"
+  classe:            { pool: [24,26,28,30,32,34,36] },
+
+  // établissements
+  college:           { range: {min: 400,  max: 900,   step: 20} },
+  lycee:             { range: {min: 600,  max: 1600,  step: 50} },
+  universite:        { range: {min: 5000, max: 40000, step: 500} },
+
+  // entreprises / RH
+  entrepriseCadres:  { range: {min: 80,   max: 1000,  step: 20} },
+  entrepriseTP:      { range: {min: 80,   max: 1000,  step: 20} },
+  serviceRH:         { range: {min: 80,   max: 4000,  step: 20} },
+
+  // culture / loisirs
+  bibliotheque:      { range: {min: 500,  max: 4000,  step: 100} }, // abonnés
+  biblioMunicipale:  { range: {min: 800,  max: 20000, step: 200} },
+  musee:             { range: {min: 500,  max: 5000,  step: 100} },
+  cinema:            { range: {min: 400,  max: 4000,  step: 100} },
+  festival:          { range: {min: 2000, max: 100000,step: 1000} },
+  stade:             { range: {min: 8000, max: 60000, step: 1000} },
+
+  // villes / transports / réseau
+  ville:             { range: {min: 20000,max: 300000,step: 5000} },
+  transports:        { range: {min: 50000,max: 1500000,step: 25000} },
+  reseau:            { range: {min: 20000,max: 2000000,step: 50000} },
+
+  // commerce / resto / hôtel / marché / e-commerce / supermarché
+  supermarche:       { range: {min: 600,  max: 6000,  step: 100} },  // clients période
+  restaurant:        { range: {min: 80,   max: 600,   step: 20} },   // clients jour
+  hotel:             { range: {min: 100,  max: 2000,  step: 50} },   // clients période
+  marche:            { range: {min: 80,   max: 800,   step: 10} },   // commerçants
+  ecommerce:         { range: {min: 500,  max: 50000, step: 500} },  // commandes période
+
+  // clubs / asso / sport / musique
+  clubSportif:       { range: {min: 120,  max: 800,   step: 20} },
+  clubSport:         { range: {min: 150,  max: 1500,  step: 25} },
+  clubMusique:       { range: {min: 40,   max: 300,   step: 10} },
+  association:       { range: {min: 30,   max: 800,   step: 10} },
+
+  // nature / inventaires
+  jardin:            { range: {min: 1000, max: 20000, step: 250} },  // plantes
+  parc:              { range: {min: 500,  max: 20000, step: 500} },  // arbres
+  parcAuto:          { range: {min: 100,  max: 5000,  step: 50} },   // véhicules
+
+  // mobilité / métro etc. (déjà dans transports)
+
+  // santé
+  hopital:           { range: {min: 300,  max: 3000,  step: 50} },   // séjours/visites
+
+  // divers
+  camping:           { range: {min: 80,   max: 1200,  step: 20} }
+};
+
+
+/* ===== Exercice 2 — Tableau ===== */
+function genTableState(){
+  const N = rchoice([24,28,30,32,36,40,44,48]);
+  const pB = rchoice([25,30,35,40,45,50,55]);
+  const B = Math.round(N*pB/100);
+  const F = N - B;
+  const pFg = rchoice([25,30,40,50,60,75]);
+  const pBg = rchoice([25,30,40,50,60,75]);
+  const EF = Math.round(F*pFg/100);
+  const EB = Math.round(B*pBg/100);
+  const NF = F - EF;
+  const NB = B - EB;
+  return {N,B,F,pFg,pBg,EF,EB,NF,NB};
+}
+
+/* ====== Ex.2 — Intros personnalisées (toutes en TeX) ====== */
+const pct = v => `\\(${v}\\,\\%\\)`;        // pourcentages en TeX
+const NT  = n => `\\(${n}\\)`;              // nombres en TeX
+
+	
+
+// Modèle commun en puces, EXACTEMENT comme demandé
+const EX2_INTRO_BULLET = (C, st, pc2) => 
+  `Dans ${C.U} formée de ${NT(st.N)} ${C.unit} on a :<br>
+• ${pct(pc2)} ${C.actionCol2}, les autres ${C.actionCol1}.<br>
+• Parmi les ${C.unit} qui  ${C.actionCol1}, ${pct(st.pFg)} ${C.action}.<br>
+• Parmi les ${C.unit} qui  ${C.actionCol2}, ${pct(st.pBg)} ${C.action}.`;
+
+// Déclinaisons pour toutes les catégories
+const EX2_INTRO = {
+  classe: EX2_INTRO_BULLET,
+  college: EX2_INTRO_BULLET,
+  lycee: EX2_INTRO_BULLET,
+  clubSportif: EX2_INTRO_BULLET,
+  bibliotheque: EX2_INTRO_BULLET,
+  entrepriseCadres: EX2_INTRO_BULLET,
+  entrepriseTP: EX2_INTRO_BULLET,
+  universite: EX2_INTRO_BULLET,
+  festival: EX2_INTRO_BULLET,
+  hopital: EX2_INTRO_BULLET,
+  musee: EX2_INTRO_BULLET,
+  stade: EX2_INTRO_BULLET,
+  reseau: EX2_INTRO_BULLET,
+  supermarche: EX2_INTRO_BULLET,
+  restaurant: EX2_INTRO_BULLET,
+  cinema: EX2_INTRO_BULLET,
+  ville: EX2_INTRO_BULLET,
+  transports: EX2_INTRO_BULLET,
+  clubMusique: EX2_INTRO_BULLET,
+  ecommerce: EX2_INTRO_BULLET,
+  parcAuto: EX2_INTRO_BULLET,
+  association: EX2_INTRO_BULLET,
+  clubSport: EX2_INTRO_BULLET,
+  jardin: EX2_INTRO_BULLET,
+  parc: EX2_INTRO_BULLET,
+  biblioMunicipale: EX2_INTRO_BULLET,
+  serviceRH: EX2_INTRO_BULLET,
+  marche: EX2_INTRO_BULLET,
+  hotel: EX2_INTRO_BULLET,
+  camping: EX2_INTRO_BULLET
+};
+
+
+// Helper d’intro : garde ton ex2Intro(C,st) ou remplace par celui-ci
+function ex2Intro(C, st){
+  const pc2 = Math.round(100*st.B/st.N);
+  const fn = EX2_INTRO[C.t];
+  const base = fn
+    ? fn(C, st, pc2)
+    : `Dans ${C.U} de ${NT(st.N)} ${C.unit}, dont ${pct(pc2)} ${C.actionCol2}. `+
+      `Parmi les ${C.col1}, ${pct(st.pFg)} ${C.action} ; parmi les ${C.col2}, ${pct(st.pBg)} ${C.action}.`;
+  return pluralizeInText(base, C);   // ✅ corrige "des visite libre" → "des visites libres"
+}
+
+/* ====== Ex.2 — Question contextualisée par thème ====== */
+const EX2_Q = {
+  classe:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la classe qui ${C.action} ?`,
+  college:             C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du collège qui ${C.action} ?`,
+  lycee:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du lycée qui ${C.action} ?`,
+  clubSportif:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club sportif qui ${C.action} ?`,
+  bibliotheque:        C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque qui ${C.action} ?`,
+  entrepriseCadres:    C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} ?`,
+  entrepriseTP:        C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} ?`,
+  universite:          C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’université qui ${C.action} ?`,
+  festival:            C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du festival qui ${C.action} ?`,
+  hopital:             C => `Quel est le pourcentage des ${C.unit} de l’hôpital qui ${C.action} ?`,
+  musee:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du musée qui ${C.action} ?`,
+  stade:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du stade qui ${C.action} ?`,
+  reseau:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du réseau social qui ${C.action} ?`,
+  supermarche:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du supermarché qui ${C.action} ?`,
+  restaurant:          C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du restaurant qui ${C.action} ?`,
+  cinema:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du cinéma qui ${C.action} ?`,
+  ville:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la ville qui ${C.action} ?`,
+  transports:          C => `Quel est le pourcentage de ${C.unit} des transports urbains qui ${C.action} ?`,
+  clubMusique:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club de musique qui ${C.action} ?`,
+  ecommerce:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du site d’e-commerce qui ${C.action} ?`,
+  parcAuto:            C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du parc automobile qui ${C.action} ?`,
+  association:         C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’association qui ${C.action} ?`,
+  clubSport:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du club de sport qui ${C.action} ?`,
+  jardin:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du jardin botanique qui ${C.action} ?`,
+  parc:                C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du parc qui ${C.action} ?`,
+  biblioMunicipale:    C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque municipale qui ${C.action} ?`,
+  serviceRH:           C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du service RH qui ${C.action} ?`,
+  marche:              C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du marché qui ${C.action} ?`,
+  hotel:               C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} de l’hôtel qui ${C.action} ?`,
+  camping:             C => `Quel est le pourcentage ${de_(C.unit)}${C.unit} du camping qui ${C.action} ?`
+};
+
+
+function ex2Question(C){
+  const fn = EX2_Q[C.t];
+  // Fallback générique si un thème est manquant
+  return fn ? fn(C) : `Quel est le pourcentage de ${C.unit} de ${C.U.replace(/^un |une /,'')} qui ${C.action} ?`;
+}
+
+/* ====== Ex.2 — Libellé de solution contextualisé ====== */
+const EX2_SOLN = {
+  classe:              C => `Pourcentage ${de_(C.unit)}${C.unit} de la classe qui ${C.action} :<br>`,
+  college:             C => `Pourcentage ${de_(C.unit)}${C.unit} du collège qui ${C.action} :<br>`,
+  lycee:               C => `Pourcentage ${de_(C.unit)}${C.unit} du lycée qui ${C.action} :<br>`,
+  clubSportif:         C => `Pourcentage ${de_(C.unit)}${C.unit} du club sportif qui ${C.action} :<br>`,
+  bibliotheque:        C => `Pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque qui ${C.action} :<br>`,
+  entrepriseCadres:    C => `Pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} :<br>`,
+  entrepriseTP:        C => `Pourcentage ${de_(C.unit)}${C.unit} de l’entreprise qui ${C.action} :<br>`,
+  universite:          C => `Pourcentage ${de_(C.unit)}${C.unit} de l’université qui ${C.action} :<br>`,
+  festival:            C => `Pourcentage ${de_(C.unit)}${C.unit} du festival qui ${C.action} :<br>`,
+  hopital:             C => `Pourcentage des ${C.unit} de l’hôpital qui ${C.action} :<br>`,
+  musee:               C => `Pourcentage ${de_(C.unit)}${C.unit} du musée qui ${C.action} :<br>`,
+  stade:               C => `Pourcentage ${de_(C.unit)}${C.unit} du stade qui ${C.action} :<br>`,
+  reseau:              C => `Pourcentage ${de_(C.unit)}${C.unit} du réseau social qui ${C.action} :<br>`,
+  supermarche:         C => `Pourcentage ${de_(C.unit)}${C.unit} du supermarché qui ${C.action} :<br>`,
+  restaurant:          C => `Pourcentage ${de_(C.unit)}${C.unit} du restaurant qui ${C.action} :<br>`,
+  cinema:              C => `Pourcentage ${de_(C.unit)}${C.unit} du cinéma qui ${C.action} :<br>`,
+  ville:               C => `Pourcentage ${de_(C.unit)}${C.unit} de la ville qui ${C.action} :<br>`,
+  transports:          C => `Pourcentage de ${C.unit} des transports urbains qui ${C.action} :<br>`,
+  clubMusique:         C => `Pourcentage ${de_(C.unit)}${C.unit} du club de musique qui ${C.action} :<br>`,
+  ecommerce:           C => `Pourcentage ${de_(C.unit)}${C.unit} du site d’e-commerce qui ${C.action} :<br>`,
+  parcAuto:            C => `Pourcentage ${de_(C.unit)}${C.unit} du parc automobile qui ${C.action} :<br>`,
+  association:         C => `Pourcentage ${de_(C.unit)}${C.unit} de l’association qui ${C.action} :<br>`,
+  clubSport:           C => `Pourcentage ${de_(C.unit)}${C.unit} du club de sport qui ${C.action} :<br>`,
+  jardin:              C => `Pourcentage ${de_(C.unit)}${C.unit} du jardin botanique qui ${C.action} :<br>`,
+  parc:                C => `Pourcentage ${de_(C.unit)}${C.unit} du parc qui ${C.action} :<br>`,
+  biblioMunicipale:    C => `Pourcentage ${de_(C.unit)}${C.unit} de la bibliothèque municipale qui ${C.action} :<br>`,
+  serviceRH:           C => `Pourcentage ${de_(C.unit)}${C.unit} du service RH qui ${C.action} :<br>`,
+  marche:              C => `Pourcentage ${de_(C.unit)}${C.unit} du marché qui ${C.action} :<br>`,
+  hotel:               C => `Pourcentage ${de_(C.unit)}${C.unit} de l’hôtel qui ${C.action} :<br>`,
+  camping:             C => `Pourcentage ${de_(C.unit)}${C.unit} du camping qui ${C.action} :<br>`
+};
+
+
+function ex2AnswerLabel(C){
+  const f = EX2_SOLN[C.t];
+  return f ? f(C) : `Pourcentage de ${C.unit} de ${C.U.replace(/^un |une /,'')} qui ${C.action} :<br>`;
+}
+
+/* ====== Ex.2 — Q3 contextualisée : p(col1 | nonA) ====== */
+// Générique minimal et propre (indépendant du lieu)
+const EX2_Q3_GENERIC = (C, nonA) =>
+  `Quel est le pourcentage ${de_(C.unit)}${C.unit} qui  ${C.actionCol1} parmi les ${C.unit} qui ${C.actionNonA} ?<br>`;
+// Liste de tes clés (les catégories que tu utilises déjà)
+const CATEGORIES_EX2 = [
+  'classe','college','lycee','clubSport','clubSportif','bibliotheque','entrepriseCadres',
+  'entrepriseTP','universite','festival','hopital','musee','stade','reseau','supermarche',
+  'restaurant','cinema','ville','transports','clubMusique','ecommerce','parcAuto','association',
+  'clubSport','jardin','parc','biblioMunicipale','serviceRH','marche','hotel','camping'
+];
+
+// Objet "compat" : toutes les clés pointent vers le même rendu générique.
+// => version "parmi les « nonA »"
+const EX2_Q3 = Object.fromEntries(
+  CATEGORIES_EX2.map(k => [k, (C, nonA) => EX2_Q3_GENERIC(C, nonA)])
+);
+
+// Si tu préfères la variante "sachant … (dans …)", remplace la ligne ci-dessus par :
+// const EX2_Q3 = Object.fromEntries(
+//   CATEGORIES_EX2.map(k => [k, (C, nonA) => EX2_Q3_SACHANT(C, nonA, true)])
+// );
+
+
+
+function ex2Question3(C){
+  const nonA = C.nonA || ('Non ' + C.A);
+  const f = EX2_Q3[C.t];
+  // ✅ élision correcte : "de clients", "d’élèves", "d’utilisateurs", etc.
+  return f ? f(C, nonA)
+           : `Quel est le pourcentage ${de_(C.unit)}${C.unit} «${C.col1}» sachant qu’ils sont « ${nonA} » ?`;
+}
+/* ====== Ex.2 — Libellé de solution Q3 contextualisé ====== */
+const EX2_SOLN3 = {
+  clubSport:  C => `Pourcentage ${de_(C.unit)}${C.unit} qui  ${C.actionCol1} parmi les ${C.unit} qui ${C.actionNonA} » :<br>`,
+  default:    C => `Pourcentage ${de_(C.unit)}${C.unit} qui  ${C.actionCol1} parmi les ${C.unit} qui ${C.actionNonA} » :<br>`
+};
+
+function ex2AnswerLabel3(C){
+  return (EX2_SOLN3[C.t] || EX2_SOLN3.default)(C);
+}
+
+const ex2 = {
+  id:'ex2',
+  title:"Ex. — Tableau à double entrée (entiers uniquement)",
+
+  gen(){
+    const ctx = rchoice(EX2_BANK)();
+
+    // petits ensembles "propres" (déjà présents)
+    const P_COL2 = [25,30,35,40,45,50,55];        // % part de la colonne 2
+    const P_A    = [25,30,40,50,60,75];           // % "A" dans chaque colonne
+
+    // Essaie jusqu'à trouver un triple (pB,pFg,pBg) + N compatibles
+    for (let tries=0; tries<200; tries++){
+      const pB  = rchoice(P_COL2);   // % en colonne 2 (ctx.col2)
+      const pFg = rchoice(P_A);      // % de A dans col1
+      const pBg = rchoice(P_A);      // % de A dans col2
+
+      // 1) Contraintes pour que EF=F*pFg/100 et EB=B*pBg/100 soient entiers :
+      //    - B = N*pB/100 ∈ ℤ
+      //    - F = N*(100-pB)/100 ∈ ℤ
+      //    - EF entier => F multiple de denomFor(pFg)
+      //    - EB entier => B multiple de denomFor(pBg)
+      const needB_int   = 100 / gcd(pB,100);               // N multiple de ceci -> B entier
+      const needF_int   = 100 / gcd(100-pB,100);           // N multiple de ceci -> F entier
+      const mF          = denomFor(pFg);                   // F multiple de mF
+      const mB          = denomFor(pBg);                   // B multiple de mB
+
+      // Convertir "F multiple de mF" et "B multiple de mB" en contraintes sur N :
+      // B = N*pB/100 ≡ 0 mod mB  => N multiple de (100*mB)/gcd(pB,100*mB)
+      // F = N*(100-pB)/100 ≡ 0 mod mF => N multiple de (100*mF)/gcd(100-pB,100*mF)
+      const needB_multM = (100*mB) / gcd(pB, 100*mB);
+      const needF_multM = (100*mF) / gcd(100-pB, 100*mF);
+
+      // (bonus) Q2 pourcentage entier :
+      // pTot = ((100-pB)*pFg + pB*pBg)/100 doit être entier
+      const numerPTot = (100 - pB)*pFg + pB*pBg;
+      if (numerPTot % 100 !== 0) continue;     // change de triple si ce n’est pas /100
+
+      const stepN = lcm(lcm(needB_int, needF_int), lcm(needB_multM, needF_multM));
+
+      // 2) Choisir un N compatible avec le thème (pool ou range) ET multiple de stepN
+      let N = null;
+      const SPEC = EX2_NSPEC[ctx.t];
+      if (SPEC?.pool){
+        const poolOK = SPEC.pool.filter(n => n % stepN === 0);
+        if (!poolOK.length) continue;
+        N = rchoice(poolOK);
+      }else{
+        // range
+        const min = SPEC?.range?.min ?? 24, max = SPEC?.range?.max ?? 2000, baseStep = SPEC?.range?.step ?? 1;
+        const stride = lcm(stepN, baseStep);
+        const first  = Math.ceil(min/stride)*stride;
+        if (first>max) continue;
+        const kMax = Math.floor((max-first)/stride);
+        N = first + stride * rnd(0,kMax);
+      }
+
+      // 3) Tous les effectifs (entiers par construction)
+      const B  = (N * pB) / 100;
+      const F  = N - B;
+      const EF = (F * pFg) / 100;
+      const EB = (B * pBg) / 100;
+      const NF = F - EF;
+      const NB = B - EB;
+
+      // Sécurité (au cas où)
+      if (![B,F,EF,EB,NF,NB].every(Number.isInteger)) continue;
+      if (EF<0 || EB<0 || NF<0 || NB<0) continue;
+
+      return { ctx, N, B, F, pFg, pBg, EF, EB, NF, NB };
+    }
+
+    // Fallback ultra-robuste (au cas très improbable où 200 essais échouent) :
+    // on retombe sur l'ancien tirage puis on "corrige" N au plus proche multiple.
+    const ctx0 = rchoice(EX2_BANK)();
+    const pB0  = rchoice(P_COL2), pFg0 = rchoice(P_A), pBg0 = rchoice(P_A);
+    const stepN0 = 100; // simple et sûr
+    const SPEC0 = EX2_NSPEC[ctx0.t];
+    let N0 = pickNForContext({t:ctx0.t});
+    N0 = Math.round(N0/stepN0)*stepN0 || stepN0;
+    const B0  = (N0*pB0)/100, F0=N0-B0, EF0=(F0*pFg0)/100, EB0=(B0*pBg0)/100, NF0=F0-EF0, NB0=B0-EB0;
+    return { ctx:ctx0, N:N0, B:B0, F:F0, pFg:pFg0, pBg:pBg0, EF:EF0, EB:EB0, NF:NF0, NB:NB0 };
+  },
+
+
+render(host, st){
+  const C = st.ctx;
+  const Arow = C.A;
+  const nonA = C.nonA || ('Non ' + Arow);
+
+  const root=document.createElement('div');
+  root.innerHTML = `
+    <div class="statement">
+
+    <div class="consigne"><span class="c-label">Exercice</span></div>
+   <div class="row">
+      <div class="col-label">${ex2Intro(C, st)}<br>
+	  On note \\(A\\) la sous population des «${C.unit}  qui  ${C.actionCol1}» et \\(B \\) \\( \\) la sous population des «${C.unit} qui ${C.action}».
+	  
+	  </div>
+
+      <div class="input-line">
+	     	  <div><strong>Q1. </strong> Compléter le tableau :</div>
+
+        <table class="tbl pdfb" id="t2">
+          <tr><th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th></tr>
+          <tr><th>${Arow}</th>
+            <td>
+              <input id="tEF" type="text" placeholder="">
+              <span class="tick" id="tickEF"></span>
+            </td>
+            <td>
+              <input id="tEB" type="text" placeholder="">
+              <span class="tick" id="tickEB"></span>
+            </td>
+            <td>
+              <input id="tEA" type="text" placeholder="">
+              <span class="tick" id="tickEA"></span>
+            </td>
+          </tr>
+          <tr><th>${nonA}</th>
+            <td>
+              <input id="tNF" type="text" placeholder="">
+              <span class="tick" id="tickNF"></span>
+            </td>
+            <td>
+              <input id="tNB" type="text" placeholder="">
+              <span class="tick" id="tickNB"></span>
+            </td>
+            <td>
+              <input id="tNE" type="text" placeholder="">
+              <span class="tick" id="tickNE"></span>
+            </td>
+          </tr>
+          <tr><th>Total</th>
+            <td>
+              <input id="tF" type="text" placeholder="">
+              <span class="tick" id="tickF"></span>
+            </td>
+            <td>
+              <input id="tB" type="text" placeholder="">
+              <span class="tick" id="tickB"></span>
+            </td>
+            <td>\\(${st.N}\\)</td>
+          </tr>
+        </table>
+
+        <div style="margin-top:8px">
+  <strong>Q2. </strong> ${ex2Question(C)}
+</div>
+<input type="text" id="tPct" placeholder="">
+<span class="tick" id="tickPct"></span>
+<div style="margin-top:10px">
+  <strong>Q3. </strong> ${ex2Question3(C)} (Arrondir au % près)
+
+</div>
+<input type="text" id="tPctQ3" placeholder="">
+<span class="tick" id="tickPctQ3"></span>
+
+      </div>
+      <div class="res" id="r2"></div>
+    </div>
+	</div>`;
+  host.innerHTML=''; host.appendChild(root);
+  if(window.MathJax) MathJax.typesetPromise();
+},
+
+
+
+ check(host, st){
+  let ok=0, tot=0;
+
+  const mark = (id, state)=>{
+    const el = $(id,host);
+    if(!el) return;
+    el.className = 'tick' + (state ? ' ' + (state==='ok' ? 'ok' : 'ko') : '');
+    el.textContent = state==='ok' ? '✓' : state==='ko' ? '✗' : '';
+  };
+
+  // helper lecture int avec neutralité si vide
+  const checkInt = (inpSel, tickSel, expected) => {
+    const raw = String(($(inpSel,host)?.value)||'').replace(/−/g,'-').trim();
+    if(raw===''){ mark(tickSel, null); return; }        // neutre si vide
+    const v = parseInt(raw,10);
+    const good = Number.isInteger(v) && v===expected;
+    tot += 1; if(good) ok += 1;
+    mark(tickSel, good ? 'ok' : 'ko');
+  };
+
+  // Ligne A
+  checkInt('#tEF', '#tickEF', st.EF);
+  checkInt('#tEB', '#tickEB', st.EB);
+  checkInt('#tEA', '#tickEA', st.EF + st.EB);
+
+  // Ligne ¬A
+  checkInt('#tNF', '#tickNF', st.NF);
+  checkInt('#tNB', '#tickNB', st.NB);
+  checkInt('#tNE', '#tickNE', st.NF + st.NB);
+
+  // Totaux colonnes
+  checkInt('#tF',  '#tickF',  st.F);
+  checkInt('#tB',  '#tickB',  st.B);
+
+  // Question pourcentage
+  const pStr = ($('#tPct',host)?.value||'').trim();
+  if(pStr===''){
+    mark('#tickPct', null);
+  }else{
+const p  = readPercentStrict(pStr);   // Q2
+    const target = Math.round(100*(st.EF+st.EB)/st.N);
+    const good = Number.isFinite(p) && Math.round(p)===target;
+    tot += 1; if(good) ok += 1;
+    mark('#tickPct', good ? 'ok' : 'ko');
+  }
+// Q3 : p(col1 | nonA) = NF / (NF+NB)  → on DEMANDE l'arrondi à l’unité
+const p3Str = ($('#tPctQ3',host)?.value||'').trim();
+if (p3Str === '') {
+  mark('#tickPctQ3', null);
+} else {
+  // doit être un entier % : ex "42%"
+  const isIntPercent = /^\s*-?\d+\s*%$/.test(p3Str.replace('−','-'));
+  const p3 = readPercentStrict(p3Str);         // lit la valeur numérique (ex: "42%" -> 42)
+
+  const target3 = Math.round(100 * st.NF / (st.NF + st.NB)); // arrondi à l’unité attendu
+  const good3 = isIntPercent && Number.isFinite(p3) && p3 === target3;
+
+  tot += 1; if (good3) ok += 1;
+  mark('#tickPctQ3', good3 ? 'ok' : 'ko');
+}
+
+
+  // Résumé
+  $('#r2',host).textContent = `${ok}/${tot} éléments corrects`;
+  $('#r2',host).className = (ok===tot && tot>0) ? 'res res-ok' : 'res res-ko';
+  return {ok, tot};
+},
+
+solution(host, st){
+  const C = st.ctx;
+  const nonA = C.nonA || ('Non ' + C.A);
+
+  // --- Q2 (comme avant)
+  const pct = Math.round(100*(st.EF+st.EB)/st.N);
+  const apct = pct/100;
+
+  // --- Q3 (nouveau format d'affichage)
+  const p3_prop = st.NF / (st.NF + st.NB);     // proportion exacte (0..1)
+  const p3_dec2 = Math.round(p3_prop * 100) / 100; // arrondi à 2 décimales (proportion)
+  const p3_pct  = 100 * p3_prop;               // pourcentage exact
+  const p3_pct_int = Math.round(p3_pct);       // pourcentage à l’unité
+
+  // signes = / ≈
+  const eq_dec  = (p3_prop === p3_dec2) ? '=' : '\\approx';
+  const eq_pct  = (p3_pct  === p3_pct_int) ? '=' : '\\approx';
+
+  // formats FR (virgule) + 2 décimales pour la proportion
+  const p3_dec2_str = p3_dec2.toFixed(2).replace('.', ',');  // ex: "0,42"
+  const p3_pct_int_str = String(p3_pct_int);                 // ex: "42"
+
+  const html = `
+    <div class="steps">
+      <div style="overflow:auto">
+        <span class="qno"><strong>Q1. </strong></span>
+        <table class="tbl tbl-solution pdfb">
+          <tr>
+            <th></th><th>${ucfirst(C.col1)}</th><th>${ucfirst(C.col2)}</th><th>Total</th>
+          </tr>
+          <tr>
+            <th>${C.A}</th>
+            <td>\\(${st.EF}\\)</td><td>\\(${st.EB}\\)</td><td>\\(${st.EF + st.EB}\\)</td>
+          </tr>
+          <tr>
+            <th>${nonA}</th>
+            <td>\\(${st.NF}\\)</td><td>\\(${st.NB}\\)</td><td>\\(${st.NF + st.NB}\\)</td>
+          </tr>
+          <tr>
+            <th>Total</th>
+            <td>\\(${st.F}\\)</td><td>\\(${st.B}\\)</td><td>\\(${st.N}\\)</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="line" style="margin-top:.35rem">
+        <span class="qno"><strong>Q2. </strong></span>
+        ${ex2AnswerLabel(C)} 
+        \\( f(B) = \\dfrac{${st.EF+st.EB}}{${st.N}} = ${apct} = ${pct}\\,\\% \\).
+      </div>
+
+      <div class="line" style="margin-top:.35rem">
+        <span class="qno"><strong>Q3. </strong></span>
+        ${ex2AnswerLabel3(C)} 
+        \\( f_{\\overline{B}}(A) = \\dfrac{${st.NF}}{${st.NF+st.NB}} \\; ${eq_dec} \\; ${p3_dec2_str} \\; ${eq_pct} \\; ${p3_pct_int_str}\\,\\% \\).
+      </div>
+    </div>
+  `;
+
+  $('#r2',host).innerHTML = html;
+  $('#r2',host).className = 'res res-ok';
+  if (window.MathJax) MathJax.typesetPromise();
+},
+
+
+
+  reset(host){ host.innerHTML=''; }
+};
+
+
+/* ===== Glue ===== */
+const REGISTRY = [ex2];
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+let EXO_INSTANCE = 0;  // tout en haut du script (global)
+
+function renderActive(){
+  const host=$('#host'); const sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+
+  const st = def.gen();
+  const key = (++EXO_INSTANCE);                // nouvelle instance
+  host.dataset.active=def.id;
+  host.dataset.state=JSON.stringify(st);
+
+  def.render(host, st);
+
+
+}
+
+function state(){ try{ return JSON.parse($('#host').dataset.state||'{}'); }catch(e){ return {}; } }
+function check(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; const st=state(); const r=def.check(host,st)||{ok:0,tot:0}; scoreOK+=r.ok; scoreTot+=r.tot; updateScore(); }
+function showSolution(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; def.solution(host,state()); }
+function resetAll(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; scoreOK=0; scoreTot=0; updateScore(); def.reset(host); renderActive(); }
+
+document.addEventListener('DOMContentLoaded', function () {
+  renderActive(); 
+  updateScore();
+
+  // ➜ changer d'exercice = re-générer tout de suite
+  $('#exo-select').addEventListener('change', () => {
+    scoreOK = 0;
+    scoreTot = 0;
+    updateScore();
+    renderActive();            // recharge l'exo sélectionné
+  });
+
+  $('#btn-new').addEventListener('click', renderActive);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', showSolution);
+  $('#btn-reset').addEventListener('click', resetAll);
+
+  if (window.MathJax) MathJax.typesetPromise();
+});
+
+</script>
+
+<script>
+(function(){
+  // ⇩ Mets ici le chemin *réel* vers ton fichier (vérifie qu’il ne 404 pas)
+  const KIT_URL = '../../../../js/exo-pdf-kit.multiplicatif-latex.js';
+
+  function boot(){
+    if(!window.ExoPDF){
+      console.error('[exo-pdf-kit] chargé mais ExoPDF introuvable'); 
+      return;
+    }
+    // Donne le registre d’exos au kit
+    window.REGISTRY = window.REGISTRY || (typeof REGISTRY!=='undefined' ? REGISTRY : []);
+    if(!Array.isArray(window.REGISTRY) || !window.REGISTRY.length){
+      console.warn('[exo-pdf-kit] REGISTRY vide : rien à générer');
+    }
+
+    // Init du panneau PDF
+   ExoPDF.init({
+  mountAfterSelector: '.card.small',
+  title: 'Seconde – Proportions échelonnées',
+  max: 50,
+  hideStatementInCorrige: true,   // ← active la suppression de l’énoncé en corrigé
+
+  beforeRender(def, st, isSolution){
+  if (def.id === 'ex3' && isSolution) {
+    // petite pause de confort si tu as d’autres exos asynchrones
+    return new Promise(r => setTimeout(r, 0));
+  }
+  if (window.MathJax && MathJax.typesetPromise) {
+    try { MathJax.typesetPromise(); } catch(e){}
+  }
+  return null;
+}
+});
+}
+
+  // Si le kit est déjà présent, on démarre; sinon on l’injecte
+  if (window.ExoPDF) {
+    boot();
+  } else {
+    const s = document.createElement('script');
+    s.src = KIT_URL;
+    s.defer = true;
+    s.onload = boot;
+    s.onerror = () => console.error('[exo-pdf-kit] impossible de charger', KIT_URL);
+    document.head.appendChild(s);
+  }
+})();
+</script>
+
+
+
+
+
 </body>
 </html>

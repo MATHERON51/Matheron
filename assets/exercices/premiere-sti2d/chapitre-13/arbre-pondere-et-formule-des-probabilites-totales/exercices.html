@@ -1,35 +1,4155 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 13 – Arbre pondéré et formule des probabilités totales</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1ère – Probabilités conditionnelles – Arbre pondéré et formule des probabilités totales</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.55}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;background:#f7f7f7;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#efefef}
+.score{font-weight:700;margin-left:auto}
+.small{font-size:.92rem;color:#666}
+.hint{opacity:.9;margin:.2rem 0 .6rem}
+.consigne .c-label{font-weight:600; margin-right:.35em}
+
+.row{display:grid;grid-template-columns:1fr;grid-template-areas:'lab' 'inp' 'res';gap:10px;align-items:start}
+.row .col-label{grid-area:lab}
+.row .input-line{grid-area:inp}
+.row .res{grid-area:res;padding:12px;border-radius:10px;background:#f7f7f7}
+.res-ok{background:#ecfdf5;border:1px solid #a7f3d0}
+.res-ko{background:#fef2f2;border:1px solid #fecaca}
+
+.tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
+.tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
+.tbl th{background:#f7f7f7}
+
+.steps{background:#f7f7f7;border:1px solid #e6e6e6;border-radius:10px;padding:10px}
+.steps .line{margin:.25rem 0;white-space:normal}
+.qno{display:inline-block;margin-right:.45em}
+
+svg{max-width:100%;height:auto;}
+
+.tick{display:inline-block;min-width:1.25em;margin-left:8px;font-weight:700;vertical-align:middle}
+.tick.ok{color:#059669}
+.tick.ko{color:#dc2626}
+
+/* ====== Arbre ====== */
+.tree-wrap{position:relative;width:760px;height:260px;margin:6px 0 10px}
+.tree-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+.branch-input{
+  position:absolute;width:58px;padding:2px 4px;font-size:12px;
+  border:1px solid #cbd5e1;border-radius:6px;text-align:center;background:#fff
+}
+.branch-input.as-label{border:none;background:transparent;pointer-events:none;font-weight:600;width:auto;padding:0;text-align:left}
+.tick.abs{position:absolute;margin:0;font-weight:700;min-width:auto;color:#059669;z-index:3}
+.tick.abs.ko{color:#dc2626}
+
+/* espace entre l’énoncé et le champ */
+.q input{ margin-left: 8px; }
+/* (optionnel) un peu d’espace avant la coche aussi */
+.q .tick{ margin-left: 6px; }
+.lbl{margin-right:.35em}
+
+/* zones de saisie de phrase plus confortables */
+.q textarea.phrase{
+  width:100%;
+  max-width:760px;
+  min-height:56px;
+  padding:8px 10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:15px;
+  line-height:1.4;
+  resize:vertical;
+}
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)'], ['$', '$']], displayMath: [['\\[','\\]'], ['$$','$$']], processEscapes: true },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+
+<!-- Outils habituels -->
+<script src="../../../../js/math-kbd.js" defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 </head>
+
 <body>
-  <h1>Exercices – Arbre pondéré et formule des probabilités totales</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Arbre pondéré et formule des probabilités totales</strong> (Premiere Sti2D, chapitre 13) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-13</code></li>
-        <li>Thème (slug) : <code>arbre-pondere-et-formule-des-probabilites-totales</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.05rem">1ère – Probabilités conditionnelles – Arbre pondéré et formule des probabilités totales</h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls">
+      <label for="exo-select">Type d’exercice :</label>
+      <select id="exo-select">
+        <option value="ex1">Ex. 1 — Tableau à double entrée (T / C)</option>
+        <option value="ex2">Ex. 2 — Origine & catégorie (F / E — O,S,T)</option>
+		<option value="ex3">Ex. 3 — 3→2 (A,B,C → D, ¬D)</option>
+
+      </select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <div class="hint"><strong>Exercices 1 et 3 : </strong> Question 3 : Ecrire le calcul nécessaire avec les nombres décimaux</div>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ==================== Utilitaires ==================== */
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const rchoice = L => L[rnd(0,L.length-1)];
+const stripSign = s => String(s||'').replace(/−/g,'-');
+const parseNum = s => { s=stripSign(String(s||'').trim()).replace(',','.'); return /^[-]?(\\d+(\\.\\d*)?|\\.\\d+)$/.test(s)?parseFloat(s):NaN; };
+function tex(){ if (window.MathJax?.typesetPromise) MathJax.typesetPromise(); }
+// pour écrire joliment un pourcentage entier
+const pc = v => `${Math.round(v)}\\,\\%`;
+// Évalue une expression *décimale* sûre : chiffres, ., virgule, + - * (×), parenthèses et espaces.
+// Rejette % et / (on ne veut ni pourcentages, ni fractions).
+
+
+// 🔧 utilitaires une seule fois, en haut du fichier (ou avant solution())
+function tableHTML(rows){
+  const esc = s => String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+  let html = '<table class="t"><tbody>';
+  for (const r of rows){
+    html += '<tr>';
+    for (const c of r){
+      html += `<td>${esc(c)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function addCalcTable(parent, rows){
+  const wrap = document.createElement('div');
+  wrap.className = 'calc';
+  wrap.innerHTML = tableHTML(rows);
+  parent.appendChild(wrap);
+  // Re-typage local
+  if (window.MathJax?.typesetPromise) MathJax.typesetPromise([wrap]);
+}
+
+
+
+
+function evalDecimalExpr(expr){
+  if (!expr) return NaN;
+  let s = String(expr).trim();
+
+  // Interdits
+  if (/[/%]/.test(s)) return NaN;
+
+  // Normalisations
+  s = s.replace(/,/g, '.').replace(/×/g, '*').replace(/\s+/g, ' ');
+
+  // Whitelist stricte
+  if (!/^[\d.+\-*() ]+$/.test(s)) return NaN;
+
+  try{
+    // eslint-disable-next-line no-new-func
+    const val = Function(`"use strict"; return (${s});`)();
+    return (Number.isFinite(val) ? val : NaN);
+  }catch(_){ return NaN; }
+}
+
+
+function readPercentStrict(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(!/%$/.test(s)) return NaN;
+  s = s.slice(0,-1).trim().replace(',','.');
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : NaN;
+}
+function readProportionFlexible(s){ // "12%" ou "0,12" → retourne % (12)
+  s = String(s||'').trim().replace(/−/g,'-');
+  if(/%$/.test(s)) return readPercentStrict(s);
+  const v = parseNum(s);
+  if(!Number.isFinite(v) || v<0 || v>1) return NaN;
+  return v*100;
+}
+
+// Lit une probabilité entrée en % (avec %), en proportion décimale (0..1) ou en fraction a/b.
+// Retourne toujours une valeur en *pourcents* (ex. "0,12" -> 12 ; "3/25" -> 12 ; "12%" -> 12).
+// Règles :
+// - Si "%" présent → on interprète comme un pourcentage (le % est OBLIGATOIRE si v>1).
+// - Sinon si "a/b" → on interprète comme fraction (a>=0, b>0).
+// - Sinon nombre décimal 0..1 → proportion -> %.
+// - Sinon invalide.
+function readAnyProbAsPercent(s){
+  s = String(s||'').trim().replace(/−/g,'-');
+
+  // Cas 1 : pourcentage explicite (obligatoire si la valeur > 1)
+  if (/%$/.test(s)) {
+    const v = parseFloat(s.slice(0, -1).trim().replace(',', '.'));
+    return (Number.isFinite(v) && v >= 0) ? v : NaN;
+  }
+
+  // Cas 2 : fraction a/b
+  if (/^\s*([0-9]+(?:[.,][0-9]+)?)\s*\/\s*([0-9]+(?:[.,][0-9]+)?)\s*$/.test(s)) {
+    const [,aStr,bStr] = s.match(/^\s*([0-9]+(?:[.,][0-9]+)?)\s*\/\s*([0-9]+(?:[.,][0-9]+)?)\s*$/);
+    const a = parseFloat(aStr.replace(',', '.'));
+    const b = parseFloat(bStr.replace(',', '.'));
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b<=0 || a<0) return NaN;
+    return 100 * (a / b);
+  }
+
+  // Cas 3 : proportion décimale 0..1 (sans %)
+  const v = parseFloat(s.replace(',', '.'));
+  if (Number.isFinite(v) && v >= 0 && v <= 1) {
+    return 100 * v;
+  }
+
+  // Rejette tout le reste (notamment "12" sans %)
+  return NaN;
+}
+
+function forceOverbarsAfterAttach(svg, st){
+  // on (re)pose proprement les barres sur les éléments déjà placés
+  const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+  const wantBarNV = /\\overline/.test(String(st.NVlabel || st.ctx?.NVlabel || ''));
+  const wantBarNS = /\\overline/.test(String(st.NS      || st.ctx?.NS      || ''));
+  // --- Gestion exo 3 : nD (barre au-dessus de D) ---
+  const wantBar_nD = /\overline/.test(String(st.nD || st.ctx?.nD || ''));
+  if (wantBar_nD) {
+    // Texte propre: remplace \overline{D} -> D pour le rendu, on dessine la barre en SVG
+    ['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+      const t = svg.querySelector('#'+id);
+      if (t) t.textContent = cleanOverbarText(st.nD || st.ctx?.nD || 'D');
+    });
+    // Dessine la barre au-dessus des 3 labels ¬D
+    ['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+      const t = svg.querySelector('#'+id);
+      if (!t) return;
+      const L = drawOverbar(svg, t, barOpts);
+      if (L) L.setAttribute('data-bar-d','');
+    });
+  }
+
+  // nettoyer d’éventuelles barres déjà posées
+svg.querySelectorAll('line[data-bar], line[data-bar-d]').forEach(l => l.remove());
+
+  const elNV = svg.querySelector('#txt_lblNV');
+  const elSn = svg.querySelector('#txt_nv_n');
+  const elVn = svg.querySelector('#txt_v_n');
+
+  // surcouche: on marque les lignes pour éviter les doublons
+  const _draw = (el)=>{ const L = drawOverbar(svg, el, barOpts); L?.setAttribute('data-bar',''); };
+
+  if (wantBarNV && elNV) _draw(elNV);
+  if (wantBarNS) {
+    if (elSn) _draw(elSn);  // ¬S côté ¬V
+    if (elVn) _draw(elVn);  // ¬S côté V
+  }
+}
+
+function pushRowUnique(rows, leftHtml, rightTex){
+  // n'ajoute pas si le "rightTex" est identique à la dernière ligne
+  const last = rows[rows.length-1];
+  if(!last || last[2] !== rightTex){
+    rows.push([leftHtml, '=', rightTex]);
+  }
+}
+
+// --- util global pour afficher la coche ---
+function mark(tickSelOrEl, good){
+  const t = (typeof tickSelOrEl === 'string')
+    ? document.querySelector(tickSelOrEl)
+    : tickSelOrEl;
+  if(!t) return;
+  t.className = 'tick ' + (good===null ? '' : (good ? 'ok' : 'ko'));
+  t.textContent = (good===null ? '' : (good ? '✓' : '✗'));
+}
+
+// --- helper commun pour lire une probabilité et cocher ---
+const checkProb = (sel, tick, expect) => {
+  const el  = document.querySelector(sel);
+  const raw = (el?.value || '').trim();
+  if(!raw){ mark(tick, null); return 0; }
+  const v = readAnyProbAsPercent(raw);        // accepte %, 0..1, a/b
+  const good = Number.isFinite(v) && Math.round(v) === Math.round(expect);
+  mark(tick, good);
+  return +good;
+};
+
+
+// Supprime les zéros inutiles et le point final (ex. "0.8300" -> "0.83", "0.3000" -> "0.3").
+function trimZerosDec(str){
+  return String(str).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'').replace(/\.$/,'');
+}
+// Vers un décimal "propre" avec virgule française si tu veux (ici: point pour cohérence MathJax).
+function niceDec(x, digits=4){
+  const s = Number(x).toFixed(digits);
+  return trimZerosDec(s);
+}
+// Convertit un pourcentage entier p (ex. 83) en décimal propre (ex. "0.83").
+function decFromPct(p, digits=4){ return niceDec(p/100, digits); }
+
+
+
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const deltaPoolFor = pV => [4,5,6,8,10,12,15,16,20].filter(d => d % (100/gcd(pV,100)) === 0);
+function pickLetters(ctx){
+  // On enlève juste \( \) si présents ; on garde la lettre brute (T, C, …)
+  const strip = s => String(s||'').replaceAll('\\(','').replaceAll('\\)','');
+  return {
+    v: strip(ctx.Vlabel || 'T'),     // lettre événement principal
+    c: strip(ctx.S || 'C'),          // lettre "catégorie" (ici C)
+    nv: strip(ctx.NVlabel || '\\(\\overline{T}\\)'),
+    ns: strip(ctx.NS || '\\(\\overline{C}\\)')
+  };
+}
+
+/* ==================== Arbre SVG & layout ==================== */
+function treeHTML(st){
+  return `
+  <div id="tree" class="tree-wrap">
+  <svg viewBox="0 0 640 260" width="760" height="260" aria-label="Arbre pondéré">
+    <defs><style>.e{stroke:#64748b;stroke-width:2;fill:none}.t{font:16px system-ui,Segoe UI,Roboto,Arial}</style></defs>
+    <text id="rootLabel" class="t" x="0" y="130">${st.rootLabel}</text>
+    <circle id="nodeRoot" cx="120" cy="130" r="2.5" fill="#64748b"></circle>
+
+    <line id="seg_nv" class="e" x1="120" y1="110" x2="120" y2="110"/>
+    <line id="seg_v"  class="e" x1="120" y1="110" x2="120" y2="110"/>
+
+    <text id="txt_lblNV" class="t" text-anchor="middle">${st.NVlabel}</text>
+    <text id="txt_lblV"  class="t" text-anchor="middle">${st.Vlabel}</text>
+
+    <circle id="nodeNV" cx="120" cy="110" r="2.5" fill="#64748b"></circle>
+    <circle id="nodeV"  cx="120" cy="110" r="2.5" fill="#64748b"></circle>
+
+    <line id="nv_m" class="e" x1="120" y1="110" x2="520" y2="34"/>
+    <line id="nv_n" class="e" x1="120" y1="110" x2="520" y2="94"/>
+    <line id="v_n"  class="e" x1="120" y1="110" x2="520" y2="134"/>
+    <line id="v_m"  class="e" x1="120" y1="110" x2="520" y2="194"/>
+
+    <text id="txt_nv_m" class="t">${st.S}</text>
+    <text id="txt_nv_n" class="t">${st.NS}</text>
+    <text id="txt_v_m"  class="t">${st.S}</text>
+    <text id="txt_v_n"  class="t">${st.NS}</text>
+  </svg>
+
+  <!-- Inputs + ticks -->
+  <input id="pNV"  class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNV"></span>
+  <input id="pV"   class="branch-input" data-exo-keep><span class="tick abs" id="tick_pV"></span>
+  <input id="pSnv" class="branch-input" data-exo-keep><span class="tick abs" id="tick_pSnv"></span>
+  <input id="pNSnv"class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNSnv"></span>
+  <input id="pNSv" class="branch-input" data-exo-keep><span class="tick abs" id="tick_pNSv"></span>
+  <input id="pSv"  class="branch-input" data-exo-keep><span class="tick abs" id="tick_pSv"></span>
+</div>`;
+}
+
+function textWidth(t, svg){
+  try{ const bb=t.getBBox(); if(bb && bb.width>0) return bb.width; }catch(_){}
+  if(typeof t.getComputedTextLength==='function'){ const w=t.getComputedTextLength(); if(isFinite(w)&&w>0) return w; }
+  const r=svg.getBoundingClientRect?.(), vb=svg.viewBox?.baseVal, br=t.getBoundingClientRect?.();
+  if(r && vb && br && r.width>0){ const sx=vb.width/r.width; const w=br.width*sx; if(isFinite(w)&&w>0) return w; }
+  const n=(t.textContent||'').length; return Math.max(10, n*8.5);
+}
+function labelForSVG(s){
+  if(!s) return '';
+  return String(s)
+    .replaceAll('\\(','').replaceAll('\\)','')          // enlève \( \)
+    .replace(/\\text\{([^}]+)\}/g, '$1')                // \text{non-O} -> non-O
+    .replace(/\\overline\{([A-Za-z])\}/g, (_,ch)=> ch + '\u0304'); // \overline{T} -> T̄
+}
+/* ===== Helpers (facultatif si tu les as déjà) ===== */
+function hasOverbarFlag(s){
+  return /\\overline\{.\}|[\u0304\u0305]/.test(String(s||''));
+}
+function cleanOverbarText(s){
+  return String(s||'')
+    .replaceAll('\\(','').replaceAll('\\)','')
+    .replace(/\\text\{([^}]+)\}/g,'$1')
+    .replace(/\\overline\{([A-Za-z])\}/g,'$1')
+    .replace(/[\u0304\u0305]/g,'');
+}
+function drawOverbar(svg, textEl, opts={}){
+  const NS='http://www.w3.org/2000/svg';
+  const pad   = opts.pad ?? 3;
+  const thick = opts.strokeWidth ?? 2;
+  const gap   = opts.gap ?? 6;
+
+  let bb; try{ bb=textEl.getBBox(); }catch(_){ bb=null; }
+  const x = +textEl.getAttribute('x');
+  const y = +textEl.getAttribute('y');
+  const anchor = textEl.getAttribute('text-anchor') || 'start';
+
+  let x1,x2;
+  if (bb && isFinite(bb.width)) { x1 = bb.x - pad; x2 = bb.x + bb.width + pad; }
+  else {
+    const w = textWidth(textEl, svg);
+    if (anchor==='middle'){ x1 = x - w/2 - pad; x2 = x + w/2 + pad; }
+    else if (anchor==='end'){ x1 = x - w - pad; x2 = x + pad; }
+    else { x1 = x - pad; x2 = x + w + pad; }
+  }
+  const yBar = (bb && isFinite(bb.y)) ? (bb.y - gap) : (y - 12);
+
+  const L = document.createElementNS(NS,'line');
+  L.setAttribute('x1', x1); L.setAttribute('x2', x2);
+  L.setAttribute('y1', yBar); L.setAttribute('y2', yBar);
+  L.setAttribute('stroke', '#111'); L.setAttribute('stroke-width', thick);
+  svg.appendChild(L);
+}
+
+/* ===== layoutTree — ordre imposé : Evénement en haut, contraire en bas ===== */
+function layoutTree(root, st){
+  return new Promise(resolve=>{
+    if(!root) return resolve();
+    const svg = root.querySelector('svg'); if(!svg) return resolve();
+
+    // --- setters ---
+    const setLine=(id,A,B)=>{ const L=svg.querySelector('#'+id); if(!L) return;
+      L.setAttribute('x1',A.x); L.setAttribute('y1',A.y);
+      L.setAttribute('x2',B.x); L.setAttribute('y2',B.y);
+    };
+    const setNode=(id,P)=>{ const C=svg.querySelector('#'+id); if(!C) return;
+      C.setAttribute('cx',P.x); C.setAttribute('cy',P.y);
+    };
+    const placeIssueText=(id,P)=>{ const t=svg.querySelector('#'+id); if(!t) return;
+      t.setAttribute('x', P.x+8); t.setAttribute('y', P.y+4);
+    };
+
+    // --- textes (nettoyés ; pas de LaTeX rendu dans le SVG) ---
+    const elRoot = svg.querySelector('#rootLabel');
+    const elNV   = svg.querySelector('#txt_lblNV');
+    const elV    = svg.querySelector('#txt_lblV');
+    const elSm   = svg.querySelector('#txt_nv_m');  // libellé "S" côté NV
+    const elSn   = svg.querySelector('#txt_nv_n');  // libellé "¬S" côté NV
+    const elVm   = svg.querySelector('#txt_v_m');   // libellé "S" côté V
+    const elVn   = svg.querySelector('#txt_v_n');   // libellé "¬S" côté V
+
+    const rawNV = st.NVlabel, rawV = st.Vlabel, rawS = st.S, rawNS = st.NS;
+
+    elRoot.textContent = st.rootLabel || '';
+    elNV.textContent   = cleanOverbarText(rawNV);
+    elV.textContent    = cleanOverbarText(rawV);
+    elSm.textContent   = cleanOverbarText(rawS);
+    elSn.textContent   = cleanOverbarText(rawNS);
+    elVm.textContent   = cleanOverbarText(rawS);
+    elVn.textContent   = cleanOverbarText(rawNS);
+
+    // --- constantes géométrie ---
+    const ARM_X=240, SPREAD_Y=80, DY_CHILD=30, RIGHT_X=660, PAD_BEFORE=6, PAD_AFTER=6, ROOT_PAD=8;
+
+    // --- racine ---
+    const rootY = parseFloat(elRoot.getAttribute('y')||130);
+    const wRoot = textWidth(elRoot, svg);
+    const R = { x:(elRoot.getBBox?.().x ?? 0) + wRoot + ROOT_PAD, y: rootY };
+    setNode('nodeRoot', R);
+
+    // ===> ORDRE IMPOSE : V (événement) EN HAUT, ¬V EN BAS <===
+    // positions des libellés
+    elV .setAttribute('x', R.x + ARM_X); elV .setAttribute('y', R.y - SPREAD_Y);
+    elNV.setAttribute('x', R.x + ARM_X); elNV.setAttribute('y', R.y + SPREAD_Y);
+
+    const wV  = textWidth(elV,  svg);
+    const wNV = textWidth(elNV, svg);
+    const Vc  = { x:+elV .getAttribute('x'), y:+elV .getAttribute('y') };
+    const NVc = { x:+elNV.getAttribute('x'), y:+elNV.getAttribute('y') };
+
+    // extrémités des segments avant libellé
+    const Pv_end  = { x: Vc.x  - wV/2  - PAD_BEFORE, y: Vc.y  };
+    const Pnv_end = { x: NVc.x - wNV/2 - PAD_BEFORE, y: NVc.y };
+
+    // segments depuis la racine : seg_v (haut), seg_nv (bas)
+    setLine('seg_v',  R, Pv_end);      // haut = V
+    setLine('seg_nv', R, Pnv_end);     // bas  = ¬V
+
+    // nœuds après libellé
+    const V  = { x: Vc.x  + wV/2  + PAD_AFTER, y: Vc.y  };
+    const NV = { x: NVc.x + wNV/2 + PAD_AFTER, y: NVc.y };
+    setNode('nodeV',  V);
+    setNode('nodeNV', NV);
+
+    // ===> ORDRE IMPOSE AUX ISSUES : S EN HAUT, ¬S EN BAS <===
+    // côté NV
+    const NV_top = { x: RIGHT_X, y: NV.y - DY_CHILD };   // S
+    const NV_bot = { x: RIGHT_X, y: NV.y + DY_CHILD };   // ¬S
+    setLine('nv_m', NV, NV_top);   // 'm' = S → en haut
+    setLine('nv_n', NV, NV_bot);   // 'n' = ¬S → en bas
+    placeIssueText('txt_nv_m', NV_top);
+    placeIssueText('txt_nv_n', NV_bot);
+
+    // côté V
+    const V_top  = { x: RIGHT_X, y: V.y - DY_CHILD };    // S
+    const V_bot  = { x: RIGHT_X, y: V.y + DY_CHILD };    // ¬S
+    setLine('v_m',  V, V_top);     // 'm' = S → en haut
+    setLine('v_n',  V, V_bot);     // 'n' = ¬S → en bas
+    placeIssueText('txt_v_m', V_top);
+    placeIssueText('txt_v_n', V_bot);
+
+// === Placement inputs + ticks (version robuste, à CÔTÉ des inputs) ===
+const INP_W = 58, INP_H = 22, TICK_GAP = 6;
+
+const mapToCss = (x,y) => {
+  const vb = svg.viewBox.baseVal;
+  const r  = svg.getBoundingClientRect();
+  const wrap = root.getBoundingClientRect();
+  if (!vb || !isFinite(vb.width) || r.width === 0 || r.height === 0) return null; // pas prêt
+  const sx = r.width / vb.width, sy = r.height / vb.height;
+  return { x:(r.left-wrap.left)+x*sx, y:(r.top-wrap.top)+y*sy };
+};
+const mid = (A,B)=>({x:(A.x+B.x)/2, y:(A.y+B.y)/2});
+
+// place un input + sa coche à CÔTÉ (pas au-dessus/ dessous)
+function placeInputAndTick(inpSel, tickSel, P){
+  const p = mapToCss(P.x, P.y);
+  if(!p) return false;
+  const inp = root.querySelector(inpSel);
+  const tk  = root.querySelector(tickSel);
+  if(!inp) return true;
+
+  // input centré au milieu du segment
+  inp.style.left = (p.x - INP_W/2) + 'px';
+  inp.style.top  = (p.y - INP_H/2) + 'px';
+
+  // coche juste à droite de l'input
+  if(tk){
+    tk.classList.add('abs'); // au cas où
+    tk.style.left = (p.x + INP_W/2 + TICK_GAP) + 'px';
+    tk.style.top  = (p.y - 10) + 'px';
+  }
+  return true;
+}
+
+function placeAll(){
+  let ok = true;
+  ok &= placeInputAndTick('#pV',   '#tick_pV',   mid(R,  Pv_end));
+  ok &= placeInputAndTick('#pNV',  '#tick_pNV',  mid(R,  Pnv_end));
+  ok &= placeInputAndTick('#pSnv', '#tick_pSnv', mid(NV, NV_top));
+  ok &= placeInputAndTick('#pNSnv','#tick_pNSnv',mid(NV, NV_bot));
+  ok &= placeInputAndTick('#pSv',  '#tick_pSv',  mid(V,  V_top));
+  ok &= placeInputAndTick('#pNSv', '#tick_pNSv', mid(V,  V_bot));
+  return !!ok;
+}
+
+// — scheduler : attend que le SVG soit “peint” puis aligne —
+(function scheduleInitialAlign(){
+  let tries = 0, maxTries = 20; // ~20 frames max
+  const tick = ()=>{
+    if (placeAll()) return;      // ok dès qu’on a des dimensions
+    if (++tries < maxTries) {
+      requestAnimationFrame(tick);
+    } else {
+      // filet de sécurité si ça traîne (MathJax, fonts…)
+      setTimeout(()=>placeAll(), 30);
+    }
+  };
+  requestAnimationFrame(tick);
+
+  // si le SVG change de taille juste après, on réaligne
+  if ('ResizeObserver' in window){
+    const ro = new ResizeObserver(()=>placeAll());
+    ro.observe(svg);
+  }
+  window.addEventListener('resize', placeAll, {passive:true});
+  window.addEventListener('scroll', placeAll, {passive:true});
+})();
+
+
+
+
+    // --- barres au-dessus si demandées ---
+    const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+    if(hasOverbarFlag(rawV )) drawOverbar(svg, elV , barOpts);
+    if(hasOverbarFlag(rawNV)) drawOverbar(svg, elNV, barOpts);
+    if(hasOverbarFlag(rawS )){ drawOverbar(svg, elSm, barOpts); drawOverbar(svg, elVm, barOpts); }
+    if(hasOverbarFlag(rawNS)){ drawOverbar(svg, elSn, barOpts); drawOverbar(svg, elVn, barOpts); }
+
+    // --- élargissement auto si besoin ---
+    const ensureRoom=()=>{
+      const ids=['txt_nv_m','txt_nv_n','txt_v_n','txt_v_m'];
+      const rights = ids.map(id=>{
+        const t=svg.querySelector('#'+id);
+        const w=textWidth(t, svg);
+        const x=+t.getAttribute('x')||0;
+        return x + w + 12;
+      });
+      const need = Math.max(...rights, 640);
+      const vb = svg.viewBox.baseVal;
+      if (need > vb.width){
+        svg.setAttribute('viewBox', `0 0 ${Math.ceil(need)} ${vb.height}`);
+        root.style.width = Math.ceil(need) + 'px';
+      }
+    };
+    ensureRoom();
+
+    resolve(svg);
+  });
+}
+
+
+
+
+function buildStaticTreeSVG(st){
+  const shell = document.createElement('div');
+  shell.innerHTML = treeHTML(st);
+  const wrap = shell.firstElementChild;
+  const svg  = wrap.querySelector('svg');
+
+  // 1) placer libellés & segments (layout synchro)
+  layoutTree(wrap, st);
+
+  // 2) retirer inputs/ticks AVANT de dessiner les barres
+  wrap.querySelectorAll('.branch-input,.tick.abs').forEach(n=>n.remove());
+
+  // 3) forcer les barres *d'après les labels bruts*
+  const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+  const elNV  = svg.querySelector('#txt_lblNV');
+  const elSn  = svg.querySelector('#txt_nv_n');
+  const elVn  = svg.querySelector('#txt_v_n');
+
+  const wantBarNV = /\\overline/.test(String(st.NVlabel||''));
+  const wantBarNS = /\\overline/.test(String(st.NS||''));
+
+  if (wantBarNV) drawOverbar(svg, elNV, barOpts);
+  if (wantBarNS){ drawOverbar(svg, elSn, barOpts); drawOverbar(svg, elVn, barOpts); }
+
+
+  // 3) Décimaux propres sur les branches
+  const NS='http://www.w3.org/2000/svg';
+  const segMid = id => {
+    const L=svg.querySelector('#'+id); if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    return { mx:(x1+x2)/2, my:(y1+y2)/2 };
+  };
+  const placeText = (S, val, dy) => {
+    if(!S) return;
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x', S.mx);
+    t.setAttribute('y', S.my + dy);           // haut: dy<0 ; bas: dy>0
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('style','font:14px system-ui,Segoe UI,Roboto,Arial;fill:#111');
+    t.textContent = niceDec(val, 4);
+    svg.appendChild(t);
+  };
+
+  const Sg={
+    seg_v:  segMid('seg_v'),   seg_nv: segMid('seg_nv'),
+    v_m:    segMid('v_m'),     v_n:    segMid('v_n'),
+    nv_m:   segMid('nv_m'),    nv_n:   segMid('nv_n')
+  };
+
+  const pV    = (st.pV||0)/100,      pNV   = 1 - pV;
+  const pSv   = (st.pS_v||0)/100,    pNSv  = 1 - pSv;
+  const pSnv  = (st.pS_nv||0)/100,   pNSnv = 1 - pSnv;
+
+  // Racine : haut au-dessus, bas au-dessous
+  placeText(Sg.seg_v,  pV,  -12);
+  placeText(Sg.seg_nv, pNV, +16);
+  // Sous V : S en haut / ¬S en bas
+  placeText(Sg.v_m,    pSv, -12);
+  placeText(Sg.v_n,    pNSv,+16);
+  // Sous ¬V : S en haut / ¬S en bas
+  placeText(Sg.nv_m,   pSnv,-12);
+  placeText(Sg.nv_n,   pNSnv,+16);
+
+  return svg;
+}
+
+
+const pct = x => Math.round(x);
+
+/* ==================== Banques d’énoncés ==================== */
+/* ---- Exercice 1 (T / C) : 20 contextes inspirés du 1er screen ----
+   T : « pratique l’activité vedette » ; C : « pratique son activité en compétition » */
+const PV_SAFE=[25,30,35,40,45,50,55,60,65,70];
+function pickP_T(){ return rchoice(PV_SAFE); }
+function pickCconds(pT){
+  // choisir p(C|T) élevé et p(C|bar T) raisonnable, en garantissant entiers pour la solution
+  const pC_T  = rnd(70,98);
+  const poolD = deltaPoolFor(pT);
+  let pC_notT = rnd(20,90);
+  // forcer une différence multiple compatible pour des p entiers si besoin
+  const gap = Math.abs(pC_T - pC_notT);
+  if(!poolD.some(d => gap % d === 0)){
+    const d = rchoice(poolD);
+    pC_notT = Math.max(5, Math.min(95, pC_T - d));
+  }
+  return {pC_T, pC_notT};
+}
+
+const BANK_EX1 = [
+  // 1 — Centre équestre (tir à l’arc à cheval)
+  {context:"Dans un centre équestre, on observe les adhérents.",
+   group:"adhérents", groupSg:"adhérent", effectifPl:"adhérents",
+   contextN: N => `Dans un centre équestre, on observe ${N} adhérents.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’adhérent pratique le tir à l’arc à cheval", Vpl:"pratiquent le tir à l’arc à cheval",
+   Vnegsg:"l’adhérent ne pratique pas le tir à l’arc à cheval", VnegPl:"ne pratiquent pas le tir à l’arc à cheval",
+   Csg:"l’adhérent participe à des compétitions", Cpl:"participent à des compétitions",
+   Cnegsg:"l’adhérent ne participe pas à des compétitions", CnegPl:"ne participent pas à des compétitions"},
+
+  // 2 — Athlétisme (demi-fond)
+  {context:"Dans un club d’athlétisme, on observe les licenciés.",
+   group:"licenciés", groupSg:"licencié", effectifPl:"licenciés",
+   contextN: N => `Dans un club d’athlétisme, on observe ${N} licenciés.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le licencié s’entraîne au demi-fond", Vpl:"s’entraînent au demi-fond",
+   Vnegsg:"le licencié ne s’entraîne pas au demi-fond", VnegPl:"ne s’entraînent pas au demi-fond",
+   Csg:"le licencié participe à des compétitions", Cpl:"participent à des compétitions",
+   Cnegsg:"le licencié ne participe pas à des compétitions", CnegPl:"ne participent pas à des compétitions"},
+
+  // 3 — Danse (contemporain)
+  {context:"Dans une association de danse, on observe les membres.",
+   group:"membres", groupSg:"membre", effectifPl:"membres",
+   contextN: N => `Dans une association de danse, on observe ${N} membres.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le membre pratique la danse contemporaine", Vpl:"pratiquent la danse contemporaine",
+   Vnegsg:"le membre ne pratique pas la danse contemporaine", VnegPl:"ne pratiquent pas la danse contemporaine",
+   Csg:"le membre suit un cursus de scène", Cpl:"suivent un cursus de scène",
+   Cnegsg:"le membre ne suit pas de cursus de scène", CnegPl:"ne suivent pas de cursus de scène"},
+
+  // 4 — Escalade (bloc)
+  {context:"Dans un club d’escalade, on observe les adhérents.",
+   group:"adhérents", groupSg:"adhérent", effectifPl:"adhérents",
+   contextN: N => `Dans un club d’escalade, on observe ${N} adhérents.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’adhérent pratique le bloc", Vpl:"pratiquent le bloc",
+   Vnegsg:"l’adhérent ne pratique pas le bloc", VnegPl:"ne pratiquent pas le bloc",
+   Csg:"l’adhérent est engagé en compétition", Cpl:"sont engagés en compétition",
+   Cnegsg:"l’adhérent n’est pas engagé en compétition", CnegPl:"ne sont pas engagés en compétition"},
+
+  // 5 — Dojo (judo)
+  {context:"Dans un dojo, on observe les adhérents.",
+   group:"adhérents", groupSg:"adhérent", effectifPl:"adhérents",
+   contextN: N => `Dans un dojo, on observe ${N} adhérents.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’adhérent pratique le judo", Vpl:"pratiquent le judo",
+   Vnegsg:"l’adhérent ne pratique pas le judo", VnegPl:"ne pratiquent pas le judo",
+   Csg:"l’adhérent est inscrit en compétition", Cpl:"sont inscrits en compétition",
+   Cnegsg:"l’adhérent n’est pas inscrit en compétition", CnegPl:"ne sont pas inscrits en compétition"},
+
+  // 6 — Natation (papillon)
+  {context:"Dans un club de natation, on observe les adhérents.",
+   group:"adhérents", groupSg:"adhérent", effectifPl:"adhérents",
+   contextN: N => `Dans un club de natation, on observe ${N} adhérents.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’adhérent s’entraîne au papillon", Vpl:"s’entraînent au papillon",
+   Vnegsg:"l’adhérent ne s’entraîne pas au papillon", VnegPl:"ne s’entraînent pas au papillon",
+   Csg:"l’adhérent nage en compétition", Cpl:"nagent en compétition",
+   Cnegsg:"l’adhérent ne nage pas en compétition", CnegPl:"ne nagent pas en compétition"},
+
+  // 7 — Tir (carabine 10 m)
+  {context:"Dans un club de tir, on observe les tireurs.",
+   group:"tireurs", groupSg:"tireur", effectifPl:"tireurs",
+   contextN: N => `Dans un club de tir, on observe ${N} tireurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le tireur pratique la carabine à 10 m", Vpl:"pratiquent la carabine à 10 m",
+   Vnegsg:"le tireur ne pratique pas la carabine à 10 m", VnegPl:"ne pratiquent pas la carabine à 10 m",
+   Csg:"le tireur concourt en compétition", Cpl:"concourent en compétition",
+   Cnegsg:"le tireur ne concourt pas en compétition", CnegPl:"ne concourent pas en compétition"},
+
+  // 8 — MJC (théâtre)
+  {context:"Dans une MJC, on observe les inscrits.",
+   group:"inscrits", groupSg:"inscrit", effectifPl:"inscrits",
+   contextN: N => `Dans une MJC, on observe ${N} inscrits.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’inscrit pratique le théâtre", Vpl:"pratiquent le théâtre",
+   Vnegsg:"l’inscrit ne pratique pas le théâtre", VnegPl:"ne pratiquent pas le théâtre",
+   Csg:"l’inscrit se produit en concours ou spectacle", Cpl:"se produisent en concours ou spectacle",
+   Cnegsg:"l’inscrit ne se produit pas en concours ou spectacle", CnegPl:"ne se produisent pas en concours ou spectacle"},
+
+  // 9 — Aviron (huit)
+  {context:"Dans un club d’aviron, on observe les rameurs.",
+   group:"rameurs", groupSg:"rameur", effectifPl:"rameurs",
+   contextN: N => `Dans un club d’aviron, on observe ${N} rameurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le rameur pratique en huit", Vpl:"pratiquent en huit",
+   Vnegsg:"le rameur ne pratique pas en huit", VnegPl:"ne pratiquent pas en huit",
+   Csg:"le rameur est engagé en compétition", Cpl:"sont engagés en compétition",
+   Cnegsg:"le rameur n’est pas engagé en compétition", CnegPl:"ne sont pas engagés en compétition"},
+
+  // 10 — École de musique (piano)
+  {context:"Dans une école de musique, on observe les élèves.",
+   group:"élèves", groupSg:"élève", effectifPl:"élèves",
+   contextN: N => `Dans une école de musique, on observe ${N} élèves.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’élève suit la classe de piano", Vpl:"suivent la classe de piano",
+   Vnegsg:"l’élève ne suit pas la classe de piano", VnegPl:"ne suivent pas la classe de piano",
+   Csg:"l’élève prépare des concours", Cpl:"préparent des concours",
+   Cnegsg:"l’élève ne prépare pas de concours", CnegPl:"ne préparent pas de concours"},
+
+  // 11 — Volley (beach)
+  {context:"Dans un club de volley, on observe les membres.",
+   group:"membres", groupSg:"membre", effectifPl:"membres",
+   contextN: N => `Dans un club de volley, on observe ${N} membres.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le membre pratique le beach-volley", Vpl:"pratiquent le beach-volley",
+   Vnegsg:"le membre ne pratique pas le beach-volley", VnegPl:"ne pratiquent pas le beach-volley",
+   Csg:"le membre joue en compétition", Cpl:"jouent en compétition",
+   Cnegsg:"le membre ne joue pas en compétition", CnegPl:"ne jouent pas en compétition"},
+
+  // 12 — Course (trail)
+  {context:"Dans une association de course, on observe les coureurs.",
+   group:"coureurs", groupSg:"coureur", effectifPl:"coureurs",
+   contextN: N => `Dans une association de course, on observe ${N} coureurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le coureur pratique le trail", Vpl:"pratiquent le trail",
+   Vnegsg:"le coureur ne pratique pas le trail", VnegPl:"ne pratiquent pas le trail",
+   Csg:"le coureur est engagé en compétition", Cpl:"sont engagés en compétition",
+   Cnegsg:"le coureur n’est pas engagé en compétition", CnegPl:"ne sont pas engagés en compétition"},
+
+  // 13 — Échecs (cadence rapide)
+  {context:"Dans un club d’échecs, on observe les joueurs.",
+   group:"joueurs", groupSg:"joueur", effectifPl:"joueurs",
+   contextN: N => `Dans un club d’échecs, on observe ${N} joueurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le joueur pratique la cadence rapide", Vpl:"pratiquent la cadence rapide",
+   Vnegsg:"le joueur ne pratique pas la cadence rapide", VnegPl:"ne pratiquent pas la cadence rapide",
+   Csg:"le joueur dispute des tournois", Cpl:"disputent des tournois",
+   Cnegsg:"le joueur ne dispute pas de tournois", CnegPl:"ne disputent pas de tournois"},
+
+  // 14 — Tir à l’arc (arc classique)
+  {context:"Dans un club de tir à l’arc, on observe les archers.",
+   group:"archers", groupSg:"archer", effectifPl:"archers",
+   contextN: N => `Dans un club de tir à l’arc, on observe ${N} archers.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"l’archer tire à l’arc classique", Vpl:"tirent à l’arc classique",
+   Vnegsg:"l’archer ne tire pas à l’arc classique", VnegPl:"ne tirent pas à l’arc classique",
+   Csg:"l’archer concourt", Cpl:"concourent",
+   Cnegsg:"l’archer ne concourt pas", CnegPl:"ne concourent pas"},
+
+  // 15 — Escrime (fleuret)
+  {context:"Dans une salle d’escrime, on observe les tireurs.",
+   group:"tireurs", groupSg:"tireur", effectifPl:"tireurs",
+   contextN: N => `Dans une salle d’escrime, on observe ${N} tireurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le tireur tire au fleuret", Vpl:"tirent au fleuret",
+   Vnegsg:"le tireur ne tire pas au fleuret", VnegPl:"ne tirent pas au fleuret",
+   Csg:"le tireur est licencié en compétition", Cpl:"sont licenciés en compétition",
+   Cnegsg:"le tireur n’est pas licencié en compétition", CnegPl:"ne sont pas licenciés en compétition"},
+
+  // 16 — Badminton (double mixte)
+  {context:"Dans un club de badminton, on observe les joueurs.",
+   group:"joueurs", groupSg:"joueur", effectifPl:"joueurs",
+   contextN: N => `Dans un club de badminton, on observe ${N} joueurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le joueur pratique le double mixte", Vpl:"pratiquent le double mixte",
+   Vnegsg:"le joueur ne pratique pas le double mixte", VnegPl:"ne pratiquent pas le double mixte",
+   Csg:"le joueur participe aux interclubs", Cpl:"participent aux interclubs",
+   Cnegsg:"le joueur ne participe pas aux interclubs", CnegPl:"ne participent pas aux interclubs"},
+
+  // 17 — Kayak (eau vive)
+  {context:"Dans un club de kayak, on observe les kayakistes.",
+   group:"kayakistes", groupSg:"kayakiste", effectifPl:"kayakistes",
+   contextN: N => `Dans un club de kayak, on observe ${N} kayakistes.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le kayakiste pratique l’eau vive", Vpl:"pratiquent l’eau vive",
+   Vnegsg:"le kayakiste ne pratique pas l’eau vive", VnegPl:"ne pratiquent pas l’eau vive",
+   Csg:"le kayakiste fait des courses", Cpl:"font des courses",
+   Cnegsg:"le kayakiste ne fait pas de courses", CnegPl:"ne font pas de courses"},
+
+  // 18 — Triathlon (format sprint)
+  {context:"Dans un club de triathlon, on observe les triathlètes.",
+   group:"triathlètes", groupSg:"triathlète", effectifPl:"triathlètes",
+   contextN: N => `Dans un club de triathlon, on observe ${N} triathlètes.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le triathlète court le format sprint", Vpl:"courent le format sprint",
+   Vnegsg:"le triathlète ne court pas le format sprint", VnegPl:"ne courent pas le format sprint",
+   Csg:"le triathlète est licencié compétition", Cpl:"sont licenciés compétition",
+   Cnegsg:"le triathlète n’est pas licencié compétition", CnegPl:"ne sont pas licenciés compétition"},
+
+  // 19 — Tennis de table (service coupé)
+  {context:"Dans un club de tennis de table, on observe les joueurs.",
+   group:"joueurs", groupSg:"joueur", effectifPl:"joueurs",
+   contextN: N => `Dans un club de tennis de table, on observe ${N} joueurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le joueur maîtrise le service coupé", Vpl:"maîtrisent le service coupé",
+   Vnegsg:"le joueur ne maîtrise pas le service coupé", VnegPl:"ne maîtrisent pas le service coupé",
+   Csg:"le joueur est engagé en championnat", Cpl:"sont engagés en championnat",
+   Cnegsg:"le joueur n’est pas engagé en championnat", CnegPl:"ne sont pas engagés en championnat"},
+
+  // 20 — Rugby (formation jeunes)
+  {context:"Dans un club de rugby, on observe les joueurs.",
+   group:"joueurs", groupSg:"joueur", effectifPl:"joueurs",
+   contextN: N => `Dans un club de rugby, on observe ${N} joueurs.`,
+   Vlabel:'T', NVlabel:'\\(\\overline{T}\\)', S:'C', NS:'\\(\\overline{C}\\)',
+   Vsg:"le joueur appartient à la formation jeunes", Vpl:"appartiennent à la formation jeunes",
+   Vnegsg:"le joueur n’appartient pas à la formation jeunes", VnegPl:"n’appartiennent pas à la formation jeunes",
+   Csg:"le joueur dispute des rencontres officielles", Cpl:"disputent des rencontres officielles",
+   Cnegsg:"le joueur ne dispute pas de rencontres officielles", CnegPl:"ne disputent pas de rencontres officielles"}
+];
+
+// === Patch lettres contextuelles pour BANK_EX1 (indices 1→20) ===
+const _LBL = [
+  // 1  Centre équestre — tir à l’arc à cheval
+  {V:'A', C:'C'},         // A = Arc (ou Activité vedette), C = Compétition
+  // 2  Athlétisme — demi-fond
+  {V:'D', C:'C'},
+  // 3  Danse — contemporain / cursus de scène
+  {V:'D', C:'S'},         // S = Scène
+  // 4  Escalade — bloc
+  {V:'B', C:'C'},
+  // 5  Dojo — judo
+  {V:'J', C:'C'},
+  // 6  Natation — papillon
+  {V:'P', C:'C'},
+  // 7  Tir — carabine 10 m
+  {V:'M', C:'C'},         // M = “10 m”
+  // 8  MJC — théâtre / concours ou spectacle
+  {V:'T', C:'S'},         // S = Spectacle/Scène
+  // 9  Aviron — en huit
+  {V:'H', C:'C'},
+  // 10 École de musique — piano
+  {V:'P', C:'C'},
+  // 11 Volley — beach-volley
+  {V:'B', C:'C'},
+  // 12 Course — trail
+  {V:'T', C:'C'},
+  // 13 Échecs — cadence rapide / tournois
+  {V:'R', C:'T'},         // T = Tournoi(x)
+  // 14 Tir à l’arc — arc classique / « concourt »
+  {V:'C', C:'Q'},         // Q = “concours/concourt”
+  // 15 Escrime — fleuret
+  {V:'F', C:'C'},
+  // 16 Badminton — double mixte / interclubs (ton exemple)
+  {V:'D', C:'I'},         // I = Interclub
+  // 17 Kayak — eau vive / courses
+  {V:'V', C:'C'},
+  // 18 Triathlon — sprint / licencié compétition
+  {V:'S', C:'L'},         // L = Licencié (compétition)
+  // 19 Tennis de table — service coupé / championnat
+  {V:'S', C:'H'},         // H = cHampionnat
+  // 20 Rugby — formation jeunes / rencontres officielles
+  {V:'J', C:'R'}          // R = Rencontres
+];
+
+// Applique les lettres + leurs contraires typographiés
+BANK_EX1.forEach((o, i) => {
+  const {V, C} = _LBL[i] || {V:'T', C:'C'};
+  o.Vlabel = V;
+  o.NVlabel = `\\(\\overline{${V}}\\)`;
+  o.S = C;
+  o.NS = `\\(\\overline{${C}}\\)`;
+});
+
+
+
+
+
+/* ==================== Exercice 1 (T/C) ==================== */
+const ex1 = {
+  id:'ex1',
+  title:'Ex. 1 — Tableau à double entrée (T / C)',
+gen(){
+  const ctx = rchoice(BANK_EX1);      // un objet de la banque
+
+  const pT = pickP_T();               // en %
+  const { pC_T, pC_notT } = pickCconds(pT);
+  const pC = Math.round(pT*pC_T/100 + (100-pT)*pC_notT/100); // P(C) global
+
+  const { v, c:lettC } = pickLetters(ctx);
+
+  return {
+    // --- contexte complet de la banque (pour Vsg/Vpl, Csg/Cpl…)
+    ctx,
+
+    // --- textes utilisés par l’énoncé
+    context: ctx.context,
+    rootLabel: (ctx.effectifPl || ctx.group || 'adhérents'),
+    Tdef: ctx.Vsg,
+    Cdef: ctx.Csg,
+
+    // --- lettres (si un jour tu varies : v, c)
+    v, c: lettC,
+
+    // --- probabilités nécessaires partout
+    pV: pT,            // P(T)
+    pS_v: pC_T,        // P(C|T)
+    pS_nv: pC_notT,    // P(C|¬T)
+    pC                   // P(C) total (utile pour l’énoncé)
+  };
+},
+
+  
+render(host, st){
+  const pT = st.pV, pC_T = st.pS_v, pC_notT = st.pS_nv;
+  const { ctx } = st;
+  const { v, c } = pickLetters(ctx);
+  const pC = st.pC ?? Math.round(pT*pC_T/100 + (100-pT)*pC_notT/100);
+  const C = st.ctx;
+// Lettres issues du contexte (avec fallback sur v,c calculés)
+const Vlab  = ctx.Vlabel || v;
+const NVlab = ctx.NVlabel || `\\(\\overline{${Vlab}}\\)`;
+const Clab  = ctx.S || c;
+const NClab = ctx.NS || `\\(\\overline{${Clab}}\\)`;
+
+  // --- calculs exacts en % puis conversion propre en décimal ---
+  const pTC_pct  = Math.round(pT * pC_T / 100);                               // % arrondi (affichage phrase Q2)
+  const pC_pct   = Math.round(pT*pC_T/100 + (100-pT)*pC_notT/100);            // % total
+  const pTUC_pct = Math.round(pT + pC_pct - pTC_pct);                          // % pour T ∪ C
+
+  const pT_dec   = decFromPct(pT,   4);    // "0.3" etc.
+  const pNV_dec  = decFromPct(100-pT, 4);
+  const pC_T_dec = decFromPct(pC_T, 4);
+  const pNC_T_dec= niceDec(1 - pC_T/100, 4);
+  const pC_nT_dec= decFromPct(pC_notT, 4);
+  const pNC_nT_dec= niceDec(1 - pC_notT/100, 4);
+
+  const pTC_dec  = niceDec((pT/100)*(pC_T/100), 4);                           // 0.xxxx
+  const pC_dec   = niceDec((pT/100)*(pC_T/100) + ((100-pT)/100)*(pC_notT/100), 4);
+const pTUC_dec = niceDec((pT/100) + ((pT*pC_T + (100-pT)*pC_notT)/10000) - ((pT*pC_T)/10000), 4);
+
+  const indep = Math.abs( (pT/100)*(pC_T/100) - (pT/100)*(pC_dec) ) < 1e-10;
+  const PTgC  = niceDec( ((pT/100)*(pC_T/100)) / (pC_dec), 4 );
+
+
+const enoncePhrases = `
+  <div class="hint" style="margin:.35rem 0 .2rem">
+    <p>${st.context}<br>
+    On sait que \\(${st.pV}\\,\\%\\) ${C.Vpl}.<br>
+       Parmi ceux qui ${C.Vpl}, \\(${st.pS_v}\\,\\%\\) ${C.Cpl}.<br>
+       Parmi ceux qui ${C.VnegPl}, \\(${st.pS_nv}\\,\\%\\) ${C.Cpl}.<br>
+    On note \\(${Vlab}\\) : « ${C.Vsg} » et \\(${Clab}\\) : « ${C.Csg} ».        
+    <br>Pour tout évènement \\(A\\), on note \\(\\overline{A}\\) son évènement contraire.
+    </p>
+  </div>`;
+
+
+
+  const root = document.createElement('div');
+root.innerHTML = `
+<div class="statement">
+
+  <div class="consigne"><span class="c-label">Exercice 1.</span> Compléter l’arbre puis répondre.</div>
+  <div class="row">
+    <div class="col-label">
+      ${enoncePhrases}
+      On choisit au hasard la fiche d’un ${ctx.groupSg || 'adhérent'}.
+      <div style="margin-top:8px"><strong>1.</strong> Construire l’arbre de probabilités décrivant la situation.</div>
+    </div>
+
+    <div class="input-line">
+      <div style="margin:6px 0"><em>Arbre pondéré (saisir les % sur chaque branche)</em></div>
+      ${treeHTML({
+        rootLabel: st.rootLabel,
+        Vlabel: ctx.Vlabel || v,
+        NVlabel: ctx.NVlabel || `\\(\\overline{${v}}\\)`,
+        S: ctx.S || c,
+        NS: ctx.NS || `\\(\\overline{${c}}\\)`,
+        pV: pT, pS_v: pC_T, pS_nv: pC_notT
+      })}
+
+      <div class="q" style="margin-top:6px"><strong>2.</strong>
+        Définir par une phrase l’évènement \\(${Vlab}\\cap ${Clab}\\). Calculer \\(P(${Vlab}\\cap ${Clab})\\).<br>
+        Phrase :
+		<input id="phTC" type="text" style="width:800px" placeholder="">
+               <span class="tick" id="phTC_t"></span><br>
+        \\(P(${Vlab}\\cap ${Clab})\\)= <input id="pTC" type="text" placeholder=""> <span class="tick" id="tick_pTC"></span>
+      </div>
+
+      <div style="margin-top:10px"><strong>3.</strong>
+       Montrer que \\(P(${Clab})=${pC_dec}\\).</div>
+      \\(P(${Clab})=\\)<input id="pC" type="text" style="width:600px" placeholder=""> <span class="tick" id="tick_pC"></span>
+
+      <div class="q" style="margin-top:6px"><strong>4.</strong>
+        Définir par une phrase l’évènement \\(${Vlab}\\cup ${Clab}\\). Calculer \\(P(${Vlab}\\cup ${Clab})\\).<br>
+        Phrase :
+		<input id="phTUC" type="text" style="width:800px" placeholder="">
+        <span class="tick" id="phTUC_t"></span><br>
+        \\(P(${Vlab}\\cup ${Clab})\\)= <input id="pTUC" type="text" placeholder=""> <span class="tick" id="tick_pTUC"></span>
+      </div>
+
+      <div style="margin-top:10px"><strong>5.</strong>
+        Les évènements \\(${Vlab}\\) et \\(${Clab}\\) sont-ils indépendants&nbsp;?
+        <select id="indep"><option value="">—</option><option>Oui</option><option>Non</option></select>
+        <span class="tick" id="tick_indep"></span>
+      </div>
+
+        <div style="margin-top:10px"><strong>6.</strong> On choisit une fiche au hasard parmi les fiches des ${C.group} qui ${C.Cpl}.<br>
+          Quelle est la probabilité (à 0,0001 près) que ${C.Vsg} ?
+          </div>
+        <input id="pT_givenC" type="text" style="width:180px" placeholder=""> <span class="tick" id="tick_pT_givenC"></span>
+      </div>
+      <div class="res" id="r1"></div></div>
+    </div>`;
+
+  host.innerHTML=''; host.appendChild(root);
+
+  // arbre (T en haut, \\overline{T} en bas ; C en haut, \\overline{C} en bas)
+  const tree = root.querySelector('#tree');
+// — juste après const tree = root.querySelector('#tree');
+const Slab = ctx.S || st.c;
+const NSlab = ctx.NS || `\\(\\overline{${st.c}}\\)`;
+
+// 1) premier layout
+layoutTree(tree, { rootLabel: st.rootLabel, Vlabel: Vlab, NVlabel: NVlab, S: Slab, NS: NSlab });
+// 2) rAF
+requestAnimationFrame(() =>
+  layoutTree(tree, { rootLabel: st.rootLabel, Vlabel: Vlab, NVlabel: NVlab, S: Slab, NS: NSlab })
+);
+// 3) on resize
+window.addEventListener('resize', () =>
+  layoutTree(tree, { rootLabel: st.rootLabel, Vlabel: Vlab, NVlabel: NVlab, S: Slab, NS: NSlab })
+);
+
+
+  if (window.MathJax) MathJax.typesetPromise();
+
+  // état pour check()
+ host.dataset.state = JSON.stringify({
+  kind:'ex1',
+  pT, pC_T, pC_notT,
+  pC,                       // utile partout
+  ctx,                      // tout le contexte (phrases, groupe…)
+  Vlab: Vlab, Clab: Clab,   // lettres contextuelles
+});
+tex();
+},
+
+  check(host){
+  const st = JSON.parse(host.dataset.state);
+  const { pT, pC_T, pC_notT, pC, ctx, Vlab, Clab } = st;
+
+  // utils tick
+  const mark=(sel,good)=>{ const t=$(sel,host); if(!t) return;
+    t.className='tick ' + (good===null?'':(good?'ok':'ko'));
+    t.textContent = good===null?'':(good?'✓':'✗');
+  };
+  const pctEq=(a,b)=>Math.round(+a)===Math.round(+b);
+
+  // lecture %
+  const b=(sel,tick,expect)=>{
+    const raw=($(sel,host)?.value||'').trim();
+    if(!raw){ mark(tick,null); return 0; }
+    const v=readPercentStrict(raw);
+    const good = Number.isFinite(v) && pctEq(v, expect);
+    mark(tick,good); return +good;
+  };
+
+  // normalisation pour phrases
+  const norm = s => String(s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ').trim();
+
+  // on prépare des mots-clés souples à partir du contexte
+  const activityHints = [ctx.Vsg, ctx.Vpl, ctx.Vnegsg, ctx.VnegPl].filter(Boolean).map(norm);
+  const competHints   = [ctx.Csg, ctx.Cpl, ctx.Cnegsg, ctx.CnegPl].filter(Boolean).map(norm);
+  const containsAny = (txt, arr) => arr.some(k => txt.includes(k));
+
+  let ok=0, tot=0;
+
+  // ===== Arbre : 6 branches
+  ok += checkProb('#pV'   ,'#tick_pV'   , pT);           tot++;
+  ok += checkProb('#pNV'  ,'#tick_pNV'  , 100-pT);       tot++;
+  ok += checkProb('#pSv'  ,'#tick_pSv'  , pC_T);         tot++;
+  ok += checkProb('#pNSv' ,'#tick_pNSv' , 100-pC_T);     tot++;
+  ok += checkProb('#pSnv' ,'#tick_pSnv' , pC_notT);      tot++;
+  ok += checkProb('#pNSnv','#tick_pNSnv', 100-pC_notT);  tot++;
+
+
+  // ===== Q2 Phrase : V ∩ C
+  const phTC = norm($('#phTC',host)?.value||'');
+  if(!phTC){ mark('#phTC_t', null); }
+  else{
+    // on demande : présence des 2 notions + conjonction "et" ou équivalent simple
+    const hasV = containsAny(phTC, activityHints);
+    const hasC = containsAny(phTC, competHints);
+    const hasAnd = /\bet\b|&|,/.test(phTC);
+    const good = hasV && hasC && hasAnd;
+    mark('#phTC_t', good); ok += good?1:0; tot++;
+  }
+  // Q2 Proba : P(V∩C) = P(V)·P(C|V)
+const pVC = Math.round(pT * pC_T / 100);
+ok += checkProb('#pTC','#tick_pTC', pVC); tot++;
+
+  // ===== Q3 : P(C) (en %)
+// ===== Q3 : P(C) — on attend l'EXPRESSION (somme des produits) en décimal
+{
+  const raw = ($('#pC',host)?.value || '').trim();
+  if(!raw){ mark('#tick_pC', null); }
+  else{
+    const val = evalDecimalExpr(raw);                   // calcule la valeur de l’expression
+    const want = (pT/100)*(pC_T/100) + ((100-pT)/100)*(pC_notT/100); // valeur déc.
+    const good = Number.isFinite(val) && Math.abs(val - want) <= 5e-5;
+
+    // Bonus : on exige bien une "somme de produits"
+    const looksLikeSumProducts =
+      /[)*\d]\s*\*\s*[(*\d]/.test(raw.replace(/×/g,'*')) && /\+/.test(raw);
+
+    mark('#tick_pC', good && looksLikeSumProducts);
+    ok += (good && looksLikeSumProducts) ? 1 : 0; tot++;
+  }
+}
+
+  // ===== Q4 Phrase : V ∪ C
+  const phTUC = norm($('#phTUC',host)?.value||'');
+  if(!phTUC){ mark('#phTUC_t', null); }
+  else{
+    // on demande : présence des 2 notions + "ou" (ou "au moins")
+    const hasV = containsAny(phTUC, activityHints);
+    const hasC = containsAny(phTUC, competHints);
+    const hasOr = /\bou\b|\bau moins\b/.test(phTUC);
+    const good = hasV && hasC && hasOr;
+    mark('#phTUC_t', good); ok += good?1:0; tot++;
+  }
+  // Q4 Proba : P(V ∪ C) = P(V)+P(C)-P(V∩C)
+const pVUC = Math.round(pT + pC - pVC);
+ok += checkProb('#pTUC','#tick_pTUC', pVUC);
+
+  // ===== Q5 : indépendance
+  const indepSel = ($('#indep',host)?.value||'');
+  const isIndep = Math.round(pT*pC_T/100) === Math.round(pT*pC/100);
+  if(!indepSel){ mark('#tick_indep', null); }
+  else{
+    const good = (isIndep && indepSel==='Oui') || (!isIndep && indepSel==='Non');
+    mark('#tick_indep', good); ok += good?1:0; tot++;
+  }
+
+  // ===== Q6 : P(V|C) (décimal, tolérance 1e-4)
+  const raw = stripSign($('#pT_givenC',host)?.value||'').replace(',','.');
+  if(!raw){ mark('#tick_pT_givenC', null); }
+  else{
+    const v = parseFloat(raw);
+    const want = (pT*pC_T/100) / (pT*pC_T/100 + (100-pT)*pC_notT/100);
+    const good = Number.isFinite(v) && Math.abs(v - want) <= 0.00005;
+    mark('#tick_pT_givenC', good); ok += good?1:0; tot++;
+  }
+
+  const box=$('#r1',host);
+  box.textContent=`${ok}/${tot} éléments corrects`;
+  box.className = (ok===tot && tot>0)?'res res-ok':'res res-ko';
+  return {ok,tot};
+},
+
+
+
+
+
+
+  solution(host){
+  const st = JSON.parse(host.dataset.state || '{}');
+  const pT = st.pT, pC_T = st.pC_T, pC_notT = st.pC_notT;
+  const ctx  = st.ctx || {};
+  const Vlab = st.Vlab || 'T';
+  const Clab = st.Clab || 'C';
+  const rows = [];
+
+  const box = $('#r1', host);
+  box.className = 'res res-ok';
+  box.innerHTML = '';
+  const steps = document.createElement('div');
+  steps.className = 'steps pdfb';
+
+  // --- calculs exacts en % puis conversion propre en décimal ---
+  const pTC_pct  = Math.round(pT * pC_T / 100);                               // % arrondi (affichage phrase Q2)
+  const pC_pct   = Math.round(pT*pC_T/100 + (100-pT)*pC_notT/100);            // % total
+  const pTUC_pct = Math.round(pT + pC_pct - pTC_pct);                          // % pour T ∪ C
+
+  const pT_dec   = decFromPct(pT,   4);    // "0.3" etc.
+  const pNV_dec  = decFromPct(100-pT, 4);
+  const pC_T_dec = decFromPct(pC_T, 4);
+  const pNC_T_dec= niceDec(1 - pC_T/100, 4);
+  const pC_nT_dec= decFromPct(pC_notT, 4);
+  const pNC_nT_dec= niceDec(1 - pC_notT/100, 4);
+
+  const pTC_dec  = niceDec((pT/100)*(pC_T/100), 4);                           // 0.xxxx
+  const pC_dec   = niceDec((pT/100)*(pC_T/100) + ((100-pT)/100)*(pC_notT/100), 4);
+const pTUC_dec = niceDec((pT/100) + ((pT*pC_T + (100-pT)*pC_notT)/10000) - ((pT*pC_T)/10000), 4);
+
+  const indep = Math.abs( (pT/100)*(pC_T/100) - (pT/100)*(pC_dec) ) < 1e-10;
+  const PTgC  = niceDec( ((pT/100)*(pC_T/100)) / (pC_dec), 4 );
+  
+  // --- helpers "≈ si pas exactement égal" (tolérance adaptée à 4 décimales)
+const approxSign = (a, b, tol = 5e-6) => (Math.abs(Number(a) - Number(b)) <= tol ? '=' : '\\approx');
+
+// Recalcules "réels" pour les comparaisons vs valeurs affichées (arrondies)
+const real_PTC   = (pT/100) * (pC_T/100);
+const real_PC    = (pT/100)*(pC_T/100) + ((100-pT)/100)*(pC_notT/100);
+const real_PU    = (pT/100) + real_PC - real_PTC;
+
+const num_PTC_fromText = Number(pT_dec) * Number(pC_T_dec);
+const num_PC_fromText  = Number(pT_dec)*Number(pC_T_dec) + Number(pNV_dec)*Number(pC_nT_dec);
+const num_PU_fromText  = Number(pT_dec) + Number(pC_dec) - Number(pTC_dec);
+
+  
+  
+  steps.insertAdjacentHTML(
+  'beforeend',
+  '<div class="line"><strong>1.</strong> Compléter l\'arbre pondéré.</div>'
+);
+const svg = buildStaticTreeSVG({
+  rootLabel: '',
+  Vlabel : st.Vlab || (st.ctx?.Vlabel) || 'T',
+  NVlabel: (st.ctx?.NVlabel) || `\\(\\overline{${st.Vlab || 'T'}}\\)`,
+  S      : st.Clab || (st.ctx?.S) || 'C',
+  NS     : (st.ctx?.NS) || `\\(\\overline{${st.Clab || 'C'}}\\)`,
+  pV     : st.pT,
+  pS_v   : st.pC_T,
+  pS_nv  : st.pC_notT
+});
+steps.appendChild(svg);
+
+// ✅ très important : (re)poser les barres APRÈS insertion dans le DOM
+requestAnimationFrame(()=>{
+  forceOverbarsAfterAttach(svg, {
+    NVlabel: (st.ctx?.NVlabel) || `\\(\\overline{${st.Vlab || 'T'}}\\)`,
+    NS     : (st.ctx?.NS)      || `\\(\\overline{${st.Clab || 'C'}}\\)`,
+    ctx: st.ctx
+  });
+  // petite seconde chance si le layout bouge encore (MathJax etc.)
+  setTimeout(()=>forceOverbarsAfterAttach(svg, {
+    NVlabel: (st.ctx?.NVlabel) || `\\(\\overline{${st.Vlab || 'T'}}\\)`,
+    NS     : (st.ctx?.NS)      || `\\(\\overline{${st.Clab || 'C'}}\\)`,
+    ctx: st.ctx
+  }), 0);
+});
+
+
+// --- 2) P(V∩C) ---
+steps.insertAdjacentHTML('beforeend',
+  `<div class="line"><strong>2.</strong>\\(${Vlab}\\cap ${Clab}\\) \\( \\) : \\( \\)  «${ctx.Vsg} et ${ctx.Csg}».</div>`
+);
+{
+  const rows2 = [
+    [`\\(P(${Vlab}\\cap ${Clab})\\)`, `=` , `\\(P(${Vlab})\\times P_{${Vlab}}(${Clab})\\)`],
+    [``, `=`, `\\(${pT_dec}\\times ${pC_T_dec}\\)`],
+    [``, `${approxSign(num_PTC_fromText, pTC_dec)}`, `\\(${pTC_dec}\\)`],
+  ];
+  addCalcTable(steps, rows2);
+}
+
+
+
+// --- 3) P(C) par probabilités totales ---
+steps.insertAdjacentHTML('beforeend',
+  `<div class="line"><strong>3.</strong>  \\(${Vlab}\\) et \\(\\overline{${Vlab}} \\) \\( \\) forment une partition de l’univers, donc d’après la formule des probabilités totales :</div>`
+);
+{
+  const rows3 = [
+    [`\\(P(${Clab})\\)`, `=` , `\\(P(${Vlab}\\cap ${Clab}) + P(\\overline{${Vlab}}\\cap ${Clab})\\)`],
+    [``, `=`, `\\(P(${Vlab})\\times P_{${Vlab}}(${Clab}) + P(\\overline{${Vlab}})\\times P_{\\overline{${Vlab}}}(${Clab})\\)`],
+    [``, `=`, `\\(${pT_dec}\\times ${pC_T_dec} + ${pNV_dec}\\times ${pC_nT_dec}\\)`],
+    [``, `${approxSign(num_PC_fromText, pC_dec)}`, `\\(${pC_dec}\\)`],
+  ];
+  addCalcTable(steps, rows3);
+}
+
+
+  // --- 4) P(V ∪ C) ---
+  // --- 4) P(V ∪ C) ---
+steps.insertAdjacentHTML('beforeend',
+  `<div class="line"><strong>4.</strong>\\(${Vlab}\\cup ${Clab}\\) \\( \\) : \\( \\)  «${ctx.Vsg} ou ${ctx.Csg}».</div>`
+);
+{
+  const rows4 = [
+    [`\\(P(${Vlab}\\cup ${Clab})\\)`, `=`, `\\(P(${Vlab}) + P(${Clab}) - P(${Vlab}\\cap ${Clab})\\)`],
+    [``, `=`, `\\(${pT_dec} + ${pC_dec} - ${pTC_dec}\\)`],
+    [``, `${approxSign(num_PU_fromText, pTUC_dec)}`, `\\(${pTUC_dec}\\)`],
+  ];
+  addCalcTable(steps, rows4);
+}
+
+  // --- 5) Indépendance (2 méthodes) ---
+  steps.insertAdjacentHTML('beforeend', `
+    <div class="line">
+      <strong>5.</strong>
+      <div style="margin-top:4px;padding-left:10px">
+        <u>1<sup>ère</sup> méthode</u> : comparer \\(P_{${Vlab}}(${Clab})\\) et \\(P(${Clab})\\).<br>
+        \\(P_{${Vlab}}(${Clab})=${niceDec(pC_T/100,2)}\\)<br>
+		\\(P(${Clab})=${pC_dec}\\).<br>
+        ${Math.abs(pC_T/100 - Number(pC_dec)) > 1e-9 ? 'Ils sont différents' : 'Ils sont égaux'} ⇒ ${indep ? 'indépendants' : 'non indépendants'}.
+        <br><br>
+        <u>2<sup>e</sup> méthode</u> : comparer \\(P(${Vlab})\\times P(${Clab})\\) et \\(P(${Vlab}\\cap ${Clab})\\).<br>
+          \\(P(${Vlab})\\times P(${Clab}) = ${pT_dec}\\times ${pC_dec} = ${niceDec((pT/100)*Number(pC_dec),4)}\\)<br>
+         \\( P(${Vlab}\\cap ${Clab}) = ${pTC_dec}\\)
+        <br>
+        ${indep
+          ? 'Les deux valeurs sont égales ⇒ les évènements sont <strong>indépendants</strong>.'
+          : 'Les deux valeurs sont différentes ⇒ les évènements sont <strong>non indépendants</strong>.'}
+      </div>
+    </div>`);
+
+
+
+
+
+  // --- 6) P(V|C) en décimal (arrondi au 10-millième) ---
+  const sign_PTgC = approxSign(Number(pTC_dec)/Number(pC_dec), PTgC);
+
+// --- 6) P(V|C) ---
+steps.insertAdjacentHTML('beforeend', `<div class="line"><strong>6.</strong></div>`);
+{
+  const rows6 = [
+    [`\\(P_{${Clab}}(${Vlab})\\)`, `=`, `\\(\\dfrac{P(${Vlab}\\cap ${Clab})}{P(${Clab})}\\)`],
+    [``, `=`, `\\(\\dfrac{${pTC_dec}}{${pC_dec}}\\)`],
+[``, `\\(${sign_PTgC}\\)`, `\\(${PTgC}\\)`],
+  ];
+  addCalcTable(steps, rows6);
+}
+
+
+  box.appendChild(steps);
+  if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+},
+
+
+  reset(host){ host.innerHTML=''; }
+};
+
+
+
+/* ===== Exercice 2 — Banque structurée (pair L/R + 3 catégories A,B,C) =====
+   Attributs alignés sur Ex.1 : context, group, groupSg, effectifPl, contextN,
+   + lettres & définitions : L/R (1er niveau), A/B/C (2e niveau)
+*/
+const BANK_EX2 = [
+  { // 1 — High-tech
+    context:"Un site de vente de produits multimédias propose ordinateurs, smartphones et tablettes.",
+    group:"articles", groupSg:"article", effectifPl:"articles",
+    contextN: N => `Le site affiche ${N} références.`,
+    L:'F', Ldef:"l’article est fabriqué en France",
+    R:'E', Rdef:"l’article est fabriqué à l’étranger",
+    A:'O', Adef:"un ordinateur",
+    B:'S', Bdef:"un smartphone",
+    C:'T', Cdef:"une tablette",
+    phraseinter(o,t){
+      const typ = {A:"un ordinateur", B:"un smartphone", C:"une tablette"}[t];
+      const ori = o==='L' ? "de fabrication française" : "de fabrication étrangère";
+      return `l’article est ${typ} ${ori}.`;
+    }
+  },
+  { // 2 — Vêtements
+    context:"Une boutique en ligne vend des vêtements : tee-shirts, jeans et manteaux.",
+    group:"articles", groupSg:"article", effectifPl:"articles",
+    contextN: N => `La boutique liste ${N} articles.`,
+    L:'U', Ldef:"fabriqué dans l’Union européenne",
+    R:'H', Rdef:"fabriqué hors UE",
+    A:'T', Adef:"un tee-shirt",
+    B:'J', Bdef:"un jean",
+    C:'M', Cdef:"un manteau",
+    phraseinter(o,t){
+      const typ = {A:"un tee-shirt", B:"un jean", C:"un manteau"}[t];
+      const ori = o==='L' ? "fabriqué dans l’Union européenne" : "fabriqué hors UE";
+      return `l’article est ${typ}, ${ori}.`;
+    }
+  },
+  { // 3 — Supermarché
+    context:"Un supermarché propose des produits bio et conventionnels : fruits, légumes, céréales.",
+    group:"produits", groupSg:"produit", effectifPl:"produits",
+    contextN: N => `Le rayon compte ${N} produits.`,
+    L:'B', Ldef:"le produit est issu de l’agriculture biologique",
+    R:'C', Rdef:"le produit est conventionnel",
+    A:'F', Adef:"des fruits",
+    B:'L', Bdef:"des légumes",
+    C:'R', Cdef:"des céréales",
+    phraseinter(o,t){
+      const typ = {A:"des fruits", B:"des légumes", C:"des céréales"}[t];
+      const ori = o==='L' ? "issus de l’agriculture biologique" : "de culture conventionnelle";
+      return `le produit est ${typ} ${ori}.`;
+    }
+  },
+  { // 4 — Garage
+    context:"Un garage vend des véhicules électriques et thermiques : citadines, berlines et SUV.",
+    group:"véhicules", groupSg:"véhicule", effectifPl:"véhicules",
+    contextN: N => `Le parc comprend ${N} véhicules.`,
+    L:'E', Ldef:"le véhicule est électrique",
+    R:'T', Rdef:"le véhicule est thermique",
+    A:'C', Adef:"une citadine",
+    B:'B', Bdef:"une berline",
+    C:'V', Cdef:"un SUV",
+    phraseinter(o,t){
+      const typ = {A:"une citadine", B:"une berline", C:"un SUV"}[t];
+      const mot = o==='L' ? "électrique" : "thermique";
+      return `le véhicule est ${typ} ${mot}.`;
+    }
+  },
+  { // 5 — Librairie
+    context:"Une librairie en ligne classe ses ouvrages : romans, BD, essais.",
+    group:"ouvrages", groupSg:"ouvrage", effectifPl:"ouvrages",
+    contextN: N => `Le catalogue contient ${N} ouvrages.`,
+    L:'F', Ldef:"l’ouvrage est d’une autrice francophone",
+    R:'E', Rdef:"l’ouvrage est d’une autrice non francophone",
+    A:'R', Adef:"un roman",
+    B:'B', Bdef:"une bande dessinée",
+    C:'S', Cdef:"un essai",
+    phraseinter(o,t){
+      const typ = {A:"un roman", B:"une bande dessinée", C:"un essai"}[t];
+      const ori = o==='L' ? "d’un·e auteur·rice francophone" : "d’un·e auteur·rice non francophone";
+      return `l’ouvrage est ${typ} ${ori}.`;
+    }
+  },
+  { // 6 — Reconditionné
+    context:"Une place de marché vend du neuf et du reconditionné : ordinateurs, smartphones, tablettes.",
+    group:"articles", groupSg:"article", effectifPl:"articles",
+    contextN: N => `La place de marché recense ${N} articles.`,
+    L:'N', Ldef:"l’article est neuf",
+    R:'R', Rdef:"l’article est reconditionné",
+    A:'O', Adef:"un ordinateur",
+    B:'S', Bdef:"un smartphone",
+    C:'T', Cdef:"une tablette",
+    phraseinter(o,t){
+      const typ = {A:"un ordinateur", B:"un smartphone", C:"une tablette"}[t];
+      const etat = o==='L' ? "neuf" : "reconditionné";
+      return `l’article est ${typ} ${etat}.`;
+    }
+  },
+  { // 7 — Sports
+    context:"Une enseigne sportive propose des articles fabriqués en France et importés.",
+    group:"articles", groupSg:"article", effectifPl:"articles",
+    contextN: N => `L’enseigne propose ${N} références.`,
+    L:'F', Ldef:"fabriqué en France",
+    R:'I', Rdef:"importé",
+    A:'Q', Adef:"un article de raquette",
+    B:'D', Bdef:"un article de ballon",
+    C:'X', Cdef:"du textile sportif",
+    phraseinter(o,t){
+      const typ = {A:"un article de raquette", B:"un article de ballon", C:"du textile sportif"}[t];
+      const ori = o==='L' ? "fabriqué en France" : "importé";
+      return `l’article est ${typ}, ${ori}.`;
+    }
+  },
+  { // 8 — Cosmétiques
+    context:"Une parfumerie vend des fragrances florales, boisées et orientales (France / import).",
+    group:"flacons", groupSg:"flacon", effectifPl:"flacons",
+    contextN: N => `La parfumerie affiche ${N} références.`,
+    L:'F', Ldef:"parfum de fabrication française",
+    R:'I', Rdef:"parfum importé",
+    A:'L', Adef:"famille florale",
+    B:'W', Bdef:"famille boisée",
+    C:'O', Cdef:"famille orientale",
+    phraseinter(o,t){
+      const typ = {A:"de famille florale", B:"de famille boisée", C:"de famille orientale"}[t];
+      const ori = o==='L' ? "de fabrication française" : "importé";
+      return `le flacon est ${typ}, ${ori}.`;
+    }
+  },
+  { // 9 — Hôtel
+    context:"Un hôtel analyse ses réservations : directes ou via plateforme ; chambres single, double, suite.",
+    group:"réservations", groupSg:"réservation", effectifPl:"réservations",
+    contextN: N => `On observe ${N} réservations.`,
+    L:'D', Ldef:"réservation directe",
+    R:'P', Rdef:"réservation via plateforme",
+    A:'S', Adef:"chambre single",
+    B:'B', Bdef:"chambre double",
+    C:'U', Cdef:"suite",
+    phraseinter(o,t){
+      const typ = {A:"une chambre single", B:"une chambre double", C:"une suite"}[t];
+      const ori = o==='L' ? "directe" : "via plateforme";
+      return `la réservation est ${ori} et concerne ${typ}.`;
+    }
+  },
+  { // 10 — Livraisons
+    context:"Un site e-commerce enregistre ses livraisons (France / étranger ; standard, expresse, relais).",
+    group:"livraisons", groupSg:"livraison", effectifPl:"livraisons",
+    contextN: N => `Le mois compte ${N} livraisons.`,
+    L:'F', Ldef:"livraison en France",
+    R:'E', Rdef:"livraison à l’étranger",
+    A:'N', Adef:"standard",
+    B:'X', Bdef:"expresse",
+    C:'R', Cdef:"en point relais",
+    phraseinter(o,t){
+      const typ = {A:"standard", B:"expresse", C:"en point relais"}[t];
+      const ori = o==='L' ? "en France" : "à l’étranger";
+      return `la livraison est ${ori}, ${typ}.`;
+    }
+  },
+  { // 11 — Électroménager
+    context:"Un revendeur d’électroménager détaille l’origine (Europe / Asie) et la catégorie.",
+    group:"appareils", groupSg:"appareil", effectifPl:"appareils",
+    contextN: N => `Le stock comporte ${N} appareils.`,
+    L:'U', Ldef:"fabriqué en Europe",
+    R:'A', Rdef:"fabriqué en Asie",
+    A:'L', Adef:"un lave-linge",
+    B:'F', Bdef:"un réfrigérateur",
+    C:'P', Cdef:"un aspirateur",
+    phraseinter(o,t){
+      const typ = {A:"un lave-linge", B:"un réfrigérateur", C:"un aspirateur"}[t];
+      const ori = o==='L' ? "de fabrication européenne" : "de fabrication asiatique";
+      return `l’appareil est ${typ} ${ori}.`;
+    }
+  },
+  { // 12 — Jouets
+    context:"Un magasin de jouets classe les produits (UE / hors UE ; bois, plastique, peluche).",
+    group:"jouets", groupSg:"jouet", effectifPl:"jouets",
+    contextN: N => `Le magasin expose ${N} jouets.`,
+    L:'U', Ldef:"fabriqué dans l’UE",
+    R:'H', Rdef:"fabriqué hors UE",
+    A:'B', Adef:"en bois",
+    B:'P', Bdef:"en plastique",
+    C:'E', Cdef:"en peluche",
+    phraseinter(o,t){
+      const mat = {A:"en bois", B:"en plastique", C:"en peluche"}[t];
+      const ori = o==='L' ? "fabriqué dans l’UE" : "fabriqué hors UE";
+      return `le jouet est ${mat}, ${ori}.`;
+    }
+  },
+  { // 13 — Billetterie
+    context:"Une billetterie distingue guichet et web ; billets adulte, jeune, sénior.",
+    group:"billets", groupSg:"billet", effectifPl:"billets",
+    contextN: N => `On a vendu ${N} billets.`,
+    L:'G', Ldef:"achat au guichet",
+    R:'W', Rdef:"achat en ligne",
+    A:'A', Adef:"tarif adulte",
+    B:'J', Bdef:"tarif jeune",
+    C:'S', Cdef:"tarif sénior",
+    phraseinter(o,t){
+      const tar = {A:"tarif adulte", B:"tarif jeune", C:"tarif sénior"}[t];
+      const ori = o==='L' ? "acheté au guichet" : "acheté en ligne";
+      return `le billet est ${ori}, ${tar}.`;
+    }
+  },
+  { // 14 — Café
+    context:"Une chaîne de cafés indique l’origine des grains (local/import) et le type de boisson.",
+    group:"ventes", groupSg:"vente", effectifPl:"ventes",
+    contextN: N => `La matinée totalise ${N} ventes.`,
+    L:'L', Ldef:"grains locaux",
+    R:'I', Rdef:"grains importés",
+    A:'E', Adef:"expresso",
+    B:'F', Bdef:"filtre",
+    C:'T', Cdef:"latte",
+    phraseinter(o,t){
+      const typ = {A:"un expresso", B:"un café filtre", C:"un latte"}[t];
+      const ori = o==='L' ? "grains locaux" : "grains importés";
+      return `la vente est ${typ} (${ori}).`;
+    }
+  },
+  { // 15 — Jeux vidéo
+    context:"Un store de jeux distingue console/PC et classe en aventure, sport, stratégie.",
+    group:"jeux", groupSg:"jeu", effectifPl:"jeux",
+    contextN: N => `Le store propose ${N} jeux.`,
+    L:'C', Ldef:"jeu console",
+    R:'P', Rdef:"jeu PC",
+    A:'A', Adef:"aventure",
+    B:'S', Bdef:"sport",
+    C:'G', Cdef:"stratégie",
+    phraseinter(o,t){
+      const genre = {A:"aventure", B:"sport", C:"stratégie"}[t];
+      const plat = o==='L' ? "sur console" : "sur PC";
+      return `le jeu est ${plat}, genre ${genre}.`;
+    }
+  },
+  { // 16 — Cinéma
+    context:"Un festival programme des films français et non-français : drame, comédie, documentaire.",
+    group:"films", groupSg:"film", effectifPl:"films",
+    contextN: N => `La sélection compte ${N} films.`,
+    L:'F', Ldef:"film francophone",
+    R:'N', Rdef:"film non francophone",
+    A:'D', Adef:"drame",
+    B:'C', Bdef:"comédie",
+    C:'O', Cdef:"documentaire",
+    phraseinter(o,t){
+      const genre = {A:"drame", B:"comédie", C:"documentaire"}[t];
+      const ori = o==='L' ? "francophone" : "non francophone";
+      return `le film est ${ori}, genre ${genre}.`;
+    }
+  },
+  { // 17 — Papeterie
+    context:"Une papeterie vend du matériel français et importé : stylos, cahiers, classeurs.",
+    group:"articles", groupSg:"article", effectifPl:"articles",
+    contextN: N => `Le rayon compte ${N} articles.`,
+    L:'F', Ldef:"fabrication française",
+    R:'I', Rdef:"importé",
+    A:'Y', Adef:"un stylo",
+    B:'H', Bdef:"un cahier",
+    C:'K', Cdef:"un classeur",
+    phraseinter(o,t){
+      const typ = {A:"un stylo", B:"un cahier", C:"un classeur"}[t];
+      const ori = o==='L' ? "de fabrication française" : "importé";
+      return `l’article est ${typ} ${ori}.`;
+    }
+  },
+  { // 18 — Chaussures
+    context:"Un site de chaussures indique l’origine (UE/hors UE) et la catégorie.",
+    group:"paires", groupSg:"paire", effectifPl:"paires",
+    contextN: N => `Le site affiche ${N} paires.`,
+    L:'U', Ldef:"fabriqué dans l’UE",
+    R:'H', Rdef:"fabriqué hors UE",
+    A:'B', Adef:"basket",
+    B:'V', Bdef:"ville",
+    C:'R', Cdef:"randonnée",
+    phraseinter(o,t){
+      const cat = {A:"basket", B:"ville", C:"randonnée"}[t];
+      const ori = o==='L' ? "d’origine UE" : "d’origine hors UE";
+      return `la paire est de type ${cat}, ${ori}.`;
+    }
+  },
+  { // 19 — Boulangerie
+    context:"Une boulangerie vend du « maison » et de l’industriel : baguettes, pains complets, viennoiseries.",
+    group:"produits", groupSg:"produit", effectifPl:"produits",
+    contextN: N => `On observe ${N} produits vendus.`,
+    L:'M', Ldef:"fabriqué maison",
+    R:'I', Rdef:"fabriqué industriellement",
+    A:'G', Adef:"une baguette",
+    B:'C', Bdef:"un pain complet",
+    C:'V', Cdef:"une viennoiserie",
+    phraseinter(o,t){
+      const typ = {A:"une baguette", B:"un pain complet", C:"une viennoiserie"}[t];
+      const ori = o==='L' ? "de fabrication maison" : "de fabrication industrielle";
+      return `le produit est ${typ} ${ori}.`; // ex : « Le produit est une baguette de fabrication maison »
+    }
+  },
+  { // 20 — Station vélo
+    context:"Un magasin vélo distingue mécanique/électrique et les types urbain, VTC, cargo.",
+    group:"vélos", groupSg:"vélo", effectifPl:"vélos",
+    contextN: N => `Le stock compte ${N} vélos.`,
+    L:'M', Ldef:"vélo mécanique",
+    R:'E', Rdef:"vélo électrique",
+    A:'U', Adef:"urbain",
+    B:'T', Bdef:"VTC",
+    C:'G', Cdef:"cargo",
+    phraseinter(o,t){
+      const typ = {A:"urbain", B:"VTC", C:"cargo"}[t];
+      const mot = o==='L' ? "mécanique" : "électrique";
+      return `le vélo est ${mot} et de type ${typ}.`; // ex : « Le vélo est mécanique et de type urbain »
+    }
+  },
+];
+
+// === PATCH Adef/Bdef/Cdef : ajout des articles quand il en manquait ===
+
+// 8 — Cosmétiques (index 7)
+Object.assign(BANK_EX2[7], {
+  Adef: "une famille florale",
+  Bdef: "une famille boisée",
+  Cdef: "une famille orientale"
+});
+
+// 9 — Hôtel (index 8)
+Object.assign(BANK_EX2[8], {
+  Adef: "une chambre single",
+  Bdef: "une chambre double",
+  Cdef: "une suite"
+});
+
+// 10 — Livraisons (index 9)
+Object.assign(BANK_EX2[9], {
+  Adef: "une livraison standard",
+  Bdef: "une livraison expresse",
+  Cdef: "une livraison en point relais"
+});
+
+// 12 — Jouets (index 11)
+Object.assign(BANK_EX2[11], {
+  Adef: "un jouet en bois",
+  Bdef: "un jouet en plastique",
+  Cdef: "un jouet en peluche"
+});
+
+// 13 — Billetterie (index 12)
+Object.assign(BANK_EX2[12], {
+  Adef: "un billet tarif adulte",
+  Bdef: "un billet tarif jeune",
+  Cdef: "un billet tarif sénior"
+});
+
+// 14 — Café (index 13)
+Object.assign(BANK_EX2[13], {
+  Adef: "un expresso",
+  Bdef: "un café filtre",
+  Cdef: "un latte"
+});
+
+// 15 — Jeux vidéo (index 14)
+Object.assign(BANK_EX2[14], {
+  Adef: "un jeu d’aventure",
+  Bdef: "un jeu de sport",
+  Cdef: "un jeu de stratégie"
+});
+
+// 16 — Cinéma (index 15)
+Object.assign(BANK_EX2[15], {
+  Adef: "un drame",
+  Bdef: "une comédie",
+  Cdef: "un documentaire"
+});
+
+// 18 — Chaussures (index 17)
+Object.assign(BANK_EX2[17], {
+  Adef: "une basket",
+  Bdef: "une chaussure de ville",
+  Cdef: "une chaussure de randonnée"
+});
+
+// 20 — Station vélo (index 19)
+Object.assign(BANK_EX2[19], {
+  Adef: "un vélo urbain",
+  Bdef: "un VTC",
+  Cdef: "un vélo cargo"
+});
+
+// === PATCH groupSg : ajouter l’article directement dans la banque ===
+Object.assign(BANK_EX2[0],  { groupSg: "un article" });
+Object.assign(BANK_EX2[1],  { groupSg: "un article" });
+Object.assign(BANK_EX2[2],  { groupSg: "un produit" });
+Object.assign(BANK_EX2[3],  { groupSg: "un véhicule" });
+Object.assign(BANK_EX2[4],  { groupSg: "un ouvrage" });
+Object.assign(BANK_EX2[5],  { groupSg: "un article" });
+Object.assign(BANK_EX2[6],  { groupSg: "un article" });
+Object.assign(BANK_EX2[7],  { groupSg: "un flacon" });
+Object.assign(BANK_EX2[8],  { groupSg: "une réservation" });
+Object.assign(BANK_EX2[9],  { groupSg: "une livraison" });
+Object.assign(BANK_EX2[10], { groupSg: "un appareil" });
+Object.assign(BANK_EX2[11], { groupSg: "un jouet" });
+Object.assign(BANK_EX2[12], { groupSg: "un billet" });
+Object.assign(BANK_EX2[13], { groupSg: "une vente" });
+Object.assign(BANK_EX2[14], { groupSg: "un jeu" });
+Object.assign(BANK_EX2[15], { groupSg: "un film" });
+Object.assign(BANK_EX2[16], { groupSg: "un article" });
+Object.assign(BANK_EX2[17], { groupSg: "une paire" });
+Object.assign(BANK_EX2[18], { groupSg: "un produit" });
+Object.assign(BANK_EX2[19], { groupSg: "un vélo" });
+
+
+// ===== Phrases d’interprétation de P_L(A) (question 1) =====
+Object.assign(BANK_EX2[0],  { pL_A_phrase: "Parmi les articles fabriqués en France, la probabilité qu’un article soit un ordinateur est égale à " });
+Object.assign(BANK_EX2[1],  { pL_A_phrase: "Parmi les articles fabriqués dans l’Union européenne, la probabilité qu’un article soit un tee-shirt est égale à " });
+Object.assign(BANK_EX2[2],  { pL_A_phrase: "Parmi les produits issus de l’agriculture biologique, la probabilité qu’un produit soit un fruit est égale à " });
+Object.assign(BANK_EX2[3],  { pL_A_phrase: "Parmi les véhicules électriques, la probabilité qu’un véhicule soit une citadine est égale à " });
+Object.assign(BANK_EX2[4],  { pL_A_phrase: "Parmi les ouvrages d’auteur·rice francophone, la probabilité qu’un ouvrage soit un roman est égale à " });
+Object.assign(BANK_EX2[5],  { pL_A_phrase: "Parmi les articles neufs, la probabilité qu’un article soit un ordinateur est égale à " });
+Object.assign(BANK_EX2[6],  { pL_A_phrase: "Parmi les articles fabriqués en France, la probabilité qu’un article soit un article de raquette est égale à " });
+Object.assign(BANK_EX2[7],  { pL_A_phrase: "Parmi les flacons de fabrication française, la probabilité qu’un flacon appartienne à la famille florale est égale à " });
+Object.assign(BANK_EX2[8],  { pL_A_phrase: "Parmi les réservations directes, la probabilité qu’une réservation concerne une chambre single est égale à " });
+Object.assign(BANK_EX2[9],  { pL_A_phrase: "Parmi les livraisons en France, la probabilité qu’une livraison soit standard est égale à " });
+Object.assign(BANK_EX2[10], { pL_A_phrase: "Parmi les appareils fabriqués en Europe, la probabilité qu’un appareil soit un lave-linge est égale à " });
+Object.assign(BANK_EX2[11], { pL_A_phrase: "Parmi les jouets fabriqués dans l’UE, la probabilité qu’un jouet soit en bois est égale à " });
+Object.assign(BANK_EX2[12], { pL_A_phrase: "Parmi les billets achetés au guichet, la probabilité qu’un billet soit au tarif adulte est égale à " });
+Object.assign(BANK_EX2[13], { pL_A_phrase: "Parmi les ventes réalisées avec des grains locaux, la probabilité qu’une vente soit un expresso est égale à " });
+Object.assign(BANK_EX2[14], { pL_A_phrase: "Parmi les jeux sur console, la probabilité qu’un jeu soit du genre aventure est égale à " });
+Object.assign(BANK_EX2[15], { pL_A_phrase: "Parmi les films francophones, la probabilité qu’un film soit un drame est égale à " });
+Object.assign(BANK_EX2[16], { pL_A_phrase: "Parmi les articles de fabrication française, la probabilité qu’un article soit un stylo est égale à " });
+Object.assign(BANK_EX2[17], { pL_A_phrase: "Parmi les paires fabriquées dans l’Union européenne, la probabilité qu’une paire soit une basket est égale à " });
+Object.assign(BANK_EX2[18], { pL_A_phrase: "Parmi les produits fabriqués maison, la probabilité qu’un produit soit une baguette est égale à " });
+Object.assign(BANK_EX2[19], { pL_A_phrase: "Parmi les vélos mécaniques, la probabilité qu’un vélo soit de type urbain est égale à " });
+
+
+
+function phraseinterByCodes(ctx, oCode, tCode){
+  // oCode peut être "L"/"R" ou bien ctx.L/ctx.R ; on convertit vers "L"/"R"
+  const o = (oCode==='L' || oCode==='R')
+    ? oCode
+    : (oCode===ctx.L ? 'L' : (oCode===ctx.R ? 'R' : oCode));
+
+  // tCode peut être "A"/"B"/"C" ou bien ctx.A/B/C ; on convertit vers "A"/"B"/"C"
+  const t = (tCode==='A' || tCode==='B' || tCode==='C')
+    ? tCode
+    : (tCode===ctx.A ? 'A' : (tCode===ctx.B ? 'B' : (tCode===ctx.C ? 'C' : tCode)));
+
+  return ctx.phraseinter(o, t);
+}
+
+
+/* Générateur de pourcentages lisibles :
+   - pL ∈ [50..90]%
+   - Pour chaque côté (L & R) : A,B,T en % (trois branches, somme 100)
+*/
+function pickSplit3(){
+  const r = ()=>Math.max(5, rnd(10,70)); // poids bruts
+  const norm3 = ()=>{
+    let a=r(), b=r(), c=r(); const s=a+b+c;
+    a = Math.round(100*a/s); b = Math.round(100*b/s); c = 100-a-b;
+    if (Math.min(a,b,c)<5) return norm3(); // évite une branche minuscule
+    return [a,b,c];
+  };
+  const [AL,BL,CL] = norm3();
+  const [AR,BR,CR] = norm3();
+  return { AL,BL,CL, AR,BR,CR };
+}
+function genEX2(){
+  const ctx = rchoice(BANK_EX2);
+  const pL  = rnd(50,90); // % côté gauche (L)
+  const {AL,BL,CL, AR,BR,CR} = pickSplit3();
+  return {
+    ctx,
+    // lettres
+    L:ctx.L, R:ctx.R, A:ctx.A, B:ctx.B, C:ctx.C,
+    // defs
+    Ldef:ctx.Ldef, Rdef:ctx.Rdef, Adef:ctx.Adef, Bdef:ctx.Bdef, Cdef:ctx.Cdef,
+    // % (en branches)
+    pL,
+    pA_L:AL, pB_L:BL, pC_L:CL,
+    pA_R:AR, pB_R:BR, pC_R:CR,
+    rootLabel: ctx.effectifPl || ctx.group || '',
+	    phraseinter: ctx.phraseinter
+		
+
+  };
+}
+
+/* ===== Arbre 3-branches (A,B,C) sous L et sous R ===== */
+function treeHTML3(st){
+  return `
+  <div id="tree3" class="tree-wrap">
+    <svg viewBox="0 0 760 280" width="760" height="280" aria-label="Arbre pondéré (3 branches)">
+      <defs><style>.e{stroke:#64748b;stroke-width:2;fill:none}.t{font:16px system-ui,Segoe UI,Roboto,Arial}</style></defs>
+      <text id="rootLabel3" class="t" x="0" y="140">${st.rootLabel||''}</text>
+      <circle id="nodeRoot3" cx="120" cy="140" r="2.5" fill="#64748b"></circle>
+
+      <!-- 1er niveau -->
+      <line id="seg_L" class="e" x1="120" y1="140" x2="120" y2="140"/>
+      <line id="seg_R" class="e" x1="120" y1="140" x2="120" y2="140"/>
+      <text id="txt_L" class="t" text-anchor="middle">${st.L}</text>
+      <text id="txt_R" class="t" text-anchor="middle">${st.R}</text>
+      <circle id="nodeL" cx="120" cy="100" r="2.5" fill="#64748b"></circle>
+      <circle id="nodeR" cx="120" cy="180" r="2.5" fill="#64748b"></circle>
+
+      <!-- 2e niveau : 3 issues sous L -->
+      <line id="L_A" class="e" x1="120" y1="100" x2="520" y2="40"/>
+      <line id="L_B" class="e" x1="120" y1="100" x2="520" y2="100"/>
+      <line id="L_C" class="e" x1="120" y1="100" x2="520" y2="160"/>
+      <text id="txt_LA" class="t">${st.A}</text>
+      <text id="txt_LB" class="t">${st.B}</text>
+      <text id="txt_LC" class="t">${st.C}</text>
+
+      <!-- 2e niveau : 3 issues sous R -->
+      <line id="R_A" class="e" x1="120" y1="180" x2="520" y2="80"/>
+      <line id="R_B" class="e" x1="120" y1="180" x2="520" y2="140"/>
+      <line id="R_C" class="e" x1="120" y1="180" x2="520" y2="200"/>
+      <text id="txt_RA" class="t">${st.A}</text>
+      <text id="txt_RB" class="t">${st.B}</text>
+      <text id="txt_RC" class="t">${st.C}</text>
+    </svg>
+
+<!-- Inputs + ticks (3 champs seulement) -->
+<!-- 3 inputs EXACTS : seg_L (P(L)), L_B (P_L(B)), R_A (P_R(A)) -->
+<input id="pL"  class="branch-input"><span class="tick abs" id="tk_pL"></span>    <!-- root → L -->
+<input id="pLB" class="branch-input"><span class="tick abs" id="tk_pLB"></span>   <!-- L → B -->
+<input id="pRA" class="branch-input"><span class="tick abs" id="tk_pRA"></span>   <!-- R → A -->
+
+
+  </div>`;
+}
+
+function setTreeFontSize(px=20){
+  document.querySelectorAll('.tree-wrap svg .t').forEach(t=>{
+    t.style.font = `${px}px system-ui,Segoe UI,Roboto,Arial`;
+  });
+  // réaligne tous les arbres visibles
+  document.querySelectorAll('#tree, #tree3').forEach(wrap=>{
+    const is3 = wrap.id === 'tree3';
+    const st = JSON.parse(document.getElementById('host')?.dataset?.state || '{}');
+    if(is3 && st.kind?.startsWith('ex2')) layoutTree3(wrap, st);
+    else if(st.kind==='ex1')               layoutTree (wrap, st);
+  });
+}
+
+
+function layoutTree3(root, st){
+  return new Promise(resolve=>{
+    const svg = root.querySelector('svg'); if(!svg) return resolve();
+
+    const setLine=(id,A,B)=>{ const L=svg.querySelector('#'+id); if(L){ L.setAttribute('x1',A.x);L.setAttribute('y1',A.y);L.setAttribute('x2',B.x);L.setAttribute('y2',B.y);} };
+    const setNode=(id,P)=>{ const C=svg.querySelector('#'+id); if(C){ C.setAttribute('cx',P.x);C.setAttribute('cy',P.y);} };
+    const place=(id,P)=>{ const t=svg.querySelector('#'+id); if(t){ t.setAttribute('x',P.x+8); t.setAttribute('y',P.y+4);} };
+
+    const elRoot = svg.querySelector('#rootLabel3');
+    const w = (t)=>textWidth(t, svg);
+
+    // --- racine
+    const rootY = +elRoot.getAttribute('y') || 140;
+    const R0 = { x:(elRoot.getBBox?.().x ?? 0) + w(elRoot) + 10, y: rootY };
+    setNode('nodeRoot3', R0);
+
+    // --- paramètres géométriques
+    const ARM_X   = 220;     // avance jusqu'aux libellés L/R
+    const RIGHT_X = 700;     // extrémité à droite
+    const DY      = 40;      // écart vertical entre issues A/B/C
+    const GAP     = 24;      // marge de sécurité entre les deux bandes (évite croisements)
+
+    // --- positionne L en haut, puis calcule R assez BAS pour ne pas croiser L
+    const elL=svg.querySelector('#txt_L'), elR=svg.querySelector('#txt_R');
+    // On place d'abord L ; R sera déduit
+    const yL = R0.y - 48;
+    const xLR = R0.x + ARM_X;
+
+    elL.setAttribute('x', xLR); elL.setAttribute('y', yL);
+    const Lc={x:xLR, y:yL}, Lend={x:xLR - textWidth(elL, svg)/2 - 6, y:yL};
+    setLine('seg_L', R0, Lend);
+
+    const L={x:xLR + textWidth(elL, svg)/2 + 6, y:yL};
+    setNode('nodeL', L);
+
+    // Les issues sous L (A haut, B milieu, C bas)
+    const L_A = {x:RIGHT_X, y:L.y - 2*DY};
+    const L_B = {x:RIGHT_X, y:L.y};
+    const L_C = {x:RIGHT_X, y:L.y + 2*DY};
+    setLine('L_A', L, L_A); setLine('L_B', L, L_B); setLine('L_C', L, L_C);
+    place('txt_LA', L_A); place('txt_LB', L_B); place('txt_LC', L_C);
+
+    // --- maintenant R : on force sa *bande* à commencer sous L_C + GAP
+    // On place le centre de R tel que (R.y - 2*DY) >= (L_C.y + GAP)
+    const yR = (L_C.y + GAP) + 2*DY;
+    elR.setAttribute('x', xLR); elR.setAttribute('y', yR);
+    const Rend={x:xLR - textWidth(elR, svg)/2 - 6, y:yR};
+    setLine('seg_R', R0, Rend);
+
+    const R={x:xLR + textWidth(elR, svg)/2 + 6, y:yR};
+    setNode('nodeR', R);
+
+    // Issues sous R (même ordre A haut, B milieu, C bas) — bande *entièrement* sous L
+    const R_A = {x:RIGHT_X, y:R.y - 2*DY};
+    const R_B = {x:RIGHT_X, y:R.y};
+    const R_C = {x:RIGHT_X, y:R.y + 2*DY};
+    setLine('R_A', R, R_A); setLine('R_B', R, R_B); setLine('R_C', R, R_C);
+    place('txt_RA', R_A); place('txt_RB', R_B); place('txt_RC', R_C);
+
+    // --- inputs à côté (inchangé)
+// ---- Placement des 3 inputs (pL, pAL, pAR) — version robuste CTM ----
+// ---- Placement des 3 inputs EXACTS via la matrice CTM (fidèle au pixel) ----
+const mid = (A,B)=>({x:(A.x+B.x)/2, y:(A.y+B.y)/2});
+function svgToCssPoint(svg, x, y){
+  const pt=svg.createSVGPoint(); pt.x=x; pt.y=y;
+  const scr=pt.matrixTransform(svg.getScreenCTM());
+  const wrap=root.getBoundingClientRect();
+  return { x:scr.x - wrap.left, y:scr.y - wrap.top };
+}
+function placeInput(inpSel, tickSel, P){
+  const p=svgToCssPoint(svg, P.x, P.y);
+  const INP_W=58, INP_H=22, GAPX=6;
+  const inp=root.querySelector(inpSel), tk=root.querySelector(tickSel);
+  if(!inp) return;
+  inp.style.left=(p.x-INP_W/2)+'px';
+  inp.style.top =(p.y-INP_H/2)+'px';
+  if(tk){ tk.classList.add('abs'); tk.style.left=(p.x+INP_W/2+GAPX)+'px'; tk.style.top=(p.y-10)+'px'; }
+}
+
+// => pL sur Root→L ; pLB sur L→B ; pRA sur R→A (comme ton schéma)
+placeInput('#pL',  '#tk_pL',  mid(R0, Lend));
+placeInput('#pLB', '#tk_pLB', mid(L,  L_B));
+placeInput('#pRA', '#tk_pRA', mid(R,  R_A));
+
+// réalignements auto
+const realign=()=>{ placeInput('#pL','#tk_pL',mid(R0,Lend)); placeInput('#pLB','#tk_pLB',mid(L,L_B)); placeInput('#pRA','#tk_pRA',mid(R,R_A)); };
+if('ResizeObserver' in window){ new ResizeObserver(realign).observe(svg); }
+window.addEventListener('resize', realign, {passive:true});
+
+
+
+
+    // élargissement si besoin
+    const vb = svg.viewBox.baseVal;
+    svg.setAttribute('viewBox', `0 0 ${Math.max(760, RIGHT_X+20)} ${Math.max(280, R_C.y+30)}`);
+// --- à la toute fin de layoutTree3, APRÈS avoir tracé l’arbre et placé les inputs ---
+paintDecimalsAtSegments(svg, [
+  { seg:'seg_R', pct: 100 - st.pL },
+  { seg:'L_A',   pct: st.pA_L },
+  { seg:'L_C',   pct: st.pC_L },
+  { seg:'R_B',   pct: st.pB_R },
+  { seg:'R_C',   pct: st.pC_R }
+], { box:true, fontSize:25, dy:0 });
+
+
+
+    resolve(svg);
+  });
+}
+function nicePctToDec(p){
+  return String((p/100).toFixed(4))
+    .replace(/(\.\d*?[1-9])0+$/,'$1')
+    .replace(/\.0+$/,'');
+}
+
+/**
+ * Affiche les décimales au-dessus des segments de l’arbre 3-branches,
+ * avec (optionnellement) une "boîte" invisible (fond sans bordure).
+ * @param {SVGElement} svg
+ * @param {Object} st  - {pL, pA_L, pB_L, pC_L, pA_R, pB_R, pC_R}
+ * @param {string[]} hideSegs - ids de segments à ne pas étiqueter (ex: ['seg_L','L_B','R_A'])
+ * @param {Object} opts - {box:boolean, pad:number, rx:number, fill:string, dy:number}
+ */
+function paintDecimalsOnTree3(svg, st, hideSegs=[], opts={}){
+  const NS  = 'http://www.w3.org/2000/svg';
+  const pad = opts.pad ?? 3;
+  const rx  = opts.rx  ?? 4;
+  const dy  = opts.dy  ?? -12;
+  // Couleur de fond de la boîte : par défaut, fond de la page
+  let fill = opts.fill;
+  if (!fill) {
+    try {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      fill = bg && bg !== 'rgba(0, 0, 0, 0)' ? bg : '#fff';
+    } catch(_){ fill = '#fff'; }
+  }
+
+  const midOf = id => {
+    const L = svg.querySelector('#'+id); if(!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    return { mx:(x1+x2)/2, my:(y1+y2)/2 };
+  };
+
+  // place (ou met à jour) rect + texte pour un segment
+  const put = (seg, val) => {
+    if (hideSegs.includes(seg)) {
+      // supprime d’éventuels anciens éléments
+      svg.querySelector('#d_'+seg)?.remove();
+      svg.querySelector('#b_'+seg)?.remove();
+      return;
+    }
+    const M = midOf(seg); if(!M) return;
+
+    // Texte
+    let t = svg.querySelector('#d_'+seg);
+    if(!t){
+      t = document.createElementNS(NS,'text');
+      t.id = 'd_'+seg;
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('style','font:14px system-ui,Segoe UI,Roboto,Arial;fill:#111');
+      svg.appendChild(t);
+    }
+    t.setAttribute('x', M.mx);
+    t.setAttribute('y', M.my + dy);
+    t.textContent = nicePctToDec(val);
+
+    // Boîte (rect) – optionnelle
+    if (opts.box) {
+      // On calcule la bbox du texte **après** l’avoir posé
+      let bb;
+      try { bb = t.getBBox(); } catch(_){ bb = null; }
+      if (bb && isFinite(bb.width) && isFinite(bb.height)) {
+        let r = svg.querySelector('#b_'+seg);
+        if(!r){
+          r = document.createElementNS(NS,'rect');
+          r.id = 'b_'+seg;
+          r.setAttribute('fill', fill);
+          r.setAttribute('stroke', 'none');   // invisible (pas de contour)
+          r.setAttribute('rx', rx);
+          // On doit insérer le rect AVANT le texte pour qu’il passe derrière
+          svg.insertBefore(r, t);
+        } else {
+          // s’assurer qu’il est bien derrière le texte
+          if (r.nextSibling !== t) svg.insertBefore(r, t);
+        }
+        r.setAttribute('x', bb.x - pad);
+        r.setAttribute('y', bb.y - pad);
+        r.setAttribute('width',  bb.width  + 2*pad);
+        r.setAttribute('height', bb.height + 2*pad);
+      }
+    } else {
+      // si on désactive la boîte, supprimer d’anciens rects
+      svg.querySelector('#b_'+seg)?.remove();
+    }
+  };
+
+  // 1er niveau
+  put('seg_L', st.pL);
+  put('seg_R', 100 - st.pL);
+  // Sous L
+  put('L_A', st.pA_L);
+  put('L_B', st.pB_L);
+  put('L_C', st.pC_L);
+  // Sous R
+  put('R_A', st.pA_R);
+  put('R_B', st.pB_R);
+  put('R_C', st.pC_R);
+}
+
+function pctToDec(p){
+  return String((p/100).toFixed(4))
+    .replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+}
+function segMid(svg, id){
+  const L = svg.querySelector('#'+id); if(!L) return null;
+  const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+  const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+  return { mx:(x1+x2)/2, my:(y1+y2)/2 };
+}
+
+/**
+ * Affiche un décimal 0,xx à MID-SEGMENT pour chaque entrée demandée.
+ * - n’enlève pas les inputs (HTML au-dessus du SVG)
+ * - n’écrit QUE là où tu le demandes
+ * entries: [{seg:'L_A', pct: st.pA_L}, ...]
+ * opts: {box:boolean=true, pad:4, rx:5, dy:0, fill, stroke}
+ */
+function paintDecimalsAtSegments(svg, entries, opts={}){
+  const NS='http://www.w3.org/2000/svg';
+  const box   = (opts.box!==false);           // ← mets false pour invisible
+  const pad   = opts.pad ?? 4;
+  const rx    = opts.rx  ?? 5;
+  const dy    = opts.dy  ?? 0;
+  const fontSize = opts.fontSize ?? 30;       // ← **plus gros**
+  const fill  = opts.fill  ?? 'rgba(255,255,255,0.92)';
+  const stroke= opts.stroke?? 'rgba(0,0,0,0.10)';
+
+  entries.forEach(({seg, pct})=>{
+    const L = svg.querySelector('#'+seg); if(!L) return;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+
+    const tid='d_'+seg, rid='b_'+seg;
+
+    // texte plus GRAND
+    let t = svg.querySelector('#'+tid);
+    if(!t){
+      t = document.createElementNS(NS,'text');
+      t.id = tid;
+      t.setAttribute('text-anchor','middle');
+      svg.appendChild(t);
+    }
+    t.setAttribute('style', `font:${fontSize}px system-ui,Segoe UI,Roboto,Arial;fill:#111`);
+    t.setAttribute('x', mx);
+    t.setAttribute('y', my + Math.round(fontSize/3) + dy);
+    t.textContent = String((pct/100).toFixed(4)).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+
+    // pas de rectangle si box === false
+    if(!box){ svg.querySelector('#'+rid)?.remove(); return; }
+
+    let bb; try{ bb=t.getBBox(); }catch(_){ bb=null; }
+    if(!bb) return;
+
+    let r = svg.querySelector('#'+rid);
+    if(!r){
+      r = document.createElementNS(NS,'rect');
+      r.id = rid;
+      r.setAttribute('rx', rx);
+      r.setAttribute('fill', fill);
+      r.setAttribute('stroke', stroke);
+      svg.insertBefore(r, t); // derrière le texte
+    }else if(r.nextSibling !== t){
+      svg.insertBefore(r, t);
+    }
+    r.setAttribute('x', bb.x - pad);
+    r.setAttribute('y', bb.y - pad);
+    r.setAttribute('width',  bb.width  + 2*pad);
+    r.setAttribute('height', bb.height + 2*pad);
+  });
+}
+
+
+
+/* Version statique pour le PDF/solution (affiche aussi les décimaux propres) */
+function buildStaticTreeSVG3(st){
+  const shell = document.createElement('div');
+  shell.innerHTML = treeHTML3(st);
+  const wrap = shell.firstElementChild;
+  const svg  = wrap.querySelector('svg');
+
+  // place l’arbre (layout standard : segs/labels)
+  layoutTree3(wrap, st);
+
+  // ⛏️ Solution : on enlève ce que paintDecimalsAtSegments a peint dans layoutTree3
+  // (textes id="d_*" et rectangles id="b_*")
+  wrap.querySelectorAll('.branch-input,.tick.abs').forEach(n => n.remove());
+  svg.querySelectorAll('[id^="d_"],[id^="b_"]').forEach(n => n.remove());
+
+  // ✅ Maintenant on pose NOS décimales "solution" (propres, sans doublon)
+  const NS='http://www.w3.org/2000/svg';
+  const midOf = (id) => {
+    const L = svg.querySelector('#' + id); if(!L) return null;
+    const x1 = +L.getAttribute('x1'), y1 = +L.getAttribute('y1');
+    const x2 = +L.getAttribute('x2'), y2 = +L.getAttribute('y2');
+    return { mx:(x1+x2)/2, my:(y1+y2)/2 };
+  };
+  const nice = x => String(Number(x).toFixed(4)).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+  const put = (seg, val, dy) => {
+    const M = midOf(seg); if(!M) return;
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', M.mx);
+    t.setAttribute('y', M.my + dy);
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('style','font:14px system-ui,Segoe UI,Roboto,Arial;fill:#111');
+    t.textContent = nice(val);
+    svg.appendChild(t);
+  };
+
+  const pL = (st.pL||0)/100, pR = 1 - pL;
+  // 1er niveau
+  put('seg_L', pL, -12);
+  put('seg_R', pR, +16);
+  // Sous L
+  put('L_A', (st.pA_L||0)/100, -12);
+  put('L_B', (st.pB_L||0)/100, +16);
+  put('L_C', (st.pC_L||0)/100, +32);
+  // Sous R
+  put('R_A', (st.pA_R||0)/100, -12);
+  put('R_B', (st.pB_R||0)/100, +16);
+  put('R_C', (st.pC_R||0)/100, +32);
+
+  return svg;
+}
+
+
+/* ==================== Exercice 2 (F/E & O,S,T) ==================== */
+/* ==================== Exercice 2 (pair L/R — 3 branches A,B,C) ==================== */
+const ex2 = {
+  id:'ex2',
+  title:'Ex. 2 — Arbre pondéré (L / R → A, B, C)',
+  gen(){ return genEX2(); },
+
+  render(host, st){
+    const ctx = st.ctx;
+    const lead = `
+      <div class="hint" style="margin:.35rem 0 .2rem">
+        ${ctx.context}<br>
+        On note \\(${st.L}\\) : « ${st.Ldef} » et \\(${st.R}\\) : « ${st.Rdef} ». <br>
+        Les catégories sont \\(${st.A}\\) : « ${st.Adef} », \\(${st.B}\\) : « ${st.Bdef} », \\(${st.C}\\) : « ${st.Cdef} ».
+<br>On choisit au hasard ${ctx.groupSg}.
+      </div>`;
+
+    const html = `
+<div class="statement">
+      <div class="consigne"><span class="c-label">Exercice 2.</span> Compléter l’arbre à 3 branches et répondre.</div>
+      <div class="row">
+        <div class="col-label">
+          ${lead}
+        </div>
+
+        <div class="input-line">
+          <div style="margin-top:8px"><strong>1.</strong> Compléter l'arbre pondéré.</div>
+          ${treeHTML3(st)}
+          <div style="margin-top:8px"><strong>2.</strong> Donner la valeur de \\(P_{${st.L}}(${st.A})\\) et l’interpréter.</div>
+
+          <div class="q" style="margin-top:6px">\\(P_{${st.L}}(${st.A})=\\)
+            <input id="pAL_in" type="text" style="width:140px" placeholder=""> <span class="tick" id="tk_pALin"></span>
+          <br>Interprétation : <input id="pAL_ph" type="text" style="width:800px" placeholder=""> <span class="tick" id="tk_pALph"></span>
+
+		  </div>
+
+<div style="margin-top:10px"><strong>3.</strong>
+  Calculer la probabilité que ${phraseinterByCodes(st.ctx, st.L, st.A)}</div>
+
+          <input id="pALcapL" type="text" style="width:180px" placeholder=""> <span class="tick" id="tk_pALcapL"></span>
+
+          <div style="margin-top:10px"><strong>4.</strong>
+            Calculer la probabilité que l’article soit  ${st.Cdef}.</div>
+          <input id="pCtot" type="text" style="width:180px" placeholder=""> <span class="tick" id="tk_pCtot"></span>
+
+          <div style="margin-top:10px"><strong>5.</strong>
+            Les évènements \\(${st.L}\\) et \\(${st.C}\\) sont-ils indépendants ?
+            <select id="indep2"><option value="">—</option><option>Oui</option><option>Non</option></select>
+            <span class="tick" id="tk_indep2"></span>
+          </div>
+        </div>
+        <div class="res" id="r2"></div></div>
+      </div>`;
+
+    host.innerHTML = html;
+
+    // placement arbre
+    const tree = host.querySelector('#tree3');
+    layoutTree3(tree, st);
+    requestAnimationFrame(()=>layoutTree3(tree, st));
+    window.addEventListener('resize', ()=>layoutTree3(tree, st));
+    // state
+    host.dataset.state = JSON.stringify({ kind:'ex2-3b', ...st });
+	setTreeFontSize(20);
+
+    if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+  },
+
+  check(host){
+  const S = JSON.parse(host.dataset.state||'{}');
+
+  // --- ticks
+  const mark=(sel,good)=>{ const t=host.querySelector(sel); if(!t) return;
+    t.className='tick '+(good===null?'':(good?'ok':'ko'));
+    t.textContent = good===null?'':(good?'✓':'✗');
+  };
+
+  // --- lecture % comme dans ex1 (%, 0..1, a/b) -> retourne une valeur en "pourcents"
+  const chkPct=(sel,tick,expect)=>{
+    const raw=(host.querySelector(sel)?.value||'').trim();
+    if(!raw){ mark(tick,null); return 0; }
+    const v = readAnyProbAsPercent(raw);
+    const ok = Number.isFinite(v) && Math.round(v)===Math.round(expect);
+    mark(tick, ok); return +ok;
+  };
+
+  // --- normalisation de phrase (même algo que ex1)
+  const norm = s => String(s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ').trim();
+
+  // indices souples pour l’interprétation
+  const ctx=S.ctx||{};
+  const Lhints = [ctx.Ldef].filter(Boolean).map(norm);       // « fabriqué en France », etc.
+  const Ahints = [ctx.Adef].filter(Boolean).map(norm);       // « un ordinateur », etc.
+  const containsAny = (txt, arr) => arr.some(k => txt.includes(k));
+
+  let ok=0, tot=0;
+
+  // ====== ARBRE — 3 champs exacts ======
+  // ids des inputs: pL  (P(L)), pLB (P_L(B)), pRA (P_R(A))
+  ok += chkPct('#pL' , '#tk_pL' , S.pL);      tot++;
+  ok += chkPct('#pLB', '#tk_pLB', S.pB_L);    tot++;
+  ok += chkPct('#pRA', '#tk_pRA', S.pA_R);    tot++;
+
+  // ====== Q2 — valeur & interprétation de P_L(A) ======
+  ok += chkPct('#pAL_in', '#tk_pALin', S.pA_L);  tot++;
+
+// --- Interprétation (phrase) ---
+// --- Interprétation (phrase) — variantes "Parmi" / "Sachant que" avant/après ---
+(function(){
+  const input  = host.querySelector('#pAL_ph');
+  const tick   = '#tk_pALph';
+  const ctx    = S.ctx || {};
+  const raw    = (input?.value || '').trim();
+  if(!raw){ mark(tick, null); tot += 1; return; }
+
+  const txt = norm(raw); // minuscule, diacritiques retirés, espaces normalisés
+
+  // 1) mots-clés
+  const needProbWord = /\bprobabilite\b/.test(txt);
+  const hasParmi     = /\bparmi\b/.test(txt);
+  const hasSachant   = /\bsachant que\b/.test(txt);
+
+  // 2) extraction de mots pertinents (on garde les mots “catégorie” comme standard/expresso, etc.)
+  const GENERIC = new Set([
+    'article','articles','produit','produits','livraison','livraisons','reservation','reservations',
+    'vente','ventes','billet','billets','film','films','jeu','jeux','appareil','appareils',
+    'vehicule','vehicules','flacon','flacons','jouet','jouets','paire','paires','velo','velos',
+    'categorie','categories','type','types'
+  ]);
+  const STOP = new Set(['un','une','des','de','d','du','le','la','les','l','au','aux','en','dans','sur',
+                        'a','à','par','pour','que','qui','est','soit','et','ou','avec','via','aupres']);
+
+  const tok = s => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
+  const keyTokens = s => Array.from(new Set(tok(s)
+    .map(t=>t.replace(/s$/,''))
+    .filter(t => !STOP.has(t) && !GENERIC.has(t) && t.length>=3)));
+  const compounds = s => {
+    const w = tok(s); const g=[];
+    for(let i=0;i<w.length-1;i++) g.push(`${w[i]} ${w[i+1]}`);
+    for(let i=0;i<w.length-2;i++) g.push(`${w[i]} ${w[i+1]} ${w[i+2]}`);
+    return g.filter(v=>{
+      const parts=v.split(' ');
+      return parts.some(p=>!STOP.has(p)&&!GENERIC.has(p));
+    });
+  };
+
+  const Lkeys = [...keyTokens(ctx.Ldef||''), ...compounds(ctx.Ldef||'')];
+  const Akeys = [...keyTokens(ctx.Adef||''), ...compounds(ctx.Adef||'')];
+
+  const hasAny  = (arr)=>arr.some(k=>txt.includes(k));
+  const firstOf = (arr)=>{
+    let best = Infinity;
+    for(const k of arr){ const i=txt.indexOf(k); if(i!==-1 && i<best) best=i; }
+    return best===Infinity ? -1 : best;
+  };
+
+  const hasL = Lkeys.length ? hasAny(Lkeys) : false;
+  const hasA = Akeys.length ? hasAny(Akeys) : false;
+
+  // 3) positions + contrainte “collé au bon évènement”
+  const posA = firstOf(Akeys);
+  const posL = firstOf(Lkeys);
+  const posParmi   = txt.indexOf('parmi');
+  const posSachant = txt.indexOf('sachant que');
+
+  // le marqueur de condition doit précéder L de ≤ 30 caractères
+  const NEAR = 30;
+  const nearParmiL   = hasParmi   && posL>=0 && posL > posParmi   && (posL - posParmi)   <= NEAR;
+  const nearSachantL = hasSachant && posL>=0 && posL > posSachant && (posL - posSachant) <= NEAR;
+
+  // 4) ordres acceptés
+  // (a) “Parmi … L …, … A …”
+  const orderParmiClassic = nearParmiL && posA > posL;
+  // (b) “La probabilité … A … sachant que … L …”
+  const orderSachantMiddle = posA>=0 && nearSachantL && posSachant > posA;
+  // (c) “Sachant que … L …, la probabilité … A …”
+  const orderSachantFirst  = nearSachantL && posA > posL;
+  // (d) “la probabilité que … A … parmi … L …” (comme ton exemple)
+  const orderParmiAfter = hasParmi && posParmi > posA && posL > posParmi && (posL - posParmi) <= 40;
+  const orderOK = orderParmiClassic || orderParmiAfter || orderSachantMiddle || orderSachantFirst;
+
+
+  // 5) lecture de la valeur (obligatoire)
+  let valOK = false;
+  {
+    const m = raw.match(/(?:\d+\s*\/\s*\d+)|(?:[-+]?\d+(?:[.,]\d+)?\s*%?)/g);
+    if (m && m.length){
+      const last = m[m.length-1];
+      const p = readAnyProbAsPercent(last);  // -> en %
+      if (Number.isFinite(p)) valOK = Math.round(p) === Math.round(S.pA_L);
+    }
+  }
+
+  // 6) tolérance “template banque”
+  let templateOK = false;
+  if (ctx.pL_A_phrase){
+    const tpl = norm(ctx.pL_A_phrase);
+    templateOK = txt.includes(tpl);
+  }
+
+  const good =
+    needProbWord &&
+    (hasParmi || hasSachant) &&
+    hasA && hasL &&
+    orderOK &&
+    (valOK || templateOK);   // mais on exige qu’il y ait bien UNE valeur (si template sans nombre, valOK doit être vrai)
+  // si tu veux forcer absolument un nombre, remplace la ligne ci-dessus par:  orderOK && valOK
+
+  mark(tick, good);
+  if (good) ok += 1;
+  tot += 1;
+})();
+
+
+
+
+
+
+  // ====== Q3 — P(L∩A) = P(L) × P_L(A)
+  const pLA = Math.round(S.pL * S.pA_L / 100);
+  ok += chkPct('#pALcapL', '#tk_pALcapL', pLA); tot++;
+
+  // ====== Q4 — P(C) = P(L)P_L(C) + P(R)P_R(C)
+  const pCtot = Math.round(S.pL*S.pC_L/100 + (100-S.pL)*S.pC_R/100);
+  ok += chkPct('#pCtot', '#tk_pCtot', pCtot);   tot++;
+
+  // ====== Q5 — indépendance de L et C
+  const indepSel = host.querySelector('#indep2')?.value||'';
+  const isIndep  = Math.round(S.pL*S.pC_L/100) === Math.round(S.pL*pCtot/100);
+  if(!indepSel){ mark('#tk_indep2', null); }
+  else{
+    const good = (isIndep && indepSel==='Oui') || (!isIndep && indepSel==='Non');
+    mark('#tk_indep2', good); ok += good?1:0; tot++;
+  }
+
+  const box=host.querySelector('#r2');
+  box.textContent = `${ok}/${tot} éléments corrects`;
+  box.className = (ok===tot && tot>0) ? 'res res-ok' : 'res res-ko';
+  return {ok, tot};
+},
+
+
+  solution(host){
+  const S = JSON.parse(host.dataset.state||'{}');
+  const box=host.querySelector('#r2'); box.className='res res-ok'; box.innerHTML='';
+  const steps=document.createElement('div'); steps.className='steps pdfb';
+
+  // Arbre statique + décimaux (comme ex1)
+  steps.insertAdjacentHTML(
+  'beforeend',
+  '<div class="line"><strong>1.</strong> Compléter l\'arbre pondéré.</div>'
+);
+  const svg = buildStaticTreeSVG3(S);
+  steps.appendChild(svg);
+
+  // valeurs utiles
+  const pLdec   = niceDec(S.pL/100,4);
+  const pRdec   = niceDec((100-S.pL)/100,4);
+  const pALdec  = niceDec(S.pA_L/100,4);
+  const pCLdec  = niceDec(S.pC_L/100,4);
+  const pCRdec  = niceDec(S.pC_R/100,4);
+
+  const pLAdec  = niceDec((S.pL/100)*(S.pA_L/100),4);
+  const PCtotdec= niceDec((S.pL/100)*(S.pC_L/100) + ((100-S.pL)/100)*(S.pC_R/100),4);
+
+  const indep = Math.abs( (S.pL/100)*(S.pC_L/100) - (S.pL/100)*Number(PCtotdec) ) < 1e-10;
+
+  // 1) P_L(A) + interprétation
+const ctx = S.ctx || {};
+steps.insertAdjacentHTML('beforeend', `
+  <div class="line">
+    <strong>2.</strong> \\(P_{${S.L}}(${S.A})=${pALdec}\\).<br>
+    Interprétation&nbsp;: ${ctx.pL_A_phrase || ""} \\(${pALdec}\\).
+  </div>
+`);
+
+
+  // 3) P(L ∩ A) — tableau 3 colonnes
+  steps.insertAdjacentHTML('beforeend', `<div class="line"><strong>3.</strong></div>`);
+  {
+    const rows3 = [
+      [`\\(P(${S.L}\\cap ${S.A})\\)`, `=`, `\\(P(${S.L})\\times P_{${S.L}}(${S.A})\\)`],
+      [``, `=`, `\\(${pLdec}\\times ${pALdec}\\)`],
+      [``, `=`, `\\(${pLAdec}\\)`],
+    ];
+    addCalcTable(steps, rows3);
+  }
+
+
+ // 4) P(C) par probabilités totales — tableau 3 colonnes
+  steps.insertAdjacentHTML('beforeend',
+    `<div class="line"><strong>4.</strong> \\(${S.L}\\) et \\(${S.R}\\) \\( \\) forment une partition de l’univers, donc d’après la formule des probabilités totales :</div>`
+  );
+  {
+    const rows4 = [
+      [`\\(P(${S.C})\\)`, `=`, `\\(P(${S.L}\\cap ${S.C}) + P(${S.R}\\cap ${S.C})\\)`],
+      [``, `=`, `\\(P(${S.L})\\times P_{${S.L}}(${S.C}) + P(${S.R})\\times P_{${S.R}}(${S.C})\\)`],
+      [``, `=`, `\\(${pLdec}\\times ${pCLdec} + ${pRdec}\\times ${pCRdec}\\)`],
+      [``, `=`, `\\(${PCtotdec}\\)`],
+    ];
+    addCalcTable(steps, rows4);
+  }
+
+  // 4) Indépendance L / C (2 méthodes, comme ex1)
+  steps.insertAdjacentHTML('beforeend', `
+    <div class="line">
+      <strong>5.</strong><br>
+      <u>1<sup>ère</sup> méthode</u>&nbsp;: comparer \\(P_{${S.L}}(${S.C})\\) et \\(P(${S.C})\\).<br>
+      \\(P_{${S.L}}(${S.C})=${pCLdec}\\) <br>
+	  \\(P(${S.C})=${PCtotdec}\\)<br>
+      ${Math.abs(Number(pCLdec)-Number(PCtotdec))>1e-9 ? 'Ils sont différents' : 'Ils sont égaux'} 
+      ⇒ ${indep ? 'indépendants' : 'non indépendants'}.<br><br>
+      <u>2<sup>e</sup> méthode</u>&nbsp;: comparer \\(P(${S.L})\\times P(${S.C})\\) et \\(P(${S.L}\\cap ${S.C})\\).<br>
+      \\(P(${S.L})\\times P(${S.C})=${S.pL/100} \\times ${Number(PCtotdec)} =${niceDec((S.pL/100)*Number(PCtotdec),6)}\\) <br>
+      \\(P(${S.L}\\cap ${S.C})=P(${S.L})\\times P_{${S.L}}(${S.C})=${pLdec}\\times ${pCLdec}=${niceDec((S.pL/100)*(S.pC_L/100),4)}\\)<br>
+      Conclusion&nbsp;: ${indep ? '<strong>indépendants</strong>' : '<strong>non indépendants</strong>'}.
+    </div>`);
+
+  box.appendChild(steps);
+  if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+},
+
+
+  reset(host){ host.innerHTML=''; }
+};
+
+/* ========= Exercice 3 — Arbre 3→2 (A,B,C -> D, ¬D) ========= */
+
+/* ---------- SVG + inputs ---------- */
+function treeHTML32(st){
+  return `
+  <div id="tree32" class="tree-wrap">
+    <svg viewBox="0 0 760 300" width="760" height="300" aria-label="Arbre 3→2">
+      <defs><style>.e{stroke:#64748b;stroke-width:2;fill:none}.t{font:16px system-ui,Segoe UI,Roboto,Arial}</style></defs>
+      <text id="rootLabel32" class="t" x="0" y="150">${st.rootLabel||''}</text>
+      <circle id="nodeRoot32" cx="120" cy="150" r="2.5" fill="#64748b"></circle>
+
+      <!-- 1er niveau : A,B,C -->
+      <line id="seg_A" class="e" x1="120" y1="150" x2="120" y2="150"/>
+      <line id="seg_B" class="e" x1="120" y1="150" x2="120" y2="150"/>
+      <line id="seg_C" class="e" x1="120" y1="150" x2="120" y2="150"/>
+      <text id="txt_A" class="t" text-anchor="middle">${st.A}</text>
+      <text id="txt_B" class="t" text-anchor="middle">${st.B}</text>
+      <text id="txt_C" class="t" text-anchor="middle">${st.C}</text>
+      <circle id="nodeA" cx="120" cy="100" r="2.5" fill="#64748b"></circle>
+      <circle id="nodeB" cx="120" cy="150" r="2.5" fill="#64748b"></circle>
+      <circle id="nodeC" cx="120" cy="200" r="2.5" fill="#64748b"></circle>
+
+      <!-- 2e niveau (D en haut, ¬D en bas) -->
+      <line id="A_D"  class="e" x1="120" y1="100" x2="520" y2="60"/>
+      <line id="A_nD" class="e" x1="120" y1="100" x2="520" y2="120"/>
+      <text id="txt_AD"  class="t">${st.D}</text>
+      <text id="txt_AnD" class="t">${st.nD}</text>
+
+      <line id="B_D"  class="e" x1="120" y1="150" x2="520" y2="130"/>
+      <line id="B_nD" class="e" x1="120" y1="150" x2="520" y2="190"/>
+      <text id="txt_BD"  class="t">${st.D}</text>
+      <text id="txt_BnD" class="t">${st.nD}</text>
+
+      <line id="C_D"  class="e" x1="120" y1="200" x2="520" y2="200"/>
+      <line id="C_nD" class="e" x1="120" y1="200" x2="520" y2="260"/>
+      <text id="txt_CD"  class="t">${st.D}</text>
+      <text id="txt_CnD" class="t">${st.nD}</text>
+    </svg>
+
+    <!-- 1er niveau : P(A), P(B), P(C) -->
+    <input id="pA"  class="branch-input"><span class="tick abs" id="tk_pA"></span>
+    <input id="pB"  class="branch-input"><span class="tick abs" id="tk_pB"></span>
+    <input id="pC"  class="branch-input"><span class="tick abs" id="tk_pC"></span>
+    <!-- 2e niveau : P_D(A), P_D(B), P_D(C) -->
+    <input id="pD_A"  class="branch-input"><span class="tick abs" id="tk_pDA"></span>
+    <input id="pD_B"  class="branch-input"><span class="tick abs" id="tk_pDB"></span>
+    <input id="pD_C"  class="branch-input"><span class="tick abs" id="tk_pDC"></span>
+	<!-- 2e niveau (branches ¬D) -->
+<input id="pnD_A"  class="branch-input"><span class="tick abs" id="tk_pnDA"></span>
+<input id="pnD_B"  class="branch-input"><span class="tick abs" id="tk_pnDB"></span>
+<input id="pnD_C"  class="branch-input"><span class="tick abs" id="tk_pnDC"></span>
+
+  </div>`;
+}
+
+function layoutTree32(root, st){
+  return new Promise(resolve=>{
+    const svg = root.querySelector('svg'); if(!svg) return resolve();
+
+    const set=(id,x1,y1,x2,y2)=>{ const L=svg.querySelector('#'+id); if(L){ L.setAttribute('x1',x1);L.setAttribute('y1',y1);L.setAttribute('x2',x2);L.setAttribute('y2',y2);} };
+    const place=(id,x,y)=>{ const t=svg.querySelector('#'+id); if(t){ t.setAttribute('x',x+8); t.setAttribute('y',y+4);} };
+    const node=(id,x,y)=>{ const c=svg.querySelector('#'+id); if(c){ c.setAttribute('cx',x); c.setAttribute('cy',y);} };
+
+    // root
+    const elRoot = svg.querySelector('#rootLabel32');
+    const rootY  = +elRoot.getAttribute('y') || 150;
+    const w = (t)=>textWidth(t, svg);
+    const R0 = { x:(elRoot.getBBox?.().x ?? 0) + w(elRoot) + 10, y:rootY };
+    node('nodeRoot32', R0.x, R0.y);
+
+    // geometry (more space)
+    const ARM   = 230;
+    const RIGHT = 740;
+    const BAND  = 80;    // distance between X1 / X2 / X3  (↑)
+    const DY    = 30;    // vertical offset for D (up) and ¬D (down)  (↑)
+
+    const xLR = R0.x + ARM;
+
+    // rows (X1=X_A, X2=X_B, X3=X_C)
+    const y1 = R0.y - BAND, y2 = R0.y, y3 = R0.y + BAND;
+
+    const t1=svg.querySelector('#txt_A'), t2=svg.querySelector('#txt_B'), t3=svg.querySelector('#txt_C');
+    t1.setAttribute('x',xLR); t1.setAttribute('y',y1);
+    t2.setAttribute('x',xLR); t2.setAttribute('y',y2);
+    t3.setAttribute('x',xLR); t3.setAttribute('y',y3);
+
+    const aX0=xLR - textWidth(t1,svg)/2 - 6;
+    const bX0=xLR - textWidth(t2,svg)/2 - 6;
+    const cX0=xLR - textWidth(t3,svg)/2 - 6;
+
+    set('seg_A', R0.x, R0.y, aX0, y1);
+    set('seg_B', R0.x, R0.y, bX0, y2);
+    set('seg_C', R0.x, R0.y, cX0, y3);
+
+    const aX1=xLR + textWidth(t1,svg)/2 + 6;
+    const bX1=xLR + textWidth(t2,svg)/2 + 6;
+    const cX1=xLR + textWidth(t3,svg)/2 + 6;
+
+    node('nodeA', aX1, y1); node('nodeB', bX1, y2); node('nodeC', cX1, y3);
+
+    // second level – SAME DY for each parent → never crosses
+    set('A_D',  aX1, y1, RIGHT, y1 - DY);
+    set('A_nD', aX1, y1, RIGHT, y1 + DY);
+    set('B_D',  bX1, y2, RIGHT, y2 - DY);
+    set('B_nD', bX1, y2, RIGHT, y2 + DY);
+    set('C_D',  cX1, y3, RIGHT, y3 - DY);
+    set('C_nD', cX1, y3, RIGHT, y3 + DY);
+
+    // labels on the right (D / \overline{D})
+    place('txt_AD',  RIGHT, y1 - DY);  place('txt_AnD', RIGHT, y1 + DY);
+    place('txt_BD',  RIGHT, y2 - DY);  place('txt_BnD', RIGHT, y2 + DY);
+    place('txt_CD',  RIGHT, y3 - DY);  place('txt_CnD', RIGHT, y3 + DY);
+
+    // widen viewBox to fit the larger spacing
+    const vb = svg.viewBox.baseVal;
+    svg.setAttribute('viewBox', `0 0 ${Math.max(780, RIGHT+20)} ${Math.max(vb.height, y3 + DY + 40)}`);
+
+    // === draw the overbars if the raw labels ask for it ===
+    // We rely on the same helpers you already have (hasOverbarFlag/drawOverbar).
+// -- libellés "propres"
+svg.querySelector('#txt_AD' ) .textContent = cleanOverbarText(st.D  || st.ctx?.D  || '');
+svg.querySelector('#txt_BD' ) .textContent = cleanOverbarText(st.D  || st.ctx?.D  || '');
+svg.querySelector('#txt_CD' ) .textContent = cleanOverbarText(st.D  || st.ctx?.D  || '');
+svg.querySelector('#txt_AnD').textContent = cleanOverbarText(st.nD || st.ctx?.nD || '');
+svg.querySelector('#txt_BnD').textContent = cleanOverbarText(st.nD || st.ctx?.nD || '');
+svg.querySelector('#txt_CnD').textContent = cleanOverbarText(st.nD || st.ctx?.nD || '');
+
+// -- barre uniquement si le libellé "brut" contient \overline{...}
+const wantBar_nD = /\overline/.test(String(st.nD || st.ctx?.nD || ''));
+if (wantBar_nD){
+  const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+  ['txt_AnD','txt_BnD','txt_CnD'].forEach(id => {
+    const t = svg.querySelector('#' + id);
+    if (t) drawOverbar(svg, t, barOpts);
+  });
+}
+
+['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+  const t = svg.querySelector('#'+id);
+  if (t) t.textContent = cleanOverbarText(st.nD || st.ctx?.nD || '');
+});
+
+// ======= Placement des inputs + coches (comme exo 1) =======
+const INP_W = 58, INP_H = 22, TICK_GAP = 6;
+
+// Convertit coordonnées SVG -> pixels CSS de la .tree-wrap
+function svgToCssPoint(svg, x, y){
+  const pt = svg.createSVGPoint(); pt.x = x; pt.y = y;
+  const scr = pt.matrixTransform(svg.getScreenCTM());
+  const wrap = root.getBoundingClientRect();
+  return { x: scr.x - wrap.left, y: scr.y - wrap.top };
+}
+
+// Place un input centré au milieu du segment + la coche à droite
+function placeInputAndTick(inpSel, tickSel, A, B){
+  const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+  const p  = svgToCssPoint(svg, mx, my);
+  const inp = root.querySelector(inpSel);
+  const tk  = root.querySelector(tickSel);
+  if (!inp) return;
+  inp.style.left = (p.x - INP_W/2) + 'px';
+  inp.style.top  = (p.y - INP_H/2) + 'px';
+  if (tk){
+    tk.classList.add('abs');
+    tk.style.left = (p.x + INP_W/2 + TICK_GAP) + 'px';
+    tk.style.top  = (p.y - 10) + 'px';
+  }
+}
+
+// Segments de 1er niveau : root → A/B/C
+placeInputAndTick('#pA',  '#tk_pA',  {x:R0.x, y:R0.y}, {x:aX0, y:y1});
+placeInputAndTick('#pB',  '#tk_pB',  {x:R0.x, y:R0.y}, {x:bX0, y:y2});
+placeInputAndTick('#pC',  '#tk_pC',  {x:R0.x, y:R0.y}, {x:cX0, y:y3});
+
+// Segments de 2e niveau : A/B/C → D (en haut)
+placeInputAndTick('#pD_A','#tk_pDA', {x:aX1, y:y1}, {x:RIGHT, y:y1-DY});
+placeInputAndTick('#pD_B','#tk_pDB', {x:bX1, y:y2}, {x:RIGHT, y:y2-DY});
+placeInputAndTick('#pD_C','#tk_pDC', {x:cX1, y:y3}, {x:RIGHT, y:y3-DY});
+// Segments A/B/C → ¬D (en bas)
+placeInputAndTick('#pnD_A','#tk_pnDA', {x:aX1, y:y1}, {x:RIGHT, y:y1+DY});
+placeInputAndTick('#pnD_B','#tk_pnDB', {x:bX1, y:y2}, {x:RIGHT, y:y2+DY});
+placeInputAndTick('#pnD_C','#tk_pnDC', {x:cX1, y:y3}, {x:RIGHT, y:y3+DY});
+
+// Pense à les inclure aussi dans realign()
+
+// Ré-alignements quand ça bouge (redimensionnement / scroll / changement de fonte…)
+const realign = () => {
+  placeInputAndTick('#pA','#tk_pA',   {x:R0.x, y:R0.y}, {x:aX0, y:y1});
+  placeInputAndTick('#pB','#tk_pB',   {x:R0.x, y:R0.y}, {x:bX0, y:y2});
+  placeInputAndTick('#pC','#tk_pC',   {x:R0.x, y:R0.y}, {x:cX0, y:y3});
+  placeInputAndTick('#pD_A','#tk_pDA',{x:aX1, y:y1}, {x:RIGHT, y:y1-DY});
+  placeInputAndTick('#pD_B','#tk_pDB',{x:bX1, y:y2}, {x:RIGHT, y:y2-DY});
+  placeInputAndTick('#pD_C','#tk_pDC',{x:cX1, y:y3}, {x:RIGHT, y:y3-DY});
+};
+if ('ResizeObserver' in window) new ResizeObserver(realign).observe(svg);
+window.addEventListener('resize', realign, {passive:true});
+window.addEventListener('scroll',  realign, {passive:true});
+requestAnimationFrame(realign); // 1er alignement quand le SVG est peint
+
+    resolve(svg);
+  });
+}
+
+
+/* ---------- version “solution” (décimales propres) ---------- */
+function buildStaticTreeSVG32(st){
+  const shell = document.createElement('div');
+  shell.innerHTML = treeHTML32(st);
+  const wrap = shell.firstElementChild;
+  const svg  = wrap.querySelector('svg');
+
+  // place la géométrie (segments/labels)
+  layoutTree32(wrap, st);
+
+  // on enlève inputs & coches de la version interactive
+  wrap.querySelectorAll('.branch-input,.tick.abs').forEach(n => n.remove());
+  // nettoie d’anciens décors éventuels
+  svg.querySelectorAll('[id^="d_"],[id^="b_"]').forEach(n => n.remove());
+  svg.querySelectorAll('line[data-bar]').forEach(n => n.remove()); // si tu avais déjà tracé des barres
+
+  /* === 1) libellés « propres » puis barre sur \overline D === */
+  // Texte sans LaTeX (\overline) dans le SVG
+  ['txt_AD','txt_BD','txt_CD'].forEach(id => {
+    const t = svg.querySelector('#'+id);
+    if (t) t.textContent = cleanOverbarText(st.D || st.ctx?.D || 'D');
+  });
+  ['txt_AnD','txt_BnD','txt_CnD'].forEach(id => {
+    const t = svg.querySelector('#'+id);
+    if (t) t.textContent = cleanOverbarText(st.nD || st.ctx?.nD || 'D');
+  });
+
+  // Barre courte au-dessus de nD *après* avoir fixé le texte
+  const wantBar_nD = /\overline/.test(String(st.nD || st.ctx?.nD || ''));
+  if (wantBar_nD){
+    const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+    ['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+      const t = svg.querySelector('#'+id);
+      if (t) {
+        const L = drawOverbar(svg, t, barOpts);
+        if (L) L.setAttribute('data-bar',''); // marqueur pour éviter doublons
+      }
+    });
+  }
+
+  /* === 2) décimales « propres » aux bons endroits === */
+  const NS='http://www.w3.org/2000/svg';
+  const mid = (id)=>{
+    const L = svg.querySelector('#'+id);
+    if (!L) return null;
+    const x1=+L.getAttribute('x1'), y1=+L.getAttribute('y1');
+    const x2=+L.getAttribute('x2'), y2=+L.getAttribute('y2');
+    return { x:(x1+x2)/2, y:(y1+y2)/2 };
+  };
+  const nice = x => String(Number(x).toFixed(4))
+                      .replace(/(\.\d*?[1-9])0+$/,'$1')
+                      .replace(/\.0+$/,'');
+  const put = (seg, val, dy) => {
+    const m = mid(seg); if(!m) return;
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', m.x);
+    t.setAttribute('y', m.y + (dy||0));
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('style','font:14px system-ui,Segoe UI,Roboto,Arial;fill:#111');
+    t.textContent = nice(val);
+    svg.appendChild(t);
+  };
+
+  // 1er niveau (A en haut, B milieu, C bas) – dy répartis visuellement
+  const pA = st.pA/100, pB = st.pB/100, pC = st.pC/100;
+  put('seg_A', pA, -12);   // au-dessus
+  put('seg_B', pB, +16);   // juste en dessous
+  put('seg_C', pC, +32);   // plus bas (évite chevauchement)
+
+  // 2e niveau : D est toujours *en haut*, ¬D toujours *en bas*
+  put('A_D',  st.pD_A/100, -12);
+  put('B_D',  st.pD_B/100, -12);
+  put('C_D',  st.pD_C/100, -12);
+
+  put('A_nD', 1 - st.pD_A/100, +16);
+  put('B_nD', 1 - st.pD_B/100, +16);
+  put('C_nD', 1 - st.pD_C/100, +16);
+
+  return svg;
+}
+
+function ensureOverbarOnND(svg, st){
+  const want = /\overline/.test(String(st.nD || st.ctx?.nD || ''));
+  if (!want) return;
+
+  // 1) texte propre ("D")
+  ['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+    const t = svg.querySelector('#'+id);
+    if (t) t.textContent = cleanOverbarText(st.nD || st.ctx?.nD || 'D');
+  });
+
+  // 2) supprime d’anciennes barres éventuelles
+  svg.querySelectorAll('line[data-bar-d]').forEach(l => l.remove());
+
+  // 3) dessine la barre courte au-dessus du D
+  const barOpts = { gap: -3, pad: 3, strokeWidth: 2 };
+  ['txt_AnD','txt_BnD','txt_CnD'].forEach(id=>{
+    const t = svg.querySelector('#'+id);
+    if (!t) return;
+    const L = drawOverbar(svg, t, barOpts);
+    if (L) L.setAttribute('data-bar-d','');          // marqueur
+  });
+}
+
+
+
+/* ---------- Banque de 20 contextes (A,B,C = sources ; D = “défectueux”) ---------- */
+const BANK_EX3 = [
+  { // 1 — Machines de fabrication
+    context: "Un atelier dispose de trois machines M1, M2 et M3 pour fabriquer des pièces mécaniques.",
+    group:"pièces", groupSg:"pièce", effectifPl:"pièces fabriquées",
+    contextN: N => `On observe ${N} ${N>1?"pièces":"pièce"} prises au hasard.`,
+    A:"M1", B:"M2", C:"M3",
+    Adef:"la pièce est fabriquée sur la machine M1",
+    Bdef:"la pièce est fabriquée sur la machine M2",
+    Cdef:"la pièce est fabriquée sur la machine M3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"la pièce présente un défaut",
+    nDdef:"la pièce ne présente pas de défaut",
+    phraseinter(a,d){
+      const mach = {A:"M1", B:"M2", C:"M3"}[a];
+      return `la pièce est fabriquée sur ${mach} et ${d==='D'?'présente un défaut':'ne présente pas de défaut'}.`;
+    },
+    phrasecond(a,d){
+      const mach = {A:"M1", B:"M2", C:"M3"}[a];
+      return `La probabilité qu’une pièce ${d==='D'?'présente un défaut':'soit conforme'} sachant qu’elle provient de ${mach}`;
+    }
+  },
+  { // 2 — Pantalons de fabricants
+    context: "Un magasin s’approvisionne en pantalons auprès de trois fabricants : f1, f2 et f3.",
+    group:"pantalons", groupSg:"pantalon", effectifPl:"pantalons",
+    contextN: N => `On sélectionne ${N} ${N>1?"pantalons":"pantalon"} au hasard.`,
+    A:"F1", B:"F2", C:"F3",
+    Adef:"le pantalon est fabriqué par f1",
+    Bdef:"le pantalon est fabriqué par f2",
+    Cdef:"le pantalon est fabriqué par f3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"le pantalon est défectueux",
+    nDdef:"le pantalon n’est pas défectueux",
+    phraseinter(a,d){
+      const f = {A:"f1", B:"f2", C:"f3"}[a];
+      return `le pantalon provient du fabricant ${f} et ${d==='D'?'est défectueux':'n’est pas défectueux'}.`;
+    },
+    phrasecond(a,d){
+      const f = {A:"f1", B:"f2", C:"f3"}[a];
+      return `La probabilité qu’un pantalon ${d==='D'?'soit défectueux':'soit conforme'} sachant qu’il provient de ${f}`;
+    }
+  },
+  { // 3 — Cookies (chocolat / noisettes)
+    context: "Un cafetier propose des cookies au chocolat ou aux noisettes provenant de trois boulangeries.",
+    group:"cookies", groupSg:"cookie", effectifPl:"cookies vendus",
+    contextN: N => `Un client choisit ${N>1?"des cookies":"un cookie"} au hasard.`,
+    A:"B₁", B:"B₂", C:"B₃",
+    Adef:"le cookie provient de la boulangerie 1",
+    Bdef:"le cookie provient de la boulangerie 2",
+    Cdef:"le cookie provient de la boulangerie 3",
+    D:"C", nD:"N",
+    Ddef:"le cookie est au chocolat",
+    nDdef:"le cookie est aux noisettes",
+    phraseinter(a,d){
+      const boul = {A:"la boulangerie 1", B:"la boulangerie 2", C:"la boulangerie 3"}[a];
+      return `le cookie provient de ${boul} et ${d==='C'?'est au chocolat':'est aux noisettes'}.`;
+    },
+    phrasecond(a,d){
+      const boul = {A:"la boulangerie 1", B:"la boulangerie 2", C:"la boulangerie 3"}[a];
+      return `La probabilité qu’un cookie ${d==='C'?'soit au chocolat':'soit aux noisettes'} sachant qu’il provient de ${boul}`;
+    }
+  },
+  { // 4 — Jouets
+    context: "Une entreprise fabrique des jouets dans trois ateliers distincts A1, A2 et A3.",
+    group:"jouets", groupSg:"jouet", effectifPl:"jouets produits",
+    contextN: N => `On contrôle ${N} ${N>1?"jouets":"jouet"} pris au hasard.`,
+    A:"A1", B:"A2", C:"A3",
+    Adef:"le jouet provient de l’atelier A1",
+    Bdef:"le jouet provient de l’atelier A2",
+    Cdef:"le jouet provient de l’atelier A3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"le jouet présente un défaut",
+    nDdef:"le jouet ne présente pas de défaut",
+    phraseinter(a,d){
+      const at = {A:"A1", B:"A2", C:"A3"}[a];
+      return `le jouet provient de l’atelier ${at} et ${d==='D'?'présente un défaut':'ne présente pas de défaut'}.`;
+    },
+    phrasecond(a,d){
+      const at = {A:"A1", B:"A2", C:"A3"}[a];
+      return `La probabilité qu’un jouet ${d==='D'?'soit défectueux':'soit conforme'} sachant qu’il provient de ${at}`;
+    }
+  },
+  { // 5 — Bouteilles d’eau
+    context: "Une entreprise embouteille de l’eau minérale dans trois usines U1, U2 et U3.",
+    group:"bouteilles", groupSg:"bouteille", effectifPl:"bouteilles produites",
+    contextN: N => `On prélève ${N} ${N>1?"bouteilles":"bouteille"} pour contrôle.`,
+    A:"U1", B:"U2", C:"U3",
+    Adef:"la bouteille provient de l’usine U1",
+    Bdef:"la bouteille provient de l’usine U2",
+    Cdef:"la bouteille provient de l’usine U3",
+    D:"T", nD:"\\overline{T}",
+    Ddef:"la bouteille dépasse la limite de nitrates",
+    nDdef:"la bouteille respecte la norme",
+    phraseinter(a,d){
+      const u = {A:"U1", B:"U2", C:"U3"}[a];
+      return `la bouteille provient de ${u} et ${d==='T'?'dépasse la norme':'respecte la norme'}.`;
+    },
+    phrasecond(a,d){
+      const u = {A:"U1", B:"U2", C:"U3"}[a];
+      return `La probabilité qu’une bouteille ${d==='T'?'dépasse la limite':'soit conforme'} sachant qu’elle provient de ${u}`;
+    }
+  },
+  { // 6 — Yaourts
+    context: "Une marque fabrique des yaourts dans trois usines : Nord, Sud et Est.",
+    group:"yaourts", groupSg:"yaourt", effectifPl:"yaourts produits",
+    contextN: N => `On prélève ${N} ${N>1?"yaourts":"yaourt"} au hasard.`,
+    A:"N", B:"S", C:"E",
+    Adef:"le yaourt provient de l’usine Nord",
+    Bdef:"le yaourt provient de l’usine Sud",
+    Cdef:"le yaourt provient de l’usine Est",
+    D:"B", nD:"\\overline{B}",
+    Ddef:"le yaourt contient des bactéries non conformes",
+    nDdef:"le yaourt est conforme",
+    phraseinter(a,d){
+      const us = {A:"Nord", B:"Sud", C:"Est"}[a];
+      return `le yaourt provient de l’usine ${us} et ${d==='B'?'contient des bactéries non conformes':'est conforme'}.`;
+    },
+    phrasecond(a,d){
+      const us = {A:"Nord", B:"Sud", C:"Est"}[a];
+      return `La probabilité qu’un yaourt ${d==='B'?'soit non conforme':'soit conforme'} sachant qu’il provient de l’usine ${us}`;
+    }
+  },
+  { // 7 — Fonderie
+    context: "Une fonderie produit des pièces d’aluminium dans trois ateliers : F1, F2 et F3.",
+    group:"pièces", groupSg:"pièce", effectifPl:"pièces fondues",
+    contextN: N => `On observe ${N} ${N>1?"pièces":"pièce"} tirées au hasard.`,
+    A:"F1", B:"F2", C:"F3",
+    Adef:"la pièce est issue de F1",
+    Bdef:"la pièce est issue de F2",
+    Cdef:"la pièce est issue de F3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"la pièce présente un défaut de surface",
+    nDdef:"la pièce ne présente pas de défaut",
+    phraseinter(a,d){
+      const f = {A:"F1", B:"F2", C:"F3"}[a];
+      return `la pièce provient de ${f} et ${d==='D'?'présente un défaut de surface':'ne présente pas de défaut'}.`;
+    },
+    phrasecond(a,d){
+      const f = {A:"F1", B:"F2", C:"F3"}[a];
+      return `La probabilité qu’une pièce ${d==='D'?'soit défectueuse':'soit conforme'} sachant qu’elle provient de ${f}`;
+    }
+  },
+  { // 8 — Pains
+    context: "Une chaîne de supermarchés propose des pains issus de trois boulangeries : B1, B2 et B3.",
+    group:"pains", groupSg:"pain", effectifPl:"pains vendus",
+    contextN: N => `Un contrôleur sélectionne ${N>1?"des pains":"un pain"} au hasard.`,
+    A:"B1", B:"B2", C:"B3",
+    Adef:"le pain provient de B1",
+    Bdef:"le pain provient de B2",
+    Cdef:"le pain provient de B3",
+    D:"F", nD:"\\overline{F}",
+    Ddef:"le pain est frais",
+    nDdef:"le pain n’est pas frais",
+    phraseinter(a,d){
+      const b = {A:"B1", B:"B2", C:"B3"}[a];
+      return `le pain provient de ${b} et ${d==='F'?'est frais':'n’est pas frais'}.`;
+    },
+    phrasecond(a,d){
+      const b = {A:"B1", B:"B2", C:"B3"}[a];
+      return `La probabilité qu’un pain ${d==='F'?'soit frais':'ne soit pas frais'} sachant qu’il provient de ${b}`;
+    }
+  },
+  { // 9 — Livres
+    context: "Une maison d’édition imprime ses livres dans trois imprimeries : I1, I2 et I3.",
+    group:"livres", groupSg:"livre", effectifPl:"livres imprimés",
+    contextN: N => `On inspecte ${N} ${N>1?"livres":"livre"} au hasard.`,
+    A:"I1", B:"I2", C:"I3",
+    Adef:"le livre est imprimé par I1",
+    Bdef:"le livre est imprimé par I2",
+    Cdef:"le livre est imprimé par I3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"le livre comporte un défaut d’impression",
+    nDdef:"le livre ne comporte pas de défaut",
+    phraseinter(a,d){
+      const i = {A:"I1", B:"I2", C:"I3"}[a];
+      return `le livre provient de ${i} et ${d==='D'?'comporte un défaut d’impression':'ne comporte pas de défaut'}.`;
+    },
+    phrasecond(a,d){
+      const i = {A:"I1", B:"I2", C:"I3"}[a];
+      return `La probabilité qu’un livre ${d==='D'?'ait un défaut':'soit correct'} sachant qu’il provient de ${i}`;
+    }
+  },
+  { // 10 — Smartphones
+    context: "Un constructeur assemble ses smartphones dans trois usines : Asie, Europe et Afrique.",
+    group:"smartphones", groupSg:"smartphone", effectifPl:"smartphones produits",
+    contextN: N => `On teste ${N} ${N>1?"smartphones":"smartphone"} au hasard.`,
+    A:"As", B:"Eu", C:"Af",
+    Adef:"le smartphone est assemblé en Asie",
+    Bdef:"le smartphone est assemblé en Europe",
+    Cdef:"le smartphone est assemblé en Afrique",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"le smartphone présente un défaut de montage",
+    nDdef:"le smartphone est conforme",
+    phraseinter(a,d){
+      const us = {A:"Asie", B:"Europe", C:"Afrique"}[a];
+      return `le smartphone est fabriqué en ${us} et ${d==='D'?'présente un défaut de montage':'est conforme'}.`;
+    },
+    phrasecond(a,d){
+      const us = {A:"Asie", B:"Europe", C:"Afrique"}[a];
+      return `La probabilité qu’un smartphone ${d==='D'?'soit défectueux':'soit conforme'} sachant qu’il est fabriqué en ${us}`;
+    }
+  },
+  { // 11 — Ordinateurs portables
+    context: "Une marque assemble ses ordinateurs dans trois usines : France, Pologne et Chine.",
+    group:"ordinateurs", groupSg:"ordinateur", effectifPl:"ordinateurs assemblés",
+    contextN: N => `On examine ${N} ${N>1?"ordinateurs":"ordinateur"} au hasard.`,
+    A:"F", B:"P", C:"C",
+    Adef:"l’ordinateur est assemblé en France",
+    Bdef:"l’ordinateur est assemblé en Pologne",
+    Cdef:"l’ordinateur est assemblé en Chine",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"l’ordinateur présente un bug matériel",
+    nDdef:"l’ordinateur fonctionne correctement",
+    phraseinter(a,d){
+      const reg = {A:"France", B:"Pologne", C:"Chine"}[a];
+      return `l’ordinateur est assemblé en ${reg} et ${d==='D'?'présente un bug matériel':'fonctionne correctement'}.`;
+    },
+    phrasecond(a,d){
+      const reg = {A:"France", B:"Pologne", C:"Chine"}[a];
+      return `La probabilité qu’un ordinateur ${d==='D'?'soit défectueux':'soit correct'} sachant qu’il est assemblé en ${reg}`;
+    }
+  },
+  { // 12 — Véhicules électriques
+    context: "Un constructeur automobile produit des véhicules électriques dans trois usines : Lyon, Madrid et Varsovie.",
+    group:"voitures", groupSg:"voiture", effectifPl:"voitures produites",
+    contextN: N => `On choisit ${N>1?"des voitures":"une voiture"} au hasard.`,
+    A:"L", B:"M", C:"V",
+    Adef:"la voiture est produite à Lyon",
+    Bdef:"la voiture est produite à Madrid",
+    Cdef:"la voiture est produite à Varsovie",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"la voiture présente un défaut électronique",
+    nDdef:"la voiture est sans défaut",
+    phraseinter(a,d){
+      const loc = {A:"Lyon", B:"Madrid", C:"Varsovie"}[a];
+      return `la voiture provient de ${loc} et ${d==='D'?'présente un défaut électronique':'est sans défaut'}.`;
+    },
+    phrasecond(a,d){
+      const loc = {A:"Lyon", B:"Madrid", C:"Varsovie"}[a];
+      return `La probabilité qu’une voiture ${d==='D'?'soit défectueuse':'soit conforme'} sachant qu’elle est produite à ${loc}`;
+    }
+  },
+  { // 13 — Café torréfié
+    context: "Une entreprise importe son café vert de trois pays : Brésil, Éthiopie et Colombie, puis le torréfie.",
+    group:"sachets", groupSg:"sachet", effectifPl:"sachets de café",
+    contextN: N => `On teste ${N} ${N>1?"sachets":"sachet"} de café.`,
+    A:"B", B:"E", C:"C",
+    Adef:"le café provient du Brésil",
+    Bdef:"le café provient d’Éthiopie",
+    Cdef:"le café provient de Colombie",
+    D:"F", nD:"\\overline{F}",
+    Ddef:"le café est jugé fort",
+    nDdef:"le café est jugé doux",
+    phraseinter(a,d){
+      const p = {A:"Brésil", B:"Éthiopie", C:"Colombie"}[a];
+      return `le café provient de ${p} et ${d==='F'?'est jugé fort':'est jugé doux'}.`;
+    },
+    phrasecond(a,d){
+      const p = {A:"Brésil", B:"Éthiopie", C:"Colombie"}[a];
+      return `La probabilité qu’un café ${d==='F'?'soit fort':'soit doux'} sachant qu’il provient de ${p}`;
+    }
+  },
+  { // 14 — Biscuits
+    context: "Une marque fabrique des biscuits dans trois usines : Lille, Nantes et Marseille.",
+    group:"biscuits", groupSg:"biscuit", effectifPl:"biscuits produits",
+    contextN: N => `On goûte ${N} ${N>1?"biscuits":"biscuit"} au hasard.`,
+    A:"L", B:"N", C:"M",
+    Adef:"le biscuit provient de Lille",
+    Bdef:"le biscuit provient de Nantes",
+    Cdef:"le biscuit provient de Marseille",
+    D:"S", nD:"\\overline{S}",
+    Ddef:"le biscuit est sucré",
+    nDdef:"le biscuit est peu sucré",
+    phraseinter(a,d){
+      const v = {A:"Lille", B:"Nantes", C:"Marseille"}[a];
+      return `le biscuit provient de ${v} et ${d==='S'?'est sucré':'est peu sucré'}.`;
+    },
+    phrasecond(a,d){
+      const v = {A:"Lille", B:"Nantes", C:"Marseille"}[a];
+      return `La probabilité qu’un biscuit ${d==='S'?'soit sucré':'soit peu sucré'} sachant qu’il provient de ${v}`;
+    }
+  },
+  { // 15 — Ampoules
+    context: "Un fabricant produit des ampoules LED dans trois usines : A1, A2 et A3.",
+    group:"ampoules", groupSg:"ampoule", effectifPl:"ampoules produites",
+    contextN: N => `On teste ${N} ${N>1?"ampoules":"ampoule"} au hasard.`,
+    A:"A1", B:"A2", C:"A3",
+    Adef:"l’ampoule provient de l’usine A1",
+    Bdef:"l’ampoule provient de l’usine A2",
+    Cdef:"l’ampoule provient de l’usine A3",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"l’ampoule est défectueuse",
+    nDdef:"l’ampoule fonctionne",
+    phraseinter(a,d){
+      const a3 = {A:"A1", B:"A2", C:"A3"}[a];
+      return `l’ampoule provient de ${a3} et ${d==='D'?'est défectueuse':'fonctionne correctement'}.`;
+    },
+    phrasecond(a,d){
+      const a3 = {A:"A1", B:"A2", C:"A3"}[a];
+      return `La probabilité qu’une ampoule ${d==='D'?'soit défectueuse':'fonctionne'} sachant qu’elle provient de ${a3}`;
+    }
+  },
+  { // 16 — Médicaments
+    context: "Une entreprise pharmaceutique fabrique un médicament dans trois laboratoires : L1, L2 et L3.",
+    group:"comprimés", groupSg:"comprimé", effectifPl:"comprimés produits",
+    contextN: N => `On analyse ${N} ${N>1?"comprimés":"comprimé"} au hasard.`,
+    A:"L1", B:"L2", C:"L3",
+    Adef:"le comprimé provient du laboratoire L1",
+    Bdef:"le comprimé provient du laboratoire L2",
+    Cdef:"le comprimé provient du laboratoire L3",
+    D:"I", nD:"\\overline{I}",
+    Ddef:"le comprimé est inefficace",
+    nDdef:"le comprimé est efficace",
+    phraseinter(a,d){
+      const l = {A:"L1", B:"L2", C:"L3"}[a];
+      return `le comprimé provient de ${l} et ${d==='I'?'est inefficace':'est efficace'}.`;
+    },
+    phrasecond(a,d){
+      const l = {A:"L1", B:"L2", C:"L3"}[a];
+      return `La probabilité qu’un comprimé ${d==='I'?'soit inefficace':'soit efficace'} sachant qu’il provient de ${l}`;
+    }
+  },
+  { // 17 — Casques audio
+    context: "Une marque fabrique des casques audio dans trois usines : Europe, Asie et Amérique.",
+    group:"casques", groupSg:"casque", effectifPl:"casques produits",
+    contextN: N => `On teste ${N} ${N>1?"casques":"casque"} au hasard.`,
+    A:"E", B:"As", C:"Am",
+    Adef:"le casque est fabriqué en Europe",
+    Bdef:"le casque est fabriqué en Asie",
+    Cdef:"le casque est fabriqué en Amérique",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"le casque a un défaut sonore",
+    nDdef:"le casque est conforme",
+    phraseinter(a,d){
+      const r = {A:"Europe", B:"Asie", C:"Amérique"}[a];
+      return `le casque provient de ${r} et ${d==='D'?'a un défaut sonore':'est conforme'}.`;
+    },
+    phrasecond(a,d){
+      const r = {A:"Europe", B:"Asie", C:"Amérique"}[a];
+      return `La probabilité qu’un casque ${d==='D'?'soit défectueux':'soit conforme'} sachant qu’il est fabriqué en ${r}`;
+    }
+  },
+  { // 18 — Bouteilles de vin
+    context: "Une cave commercialise du vin provenant de trois domaines : Bordeaux, Bourgogne et Loire.",
+    group:"bouteilles", groupSg:"bouteille", effectifPl:"bouteilles vendues",
+    contextN: N => `On sélectionne ${N} ${N>1?"bouteilles":"bouteille"} au hasard.`,
+    A:"Bdx", B:"Bgn", C:"Lr",
+    Adef:"le vin provient du Bordelais",
+    Bdef:"le vin provient de Bourgogne",
+    Cdef:"le vin provient de Loire",
+    D:"R", nD:"\\overline{R}",
+    Ddef:"le vin est rouge",
+    nDdef:"le vin est blanc",
+    phraseinter(a,d){
+      const r = {A:"Bordeaux", B:"Bourgogne", C:"Loire"}[a];
+      return `le vin provient de ${r} et ${d==='R'?'est rouge':'est blanc'}.`;
+    },
+    phrasecond(a,d){
+      const r = {A:"Bordeaux", B:"Bourgogne", C:"Loire"}[a];
+      return `La probabilité qu’un vin ${d==='R'?'soit rouge':'soit blanc'} sachant qu’il provient de ${r}`;
+    }
+  },
+  { // 19 — Chaussures
+    context: "Une enseigne vend des chaussures produites dans trois ateliers : Italie, Portugal et Maroc.",
+    group:"chaussures", groupSg:"chaussure", effectifPl:"chaussures vendues",
+    contextN: N => `On observe ${N} ${N>1?"chaussures":"chaussure"} prises au hasard.`,
+    A:"It", B:"Pt", C:"Ma",
+    Adef:"la chaussure est fabriquée en Italie",
+    Bdef:"la chaussure est fabriquée au Portugal",
+    Cdef:"la chaussure est fabriquée au Maroc",
+    D:"D", nD:"\\overline{D}",
+    Ddef:"la chaussure présente un défaut de couture",
+    nDdef:"la chaussure est conforme",
+    phraseinter(a,d){
+      const p = {A:"Italie", B:"Portugal", C:"Maroc"}[a];
+      return `la chaussure provient de ${p} et ${d==='D'?'présente un défaut de couture':'est conforme'}.`;
+    },
+    phrasecond(a,d){
+      const p = {A:"Italie", B:"Portugal", C:"Maroc"}[a];
+      return `La probabilité qu’une chaussure ${d==='D'?'soit défectueuse':'soit conforme'} sachant qu’elle provient de ${p}`;
+    }
+  },
+  { // 20 — Verre recyclé
+    context: "Une société de recyclage traite le verre dans trois usines : Nord, Centre et Sud.",
+    group:"bouteilles", groupSg:"bouteille", effectifPl:"bouteilles recyclées",
+    contextN: N => `On vérifie ${N} ${N>1?"bouteilles":"bouteille"} recyclées.`,
+    A:"N", B:"C", C:"S",
+    Adef:"la bouteille a été traitée dans l’usine Nord",
+    Bdef:"la bouteille a été traitée dans l’usine Centre",
+    Cdef:"la bouteille a été traitée dans l’usine Sud",
+    D:"C", nD:"\\overline{C}",
+    Ddef:"la bouteille est correctement nettoyée",
+    nDdef:"la bouteille reste sale",
+    phraseinter(a,d){
+      const z = {A:"Nord", B:"Centre", C:"Sud"}[a];
+      return `la bouteille provient de l’usine ${z} et ${d==='C'?'est propre':'reste sale'}.`;
+    },
+    phrasecond(a,d){
+      const z = {A:"Nord", B:"Centre", C:"Sud"}[a];
+      return `La probabilité qu’une bouteille ${d==='C'?'soit propre':'soit sale'} sachant qu’elle provient de l’usine ${z}`;
+    }
+  }
+];
+
+/* ===== Questions finales pour chaque contexte (A|D et A|¬D) ===== */
+(function addFinalQuestions(bank){
+  const fem = s => /^(ampoule|voiture|bouteille|pièce|chaussure)$/i.test(s) ? 'f' : 'm';
+  const prn = g => g==='f' ? "elle" : "il";
+  const art = (g,sg)=> g==='f' ? "une "+sg : (sg.match(/^[aeéiîoôuùh]/i) ? "un "+sg : "un "+sg);
+
+  // 1
+  bank[0].qA_D  = "On prélève une pièce parmi celles qui présentent un défaut. Quelle est la probabilité qu’elle ait été fabriquée sur la machine M1 ?";
+  bank[0].qA_nD = "On prélève une pièce parmi celles qui ne présentent pas de défaut. Quelle est la probabilité qu’elle ait été fabriquée sur la machine M1 ?";
+
+  // 2
+  bank[1].qA_D  = "On prélève un pantalon parmi ceux qui sont défectueux. Quelle est la probabilité qu’il ait été fabriqué par le fabricant f1 ?";
+  bank[1].qA_nD = "On prélève un pantalon parmi ceux qui ne sont pas défectueux. Quelle est la probabilité qu’il ait été fabriqué par le fabricant f1 ?";
+
+  // 3
+  bank[2].qA_D  = "On prélève un cookie parmi ceux qui sont au chocolat. Quelle est la probabilité qu’il provienne de la boulangerie 1 ?";
+  bank[2].qA_nD = "On prélève un cookie parmi ceux qui sont aux noisettes. Quelle est la probabilité qu’il provienne de la boulangerie 1 ?";
+
+  // 4
+  bank[3].qA_D  = "On prélève un jouet parmi ceux qui présentent un défaut. Quelle est la probabilité qu’il provienne de l’atelier A1 ?";
+  bank[3].qA_nD = "On prélève un jouet parmi ceux qui ne présentent pas de défaut. Quelle est la probabilité qu’il provienne de l’atelier A1 ?";
+
+  // 5
+  bank[4].qA_D  = "On prélève une bouteille parmi celles qui dépassent la limite de nitrates. Quelle est la probabilité qu’elle provienne de l’usine U1 ?";
+  bank[4].qA_nD = "On prélève une bouteille parmi celles qui respectent la norme. Quelle est la probabilité qu’elle provienne de l’usine U1 ?";
+
+  // 6
+  bank[5].qA_D  = "On prélève un yaourt parmi ceux qui contiennent des bactéries non conformes. Quelle est la probabilité qu’il provienne de l’usine Nord ?";
+  bank[5].qA_nD = "On prélève un yaourt parmi ceux qui sont conformes. Quelle est la probabilité qu’il provienne de l’usine Nord ?";
+
+  // 7
+  bank[6].qA_D  = "On prélève une pièce parmi celles qui présentent un défaut de surface. Quelle est la probabilité qu’elle soit issue de F1 ?";
+  bank[6].qA_nD = "On prélève une pièce parmi celles qui ne présentent pas de défaut. Quelle est la probabilité qu’elle soit issue de F1 ?";
+
+  // 8
+  bank[7].qA_D  = "On prélève un pain parmi ceux qui sont frais. Quelle est la probabilité qu’il provienne de B1 ?";
+  bank[7].qA_nD = "On prélève un pain parmi ceux qui ne sont pas frais. Quelle est la probabilité qu’il provienne de B1 ?";
+
+  // 9
+  bank[8].qA_D  = "On prélève un livre parmi ceux qui comportent un défaut d’impression. Quelle est la probabilité qu’il ait été imprimé par I1 ?";
+  bank[8].qA_nD = "On prélève un livre parmi ceux qui ne comportent pas de défaut. Quelle est la probabilité qu’il ait été imprimé par I1 ?";
+
+  // 10
+  bank[9].qA_D  = "On prélève un smartphone parmi ceux qui présentent un défaut de montage. Quelle est la probabilité qu’il ait été assemblé en Asie ?";
+  bank[9].qA_nD = "On prélève un smartphone parmi ceux qui sont conformes. Quelle est la probabilité qu’il ait été assemblé en Asie ?";
+
+  // 11
+  bank[10].qA_D  = "On prélève un ordinateur parmi ceux qui présentent un bug matériel. Quelle est la probabilité qu’il ait été assemblé en France ?";
+  bank[10].qA_nD = "On prélève un ordinateur parmi ceux qui fonctionnent correctement. Quelle est la probabilité qu’il ait été assemblé en France ?";
+
+  // 12
+  bank[11].qA_D  = "On prélève une voiture parmi celles qui présentent un défaut électronique. Quelle est la probabilité qu’elle ait été produite à Lyon ?";
+  bank[11].qA_nD = "On prélève une voiture parmi celles qui sont sans défaut. Quelle est la probabilité qu’elle ait été produite à Lyon ?";
+
+  // 13
+  bank[12].qA_D  = "On prélève un sachet parmi ceux qui sont jugés forts. Quelle est la probabilité qu’il provienne du Brésil ?";
+  bank[12].qA_nD = "On prélève un sachet parmi ceux qui sont jugés doux. Quelle est la probabilité qu’il provienne du Brésil ?";
+
+  // 14
+  bank[13].qA_D  = "On prélève un biscuit parmi ceux qui sont sucrés. Quelle est la probabilité qu’il provienne de Lille ?";
+  bank[13].qA_nD = "On prélève un biscuit parmi ceux qui sont peu sucrés. Quelle est la probabilité qu’il provienne de Lille ?";
+
+  // 15
+  bank[14].qA_D  = "On prélève une ampoule parmi celles qui sont défectueuses. Quelle est la probabilité qu’elle provienne de l’usine A1 ?";
+  bank[14].qA_nD = "On prélève une ampoule parmi celles qui fonctionnent correctement. Quelle est la probabilité qu’elle provienne de l’usine A1 ?";
+
+  // 16
+  bank[15].qA_D  = "On prélève un comprimé parmi ceux qui sont inefficaces. Quelle est la probabilité qu’il provienne du laboratoire L1 ?";
+  bank[15].qA_nD = "On prélève un comprimé parmi ceux qui sont efficaces. Quelle est la probabilité qu’il provienne du laboratoire L1 ?";
+
+  // 17
+  bank[16].qA_D  = "On prélève un casque parmi ceux qui ont un défaut sonore. Quelle est la probabilité qu’il ait été fabriqué en Europe ?";
+  bank[16].qA_nD = "On prélève un casque parmi ceux qui sont conformes. Quelle est la probabilité qu’il ait été fabriqué en Europe ?";
+
+  // 18
+  bank[17].qA_D  = "On prélève une bouteille parmi celles qui sont rouges. Quelle est la probabilité qu’elle provienne du Bordelais ?";
+  bank[17].qA_nD = "On prélève une bouteille parmi celles qui sont blanches. Quelle est la probabilité qu’elle provienne du Bordelais ?";
+
+  // 19
+  bank[18].qA_D  = "On prélève une chaussure parmi celles qui présentent un défaut de couture. Quelle est la probabilité qu’elle ait été fabriquée en Italie ?";
+  bank[18].qA_nD = "On prélève une chaussure parmi celles qui sont conformes. Quelle est la probabilité qu’elle ait été fabriquée en Italie ?";
+
+  // 20
+  bank[19].qA_D  = "On prélève une bouteille parmi celles qui sont correctement nettoyées. Quelle est la probabilité qu’elle ait été traitée dans l’usine Nord ?";
+  bank[19].qA_nD = "On prélève une bouteille parmi celles qui restent sales. Quelle est la probabilité qu’elle ait été traitée dans l’usine Nord ?";
+})(BANK_EX3);
+
+/* -- Fix genres manquants (évite "un voiture") -- */
+(function fixGenresForBankEX3(bank){
+  // Index 0-based : 1=Machines, 2=Pantalons, ... 20=Verre recyclé
+  const G = {
+    0:'f',  // pièce
+    1:'m',  // pantalon
+    2:'m',  // cookie
+    3:'m',  // jouet
+    4:'f',  // bouteille (eau)
+    5:'m',  // yaourt
+    6:'f',  // pièce (fonderie)
+    7:'m',  // pain
+    8:'m',  // livre
+    9:'m',  // smartphone
+    10:'m', // ordinateur
+    11:'f', // voiture
+    12:'m', // sachet (café)
+    13:'m', // biscuit
+    14:'f', // ampoule
+    15:'m', // comprimé
+    16:'m', // casque
+    17:'f', // bouteille (vin)
+    18:'f', // chaussure
+    19:'f'  // bouteille (verre recyclé)
+  };
+  bank.forEach((o,i)=>{ o.genreObj = o.genreObj || G[i] || 'm'; });
+})(BANK_EX3);
+
+/* ==== GRAMMAIRE FR — articles, élision, pronoms, détourage d’articles ==== */
+const GramFR = (() => {
+  const voyelles = 'aàâäeéèêëiîïoôöuùûüyÿh';
+  const startsWithVowel = w => !!String(w||'').trim().toLowerCase().match(new RegExp(`^[${voyelles}]`));
+
+  // enlève un article simple ("un/une/le/la/l’/les/des") en tête, garde le nom propre
+  function stripArticle(s){
+    s = String(s||'').trim();
+    return s
+      .replace(/^(un|une|le|la|les|des)\s+/i,'')
+      .replace(/^l[’']/i,'')
+      .trim();
+  }
+
+  // articles
+  function artDef(gender, noun){ return startsWithVowel(noun) ? "l’" : (gender==='f' ? 'la ' : 'le '); }
+  function artIndef(gender){ return (gender==='f' ? 'une ' : 'un '); }
+  const artDefPl = 'les ', artIndefPl = 'des ';
+
+  // pronoms sujet
+  function pronSg(g){ return (g==='f' ? 'elle' : 'il'); }
+  function pronPl(g){ return (g==='f' ? 'elles' : 'ils'); }   // par défaut: ‘ils’ si g inconnu/‘m’
+
+  // “que” + pronom sujet, avec élision (“qu’ ”)
+  function quePronSg(g){ return (g==='f' ? "qu’elle" : "qu’il"); }
+  function quePronPl(g){ return (g==='f' ? "qu’elles" : "qu’ils"); }
+
+  return { startsWithVowel, stripArticle, artDef, artIndef, artDefPl, artIndefPl, pronSg, pronPl, quePronSg, quePronPl };
+})();
+
+/* ==== AUGMENTATION DE LA BANQUE EX3 : genre + phrases finales naturelles ==== */
+/*
+  Pour chaque entrée :
+  - genreObj : 'm' ou 'f' (deviné depuis groupSg si possible, sinon 'm' par défaut)
+  - helpers pour écrire joliment les noms avec / sans article (sg. & pl.)
+  - 6 nouvelles phrases :
+      phrasecondPost(a)        → P(source=a | D)      (“… sachant qu’il/elle est Ddef”)
+      phrasecondPost_nD(a)     → P(source=a | ¬D)     (“… sachant qu’il/elle est nDdef”)
+      phrasefinal(a, d)        → P(source=a | d)      (d = obj.D ou obj.nD)
+      phrasecondPostSg(a), phrasecondPostPl(a)        // variantes imposant singulier/pluriel + article déf/indéf
+      phrasecondPostSg_nD(a), phrasecondPostPl_nD(a)
+*/
+(function augmentBankWithNaturalFrench(bank){
+  bank.forEach(o => {
+    // 1) deviner le genre de l’objet depuis groupSg si possible
+    //    (met 'f' si "une " ou si le premier nom commun finit par -e et commence par une voyelle/l')
+    let guess = 'm';
+    const gSg = String(o.ctx?.groupSg || o.groupSg || '').trim().toLowerCase();
+    if (/^une\s/.test(gSg)) guess = 'f';
+    if (/^l[’']/.test(gSg)) {
+      // on tente une heuristique faible : “l’ampoule” → f, “l’ordinateur” → m, etc. (laisse 'm' si doute)
+      const base = gSg.replace(/^l[’']/, '');
+      if (/(ion|euse|ette|tion|ure|té|ette|elle|isse|ance|ence|esse|ique|ie|ise|ure|ole|ule|ode|ade|ure)$/.test(base)) guess = 'f';
+    }
+    o.genreObj = o.genreObj || guess;
+
+    // 2) Noms nettoyés (sans article), pour écrire librement
+    const baseSing = GramFR.stripArticle(o.ctx?.groupSg || o.groupSg || 'l’objet');
+    const basePl   = GramFR.stripArticle(o.ctx?.group   || o.group    || 'objets');
+
+    // 3) petits helpers exposés sur l’objet
+    o.nounSingDef  = () => GramFR.artDef (o.genreObj, baseSing) + baseSing;
+    o.nounSingInd  = () => GramFR.artIndef(o.genreObj) + baseSing;
+    o.nounPlDef    = () => GramFR.artDefPl  + basePl;
+    o.nounPlInd    = () => GramFR.artIndefPl + basePl;
+
+    // 4) “sachant qu’il/elle est …” (ou qu’ils/elles sont …)
+    const quIlElle   = () => GramFR.quePronSg(o.genreObj);
+    const quIlsElles = () => GramFR.quePronPl(o.genreObj);
+
+    // 5) libellé A/B/C “humain” si tu veux (on garde les labels tels quels pour éviter les ambiguïtés)
+    const lab = (a) => ({A:o.A, B:o.B, C:o.C}[a] || a);
+
+    // 6) Phrases postérieures (Bayes) — **singulier** (le cas standard de l’énoncé “on prélève un …”)
+    o.phrasecondPost = function(a){
+      // ex: “la probabilité que **le pantalon** provienne de F1 sachant **qu’il** est défectueux.”
+      return `la probabilité que ${this.nounSingDef()} provienne de ${lab(a)} sachant ${quIlElle()} est ${this.Ddef}.`;
+    };
+    o.phrasecondPost_nD = function(a){
+      return `la probabilité que ${this.nounSingDef()} provienne de ${lab(a)} sachant ${quIlElle()} est ${this.nDdef}.`;
+    };
+    o.phrasefinal = function(a, d){
+      const isD = (d===this.D || d==='D');
+      const qual = isD ? this.Ddef : this.nDdef;
+      return `la probabilité que ${this.nounSingDef()} provienne de ${lab(a)} sachant ${quIlElle()} est ${qual}.`;
+    };
+
+    // 7) Variantes utiles : forcer **indéfini** ou **pluriel**
+    //    (tu peux choisir nounSingInd() si tu veux “un/une …” plutôt que “le/la/l’ …”)
+    o.phrasecondPostSg = function(a, {defini='def'}={}){
+      const N = defini==='def' ? this.nounSingDef() : this.nounSingInd();
+      return `la probabilité que ${N} provienne de ${lab(a)} sachant ${quIlElle()} est ${this.Ddef}.`;
+    };
+    o.phrasecondPostSg_nD = function(a, {defini='def'}={}){
+      const N = defini==='def' ? this.nounSingDef() : this.nounSingInd();
+      return `la probabilité que ${N} provienne de ${lab(a)} sachant ${quIlElle()} est ${this.nDdef}.`;
+    };
+    o.phrasecondPostPl = function(a, {defini='def'}={}){
+      const N = defini==='def' ? this.nounPlDef() : this.nounPlInd();
+      // accord au pluriel : “sont …”
+      return `la probabilité que ${N} proviennent de ${lab(a)} sachant ${quIlsElles()} sont ${this.Ddef}.`;
+    };
+    o.phrasecondPostPl_nD = function(a, {defini='def'}={}){
+      const N = defini==='def' ? this.nounPlDef() : this.nounPlInd();
+      return `la probabilité que ${N} proviennent de ${lab(a)} sachant ${quIlsElles()} sont ${this.nDdef}.`;
+    };
+  });
+})(BANK_EX3);
+
+/* === Phrase "On choisit au hasard un/une ..." (sg & pl) pour chaque contexte === */
+(function addPickAtRandomSentences_Strict(bank){
+  const strip = s => String(s||'')
+    .replace(/^(un|une|le|la|les|des)\s+/i,'')
+    .replace(/^l[’']/i,'').trim();
+
+  bank.forEach(o => {
+    const baseSg = strip(o.groupSg || 'objet');
+    const basePl = strip(o.group   || 'objets');
+    const g = o.genreObj || 'm';
+
+    o.phraseChoixHasardSg = function(){
+      const art = (g==='f' ? 'une ' : 'un ');
+      return `On choisit au hasard ${art}${baseSg}.`;
+    };
+    o.phraseChoixHasardPl = function(){
+      return `On choisit au hasard des ${basePl}.`;
+    };
+  });
+})(BANK_EX3);
+
+
+
+/* ——— Exemples d’usage ——— */
+// BANK_EX3.forEach(o => console.log(o.phraseChoixHasardSg()));
+// → "On choisit au hasard un smartphone." / "… une ampoule." / "… un pantalon." etc.
+
+
+
+
+
+/* ===== Split 100% en trois parts lisibles (≥8%) ===== */
+function split100_3(){
+  const raw = ()=>Math.max(8, Math.floor(Math.random()*60)+10); // bruts
+  let a=raw(), b=raw(), c=raw(), s=a+b+c;
+  a = Math.round(100*a/s); b = Math.round(100*b/s); c = 100 - a - b;
+  if (Math.min(a,b,c) < 8) return split100_3();
+  return [a,b,c];
+}
+
+/* ===== Tire des conditionnelles variées (ex: 8–35%) ===== */
+function pickConds(){
+  const r = (lo,hi)=>Math.floor(Math.random()*(hi-lo+1))+lo;
+  // on varie les taux pour que les contextes “qualité” puissent aussi être élevés
+  return [r(8,35), r(10,45), r(5,30)];
+}
+
+/* ===== Patch banque EX3 : ajoute des helpers de PHRASES chiffrées =====
+   Chaque objet de BANK_EX3 reçoit :
+   - phraseTop(code, p)  : phrase pour P(A)/P(B)/P(C)
+   - phraseCond(code, p) : phrase pour P_D(code) = P(D|code)
+   - phraseCond_nD(code, p) : phrase pour P_{¬D}(code) = 1 - P_D(code) (utile en solution)
+*/
+(function augmentBankWithNumberedPhrases(bank){
+  bank.forEach(o => {
+    // helpers noun/pronoms depuis le patch GramFR précédent
+    const nounSgDef = () => (o.nounSingDef ? o.nounSingDef() : 'l’objet');
+    const quIlElle  = () => (GramFR?.quePronSg ? GramFR.quePronSg(o.genreObj||'m') : "qu’il");
+
+    const lab = code => ({A:o.A, B:o.B, C:o.C}[code] || code);
+
+    // Phrases pour la racine → A/B/C
+    o.phraseTop = function(code, p){ // p en %
+      return `La probabilité que ${nounSgDef()} provienne de ${lab(code)} est ${pc(p)} (${niceDec(p/100)}).`;
+    };
+
+    // Phrases pour A/B/C → D  (conditionnelles)
+    o.phraseCond = function(code, p){
+      return `Sachant ${quIlElle()} provient de ${lab(code)}, la probabilité ${quIlElle()} soit ${this.Ddef} est ${pc(p)} (${niceDec(p/100)}).`;
+    };
+
+    // Phrases pour A/B/C → ¬D (utile pour solution détaillée)
+    o.phraseCond_nD = function(code, p){
+      return `Sachant ${quIlElle()} provient de ${lab(code)}, la probabilité ${quIlElle()} soit ${this.nDdef} est ${pc(p)} (${niceDec(p/100)}).`;
+    };
+  });
+})(BANK_EX3);
+
+/* ---------- Générateur de % propres ---------- */
+function genSplit3(){ // P(A),P(B),P(C) en % (somme 100, min 10)
+  const r=()=>Math.max(10, rnd(10,70));
+  let a=r(),b=r(),c=r(); const s=a+b+c;
+  a=Math.round(100*a/s); b=Math.round(100*b/s); c=100-a-b;
+  if (Math.min(a,b,c)<10) return genSplit3();
+  return {pA:a,pB:b,pC:c};
+}
+function genDefects(){ // P_D(A/B/C) en % petits (2..15)
+  return {pD_A:rnd(3,12), pD_B:rnd(2,10), pD_C:rnd(1,8)};
+}
+
+/* ========= Ex.3 — Plages entières réalistes
+   - Thèmes "préférence/attribut" (cookie, café, parfum, arôme, goût, chocolat, noisette, thé, etc.)
+     -> P(D|•) ∈ [30..60]  (ENTIERS)
+   - Thèmes "défaut/qualité" (industrie, agro, pièces, ampoules, etc.)
+     -> P(D|•) ∈ [1..6]    (ENTIERS)
+   - Racine P(A),P(B),P(C) : ENTIERES, chacune ≥ 15 %
+=========================================================== */
+
+/* Racine -> A,B,C : entiers, >= 15% chacun */
+function split100_3_realistic_int(){
+  const r = () => 15 + Math.floor(Math.random()*41); // 15..55
+  let a = r(), b = r(), c = 100 - a - b;
+  if (c < 15) return split100_3_realistic_int();
+  return [a, b, c];
+}
+
+/* Détection d’un thème "préférence / attribut" (non-défectueux) */
+function isPreferenceTheme(ctx){
+  const txt = [
+    ctx?.context, ctx?.group, ctx?.groupSg,
+    ctx?.Adef, ctx?.Bdef, ctx?.Cdef, ctx?.Ddef, ctx?.nDdef
+  ].map(s => String(s||'').toLowerCase()).join(' ');
+
+  const has = k => txt.includes(k);
+
+  // ⚠️ Ajoute ici tout ce qui relève d’un choix/attribut/goût (pas un défaut)
+  return (
+    has('cookie') || has('biscuit') || has('noisette') || has('chocolat') ||
+    has('café') || has('expresso') || has('latte') || has('torréfaction') ||
+    has('parfum') || has('saveur') || has('goût') || has('arôme') ||
+    has('thé') || has('infusion') || has('jus') || has('boisson') ||
+    has('glace') || has('sorbet') || has('pizza') || has('garniture') ||
+    has('shampoing') || has('cosmétique') || has('bougie') || has('senteur')
+  );
+}
+
+/* Tire 3 ENTiers distincts dans [lo..hi], proches mais pas égaux */
+function drawThreeInts(lo, hi){
+  const base = lo + Math.floor(Math.random()*(hi - lo + 1));
+  const jit  = () => ([-1,0,1][Math.floor(Math.random()*3)]);
+  let A = base + jit(), B = base + jit(), C = base + jit();
+
+  const clamp = v => Math.max(lo, Math.min(hi, v));
+  A = clamp(A); B = clamp(B); C = clamp(C);
+
+  // évite égalités parfaites en nudgant légèrement dans la plage
+  if (A === B) B = clamp(B + (B < hi ? 1 : -1));
+  if (B === C) C = clamp(C + (C < hi ? 1 : -1));
+  if (A === C) C = clamp(C + (C < hi ? 1 : -1));
+
+  return [A, B, C];
+}
+
+
+/* ===== Générateur final Ex.3 ===== */
+function genEX3(){
+  const ctx = rchoice(BANK_EX3);
+
+  // 1) Racine : A/B/C entiers, >= 15 %
+  const [pA, pB, pC] = split100_3_realistic_int();
+
+  // 2) Conditionnelles P(D|A/B/C) ENTIERES selon le thème
+  let lo, hi;
+  if (Array.isArray(ctx.rateBand) && ctx.rateBand.length === 2){
+    [lo, hi] = ctx.rateBand.map(x => Math.round(+x));
+  } else {
+    const pref = isPreferenceTheme(ctx);
+    [lo, hi] = pref ? [30, 60] : [1, 6];   // 👈 règle demandée
+  }
+  const [pD_A, pD_B, pD_C] = drawThreeInts(lo, hi);
+
+  // 3) “Belles phrases” si tu as le patch phraseTop/phraseCond
+  const lines = {
+    topA : ctx.phraseTop  ? ctx.phraseTop('A', pA) : `P(${ctx.A}) = ${pc(pA)} (${niceDec(pA/100)}).`,
+    topB : ctx.phraseTop  ? ctx.phraseTop('B', pB) : `P(${ctx.B}) = ${pc(pB)} (${niceDec(pB/100)}).`,
+    topC : ctx.phraseTop  ? ctx.phraseTop('C', pC) : `P(${ctx.C}) = ${pc(pC)} (${niceDec(pC/100)}).`,
+    condA: ctx.phraseCond ? ctx.phraseCond('A', pD_A) : `P(${ctx.D}|${ctx.A}) = ${pc(pD_A)}.`,
+    condB: ctx.phraseCond ? ctx.phraseCond('B', pD_B) : `P(${ctx.D}|${ctx.B}) = ${pc(pD_B)}.`,
+    condC: ctx.phraseCond ? ctx.phraseCond('C', pD_C) : `P(${ctx.D}|${ctx.C}) = ${pc(pD_C)}.`
+  };
+
+  return {
+    ctx,
+    rootLabel: ctx.effectifPl || ctx.group || '',
+    A: ctx.A, B: ctx.B, C: ctx.C, D: ctx.D, nD: ctx.nD,
+    // valeurs attendues dans tes inputs
+    pA, pB, pC,            // ENTIER %
+    pD_A, pD_B, pD_C,      // ENTIER % (30–60 pour préférences, 1–6 sinon)
+    lines
+  };
+}
+
+
+
+
+
+
+
+/* ---------- Exercice 3 ---------- */
+const ex3 = {
+  id:'ex3',
+  title:'Ex. 3 — 3→2 (A,B,C → D, ¬D)',
+  gen(){ return genEX3(); },
+
+
+render(host, S){
+const ctx = S.ctx; // ton objet issu de BANK_EX3 (déjà mis dans l’état)
+// jolis formats
+const pc   = p => `${p} %`;                      // ex: 16 %
+const niceDec = (x, max=2) =>                    // ex: 0,16  /  0,58
+  (+x).toLocaleString('fr-FR',{maximumFractionDigits:max});
+    const nice = x=>String(Number(x).toFixed(4)).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+
+// complémentaires en % (évite tout flottant)
+const compPct = p => 100 - p;                    //  p est un entier %
+const dec01   = p => niceDec(p/100);             //  entier % -> décimal [0,1]
+    const pD = (S.pA/100)*(S.pD_A/100) + (S.pB/100)*(S.pD_B/100) + (S.pC/100)*(S.pD_C/100);
+
+  // La phrase “On choisit au hasard un/une …”
+  const pickLine =
+    (typeof ctx.phraseChoixHasardSg === 'function')
+      ? ctx.phraseChoixHasardSg()
+      : `On choisit au hasard un objet.`; // fallback (au cas où)
+
+  // Construis l’en-tête de l’énoncé
+  const lead = `
+    <div class="hint" style="margin:.35rem 0 .2rem">
+      ${ctx.context}
+      <br>
+      On note :<br> \\(${ctx.A}\\) : « ${ctx.Adef} »,<br> \\(${ctx.B}\\) : « ${ctx.Bdef} »,<br> \\(${ctx.C}\\) : « ${ctx.Cdef} ».
+      <br>
+    \\(${ctx.D}\\) : « ${ctx.Ddef} » <br> \\(${ctx.nD}\\) : « ${ctx.nDdef} ».<br>
+      ${pickLine}<br>
+	  
+ On sait que :<br>
+La probabilité que ${ctx.Adef} est de ${dec01(S.pA)}.<br>
+La probabilité que ${ctx.Bdef} est de ${dec01(S.pB)}.<br>
+${ctx.phrasecond('A', S.D)} est de ${dec01(S.pD_A)}.<br>
+${ctx.phrasecond('B', S.ND)} est de ${niceDec(1 - S.pD_B/100)}.<br>
+${ctx.phrasecond('C', S.ND)} est de ${niceDec(1 - S.pD_C/100)}.
+
+
+    </div>
+	
+	`;
+
+  // … puis tu continues comme d’habitude
+  host.innerHTML = `
+  <div class="statement">
+
+    <div class="consigne"><span class="c-label">Exercice 3.</span>
+      Compléter l’arbre puis répondre.
+    </div>
+    <div class="row">
+      <div class="col-label">
+        ${lead}</div>
+        <div class="input-line">
+          <div style="margin-top:8px"><strong>1.</strong> Compléter l'arbre pondéré.</div>
+          ${treeHTML32(S)}
+
+          <div style="margin-top:10px"><strong>2.</strong> Calculer \\(P(${S.C})\\).</div>
+          <input id="pC_val" type="text" style="width:160px"> <span class="tick" id="tk_pCval"></span>
+
+          <div style="margin-top:10px"><strong>3a.</strong> Montrer que \\(P(${S.D})=${nice(pD)}\\)
+       </div>
+          <input id="pD_expr" type="text" style="width:680px"> <span class="tick" id="tk_pDexpr"></span>
+
+          <div style="margin-top:10px"><strong>3b.</strong> En déduire \\(P(${S.nD})\\).</div>
+          <input id="pnD" type="text" style="width:160px"> <span class="tick" id="tk_pnD"></span>
+
+          <div style="margin-top:10px"><strong>4.</strong> ${ctx.qA_D} (arrondir à 0,0001 près)</div>
+          <input id="pAgivenD" type="text" style="width:200px"> <span class="tick" id="tk_pAgivenD"></span>
+        </div>
+        <div class="res" id="r3"></div></div>
+      </div>`;
+
+    const tree = host.querySelector('#tree32');
+    layoutTree32(tree, S);
+    requestAnimationFrame(()=>layoutTree32(tree, S));
+    window.addEventListener('resize', ()=>layoutTree32(tree, S));
+
+    host.dataset.state = JSON.stringify({kind:'ex3', ...S});
+    if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+  },
+
+check(host){
+  const S = JSON.parse(host.dataset.state||'{}');
+
+  // — petits utilitaires d’affichage des coches —
+  const mark=(sel,good)=>{
+    const t=host.querySelector(sel);
+    t.className='tick '+(good===null?'':(good?'ok':'ko'));
+    t.textContent = good===null?'':(good?'✓':'✗');
+  };
+
+  // — vérif “% ou décimal” → compare en % entiers attendus —
+  const okProb=(sel,tick,expPct)=>{
+    const raw=(host.querySelector(sel)?.value||'').trim();
+    if(!raw){ mark(tick,null); return 0; }
+    const v = readAnyProbAsPercent(raw);           //  "0,32" → 32 ; "32%" → 32 ; "0.32" → 32
+    const ok = Number.isFinite(v) && Math.round(v)===Math.round(expPct);
+    mark(tick,ok); return +ok;
+  };
+
+  let ok=0, tot=0;
+
+  // 1) Arbre : P(A) P(B) P(C) + P(D|A/B/C) + compléments P(¬D|•)
+  ok += okProb('#pA',  '#tk_pA',  S.pA);               tot++;
+  ok += okProb('#pB',  '#tk_pB',  S.pB);               tot++;
+  ok += okProb('#pC',  '#tk_pC',  S.pC);               tot++;
+  ok += okProb('#pD_A','#tk_pDA', S.pD_A);             tot++;
+  ok += okProb('#pD_B','#tk_pDB', S.pD_B);             tot++;
+  ok += okProb('#pD_C','#tk_pDC', S.pD_C);             tot++;
+  ok += okProb('#pnD_A','#tk_pnDA', 100 - S.pD_A);     tot++;
+  ok += okProb('#pnD_B','#tk_pnDB', 100 - S.pD_B);     tot++;
+  ok += okProb('#pnD_C','#tk_pnDC', 100 - S.pD_C);     tot++;
+
+// 2) P(C) + phrase d’interprétation (PAS de "parmi/sachant que" requis)
+ok += okProb('#pC_val', '#tk_pCval', S.pC);  tot++;
+
+  // 3a) P(D) = Somme des produits (décimale, pas juste le chiffre final)
+  //     —> on vérifie que la saisie est bien une somme avec multiplications visibles et que la valeur ≈ attendue
+  const pD_val = (S.pA/100)*(S.pD_A/100) + (S.pB/100)*(S.pD_B/100) + (S.pC/100)*(S.pD_C/100);
+  {
+    const raw = (host.querySelector('#pD_expr')?.value||'').trim().replace(/\s+/g,'');
+    if(!raw){ mark('#tk_pDexpr', null); }
+    else{
+      const val = evalDecimalExpr(raw);                  // évalue une expression décimale
+      // “somme de produits” minimale : 2 signes +, et au moins un * (ou ×) dans chaque terme
+      // on autorise × ou *
+      const hasTwoPluses = (raw.match(/\+/g)||[]).length >= 2;
+      const looksLikeSumOfProducts = hasTwoPluses && /[*×]/.test(raw);
+      const tol = 5e-5;
+      const good = looksLikeSumOfProducts && Number.isFinite(val) && Math.abs(val - pD_val) <= tol;
+      mark('#tk_pDexpr', good); ok += good?1:0; tot++;
+    }
+  }
+
+  // 3b) P(¬D) = 1 − P(D) (décimal)
+  {
+    const raw=(host.querySelector('#pnD')?.value||'').replace(',','.');
+    if(!raw){ mark('#tk_pnD', null); }
+    else{
+      const v=parseFloat(raw);
+      const want = 1 - pD_val;
+      const good = Number.isFinite(v) && Math.abs(v - want) <= 5e-5;
+      mark('#tk_pnD', good); ok += good?1:0; tot++;
+    }
+  }
+
+  // 4) Bayes : P(A|D) = P(A)·P(D|A) / P(D) (décimal)
+  {
+    const raw=(host.querySelector('#pAgivenD')?.value||'').replace(',','.');
+    if(!raw){ mark('#tk_pAgivenD', null); }
+    else{
+      const v=parseFloat(raw);
+      const want = ((S.pA/100)*(S.pD_A/100)) / pD_val;
+      const good = Number.isFinite(v) && Math.abs(v - want) <= 5e-5;
+      mark('#tk_pAgivenD', good); ok += good?1:0; tot++;
+    }
+  }
+
+  // — score & classe visuelle —
+  const box=host.querySelector('#r3');
+  box.textContent = `${ok}/${tot} éléments corrects`;
+  box.className = (ok===tot && tot>0) ? 'res res-ok' : 'res res-ko';
+
+  return {ok, tot};
+}
+,
+
+  solution(host){
+    const S = JSON.parse(host.dataset.state||'{}');
+    const box = host.querySelector('#r3'); box.className='res res-ok'; box.innerHTML='';
+    const steps = document.createElement('div'); steps.className='steps pdfb';
+const ctx = S.ctx; // ton objet issu de BANK_EX3 (déjà mis dans l’état)
+
+    steps.insertAdjacentHTML('beforeend','<div class="line"><strong>1.</strong> Compléter l\'arbre pondéré.</div>');
+const svg = buildStaticTreeSVG32(S);
+steps.appendChild(svg);
+
+// poser la barre tout de suite (utile en PDF off-screen)
+ensureOverbarOnND(svg, S);
+// et garder la double-raf pour l’écran si la mise en page bouge
+requestAnimationFrame(() => {
+  ensureOverbarOnND(svg, S);
+  requestAnimationFrame(() => ensureOverbarOnND(svg, S));
+});
+
+    const pD = (S.pA/100)*(S.pD_A/100) + (S.pB/100)*(S.pD_B/100) + (S.pC/100)*(S.pD_C/100);
+    const pnD = 1 - pD;
+    const pAgD = ((S.pA/100)*(S.pD_A/100))/pD;
+
+    const nice = x=>String(Number(x).toFixed(4)).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+    const dec = p => String((p/100).toFixed(4)).replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+
+
+// --- helpers "≈ si pas exactement égal" (tolérance adaptée à 4 décimales)
+const approxSign = (a, b, tol = 5e-6) => (Math.abs(Number(a) - Number(b)) <= tol ? '=' : '\\approx');
+
+// versions décimales des entrées (celles que tu affiches)
+const dA  = Number(dec(S.pA));
+const dB  = Number(dec(S.pB));
+const dC  = Number(dec(S.pC));
+const dDA = Number(dec(S.pD_A));
+const dDB = Number(dec(S.pD_B));
+const dDC = Number(dec(S.pD_C));
+
+// valeurs "texte" recombinées et valeurs "réelles"
+const text_PD = dA*dDA + dB*dDB + dC*dDC;   // depuis les nombres affichés
+const real_PD = (S.pA/100)*(S.pD_A/100) + (S.pB/100)*(S.pD_B/100) + (S.pC/100)*(S.pD_C/100); // double-précision
+const text_nD = 1 - Number(nice(real_PD));  // 1 - PD(arrondi)
+
+
+  steps.insertAdjacentHTML('beforeend', `<div class="line"><strong>2.</strong> Détermination de \\(P(${S.C})\\).</div>`);
+  {
+    const rows2 = [
+      [`\\(P(${S.C})\\)`, `=`, `\\(1 - P(${S.A}) - P(${S.B})\\)`],
+      [``, `=`, `\\(1 - ${dec(S.pA)} - ${dec(S.pB)}\\)`],
+      [``, `\\(${approxSign(1 - dA - dB, dC)}\\)`, `\\(${dec(S.pC)}\\)`],
+    ];
+    addCalcTable(steps, rows2);
+    steps.insertAdjacentHTML('beforeend',
+      `<div style="margin:4px 0 8px 10px">Interprétation : La probabilité que ${ctx?.Cdef||'l’évènement '+S.C} est de \\(${dec(S.pC)}\\).</div>`
+    );
+  }
+
+
+  // ---------------- 3a) P(D) par probabilités totales ----------------
+  steps.insertAdjacentHTML('beforeend',
+    `<div class="line"><strong>3a.</strong> \\(${S.A}\\), \\(${S.B}\\) et \\(${S.C}\\) \\( \\) forment une partition de l’univers, donc d’après la formule des probabilités totales : </div>`
+  );
+  {
+    const rows3a = [
+      [`\\(P(${S.D})\\)`, `=`, `\\(P(${S.A}\\cap ${S.D}) + P(${S.B}\\cap ${S.D}) + P(${S.C}\\cap ${S.D})\\)`],
+      [``, `=`, `\\(P(${S.A})P_{${S.A}}(${S.D}) + P(${S.B})P_{${S.B}}(${S.D}) + P(${S.C})P_{${S.C}}(${S.D})\\)`],
+      [``, `=`, `\\(${dec(S.pA)}\\times ${dec(S.pD_A)} + ${dec(S.pB)}\\times ${dec(S.pD_B)} + ${dec(S.pC)}\\times ${dec(S.pD_C)}\\)`],
+      [``, `\\(${approxSign(text_PD, nice(pD))}\\)`, `\\(${nice(pD)}\\)`],
+    ];
+    addCalcTable(steps, rows3a);
+  }
+
+
+  // ---------------- 3b) Complément : P(nD) = 1 - P(D) ----------------
+  steps.insertAdjacentHTML('beforeend', `<div class="line"><strong>3b.</strong></div>`);
+  {
+    const rows3b = [
+      [`\\(P(${S.nD})\\)`, `=`, `\\(1 - P(${S.D})\\)`],
+      [``, `=`, `\\(1 - ${nice(pD)}\\)`],
+      [``, `\\(${approxSign(1 - Number(nice(pD)), nice(1 - pD))}\\)`, `\\(${nice(1 - pD)}\\)`],
+    ];
+    addCalcTable(steps, rows3b);
+  }
+
+
+
+  // ---------------- 3c) Bayes : P_A|D ----------------
+  const text_PA_gD = (dA*dDA) / Number(nice(pD));
+  steps.insertAdjacentHTML('beforeend',
+    `<div class="line"><strong>3c.</strong> </div>`
+  );
+  {
+    const rows3c = [
+      [`\\(P_{${S.D}}(${S.A})\\)`, `=`, `\\(\\dfrac{P(${S.A}\\cap ${S.D})}{P(${S.D})}\\)`],
+      [``, `=`, `\\(\\dfrac{P(${S.A})P_{${S.A}}(${S.D})}{P(${S.D})}\\)`],
+      [``, `=`, `\\(\\dfrac{${dec(S.pA)}\\times ${dec(S.pD_A)}}{${nice(pD)}}\\)`],
+      [``, `\\(${approxSign(text_PA_gD, nice(pAgD))}\\)`, `\\(${nice(pAgD)}\\)`],
+    ];
+    addCalcTable(steps, rows3c);
+  }
+    box.appendChild(steps);
+    if (window.MathJax?.typesetPromise) MathJax.typesetPromise();
+  },
+
+  reset(host){ host.innerHTML=''; }
+};
+
+
+
+/* ==================== Glue ==================== */
+const REGISTRY=[ex1,ex2,ex3];
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $('#score').textContent = `Score : ${scoreOK} / ${scoreTot}`; }
+
+function renderActive(){
+  const host=$('#host'), sel=$('#exo-select');
+  const def=REGISTRY.find(e=>e.id===sel.value); if(!def) return;
+  const st = def.gen();
+  host.dataset.active=def.id;
+  def.render(host, st);
+}
+function state(){ return $('#host').dataset.state ? JSON.parse($('#host').dataset.state) : {}; }
+function check(){
+  const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return;
+  const r=def.check(host)||{ok:0,tot:0}; scoreOK+=r.ok; scoreTot+=r.tot; updateScore();
+}
+function showSolution(){ const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return; def.solution(host); }
+function resetAll(){
+  const host=$('#host'); const defId=host.dataset.active; const def=REGISTRY.find(e=>e.id===defId); if(!def) return;
+  scoreOK=0; scoreTot=0; updateScore(); def.reset(host); renderActive();
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  renderActive(); updateScore();
+  $('#exo-select').addEventListener('change', ()=>{ scoreOK=0; scoreTot=0; updateScore(); renderActive(); });
+  $('#btn-new').addEventListener('click', renderActive);
+  $('#btn-check').addEventListener('click', check);
+  $('#btn-solution').addEventListener('click', showSolution);
+  $('#btn-reset').addEventListener('click', resetAll);
+  if (window.MathJax) MathJax.typesetPromise();
+});
+</script>
+
+<!-- ===== PDF kit : même configuration, énoncé masqué dans le corrigé ===== -->
+<script>
+(function(){
+  const KIT_URL='../../../../js/exo-pdf-kit.multiplicatif-latex.js';
+  function boot(){
+    if(!window.ExoPDF) return;
+    window.REGISTRY = window.REGISTRY || REGISTRY;
+    ExoPDF.init({
+      mountAfterSelector: '.card.small',
+      title: '1ère – Probabilités conditionnelles – Arbre pondéré et formule des probabilités totales',
+      max: 50,
+      hideStatementInCorrige: false,
+beforeRender(def, st, isSolution){
+  function barify(root){
+    root.querySelectorAll('svg').forEach(svg=>{
+      const host = svg.closest('[data-state]') || root;
+      let S = {};
+      try { S = JSON.parse(host.dataset.state || '{}'); } catch(e){}
+      try { if (typeof layoutTree32==='function') layoutTree32(svg, S); } catch(e){}
+      try {
+        forceOverbarsAfterAttach(svg, {
+          NVlabel: S?.ctx?.NVlabel || S?.NVlabel,          // exo 1
+          NS     : S?.ctx?.NS      || S?.NS,               // exo 1
+          D      : S?.ctx?.D       || S?.D,                // exo 3
+          nD     : S?.ctx?.nD      || S?.nD,               // exo 3 (contient \\overline{D})
+          ctx    : S?.ctx || {}
+       });
+      } catch(e){}
+    });
+  }
+
+  // 1) Toujours barifier l’écran (optionnel, confort visuel)
+  barify(document);
+
+  // 2) Si on nous demande la SOLUTION pour le PDF, on la reconstruit hors écran
+  if (isSolution) {
+    const stage = document.createElement('div');
+    stage.style.cssText = 'position:fixed;left:-99999px;top:-99999px;visibility:hidden;';
+    document.body.appendChild(stage);
+
+    // Rejouer render() puis solution()/correct()
+    try {
+      def.render(stage, st);
+      if (typeof def.solution === 'function') def.solution(stage, st);
+      else if (typeof def.correct === 'function') def.correct(stage, st);
+    } catch(e){}
+
+    // Barifier les SVG du clone
+    barify(stage);
+
+    // Extraire uniquement le bloc solution (fallback si absent)
+    const steps = stage.querySelector('.steps') || stage;
+    const solutionHTML = steps.innerHTML || stage.innerHTML;
+
+    stage.remove();
+
+    // on fournit la solution barifiée au kit
+    return { solution: `<div class="steps">${solutionHTML}</div>` };
+  }
+
+  // 3) Pour l’énoncé, on laisse le kit faire (ou garde ton code actuel si besoin)
+  return null;
+}
+
+
+    });
+  }
+  if(window.ExoPDF){ boot(); } else {
+    const s=document.createElement('script'); s.src=KIT_URL; s.defer=true; s.onload=boot;
+    s.onerror=()=>console.error('[exo-pdf-kit] impossible de charger', KIT_URL);
+    document.head.appendChild(s);
+  }
+})();
+</script>
+
 </body>
 </html>

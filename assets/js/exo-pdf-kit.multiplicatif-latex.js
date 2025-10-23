@@ -825,6 +825,9 @@ table.var td.zbar {
 /* écrase le gras inline sur les zéros */
 table.pdf-tbl td.zbar { font-weight:400 !important; }
 
+.controls,.header,.kbd-host,.hide-print{display:none!important} 
+
+
 </style>
 
 <style>

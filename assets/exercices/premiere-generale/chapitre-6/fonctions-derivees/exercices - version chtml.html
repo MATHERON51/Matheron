@@ -277,35 +277,20 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
   global.HERMITE5 = { generate, toVH, RDEF };
 })(window);
 </script>
-<!-- MathJax (SVG, sans Assistive MathML) -->
 <script>
   window.MathJax = {
     tex: {
-      inlineMath: [['\\(', '\\)'], ['$', '$']],
-      displayMath: [['\\[', '\\]'], ['$$', '$$']],
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
       processEscapes: true,
-      packages: { '[+]': ['bbox','ams'] },
+      packages: {'[+]': ['bbox']},
       macros: { frac: ['\\dfrac{#1}{#2}', 2] }
     },
-    options: {
-      skipHtmlTags: ['script','noscript','style','textarea'],
-      renderActions: {
-        assistiveMml: []   // ⬅️ coupe l’Assistive MathML (évite les répétitions)
-      }
-    },
-    svg: {
-      matchFontHeight: false
-    },
+    chtml: { matchFontHeight:false },
     startup: { typeset: true }
   };
 </script>
-<script defer src="../../../../es5/tex-svg.js"></script>
-
-<!-- Ceinture + bretelles : au cas où, on masque aussi l’Assistive MathML en CSS -->
-<style>
-  .MJX_Assistive_MathML, mjx-assistive-mml { display:none !important; }
-</style>
-
+<script defer src="../../../../es5/tex-chtml.js"></script>
 <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 <script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 </head>
@@ -431,12 +416,9 @@ function canonMathHTML(html){
 /* 5) Passe le peigne sur tous les blocs .steps d'un host */
 function canonizeAllSteps(host){
   $$('.steps', host).forEach(el => {
-    // 🔒 Si MathJax a déjà produit du <mjx-container>, on NE TOUCHE PAS
-    if (el.querySelector('mjx-container')) return;
     el.innerHTML = canonMathHTML(el.innerHTML);
   });
 }
-
 
 
 const $  = (sel,root=document)=>root.querySelector(sel);
@@ -1253,48 +1235,13 @@ function polyGen(){
       xA=rchoice([-3,-2,-1,0,1,2,3]);
     }
 
-   const st = { kind, fx, dfx, xA };
-
-  // ⭐️ AJOUT : expose aussi un "params" que le kit utilise dans sa clé d’unicité
-  st.params = {
-    fx, dfx, xA,
-    // mini-signature pour garantir l’unicité même si deux tirages aboutissent aux mêmes chaînes
-    sig: Math.random().toString(36).slice(2)
-  };
-
-  return st;
+    return {kind, fx, dfx, xA};
   },
 
   render(host, st){
   const chosen = (window.__EXO6_KIND__ || 'random');
-
-  const safeParse = s => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
-  const prev      = safeParse(host.dataset.state);
-  const cached    = (window.__EXO_PARAMS_CACHE && window.__EXO_PARAMS_CACHE[this.id]) || null;
-
-  // 🔧 Normalise l’état quelle que soit la forme (avec/ sans params)
-  const pick = (src) => {
-    if (!src) return null;
-    // cas 1 : src = { kind, fx, dfx, xA, params:{...} }
-    if ('fx' in src && 'dfx' in src && 'xA' in src) return src;
-    // cas 2 : src = { params:{fx,dfx,xA,...}, kind? }
-    if (src.params && ('fx' in src.params) && ('dfx' in src.params) && ('xA' in src.params)){
-      const k = src.kind || src.params.kind || chosen;
-      return { kind: k, fx: src.params.fx, dfx: src.params.dfx, xA: src.params.xA, params: src.params };
-    }
-    return null;
-  };
-
-  // ordre de priorité : st (PDF/kit) → host.dataset.state → cache → nouveau tirage
-  let s = pick(st) || pick(prev?.params) || pick(cached?.params) || this.gen(chosen);
-
-  // Mémorise partout
-  host.dataset.state = JSON.stringify({ params: s });
-  host._state = s;
-  window.__EXO_PARAMS_CACHE = window.__EXO_PARAMS_CACHE || {};
-  window.__EXO_PARAMS_CACHE[this.id] = { params: s };
-
-
+  const s = st.params || this.gen(chosen);
+  host.dataset.state = JSON.stringify({params:s});
   const ui = renderNoRepere(host);
 
   // -- Helpers LaTeX très simples (suffisants pour nos formes) --
@@ -1325,23 +1272,22 @@ function polyGen(){
   };
 
   // — Sélecteur textuel + bouton (inchangés) —
-const selectorHTML = `
-  <div class="optionline small hide-print" style="margin-bottom:.4rem">
-    <label for="kind6"><b>Type de fonction :</b></label>
-    <select id="kind6">
-      <option value="random">Aléatoire</option>
-      <option value="square">Carré (x^2)</option>
-      <option value="cube">Cube (x^3)</option>
-      <option value="inverse">Inverse (1/x)</option>
-      <option value="sqrt">Racine carrée (√x)</option>
-      <option value="affine">Affine (mx + p)</option>
-      <option value="linear">Linéaire (mx)</option>
-      <option value="poly">Polynôme (deg 2–3)</option>
-    </select>
-    <button id="regen6" class="btn">↻ Tirer</button>
-  </div>
-`;
-
+  const selectorHTML = `
+    <div class="optionline small" style="margin-bottom:.4rem">
+      <label for="kind6"><b>Type de fonction :</b></label>
+      <select id="kind6">
+        <option value="random">Aléatoire</option>
+        <option value="square">Carré (x^2)</option>
+        <option value="cube">Cube (x^3)</option>
+        <option value="inverse">Inverse (1/x)</option>
+        <option value="sqrt">Racine carrée (√x)</option>
+        <option value="affine">Affine (mx + p)</option>
+        <option value="linear">Linéaire (mx)</option>
+        <option value="poly">Polynôme (deg 2–3)</option>
+      </select>
+      <button id="regen6" class="btn">↻ Tirer</button>
+    </div>
+  `;
 
   // — ÉNONCÉ : formules et points en LaTeX —
   ui.equ.innerHTML = `
@@ -1581,11 +1527,17 @@ function sameLatexLine(a, b){
   const old = $('#steps6', host);
   if (old) old.remove();
 
-const resBox = ui.right.querySelector('#res');
-resBox.classList.add('solution','solbox');   // important : pour le style + détection kit
-// (On nettoie)
-resBox.innerHTML = '';
-
+  // Boîte grisée LaTeX
+  let sol = ui.right.querySelector('#sol-ex6');
+  if(!sol){
+    sol = document.createElement('div');
+    sol.id = 'sol-ex6';
+    sol.className = 'solution solbox';
+    ui.right.appendChild(sol);
+  }else{
+    sol.classList.add('solution','solbox');
+    sol.innerHTML = '';
+  }
 
  function fixSigns(s){
   return String(s)
@@ -1671,12 +1623,8 @@ function dedupConsecutive(htmlLines){
   return out;
 }
 const Lfixed = L.map(fixSigns);
-resBox.innerHTML = `<div class="steps">${dedupConsecutive(Lfixed).join('')}</div>`;
-
-// Canonisation + MathJax dans la box qui sera réellement extraite par le kit
-if (window.canonizeAllSteps) canonizeAllSteps(resBox);
-if (window.retypeMath)       retypeMath(resBox);
-
+sol.innerHTML = dedupConsecutive(Lfixed).join('');
+if (window.retypeMath) retypeMath(sol);
 
 }
 
@@ -1741,15 +1689,7 @@ let SCORE=[0,0];
 function attachSelectHandlers(){
   const sel = document.querySelector('#exo-select');
   if(!sel || sel.__BOUND__) return;
-const rerender = ()=>{
-  SCORE=[0,0]; scoreSet(0,0);
-  const host = document.querySelector('#host');
-  const def  = window.REGISTRY.find(e => e.id === document.querySelector('#exo-select').value);
-  const kind = window.__EXO6_KIND__ || 'random';
-  const params = def.gen(kind);                  // nouveau tirage cohérent avec le choix
-  window.__EXO_PARAMS_CACHE[def.id] = { params };
-  def.render(host, { params });
-};
+  const rerender = (src)=>{ SCORE=[0,0]; scoreSet(0,0); renderActiveSafe(src); };
   sel.addEventListener('change', ()=>rerender('select.change'));
   sel.addEventListener('input',  ()=>rerender('select.input'));
   sel.__BOUND__ = true;
@@ -1763,16 +1703,7 @@ window.addEventListener('load', ()=>{
   scoreSet(0,0);
 
   // boutons
-document.querySelector('#btn-new')?.addEventListener('click', ()=>{
-  const host = document.querySelector('#host');
-  const def  = window.REGISTRY.find(e => e.id === host.dataset.active);
-  const kind = window.__EXO6_KIND__ || 'random';
-  const params = def.gen(kind);                  // ← nouveau tirage, explicite
-  window.__EXO_PARAMS_CACHE[def.id] = { params };
-  def.render(host, { params });                  // ← on passe les params, pas {}
-  SCORE=[0,0]; scoreSet(0,0);
-});
-
+  document.querySelector('#btn-new')  ?.addEventListener('click', ()=>renderActiveSafe('btn-new'));
   document.querySelector('#btn-reset')?.addEventListener('click', ()=>renderActiveSafe('btn-reset'));
 
   document.querySelector('#btn-sol')?.addEventListener('click', ()=>{
@@ -1780,7 +1711,8 @@ document.querySelector('#btn-new')?.addEventListener('click', ()=>{
     const def = window.REGISTRY.find(e => e.id === host.dataset.active);
     host._noFillSolution = true;
     try{ def.solution(host); }catch(e){ console.error(e); }
-        host._noFillSolution = false;
+    canonizeAllSteps(host);
+    host._noFillSolution = false;
   });
 
   document.querySelector('#btn-check')?.addEventListener('click', ()=>{
@@ -1799,25 +1731,199 @@ document.querySelector('#btn-new')?.addEventListener('click', ()=>{
 
 
 
+window.addEventListener('load', function () {
+  if (!(window.ExoPDF && ExoPDF.init)) return;
 
-/* === Invocation de TON kit PDF depuis la fiche ===
-   - Ne modifie pas ton kit.
-   - Ajoute un bouton "🖨️ PDF (Énoncé + Corrigé)" dans .controls.
-   - Expose aussi window.genPDF() si tu veux l’appeler ailleurs.
-*/
-window.addEventListener('load', () => {
-  // 1) Init de ton kit si l'API est là
-  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
-    // Le titre est optionnel : il prendra document.title si tu ne mets rien
-    ExoPDF.init({ title: document.title || "Fiche", autoButton: false });
+  ExoPDF.init({
+    title: 'Première — Nombres dérivés & tangentes',
+    max: 50,
+    mountAfterSelector: '#info-saisie',
+    leadByDefId: {
+      ex6_eq_tangente_f_fx: "Donner l’équation de la tangente à partir de f et f'.",
+    },
+
+    beforeRender(def, st, withSolutions){
+      // Exos "à courbe" : 2 colonnes (gauche: repère | droite: texte)
+      const TWO_COL = new Set(['ex1_deriv_graph','ex2_tangentes_triple','ex7_graph_mix']);
+
+      // Renforce la barre de fraction pour le PDF
+      const FRAC_FIX = `<style>
+        .frac>.num{ border-bottom:0!important; position:relative; }
+        .frac>.num::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:currentColor; }
+      .pdf-blank{ line-height:1.2 }
+@media print { .pdf-blank{ border-bottom-width:2px !important } }
+.pdf-blank{ font-family: ui-monospace, Menlo, Consolas, monospace; }
+	  </style>`;
+
+      // Table 2 colonnes
+      const twoCol = (L,R)=>`
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <tr>
+            <td style="width:54%;vertical-align:top;padding:0 12px 0 0">${L||''}</td>
+            <td style="width:46%;vertical-align:top;padding:0">${R||''}</td>
+          </tr>
+        </table>`;
+
+      // Nettoyage des éléments interactifs (inputs, boutons, ticks…)
+      function stripInteractive(root){
+  const $$ = sel => Array.from(root.querySelectorAll(sel));
+  const pxPerCh = 9;
+
+  $$('input, textarea').forEach(el=>{
+  const id  = (el.id||'').toLowerCase();
+  const ph  = (el.getAttribute('placeholder')||'').toLowerCase();
+
+  const isEq  = /^t\d/.test(id) || /^eq/.test(id) || /y\s*=|tangente|droite/.test(ph);
+  const isVal = /^f[a-z]/i.test(el.id||'');   // fA, fB, fD…
+  const isDer = /^df[a-z]/i.test(el.id||'');  // dfA, dfB, dfD…
+
+  const pxPerCh = 9;
+  const sw    = parseInt((el.style.width||'').replace('px','')) || 0;
+  const sz    = el.getAttribute('size') ? parseInt(el.getAttribute('size'),10)*pxPerCh : 0;
+  const phw   = ph.length * pxPerCh;
+  const force = parseInt(el.dataset.pdfw || el.dataset.printWidth || '') || 0;
+
+  // Si l'input est dans un wrapper .blank-wrap, on récupère sa largeur déclarée
+  const wrapper = el.parentElement && el.parentElement.classList.contains('blank-wrap') ? el.parentElement : null;
+  const wrapW   = wrapper ? parseInt(wrapper.dataset.w||'0',10) : 0;
+
+  const W = force || (isEq ? 320 : (isVal||isDer ? 140 : 180));
+  const width = Math.max(W, sw, sz, phw, 80, wrapW);
+
+  const span = document.createElement('span');
+span.className = 'pdf-blank';
+
+// largeur “typographique” ≈ 8 px par underscore en police monospace
+const nUnders = Math.max(10, Math.round(width / 8));
+span.textContent = '_'.repeat(nUnders);
+
+// style (monospace, hauteur correcte). On garde aussi une bordure au cas où.
+span.style.cssText =
+  'display:inline-block;vertical-align:baseline;' +
+  'font-family: ui-monospace, Menlo, Consolas, monospace;' +
+  'line-height:1.2; height:1.4em;' +
+  `min-width:${width}px;` +                  // garantit la largeur
+  'border-bottom:2px solid #000;';           // si les _ ne plaisent pas au moteur
+
+
+  // Si on a un jumeau .blank déjà présent, on l'enlève pour éviter le double-trait
+  if(wrapper){
+    const b = wrapper.querySelector('.blank'); if(b) b.remove();
+    wrapper.replaceWith(span);
+  }else{
+    el.replaceWith(span);
   }
-
-
-
-
 });
 
 
+  // Nettoyage UI
+  $$('button, select, option, .tick, .optionline, [data-math-kbd], .kbd-host').forEach(n=>n.remove());
+  $$('[contenteditable]').forEach(n=>n.removeAttribute('contenteditable'));
+  return root;
+}
+
+
+      // Clone inline du premier <svg> pour une impression fiable
+      function svgInline(root, opts={}){
+        const svg = root.querySelector('svg');
+        if(!svg) return '';
+        const c = svg.cloneNode(true);
+        if(!c.getAttribute('viewBox')){
+          const vb = svg.viewBox && svg.viewBox.baseVal
+            ? svg.viewBox.baseVal
+            : {x:0,y:0,width:(svg.width?.baseVal?.value||420),height:(svg.height?.baseVal?.value||420)};
+          c.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
+        }
+        c.setAttribute('xmlns','http://www.w3.org/2000/svg');
+        c.setAttribute('preserveAspectRatio','xMidYMid meet');
+        c.setAttribute('width',  String(opts.widthPx || 360));
+        c.setAttribute('height', String(opts.heightPx || 360));
+        // petits allégements
+        c.querySelectorAll('path, polyline, line').forEach(el=>{
+          const sw = parseFloat(el.getAttribute('stroke-width')||'2');
+          el.setAttribute('stroke-width', String(Math.max(0.9, sw*0.85)));
+        });
+        return `<div style="display:block;width:${opts.blockWidth||'100%'}">${c.outerHTML}</div>`;
+      }
+
+      // Rendu hors-écran à taille non nulle (sinon getBBox flanche)
+      const tmp = document.createElement('div');
+      Object.assign(tmp.style, {
+        position:'fixed', left:'-10000px', top:'-10000px',
+        width:'420px', height:'420px', overflow:'hidden'
+      });
+      document.body.appendChild(tmp);
+
+      try{
+        // >>>>>>>>>>>> CLÉ : toujours passer {params: …} à render/solution <<<<<<<<<<<<
+        const stForRender = (st && st.params) ? st : { params: st || {} };
+
+        // 1) Rendu de l’énoncé
+def.render(tmp, stForRender);
+replacePrimesForPDF(tmp);   // f'(x) -> f′(x) (PDF only)
+fixRadicalsForPDF(tmp);     // rac/√/sqrt -> \sqrt{…}
+wrapMathIfNeeded(tmp);      // ← encapsule en \( … \) si besoin
+// attente micro (fonts/pré-init), puis typeset
+if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+  try { MathJax.startup.promise.then(()=>typesetNode(tmp)); }
+  catch(_) { typesetNode(tmp); }
+} else {
+  setTimeout(()=>typesetNode(tmp), 10);
+}
+
+        // Mémoriser le tirage pour que la solution retombe sur le même état
+        try{
+          const just = JSON.parse(tmp.dataset.state || '{}');
+          if (def.id && just && just.params) window.__EXO_PARAMS_CACHE[def.id] = just;
+        }catch(e){/* no-op */ }
+
+        // Pas d’artefacts interactifs/clics sur le PDF
+        const userLayer = tmp.querySelector('g[data-layer="user"]');
+        if (userLayer) userLayer.innerHTML = '';
+
+        if(!withSolutions){
+          const equ = tmp.querySelector('.equ');
+          const right = equ ? equ.cloneNode(true) : tmp.cloneNode(true);
+          stripInteractive(right);
+          try{ if (window.canonMathHTML) right.innerHTML = canonMathHTML(right.innerHTML); }catch(e){}
+          const left = TWO_COL.has(def.id) ? svgInline(tmp, {widthPx:360, heightPx:360}) : '';
+          // On renvoie UNIQUEMENT l’énoncé ; le kit s’occupe du cartouche
+          return FRAC_FIX + (TWO_COL.has(def.id) ? twoCol(left, right.innerHTML)
+                                                 : `<div>${right.innerHTML}</div>`);
+        }
+
+        // 2) Rendu du corrigé (sur le même état)
+        const saved = (window.__EXO_PARAMS_CACHE && window.__EXO_PARAMS_CACHE[def.id]) || stForRender;
+        try { def.solution(tmp, saved); } catch(e){}
+        try { if (window.canonizeAllSteps) canonizeAllSteps(tmp); } catch(e){}
+// 🔥 PDF-only fixes (avant strip)
+replacePrimesForPDF(tmp);   // f'(x) -> f′(x) (PDF only)
+fixRadicalsForPDF(tmp);     // rac/√/sqrt -> \sqrt{…}
+wrapMathIfNeeded(tmp);      // ← encapsule en \( … \) si besoin
+// attente micro (fonts/pré-init), puis typeset
+if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+  try { MathJax.startup.promise.then(()=>typesetNode(tmp)); }
+  catch(_) { typesetNode(tmp); }
+} else {
+  setTimeout(()=>typesetNode(tmp), 10);
+}
+// puis on nettoie
+stripInteractive(tmp);
+        const steps = tmp.querySelector('.steps') || tmp.querySelector('.solution');
+        const right = steps ? (steps.outerHTML || steps.innerHTML) : '';
+        const left  = TWO_COL.has(def.id) ? svgInline(tmp, {widthPx:360, heightPx:360}) : '';
+        // On renvoie le contenu du corrigé SANS l’en-tête (le kit l’ajoute)
+        return FRAC_FIX + (TWO_COL.has(def.id) ? twoCol(left, right) : right);
+
+      }catch(e){
+        // Laisse le kit faire son fallback (évite "indisponible" en double)
+        return '';
+      }finally{
+        tmp.remove();
+      }
+    }
+  });
+});
 </script>
 
 <script>

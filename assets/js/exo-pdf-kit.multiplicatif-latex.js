@@ -827,6 +827,55 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 
 .controls,.header,.kbd-host,.hide-print{display:none!important} 
 
+.uvtab{
+  border-collapse:collapse;
+  margin:.6rem 0 .8rem 0;
+  font-size:0.95rem;
+}
+.uvtab td{
+  border:none;
+  padding:4px 32px 4px 0; /* 👈 plus d'espace entre les deux colonnes */
+  white-space:nowrap;
+  vertical-align:top;
+  line-height:1.6;
+}
+@media print{
+  .uvtab td{
+    padding:4px 40px 4px 0;
+  }
+}
+
+.twocol-solution{
+  border-collapse:collapse;
+  margin:.6rem 0 .8rem 0;
+  width:auto;
+}
+.twocol-solution td{
+  vertical-align:top;
+  padding:0 16px;
+  /* pas de bordure autour par défaut */
+  border:none;
+  white-space:nowrap;
+  line-height:1.75;
+  font-size:0.95rem;
+}
+
+/* on force UNIQUEMENT une barre verticale entre les 2 colonnes */
+.twocol-solution td.col-gauche{
+  border-right:2px solid #999; /* la barre visible */
+  padding-right:24px;
+}
+.twocol-solution td.col-droite{
+  padding-left:24px;
+}
+
+.twocol-solution .line{
+  margin:.3rem 0;
+}
+.twocol-solution .line mjx-container{
+  padding-bottom:.08em;
+}
+
 
 </style>
 

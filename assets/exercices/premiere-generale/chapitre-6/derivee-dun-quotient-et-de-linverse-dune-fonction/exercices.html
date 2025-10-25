@@ -192,45 +192,6 @@ select,input[type="text"]{
 .twocol-solution .line mjx-container{
   padding-bottom:.08em;
 }
-
-/* =========================================
-   Fix MathJax SVG inline qui explose en géant sur mobile
-   ========================================= */
-@media (max-width:760px){
-
-  /* 1. Toutes les formules inline doivent se comporter comme du texte normal */
-  mjx-container[jax="SVG"][display="inline"]{
-    display: inline-block;        /* reste dans la ligne */
-    font-size: 1em !important;    /* taille texte */
-    line-height: 1.2 !important;  /* n'ouvre pas la ligne à 4rem */
-    vertical-align: -0.2em !important; /* descend un peu pour aligner visuellement */
-    max-height: 1.2em;            /* empêche le container d'être géant */
-    overflow: visible;
-  }
-
-  /* 2. Et on écrase la hauteur du SVG interne,
-        parce que c'est lui qui impose la démesure */
-  mjx-container[jax="SVG"][display="inline"] svg{
-    height: 1em !important;       /* impose la vraie taille */
-    width: auto;
-  }
-
-  /* 3. Dans les blocs de texte (énoncé, étapes, mini-tableaux…),
-        pas d'espace en bas ajouté par nos styles desktop */
-  .enonce mjx-container[jax="SVG"][display="inline"],
-  .steps mjx-container[jax="SVG"][display="inline"],
-  .uvtab mjx-container[jax="SVG"][display="inline"],
-  .twocol-solution mjx-container[jax="SVG"][display="inline"]{
-    padding-bottom: 0 !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* 4. Et on annule le padding-bottom prévu pour la version bureau */
-  .steps mjx-container{
-    padding-bottom: 0 !important;
-  }
-}
-
 </style>
 
 <!-- MathJax SVG -->
@@ -247,19 +208,8 @@ window.MathJax = {
     skipHtmlTags: ['script','noscript','style','textarea'],
     renderActions: { assistiveMml: [] }
   },
-  //
-  // ↓↓↓ clé magique pour le moteur SVG ↓↓↓
-  svg: (window.innerWidth <= 760 ? {
-    scale: 0.8,            // réduit la taille globale des maths
-    minScaleAdjust: 0.8    // empêche MathJax de les regonfler après
-  } : {
-    scale: 1,
-    minScaleAdjust: 1
-  }),
-  //
   startup: { typeset:true }
 };
-
 </script>
 <script defer src="../../../../es5/tex-svg.js"></script>
 
@@ -1642,36 +1592,6 @@ function mount(){
   updateScore();
 }
 document.addEventListener('DOMContentLoaded', mount);
-
-document.addEventListener('DOMContentLoaded', () => {
-  // shrink inline math that explodes in height (mobile seulement)
-  if (window.innerWidth > 760) return;
-
-  document.querySelectorAll('mjx-container[jax="SVG"][display="inline"]').forEach(mjx => {
-    const rect = mjx.getBoundingClientRect();
-    const style = window.getComputedStyle(mjx);
-    const fontSizePx = parseFloat(style.fontSize || '16');
-    // ratio "combien de fois plus haut que la police locale"
-    const ratio = rect.height / fontSizePx;
-
-    // seuil : si c'est >1.6x la hauteur normale de ligne, c'est clairement le bug
-    if (ratio > 1.6) {
-      // facteur de réduction ciblé
-      const scale = 1.6 / ratio; // ex si ratio=3.2 -> scale=0.5
-
-      mjx.style.transformOrigin = 'left 0.8em';
-      mjx.style.display = 'inline-block';
-      mjx.style.transform = `scale(${scale})`;
-
-      // ajuster la baseline pour éviter que ça flotte trop haut ou trop bas
-      // on essaye de recentrer verticalement après shrink
-      mjx.style.verticalAlign = '-0.2em';
-      mjx.style.lineHeight = '1.2';
-      mjx.style.maxHeight = '1.2em';
-      mjx.style.overflow = 'visible';
-    }
-  });
-}, {passive:true});
 
 /* ===== Adaptateur PDF ===== */
 (function(){

@@ -64,120 +64,107 @@
 :focus-visible{outline:2px solid #60a5fa; outline-offset:2px}
 
 
-/* =========================================
-   PATCH MOBILE MATHJAX SVG
-   Empêche les formules de tout casser
-   ========================================= */
 @media (max-width:760px){
 
-  /* ----- RESET GLOBAL ----- */
+  /************************************
+   * 1. Réglages généraux SVG MathJax
+   ************************************/
 
-  /* On coupe les énormes hauteurs de ligne que MathJax injecte.
-     Important: on cible uniquement le rendu SVG. */
+  /* Tous les conteneurs MathJax SVG */
   mjx-container[jax="SVG"]{
+    /* on veut que ça se comporte comme un mot tant qu'on n'a pas explicitement du display */
+    display:inline-block !important;
     font-size:1em !important;
-    line-height:1.2 !important;
-    /* empêche MathJax de forcer display:block sur certaines inline */
-    display:inline-block;
+    line-height:1.3 !important;    /* un peu plus grand que 1.2 pour éviter l'écrasement minuscule */
     vertical-align:-0.2em !important;
-    margin:0 .15em !important;    /* petit espace gauche/droite, évite le trou géant */
+    margin:0 .15em 0 .15em !important;
     padding:0 !important;
-    max-width:100%;               /* pas de dépassement horizontal */
+    max-width:100%;
   }
 
-  /* Le SVG interne a parfois une hauteur calculée délirante.
-     On force une hauteur cohérente avec la ligne courante. */
+  /* le SVG interne ne doit pas imposer une hauteur malade MAIS
+     on enlève le "height:1em" trop agressif qui a tout riquiqui.
+     => On laisse auto, mais on empêche les énormes dépassements. */
   mjx-container[jax="SVG"] svg{
-    height:1em !important;
     width:auto;
     max-width:100%;
-    max-height:1.2em;
+    height:auto !important;        /* ⇐ avant on forçait 1em, c'est ça qui rendait minuscule */
+    max-height:2.2em;              /* sécurité pour éviter une formule qui bouffe 5 lignes */
   }
 
-  /* Les <g> internes embarquent des transforms énormes => overflow visuel.
-     Ça évite que la box prenne 4 lignes. */
+  /* éviter les origins chelous mais on garde le rendu naturel */
   mjx-container[jax="SVG"] svg > g{
-    transform-origin: left bottom;
+    transform-origin:left bottom;
   }
 
-  /* ----- CAS INLINE ----- */
+  /************************************
+   * 2. INLINE MATH ( \( ... \ ) , $...$ )
+   ************************************/
 
-  /* Inline = ce que tu écris entre \( ... \) ou $ ... $
-     On reforce display inline-block pour être sûr que ça ne passe pas à la ligne seule,
-     et on supprime les grands blancs verticaux. */
+  /* Inline doit rester dans le flux texte, pas sauter à la ligne, pas créer un paragraphe vide */
   mjx-container[jax="SVG"][display="inline"]{
     display:inline-block !important;
+    line-height:1.3 !important;
     vertical-align:-0.2em !important;
-    line-height:1.2 !important;
     margin-top:0 !important;
     margin-bottom:0 !important;
+    text-align:left !important;    /* PAS centré */
   }
 
+  /* encore une fois, pas de hauteur forcée ridicule */
   mjx-container[jax="SVG"][display="inline"] svg{
-    height:1em !important;
-    max-height:1.2em;
+    height:auto !important;
+    max-height:2.2em;
   }
 
-  /* ----- CAS DISPLAY (formule sur sa propre ligne) ----- */
+  /************************************
+   * 3. DISPLAY MATH ( \[ ... \] , $$...$$ )
+   ************************************/
 
-  /* Quand tu écris \[ ... \] ou $$ ... $$,
-     MathJax sort display="true". Sur mobile, on veut que ça reste lisible
-     mais pas taille Titanic. On la rend un peu plus petite et on neutralise
-     le gros espace avant/après. */
+  /* Les math d'affichage (grandes formules isolées) : oui elles prennent leur propre ligne,
+     mais elles ne doivent ni être géantes ni SYSTÉMATIQUEMENT centrées sur mobile */
   mjx-container[jax="SVG"][display="true"]{
     display:block !important;
-    text-align:center;
-    font-size:0.95em !important;   /* léger downscale */
-    line-height:1.3 !important;
-    margin:0.6em 0 !important;     /* on réduit le trou vertical */
+    text-align:left !important;    /* avant c'était center => enlève le centrage que tu n'a pas demandé */
+    font-size:1em !important;      /* on remet 1em (plus 0.95em), parce que 0.95 les rendait trop petites */
+    line-height:1.4 !important;
+    margin:0.5em 0 !important;     /* espace raisonnable au-dessus / dessous */
     padding:0 !important;
   }
 
   mjx-container[jax="SVG"][display="true"] svg{
-    height:1.2em !important;
-    max-height:1.4em;
+    height:auto !important;
+    max-height:3em;                /* un affichage peut être un peu plus grand qu'inline */
   }
 
-  /* ----- PAS D'IMMENSE ESPACE DANS LES BLOCS DE TEXTE ----- */
+  /************************************
+   * 4. PAS DE "TROUS" DANS LE TEXTE
+   ************************************/
 
-  /* Dans les blocs d'énoncé, d'étapes de correction, etc.
-     On vire tout padding/margin vertical parasite que tu avais côté desktop
-     pour "aérer" */
+  /* Dans des paragraphes ou listes, on refuse que MathJax rajoute ses propres grosses marges */
+  p mjx-container[jax="SVG"],
+  li mjx-container[jax="SVG"],
   .enonce mjx-container[jax="SVG"],
   .steps mjx-container[jax="SVG"],
   .uvtab mjx-container[jax="SVG"],
-  .twocol-solution mjx-container[jax="SVG"],
-  p mjx-container[jax="SVG"],
-  li mjx-container[jax="SVG"]{
+  .twocol-solution mjx-container[jax="SVG"]{
     margin-top:0 !important;
     margin-bottom:0 !important;
     padding:0 !important;
   }
 
-  /* Certaines de tes zones de solution mettaient du padding-bottom
-     aux lignes MathJax pour séparer visuellement sur desktop.
-     On coupe ça en mobile sinon tu obtiens "phrase / gros vide / formule / gros vide..." */
+  /* Certaines de tes zones "solution" mettaient un padding-bottom pour aérer Desktop */
   .steps mjx-container{
     padding-bottom:0 !important;
   }
 
-  /* ----- ÉVITER LES FORMULES QUI PASSENT SOUS LA CARTE ----- */
+  /************************************
+   * 5. COMPORTEMENT DANS LES CARTES
+   ************************************/
 
-  /* Quand tu as des cards avec padding serré, le SVG déborde parfois en bas.
-     On clippe l'overflow vertical pour que la carte ne grandisse pas de +40px. */
+  /* Empêche la carte d'exploser sa hauteur parce qu'une fraction légendaire a un gros numérateur */
   .card mjx-container[jax="SVG"]{
-    max-height:1.4em;
+    max-width:100%;
     overflow:visible;
-  }
-
-  /* ----- LISTES D'ÉTAPES (ton .steps gris PDF=Solution) ----- */
-
-  /* Les lignes de solution sont souvent en <div class="line"> etc.
-     On remet une hauteur de ligne cohérente quand il y a une fraction haute
-     (genre dérivées, quotients). */
-  .steps .line,
-  .steps p,
-  .steps li{
-    line-height:1.4;
   }
 }

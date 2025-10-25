@@ -101,11 +101,7 @@ select,input[type="text"]{
   margin-bottom:.2rem;
   text-decoration:underline;
 }
-.line{
-  white-space:nowrap;
-  line-height:1.8;
-  margin:.32rem 0;
-}
+.line{white-space:nowrap}
 .tick{
   display:inline-block;
   min-width:1.2em;
@@ -133,18 +129,10 @@ select,input[type="text"]{
 
 @media print{ .controls{display:none !important;} }
 
-/* on calme MathJax CHTML en inline */
-mjx-container{
-  line-height:1.2;          /* pas géant dans les phrases */
-  font-size:1em;            /* hérite bien dans le flux */
-  vertical-align:middle;
-}
-.steps mjx-container{
-  padding-bottom:.08em;
-}
+.steps .line{ margin:.32rem 0; line-height:1.9 }
+.steps mjx-container{ padding-bottom:.08em }
 @media print{
   .steps .line{ margin:.36rem 0; line-height:2 }
-  mjx-container{font-size:1em; line-height:1.2}
 }
 
 /* bloc exo visible */
@@ -160,7 +148,7 @@ mjx-container{
   display:block;
 }
 
-/* mini-table u,v / u',v' */
+/* mini-table à 2 colonnes pour u,v et u',v' */
 .uvtab{
   border-collapse:collapse;
   margin:.6rem 0 .8rem 0;
@@ -177,7 +165,7 @@ mjx-container{
   .uvtab td{padding:4px 40px 4px 0;}
 }
 
-/* tableau correction 2 colonnes */
+/* tableau correction en 2 colonnes séparées par une barre verticale */
 .twocol-solution{
   border-collapse:collapse;
   margin:.6rem 0 .8rem 0;
@@ -204,29 +192,30 @@ mjx-container{
 .twocol-solution .line mjx-container{
   padding-bottom:.08em;
 }
-
-/* accessibilité off */
-.MJX_Assistive_MathML, mjx-assistive-mml { display:none !important; }
 </style>
 
-<!-- ⭐ MATHJAX CONFIG CHTML (PAS SVG) -->
+<!-- MathJax SVG -->
 <script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      packages: { '[+]': ['bbox','ams'] },
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    chtml: { matchFontHeight:false },
-    startup: { typeset: true }
-  };
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true,
+    packages: { '[+]': ['bbox','ams'] },
+    macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+  },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea'],
+    renderActions: { assistiveMml: [] }
+  },
+  startup: { typeset:true }
+};
 </script>
-<script defer src="../../../../es5/tex-chtml.js"></script>
-<!-- FIN MathJax -->
+<script defer src="../../../../es5/tex-svg.js"></script>
 
+<style>
+  .MJX_Assistive_MathML, mjx-assistive-mml { display:none !important; }
+</style>
 
 </head>
 <body>
@@ -266,7 +255,7 @@ mjx-container{
 
 <!-- Dépendances projet -->
 <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
-<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
 <script src='../../../../js/math-kbd.js' defer></script>
 <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 
@@ -275,6 +264,7 @@ mjx-container{
 
 /* =========================================================
    Utils / random / évaluation élève
+   (reprend ta base)
    ========================================================= */
 
 const $  = (s,r)=> (r||document).querySelector(s);
@@ -337,22 +327,27 @@ function numEval(expr, x){
 function almost(a,b,eps=1e-8){ return Math.abs(a-b) <= eps*(1+Math.max(1,Math.abs(a),Math.abs(b))); }
 
 /* =========================================================
-   Polynômes
+   Polynômes : représentation coeffs croissants [c0,c1,c2,...]
+   et helpers d'affichage
    ========================================================= */
 
 function randAffine(){
+  // ax + b
   const A = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
   const B = rnd(-5,5);
-  return {A,B, coeffs:[B,A]};
+  // renvoyer aussi version tableau coeffs
+  return {A,B, coeffs:[B,A]}; // [c0,c1]
 }
 function randQuad(){
+  // ax²+bx+c avec a!=0
   const a = nzChoose([-3,-2,-1,1,2,3]);
   const b = rnd(-5,5);
   const c = rnd(-5,5);
-  return {a,b,c, coeffs:[c,b,a]};
+  return {a,b,c, coeffs:[c,b,a]}; // [c0,c1,c2]
 }
 
 function polyDeriv(p){
+  // p = [c0,c1,c2,...]
   if(p.length<=1) return [0];
   const d=[];
   for(let i=1;i<p.length;i++){
@@ -370,6 +365,7 @@ function polyTimes(p,q){
   return r;
 }
 
+/* écriture polynôme propre style "2x^2+5x+1" en LaTeX (sans 1x, sans +0) */
 function polyToLatex(p){
   const terms=[];
   for(let deg=p.length-1;deg>=0;deg--){
@@ -377,6 +373,7 @@ function polyToLatex(p){
     if(a===0) continue;
     const absA = Math.abs(a);
 
+    // cœur du monôme
     let mono;
     if(deg===0){
       mono = ''+absA;
@@ -386,12 +383,17 @@ function polyToLatex(p){
       mono = (absA===1)?`x^{${deg}}`:`${absA}x^{${deg}}`;
     }
 
+    // signe + espace
     const piece = (a<0?'- ':'+ ')+mono;
     terms.push(piece);
   }
   if(!terms.length) return '0';
+
+  // enlever le "+" du tout premier si besoin
   return terms.join(' ').replace(/^\+\s*/,'').trim();
 }
+
+/* version JS exploitable numériquement pour p(x) */
 function polyToJS(p){
   const parts=[];
   for(let deg=p.length-1;deg>=0;deg--){
@@ -426,14 +428,21 @@ function makePolyDerivFuncJS(p){
   const dfExpr = polyToJS(dp);
   return x => Function("x","return ("+dfExpr+");")(x);
 }
+
+/* petite fonction pour afficher un polynôme dérivé (affine/const) en LaTeX propre */
 function polyDerivToLatex(p){
   return polyToLatex(polyDeriv(p));
 }
+
+/* idem JS */
 function polyDerivToJS(p){
   return polyToJS(polyDeriv(p));
 }
 
-/* signes / nettoyage */
+/* =========================================================
+   Outils signe / nettoyage chaînes de signes
+   ========================================================= */
+
 function cleanSigns(s){
   if(!s) return s;
   let out = String(s);
@@ -445,6 +454,9 @@ function cleanSigns(s){
   out = out.replace(/^\+\s*/,'');
   return out.replace(/\s+/g,' ').trim();
 }
+
+/* Liste des monômes non nuls d'un poly p, ordre degré décroissant.
+   Renvoie [{coeff,deg}, ...] */
 function polyToMonomeData(p){
   const list=[];
   for(let deg=p.length-1;deg>=0;deg--){
@@ -458,6 +470,9 @@ function polyToMonomeData(p){
   }
   return list;
 }
+
+/* transforme un monôme numérique coeff*x^deg en latex genre "4x^3", "5x", "2"
+   coeff est supposé NON nul ici */
 function monomeNumericLatex(coeff,deg){
   const absC = Math.abs(coeff);
   let core;
@@ -468,19 +483,29 @@ function monomeNumericLatex(coeff,deg){
   }else{
     core = (absC===1)?`x^{${deg}}`:`${absC}x^{${deg}}`;
   }
+  // on NE met PAS le signe ici, on renvoie juste "4x^3"
   return core;
 }
+
+/* Développe produit A(x)*B(x) EN SUIVANT L'ORDRE PROF :
+   - on prend chaque monôme de A par degré décroissant,
+   - pour chacun on le multiplie par chaque monôme de B par degré décroissant,
+   - on garde les résultats dans l'ordre d'apparition
+   => retourne un tableau de termes signés, par ex ["+ 4x^3", "+ 4x", "+ 5x^2", "+ 5"]
+*/
 function expandProductAsOrderedSignedTerms(P, Q){
-  const monsP = polyToMonomeData(P);
+  const monsP = polyToMonomeData(P); // [{coeff,deg}, ...] high->low
   const monsQ = polyToMonomeData(Q);
 
   const terms=[];
+
   for(const mp of monsP){
     for(const mq of monsQ){
       const coeff = mp.coeff * mq.coeff;
-      if(coeff===0) continue;
       const deg   = mp.deg   + mq.deg;
-      const base  = monomeNumericLatex(coeff,deg);
+      // si coeff = 0 on saute
+      if(coeff===0) continue;
+      const base = monomeNumericLatex(coeff,deg);
       if(coeff<0){
         terms.push(`- ${base}`);
       }else{
@@ -488,20 +513,79 @@ function expandProductAsOrderedSignedTerms(P, Q){
       }
     }
   }
+
   if(!terms.length){
     terms.push('+ 0');
   }
+
+  // On renvoie le tableau brut. On gérera le collage/simplification plus tard.
   return terms;
 }
+
+/* Colle une liste ["+ 4x^3","- 2x"," +5"] en une seule chaîne propre :
+   "4x^3 - 2x + 5"
+*/
 function joinSignedTermList(terms){
   if(!terms.length) return '0';
   let txt = terms.join(' ');
   txt = cleanSigns(txt);
   return txt;
 }
+
+/* Combine les deux développements pour faire
+   (u'v)  −  (v'u)
+   mais sans "--".
+   On veut exactement :
+   "4x^3+4x+5x^2+5 - 4x^3-10x^2-2x"
+   c-à-d :
+   - la première liste sans signe initial "+"
+   - puis " - "
+   - puis la seconde liste mais en forçant le signe NEGATIF DEVANT CHAQUE TERME,
+     donc si un terme est déjà "- 10x^2", le " - (-10x^2)" devient " +10x^2"
+*/
+function buildNumeratorDeveloped(uPrimeCoeffs,vCoeffs,vPrimeCoeffs,uCoeffs){
+  const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs,vCoeffs);
+  const vuTerms = expandProductAsOrderedSignedTerms(vPrimeCoeffs,uCoeffs);
+
+  // première partie : uvTerms normalisés
+  let left = joinSignedTermList(uvTerms); // ex "4x^3 + 4x + 5x^2 + 5"
+
+  // deuxième partie : on veut soustraire terme à terme vuTerms
+  // vuTerms est du style ["+ 4x^3","+ 10x^2","+ 2x"] ou avec des "-" déjà dedans.
+  // Soustraction terme à terme :
+  //  - si le terme commence par "+ A", ça devient "- A"
+  //  - si le terme commence par "- A", ça devient "+ A"
+  const flipped = vuTerms.map(t=>{
+    // normaliser espaces
+    t = t.trim();
+    // t est style "+ 4x^3" ou "- 10x^2"
+    if(t.startsWith('+')){
+      return t.replace(/^\+\s*/,'- ');
+    }else if(t.startsWith('-')){
+      return t.replace(/^\-\s*/,'+ ');
+    }
+    return t; // fallback, devrait pas arriver
+  });
+
+  // maintenant on concatène left + " " + flipped...
+  let right = joinSignedTermList(flipped); // ex " - 4x^3 - 10x^2 - 2x" (après cleanSigns => "- 4x^3 - 10x^2 - 2x")
+  // joinSignedTermList remet au propre, mais peut démarrer sans signe +.
+  // on veut qu'entre les deux blocs il y ait juste un espace, pas un " + " automatique.
+  // Exemple final attendu :
+  // "4x^3 + 4x + 5x^2 + 5 - 4x^3 - 10x^2 - 2x"
+  // On peut juste fusionner et re-nettoyer.
+  let full = (left + ' ' + right).trim();
+  full = cleanSigns(full);
+  return full;
+}
+
+/* Réduction finale du numérateur :
+   numAll = (u'v) - (v'u) regroupé par puissance
+*/
 function buildNumeratorReduced(uPrimeCoeffs,vCoeffs,vPrimeCoeffs,uCoeffs){
   const uv = polyTimes(uPrimeCoeffs,vCoeffs);
   const vu = polyTimes(vPrimeCoeffs,uCoeffs);
+  // uv - vu
   const maxDeg = Math.max(uv.length-1, vu.length-1);
   const res = Array(maxDeg+1).fill(0);
   for(let k=0;k<=maxDeg;k++){
@@ -509,61 +593,108 @@ function buildNumeratorReduced(uPrimeCoeffs,vCoeffs,vPrimeCoeffs,uCoeffs){
     const b = vu[k]||0;
     res[k]=a-b;
   }
-  return polyToLatex(res);
+  return polyToLatex(res); // propre, ex "-5x^2 + 2x + 5"
 }
+
 function isConstantPoly(p){
+  // p = [c0, c1, c2, ...]
+  // c1,c2,... tous nuls => constante
   for(let i=1;i<p.length;i++){
     if(p[i] !== 0) return false;
   }
   return true;
 }
 
-/* ===== ligne substitution quotient ===== */
+function beautifyConstant(k){
+  return String(k);
+}
+
 function buildLineSubstitution(uPrimeLatex, vLatex, vPrimeLatex, uLatex, vPrimeCoeffs){
-  const uPrimeClean = uPrimeLatex.replace(/\s+/g,'').trim();
+  // ===== 1. Préparer u'(x)*v(x) proprement (TERME "u'v")
+  // On veut gérer :
+  //  - u'(x)=1      -> v(x)
+  //  - u'(x)=-1     -> -v(x)
+  //  - u'(x)=k≠±1   -> k v(x)
+  //  - sinon        -> (u')(v)
+
+  // ex: "1", "- 1", "2", "- 4", "3.5", etc -> on nettoie les espaces
+  const uPrimeClean = uPrimeLatex.replace(/\s+/g,'').trim(); // ex "-4", "1", "-1"
   const isConstUPrime = /^-?\d+(\.\d+)?$/.test(uPrimeClean);
 
   let termUV;
   if(isConstUPrime){
+    // c'est une constante
     if(uPrimeClean === '1'){
+      // 1 * v(x) -> juste v(x)
       termUV = `(${vLatex})`;
     } else if(uPrimeClean === '-1'){
+      // -1 * v(x) -> - v(x)
+      termUV = `-${vLatex.startsWith('-') ? `(${vLatex})` : `(${vLatex})`}`;
+      // on garde "-(...)" c'est propre et clair
       termUV = `-${vLatex.startsWith('-') ? `(${vLatex})` : `(${vLatex})`}`;
     } else {
+      // k * v(x) avec k≠±1 -> k(v(x))
       termUV = `${uPrimeClean}(${vLatex})`;
     }
   } else {
+    // pas juste une constante -> parenthèses autour de u'(x)
     termUV = `(${uPrimeLatex})(${vLatex})`;
   }
 
+  // Dénominateur commun
   const denom = `\\left(${vLatex}\\right)^{2}`;
 
+  // ===== 2. CAS où v'(x) est constante k
+  // (règle déjà en place chez toi)
   if (isConstantPoly(vPrimeCoeffs)){
-    const k = vPrimeCoeffs[0];
+    const k = vPrimeCoeffs[0]; // v'(x)=k
+
     if (k < 0){
+      // -(k)u(x) = -(-2)u(x) -> +2u(x)
       const kk = Math.abs(k);
       const secondPretty = (kk===1?`(${uLatex})`:`${kk}\\,(${uLatex})`);
       return `f'(x)=\\dfrac{${termUV} + ${secondPretty}}{${denom}}`;
     } else {
       if (k === 0){
+        // v'(x)=0
         return `f'(x)=\\dfrac{${termUV}}{${denom}}`;
       } else {
+        // k>0 : u'v - k u
         const secondPretty = (k===1?`(${uLatex})`:`${k}\\,(${uLatex})`);
         return `f'(x)=\\dfrac{${termUV} - ${secondPretty}}{${denom}}`;
       }
     }
   }
 
-  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim();
+  // ===== 3. SINON : v'(x) n'est PAS constante
+  // Il faut gérer "v'(x)=kx"
+  // On veut repérer exactement une forme "k x" ou "-k x" avec k réel et PAS de + ... derrière.
+  // Notre latex actuel pour une dérivée affine style "2x" ou "-4x" vient de polyToLatex(),
+  // qui donne par exemple "2x" ou "- 4x" (avec espace).
+  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim(); // ex "2x", "-4x", "x", "-x", "2x+3", etc.
+
+  // regex : nombre (optionnel) puis "x", rien d'autre
+  // accepte "x", "-x", "2x", "-3x", "4.5x"
   const m = vPrimeNoSpace.match(/^(-?\d*\.?\d*)x$/);
 
   if (m){
-    let kStr = m[1];
+    // C'est du type kx pur
+    let kStr = m[1]; // peut être "", "-", "2", "-4", "3.5"...
+    // normaliser k numérique
+    // ""  -> 1
+    // "-" -> -1
     let kVal;
     if(kStr === '' || kStr === '+'){ kVal = 1; }
     else if(kStr === '-'){ kVal = -1; }
     else { kVal = parseFloat(kStr); }
 
+    // Maintenant on forme "- v'(x) u(x)" sans parenthèses autour de v'(x)
+    // Règle demandée :
+    // si k>0 -> "- kx(u(x))"
+    // si k<0 -> "+ |k|x(u(x))"
+    // Et si |k|=1 on écrit juste "x" pas "1x"
+
+    // construit la chaîne kx propre sans le 1:
     function kxLatex(k){
       const absK = Math.abs(k);
       if (absK === 1){
@@ -573,27 +704,80 @@ function buildLineSubstitution(uPrimeLatex, vLatex, vPrimeLatex, uLatex, vPrimeC
       }
     }
 
-    let secondTerm;
+    let secondTerm; // ce qui remplace "-(v'(x))u(x)"
+
     if(kVal > 0){
+      // - kx(u)
       secondTerm = ` - ${kxLatex(kVal)}(${uLatex})`;
     } else if(kVal < 0){
+      // - ( -|k|x ) u  = + |k|x(u)
       secondTerm = ` + ${kxLatex(kVal)}(${uLatex})`;
     } else {
+      // k=0 -> v'(x)=0, ça retombe au cas constant 0 normalement, mais bon:
       secondTerm = ``;
     }
 
     return `f'(x)=\\dfrac{${termUV}${secondTerm}}{${denom}}`;
   }
 
+  // ===== 4. Cas général inchangé (affine avec constante, polynôme, etc.)
+  // on garde la version classique : (u'v) - (v'u) avec parenthèses
   const termVU = `(${vPrimeLatex})(${uLatex})`;
   return `f'(x)=\\dfrac{${termUV} - ${termVU}}{${denom}}`;
 }
 
+
+function monomesFromProduct(P, Q){
+  // P et Q sont les coeffs [c0,c1,c2]...
+  // retourne ["-4x^2", "-6x", ...] avec signe intégré
+  const monos=[];
+  for(let i=0;i<P.length;i++){
+    for(let j=0;j<Q.length;j++){
+      const coef = P[i]*Q[j];
+      if(coef===0) continue;
+      const deg = i+j;
+
+      // construit le monôme abs(coef)*x^{deg}
+      const absC = Math.abs(coef);
+      let core;
+      if(deg===0){
+        core = ''+absC;
+      }else if(deg===1){
+        core = (absC===1)?'x':`${absC}x`;
+      }else{
+        core = (absC===1)?`x^{${deg}}`:`${absC}x^{${deg}}`;
+      }
+
+      const signedMono = (coef<0?'- ':'+ ') + core;
+      monos.push(signedMono.trim());
+    }
+  }
+  // join avec " " + " " ne suffit pas ; on veut des + / -
+  let txt = monos.join(' ');
+  txt = cleanSigns(txt);
+  return txt;
+}
+
+function factorTimesExprLatex(factorLatex, exprLatex){
+  // Si le facteur est juste un nombre (ex: "3", "-2", "0.5", "-7"),
+  // alors PAS de parenthèses autour du facteur.
+  // Sinon (ex: "2x+1"), on met des parenthèses.
+  const isNumber = /^-?\d+(\.\d+)?$/.test(factorLatex.trim());
+
+  if(isNumber){
+    return factorLatex.trim() + `(${exprLatex})`;
+  }else{
+    return `(${factorLatex})(${exprLatex})`;
+  }
+}
+
+
 /* =========================================================
-   Construction exo quotient
+   Construction d'un exo QUOTIENT
    ========================================================= */
 
 function randUVpair(){
+  // Choix du type :
   const pattern = choice(["aff/aff","aff/quad","quad/aff","quad/quad"]);
 
   let u, v;
@@ -611,17 +795,21 @@ function randUVpair(){
     v = randQuad();
   }
 
+  // On construit les polynômes sous forme coeffs[]
   const uCoeffs = u.coeffs;
   const vCoeffs = v.coeffs;
 
+  // Dérivées u', v'
   const uPrimeCoeffs = polyDeriv(uCoeffs);
   const vPrimeCoeffs = polyDeriv(vCoeffs);
 
+  // LaTeX de u, v, u', v'
   const uLatex = polyToLatex(uCoeffs);
   const vLatex = polyToLatex(vCoeffs);
   const uPrimeLatex = polyToLatex(uPrimeCoeffs);
   const vPrimeLatex = polyToLatex(vPrimeCoeffs);
 
+  // JS des mêmes (pour vérification élève)
   const uJS      = '('+polyToJS(uCoeffs)+')';
   const vJS      = '('+polyToJS(vCoeffs)+')';
   const uPrimeJS = '('+polyToJS(uPrimeCoeffs)+')';
@@ -634,6 +822,7 @@ function randUVpair(){
   };
 }
 
+/* calcule f(x)=u/v et f'(x) numériquement */
 function makeQuotientEval(uJS,vJS,uPrimeJS,vPrimeJS){
   const fJS = x => {
     const u = Function("x","return "+uJS+";")(x);
@@ -651,6 +840,8 @@ function makeQuotientEval(uJS,vJS,uPrimeJS,vPrimeJS){
 }
 
 function genExQuotient(){
+
+  // tirage u,v
   const {
     uCoeffs,vCoeffs,uPrimeCoeffs,vPrimeCoeffs,
     uLatex,vLatex,uPrimeLatex,vPrimeLatex,
@@ -661,9 +852,11 @@ function genExQuotient(){
 
   const fLatex = `\\dfrac{${uLatex}}{${vLatex}}`;
 
+  // ----- LIGNE FORMULE GÉNÉRALE
   const lineFormule =
     `f'(x)=\\dfrac{u'(x)v(x)-v'(x)u(x)}{(v(x))^{2}}`;
 
+  // ----- LIGNE SUBSTITUTION (avec gestion du signe spécial si v' est constante)
   const lineSubstitution = buildLineSubstitution(
     uPrimeLatex,
     vLatex,
@@ -672,10 +865,13 @@ function genExQuotient(){
     vPrimeCoeffs
   );
 
-  const vPrimeIsConst = isConstantPoly(vPrimeCoeffs);
-  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim();
-  const vPrimeIsKx = /^-?\d*\.?\d*x$/.test(vPrimeNoSpace);
+   const vPrimeIsConst = isConstantPoly(vPrimeCoeffs);
 
+  // On détecte aussi si v'(x) est du type kx (sans terme constant)
+  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim();
+  const vPrimeIsKx = /^-?\d*\.?\d*x$/.test(vPrimeNoSpace); // ex "2x", "-x", "x", "0.5x"
+
+  // numérateur réduit final :
   const numerateurReduit = buildNumeratorReduced(
     uPrimeCoeffs,
     vCoeffs,
@@ -688,20 +884,25 @@ function genExQuotient(){
   let lineConclusion = '';
 
   if(vPrimeIsConst){
+    // ===== CAS A : v'(x) = k constante =====
     const k = vPrimeCoeffs[0];
 
+    // contribution mult*u(x) avec le bon signe
     let mult;
     if(k < 0){
-      mult = Math.abs(k);
+      mult = Math.abs(k);   // devient "+ |k| u(x)"
     }else if(k > 0){
-      mult = -k;
+      mult = -k;            // devient "- k u(x)"
     }else{
-      mult = 0;
+      mult = 0;             // v'(x)=0
     }
 
+    // uvPoly = u' * v
     const uvPoly = polyTimes(uPrimeCoeffs,vCoeffs);
+    // mult*u
     const kuPoly = uCoeffs.map(c => mult*c);
 
+    // numérateur développé "brut" : u'v + (mult*u)" (concatené sans simplif)
     const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
     const uvJoined = joinSignedTermList(uvTerms);
 
@@ -716,6 +917,7 @@ function genExQuotient(){
       numDeveloppe = cleanSigns((uvJoined + '+ ' + kuJoined).trim());
     }
 
+    // puis on regroupe (réduction)
     const maxDeg = Math.max(uvPoly.length-1, kuPoly.length-1);
     const res = Array(maxDeg+1).fill(0);
     for(let d=0; d<=maxDeg; d++){
@@ -725,73 +927,130 @@ function genExQuotient(){
 
     lineDevSectionHTML = `
       <div class="line">\\(f'(x)=\\dfrac{${numDeveloppe}}{${denomSquared}}\\)</div>
+
       <div class="line">\\(f'(x)=\\dfrac{${numerateurReduitConst}}{${denomSquared}}\\)</div>
     `;
 
     lineConclusion = `f'(x)=\\dfrac{${numerateurReduitConst}}{${denomSquared}}`;
 
   } else {
+    // ===== CAS B : v'(x) pas constante =====
 
+    // On a 2 sous-cas :
+    //   B1. v'(x) = kx   → on a déjà absorbé le signe dans la substitution,
+    //                     donc on ne veut PAS l'étape " - (v'(x))u(x)" développée
+    //                     puis l'étape où on distribue le '-'.
+    //
+    //   B2. v'(x) plus compliquée → on garde le déroulé complet (tes 3 lignes actuelles)
+
+    // Préparation commune :
     const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
     const uvJoined = joinSignedTermList(uvTerms);
 
     const vuTerms = expandProductAsOrderedSignedTerms(vPrimeCoeffs, uCoeffs);
     const vuJoined = joinSignedTermList(vuTerms);
 
+    // numérateur réduit déjà calculé :
     const numReduit = numerateurReduit;
 
-    if (vPrimeIsKx){
-      let kStr = vPrimeNoSpace.replace('x','');
-      let kVal = (kStr === '' || kStr === '+') ? 1
-               : (kStr === '-' ? -1 : parseFloat(kStr));
+if (vPrimeIsKx){
+  // ----- CAS B1 : v'(x)=kx -----
 
-      const uvPoly = polyTimes(uPrimeCoeffs, vCoeffs);
+  // 1. Récupérer k (dans v'(x)=k x)
+  let kStr = vPrimeNoSpace.replace('x',''); // "2", "-3", "", "-"
+  let kVal = (kStr === '' || kStr === '+') ? 1
+             : (kStr === '-' ? -1 : parseFloat(kStr));
 
-      const coefGlobal = (kVal>0 ? -kVal : Math.abs(kVal));
+  // 2. Construire polynôme u'v :
+  // uvPoly = u' * v
+  const uvPoly = polyTimes(uPrimeCoeffs, vCoeffs);
 
-      const xTimesU = [0, ...uCoeffs];
-      const secondPoly = xTimesU.map(c => coefGlobal * c);
+  // 3. Construire polynôme correspondant au deuxième terme APRÈS le signe de la SUBSTITUTION :
+  // Substitution a fait :
+  //   si kVal>0 :  ... - kVal*x * u(x)
+  //   si kVal<0 :  ... + |kVal|*x * u(x)
+  //
+  // On va donc créer polySecond = (coefGlobal)*x*u(x)
+  // où coefGlobal = (kVal>0 ? -kVal : +|kVal|).
+  const coefGlobal = (kVal>0 ? -kVal : Math.abs(kVal));
 
-      const maxLen = Math.max(uvPoly.length, secondPoly.length);
-      const numDevPoly = Array(maxLen).fill(0);
-      for (let i=0;i<maxLen;i++){
-        numDevPoly[i] = (uvPoly[i]||0) + (secondPoly[i]||0);
-      }
+  // u(x) coeffs = uCoeffs = [c0,c1,c2,...] pour c0 + c1 x + c2 x^2 + ...
+  // x*u(x) => on décale d'un cran : [0, c0, c1, c2, ...]
+  const xTimesU = [0, ...uCoeffs];
 
-      function polyToSignedTerms(p){
-        const mons = polyToMonomeData(p);
-        return mons
-          .filter(m=>m.coeff!==0)
-          .map(m=>{
-            const absC = Math.abs(m.coeff);
-            let core;
-            if(m.deg===0){
-              core = ''+absC;
-            }else if(m.deg===1){
-              core = (absC===1)?'x':`${absC}x`;
-            }else{
-              core = (absC===1)?`x^{${m.deg}}`:`${absC}x^{${m.deg}}`;
-            }
-            return (m.coeff<0?'- ':'+ ') + core;
-          });
-      }
+  // coefGlobal * (x*u(x))
+  const secondPoly = xTimesU.map(c => coefGlobal * c);
 
-      const uvTerms2     = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
-      const secondTerms  = polyToSignedTerms(secondPoly);
-      const allTermsRaw  = uvTerms2.concat(secondTerms);
-      let numDevDistrib  = joinSignedTermList(allTermsRaw);
+  // 4. numDevPoly = uvPoly + secondPoly
+  //    (somme terme à terme)
+  const maxLen = Math.max(uvPoly.length, secondPoly.length);
+  const numDevPoly = Array(maxLen).fill(0);
+  for (let i=0;i<maxLen;i++){
+    numDevPoly[i] = (uvPoly[i]||0) + (secondPoly[i]||0);
+  }
 
-      lineDevSectionHTML = `
-        <div class="line">\\(f'(x)=\\dfrac{${numDevDistrib}}{${denomSquared}}\\)</div>
-        <div class="line">\\(f'(x)=\\dfrac{${numReduit}}{${denomSquared}}\\)</div>
-      `;
+  // 5. Créer la ligne "développement du numérateur" en LISTE DE TERMES,
+  //    dans l'ordre prof : d'abord u'v, puis le 2ème terme signé,
+  //    EXACTEMENT comme on vient de l'écrire en substitution.
+  //
+  // Pour ça on va générer séparément :
+  //   - les termes de u'v (uPrimeCoeffs * vCoeffs) -> uvTerms
+  //   - les termes du deuxième bloc signé -> secondTerms
+  //
+  const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
 
-      lineConclusion = `f'(x)=\\dfrac{${numReduit}}{${denomSquared}}`;
+  // construire coeffs du deuxième bloc signé seul :
+  // coefGlobal * x * u(x) -> secondCoeffs = secondPoly
+  // mais on veut les monômes de ce poly seul, donc :
+  // on va reconstruire secondTerms via polyToMonomeData + signe
+  function polyToSignedTerms(p){
+    // p : [c0,c1,c2,...]
+    // on veut la liste "+ 4x^2", "- 3x", etc. en ordre décroissant
+    const mons = polyToMonomeData(p); // [{coeff,deg}, ...] ordre décroissant déjà
+    return mons
+      .filter(m=>m.coeff!==0)
+      .map(m=>{
+        const absC = Math.abs(m.coeff);
+        let core;
+        if(m.deg===0){
+          core = ''+absC;
+        }else if(m.deg===1){
+          core = (absC===1)?'x':`${absC}x`;
+        }else{
+          core = (absC===1)?`x^{${m.deg}}`:`${absC}x^{${m.deg}}`;
+        }
+        return (m.coeff<0?'- ':'+ ') + core;
+      });
+  }
+
+  const secondTerms = polyToSignedTerms(secondPoly);
+
+  // concat ordre prof : u'v puis le bloc signé
+  const allTermsRaw = uvTerms.concat(secondTerms);
+  let numDevDistrib = joinSignedTermList(allTermsRaw); // cleanSigns dedans
+
+  // 6. numReduit = forme réduite finale qu'on avait déjà calculée
+  const numReduit = numerateurReduit;
+
+  // 7. On construit les lignes affichées :
+  lineDevSectionHTML = `
+    <div class="line">\\(f'(x)=\\dfrac{${numDevDistrib}}{${denomSquared}}\\)</div>
+
+    <div class="line">\\(f'(x)=\\dfrac{${numReduit}}{${denomSquared}}\\)</div>
+  `;
+
+  lineConclusion = `f'(x)=\\dfrac{${numReduit}}{${denomSquared}}`;
+
+
 
     } else {
+      // --------- CAS B2 : v'(x) général ---------
+      // = ton ancien comportement complet (3 lignes)
+      // 1) numDevBrut = u'v - (v'u)
       const numDevBrut = `${uvJoined} - (${vuJoined})`;
       const numDevBrutClean = cleanSigns(numDevBrut);
 
+      // 2) on distribue le " - (...) " terme à terme
       const flippedVuTerms = vuTerms.map(t=>{
         t = t.trim();
         if(t.startsWith('+')){
@@ -804,27 +1063,33 @@ function genExQuotient(){
       const flippedVuJoined = joinSignedTermList(flippedVuTerms);
       let numDevDistribRaw = (uvJoined + '+ ' + flippedVuJoined).trim();
       numDevDistribRaw = cleanSigns(numDevDistribRaw);
+      // espace après + / -
       const numDevDistrib = numDevDistribRaw.replace(/([+\-])\s*(?=[0-9x])/g, '$1 ');
 
       lineDevSectionHTML = `
         <div class="line">\\(f'(x)=\\dfrac{${numDevBrutClean}}{${denomSquared}}\\)</div>
+
         <div class="line">\\(f'(x)=\\dfrac{${numDevDistrib}}{${denomSquared}}\\)</div>
+
         <div class="line">\\(f'(x)=\\dfrac{${numReduit}}{${denomSquared}}\\)</div>
       `;
 
       lineConclusion = `f'(x)=\\dfrac{${numReduit}}{${denomSquared}}`;
     }
+	
   }
 
-  const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
+  
+const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
 
+  // bloc HTML final pour la solution :
   const solHTML = `
   <div class="steps">
     <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
-    <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
-    <div class="line"><br></div>
-
-    <div class="line"><strong>Méthode — Règle du quotient</strong></div>
+<div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+                   <div class="line"><br></div>
+   
+   <div class="line"><strong>Méthode — Règle du quotient</strong></div>
 
     <div class="line">On pose \\(f(x)=\\dfrac{u(x)}{v(x)}\\) avec :</div>
 
@@ -840,9 +1105,11 @@ function genExQuotient(){
     </table>
 
     <div class="line">\\(${lineFormule}\\)</div>
+
     <div class="line">\\(${lineSubstitution}\\)</div>
 
     ${lineDevSectionHTML}
+
   </div>`;
 
   const title  = "Exercice 1 : Quotient";
@@ -853,20 +1120,26 @@ function genExQuotient(){
     enonce,
     latexF: fLatex,
     latexFp_raw: lineConclusion.replace(/^f'\(x\)=/,'').trim(),
-    latexFp:     lineConclusion.replace(/^f'\(x\)=/,'').trim(),
+    latexFp: lineConclusion.replace(/^f'\(x\)=/,'').trim(),
     solHTML,
     fJS,
     fpJS
   };
 }
 
+
 /* =========================================================
-   Exo inverse
+   EXERCICE 2 : Inverse
+   même idée que ta version précédente
    ========================================================= */
 
 function randInverseData(){
+  // on choisit v affine ou quad
   const isQuad = Math.random()<0.5;
-  let vObj = isQuad ? randQuad() : randAffine();
+
+  let vObj;
+  if(isQuad){ vObj = randQuad(); }
+  else      { vObj = randAffine(); }
 
   const vCoeffs = vObj.coeffs;
   const vLatex  = polyToLatex(vCoeffs);
@@ -876,8 +1149,9 @@ function randInverseData(){
   const vJS      = '('+polyToJS(vCoeffs)+')';
   const vPrimeJS = '('+polyToJS(vPrimeCoeffs)+')';
 
+  // k aléatoire ou pas
   const k = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
-  const useK = Math.random()<0.5;
+  const useK = Math.random()<0.5; // soit 1/v, soit k/v
 
   let fLatex, fJSexpr;
   if(useK){
@@ -888,111 +1162,236 @@ function randInverseData(){
     fJSexpr = `1/(${vJS.slice(1,-1)})`;
   }
 
+  // dérivée :
+  // f(x)=k/v(x) => f'(x)= -k * v'(x)/(v(x))^2
+  // si pas de k explicite => k=1
   const K = useK ? k : 1;
-
+  // coeff devant la fraction : -K
+  function coefTimesDerivLatex(coeff){
+    const absC = Math.abs(coeff);
+    if(absC===1){
+      return coeff<0?'- ':'';
+    }else{
+      return (coeff<0?'- ':'')+absC+"\\,";
+    }
+  }
+  const frontCoef = coefTimesDerivLatex(-K);
   const derivLatexFinal =
-    `${(K===1?'- \\dfrac{'+vPrimeLatex+'}{\\left('+vLatex+'\\right)^{2}}'
-          : ( (Math.abs(-K)===1? ( (-K<0)?'- ':'') : ((-K<0?'- ':'')+Math.abs(-K)+"\\,")) +
-              '\\dfrac{'+vPrimeLatex+'}{\\left('+vLatex+'\\right)^{2}}'
-            )
-     )}`
-     .replace(/\s+/g,' ')
-     .trim();
+    `${frontCoef}\\dfrac{${vPrimeLatex}}{\\left(${vLatex}\\right)^{2}}`
+      .replace(/\s+/g,' ')
+      .trim();
 
   const derivLatexAFinal =
-    `${( (Math.abs(-K)===1?((-K<0)?'- ':'')
-        : ((-K<0?'- ':'')+Math.abs(-K)+"\\,")) +
-       '\\dfrac{v\'(x)}{\\left(v(x)\\right)^{2}}'
-     )}`.replace(/\s+/g,' ').trim();
-
+    `${frontCoef}\\dfrac{v'(x)}{\\left(v(x)\\right)^{2}}`
+      .replace(/\s+/g,' ')
+      .trim();
+	  
+  // fonctions num pour check
   const fJS = x => Function("x","return ("+fJSexpr+");")(x);
   const fpJS = x => {
     const v  = Function("x","return "+vJS+";")(x);
     const dv = Function("x","return "+vPrimeJS+";")(x);
     return -(K*dv)/(v*v);
   };
-
-  const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
+const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
 
   const title = "Exercice 2 : Inverse";
   const enonce = `Déterminer la dérivée de la fonction définie (sur son ensemble de définition) par :<br><br>\\[ f(x)=${fLatex} \\]`;
 
+
+  // --- Avantage : on fabrique deux styles HTML différents ---
+
   let solHTML = '';
 
   if (!useK || K === 1) {
+    // =========================
+    // CAS A : f(x) = 1 / u(x)
+    // (donc on ne parle PAS de k)
+    // =========================
+
+    // dérivée attendue dans ce cas précis :
+    // f'(x) = -(u'(x)) / (u(x))^2
     const derivLatexCase1 =
       `-\\dfrac{${vPrimeLatex}}{\\left(${vLatex}\\right)^{2}}`
       .replace(/\s+/g,' ')
       .trim();
 
-    function minusOneTimes_vPrime_develop(vPrimeCoeffs){
-      const scaled = vPrimeCoeffs.map(c => -1 * c);
-      return polyToLatex(scaled);
-    }
-    const devNum = minusOneTimes_vPrime_develop(vPrimeCoeffs);
-    const denomSq = `\\left(${vLatex}\\right)^{2}`;
+ function minusOneTimes_vPrime_raw(vPrimeLatex){
+    // si v'(x) commence par "-" ou contient plusieurs termes, on l'encadre
+    const vpTrim = vPrimeLatex.trim();
+    const needsPar = /[-+].*x|^\-/.test(vpTrim);
+    const vpShown = needsPar ? `(${vpTrim})` : vpTrim;
+    // on écrit -1 × v'(x) mais on ne veut pas montrer "1" devant,
+    // tu ne veux jamais voir "1x". Par cohérence visuelle,
+    // on va écrire juste "- " devant si c'est une constante simple,
+    // mais on veut conserver le format "(-1) × ..." pour rester parallèle au cas k≠1.
+    //
+    // Pour être propre et explicite pédagogiquement, on garde "(-1) × ...".
+    return `(-1)\\,${vpShown}`;
+  }
 
-    const lineAfterDev =
-      `f'(x)=\\dfrac{${devNum}}{${denomSq}}`;
+  // 2) produit développé : (-1)*v'(x)
+  // vPrimeCoeffs est un polynôme [c0,c1,c2,...]
+  // On multiplie CHAQUE coeff par -1, puis on le réécrit joliment.
+  function minusOneTimes_vPrime_develop(vPrimeCoeffs){
+    const scaled = vPrimeCoeffs.map(c => -1 * c);
+    return polyToLatex(scaled); // ex "4x-6" ou "1" ou "-2x" etc.
+  }
+
+  const numRaw   = minusOneTimes_vPrime_raw(vPrimeLatex);
+  const numDev   = minusOneTimes_vPrime_develop(vPrimeCoeffs);
+
+  // dénominateur commun
+  const denomSq = `\\left(${vLatex}\\right)^{2}`;
+
+  // lignes intermédiaires :
+  //
+  // 1. Formule générale appliquée au cas k=1 :
+  //    f'(x)= - v'(x)/(v(x))^2
+  const lineGeneral =
+    `f'(x)= -\\dfrac{v'(x)}{\\big(v(x)\\big)^2}`;
+
+  // 2. Substitution explicite de v'(x)
+  //    f'(x)= [ (-1) × v'(x) ] / (v(x))^2
+  const lineSubNoDev =
+    `f'(x)=\\dfrac{${numRaw}}{${denomSq}}`;
+
+  // 3. Développement de (-1)*v'(x)
+  //    f'(x)= numDev / (v(x))^2
+  const lineAfterDev =
+    `f'(x)=\\dfrac{${numDev}}{${denomSq}}`;
+
 
     solHTML = `
     <div class="steps">
-      <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
-      <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
-      <div class="line"><br></div>
+    <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
+<div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+                          <div class="line"><br></div>
 
-      <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
+	   <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
 
-      <div class="line">On a \\( \\) \\(f(x)=\\dfrac{1}{v(x)}\\) \\( \\) avec :</div>
+        <div class="line">On a \\( \\) \\(f(x)=\\dfrac{1}{v(x)}\\) \\( \\) avec :</div>
 
-      <div class="line">\\(v(x)=${vLatex}\\).</div>
-      <div class="line">\\(v'(x)=${vPrimeLatex}\\).</div>
+        <div class="line">\\(v(x)=${vLatex}\\).</div>
+        <div class="line">\\(v'(x)=${vPrimeLatex}\\).</div>
 
-      <div class="line">\\(f'(x)= -\\dfrac{v'(x)}{\\big(v(x)\\big)^2}\\)</div>
+      
 
-      <div class="line">\\(f'(x)= ${derivLatexCase1}\\)</div>
+        <div class="line">\\(f'(x)= -\\dfrac{v'(x)}{\\big(v(x)\\big)^2}\\)
+        </div>
 
-      <div class="line">\\(${lineAfterDev}\\)</div>
+        <div class="line">
+          \\(f'(x)= ${derivLatexCase1}\\)
+        </div>
+		
+		  <div class="line">
+          \\(${lineAfterDev}\\)
+        </div>
+   
     </div>`;
 
-    const derivLatexFinalCase = derivLatexCase1;
+    // et on définit la version finale à comparer pour la vérif élève :
+    // (c'est la même forme que derivLatexCase1)
+    // -> On remplace latexFp_raw / latexFp par ce cas-là
+    const derivLatexFinal = derivLatexCase1;
     return {
       title,
       enonce,
       latexF: fLatex,
-      latexFp_raw: derivLatexFinalCase,
-      latexFp: derivLatexFinalCase,
+      latexFp_raw: derivLatexFinal,
+      latexFp: derivLatexFinal,
       solHTML,
       fJS,
       fpJS
     };
+
   } else {
-    function productMinusK_vPrime_develop(k, vPrimeCoeffs){
-      const mk = -k;
-      const scaled = vPrimeCoeffs.map(c => mk*c);
-      return polyToLatex(scaled);
+    	
+	 // (-k)
+    function minusKVal(k){ return -k; } // valeur numérique
+    function minusKLatex(k){
+      // affichage symbolique de "-k"
+      // si k<0 -> "-(-4)"
+      // si k>0 -> "-2"
+      if(k < 0){
+        return `-(${k})`;
+      } else {
+        return `-${k}`;
+      }
     }
 
-    const rawDevNum = productMinusK_vPrime_develop(K, vPrimeCoeffs);
+    // 1) produit (-k)*v'(x) NON développé, propre :
+    //    ex k=-4, v'(x)=-1  -> "-(-4) \\times (-1)"
+    //    ex k=2,  v'(x)=3x-5 -> "-2 \\times (3x-5)"
+    function productMinusK_vPrime_raw(k, vPrimeLatex){
+      const minusKtxt = minusKLatex(k); // "-2" ou "-(-4)"
+      // v'(x) peut commencer par "-", ou avoir plusieurs termes
+      const vpTrim = vPrimeLatex.trim();
+      const needsPar = /[-+].*x|^\-/.test(vpTrim); 
+      // heuristique : si affine ou commence par "-", mets ( ... )
+      const vpShown = needsPar ? `(${vpTrim})` : vpTrim;
+      return `${minusKtxt}\\,${vpShown}`;
+    }
+
+    // 2) produit (-k)*v'(x) DÉVELOPPÉ :
+    //    on prend vPrimeCoeffs (tableau coeffs croissants)
+    //    on multiplie chaque coeff par (-k) et on ré-écrit en LaTeX propre
+    function productMinusK_vPrime_develop(k, vPrimeCoeffs){
+      const mk = -k; // numériquement
+      const scaled = vPrimeCoeffs.map(c => mk*c); // (-k)*v'(x)
+      // convertir ce polynôme en latex propre (sans 1x, sans + -)
+      return polyToLatex(scaled); // ex "6x - 10" ou "-4"
+    }
+
+    // valeurs utiles
+    const minusK_num = minusKVal(K); // nombre -k
+    const rawNum = productMinusK_vPrime_raw(K, vPrimeLatex); // ex "-(-4) (-1)" ou "-2 (3x-5)"
+    const devNum = productMinusK_vPrime_develop(K, vPrimeCoeffs); // ex "-4" ou "6x - 10"
+
+    // Ligne 1 : rappel règle appliquée
+    // f'(x)= -k * v'(x) / (v(x))^2
+    const lineGeneralApplied = 
+      `f'(x)=\\dfrac{-k\\,v'(x)}{\\left(v(x)\\right)^{2}}`;
+
+    // Ligne 2 : substitution k et v'(x) dedans, AVANT développement
+    //          -> numérateur = minusKLatex(K) * v'(x)
+    const lineSubNoDev =
+      `f'(x)=\\dfrac{${rawNum}}{\\left(${vLatex}\\right)^{2}}`;
+
+    // Ligne 3 : développement de (-k)*v'(x)
+    //          -> numérateur = devNum
+    //          Attention au cas où devNum est juste un nombre négatif :
+    //          c'est ok, polyToLatex gère les signes.
     const lineAfterDev =
-      `f'(x)=\\dfrac{${rawDevNum}}{\\left(${vLatex}\\right)^{2}}`;
+      `f'(x)=\\dfrac{${devNum}}{\\left(${vLatex}\\right)^{2}}`;
+
+
 
     solHTML = `
     <div class="steps">
-      <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
-      <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
-      <div class="line"><br></div>
+    <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
+<div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+                   <div class="line"><br></div>
 
-      <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
+		 <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
 
-      <div class="line">On a \\( \\) \\(f(x)=\\dfrac{${K}}{v(x)}\\) \\( \\) avec :</div>
-      <div class="line">\\(v(x)=${vLatex}\\)</div>
-      <div class="line">\\(v'(x)=${vPrimeLatex}\\)</div>
 
-      <div class="line">\\(f'(x)= ${K}\\,\\dfrac{-v'(x)}{\\big(v(x)\\big)^2}\\)</div>
-      <div class="line">\\(f'(x)= ${derivLatexAFinal}\\)</div>
-      <div class="line">\\(f'(x)= ${derivLatexFinal}\\)</div>
-      <div class="line">\\(${lineAfterDev}\\)</div>
+        <div class="line">On a \\( \\) \\(f(x)=\\dfrac{${K}}{v(x)}\\) \\( \\) avec :</div>
+        <div class="line">\\(v(x)=${vLatex}\\)</div>
+        <div class="line">\\(v'(x)=${vPrimeLatex}\\)</div>
+
+   
+        <div class="line">\\(f'(x)= ${K}\\,\\dfrac{-v'(x)}{\\big(v(x)\\big)^2}\\)</div>
+  <div class="line">
+          \\(f'(x)= ${derivLatexAFinal}\\)
+        </div>
+        <div class="line">
+          \\(f'(x)= ${derivLatexFinal}\\)
+        </div>
+ <div class="line">
+          \\(${lineAfterDev}\\)
+        </div>
+
     </div>`;
 
     return {
@@ -1006,6 +1405,7 @@ function randInverseData(){
       fpJS
     };
   }
+
 }
 
 /* =========================================================
@@ -1061,7 +1461,7 @@ function checkAnswer(st){
 }
 
 /* =========================================================
-   REGISTRY
+   REGISTRY des exos
    ========================================================= */
 
 const EXO_Q = {
@@ -1080,8 +1480,7 @@ const EXO_Q = {
         latexFp_raw:  st.latexFp_raw,
         solHTML:      st.solHTML
       });
-      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([host]);
-      else if(window.MathJax?.typeset)   MathJax.typeset([host]);
+      if(window.MathJax?.typeset) MathJax.typeset();
       scanFractions(host);
     }
     return st;
@@ -1094,8 +1493,7 @@ const EXO_Q = {
   },
   solution(host, st){
     $('#res',host).innerHTML = st.solHTML;
-    if(window.MathJax?.typesetPromise) MathJax.typesetPromise([$('#res',host)]);
-    else if(window.MathJax?.typeset)   MathJax.typeset([$('#res',host)]);
+    if(window.MathJax?.typeset) MathJax.typeset();
   },
   reset(host){
     $('#res',host).textContent = '';
@@ -1121,8 +1519,7 @@ const EXO_I = {
         latexFp_raw:  st.latexFp_raw,
         solHTML:      st.solHTML
       });
-      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([host]);
-      else if(window.MathJax?.typeset)   MathJax.typeset([host]);
+      if(window.MathJax?.typeset) MathJax.typeset();
       scanFractions(host);
     }
     return st;
@@ -1135,8 +1532,7 @@ const EXO_I = {
   },
   solution(host, st){
     $('#res',host).innerHTML = st.solHTML;
-    if(window.MathJax?.typesetPromise) MathJax.typesetPromise([$('#res',host)]);
-    else if(window.MathJax?.typeset)   MathJax.typeset([$('#res',host)]);
+    if(window.MathJax?.typeset) MathJax.typeset();
   },
   reset(host){
     $('#res',host).textContent = '';
@@ -1197,231 +1593,56 @@ function mount(){
 }
 document.addEventListener('DOMContentLoaded', mount);
 
-
-/* =========================================================
-   Adaptateur PDF : version iframe SVG
-   ========================================================= */
+/* ===== Adaptateur PDF ===== */
 (function(){
   document.addEventListener('DOMContentLoaded', function () {
     if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
-
     ExoPDF.init({
       title: document.title,
       mountAfterSelector: '#host',
-
       beforeGen(def, _st, ctx){
-        const hostTmp = document.createElement('div');
-        if (def && typeof def.gen === 'function') def.gen(hostTmp);
+        const host = document.createElement('div');
+        if (def && typeof def.gen === 'function') def.gen(host);
         let st = {};
-        try {
-          st = JSON.parse(hostTmp.dataset.state || '{}');
-        } catch(_){}
+        try{ st = JSON.parse(host.dataset.state||'{}'); }catch(_){}
         return st;
       },
+      beforeRender(def, st, withSolutions){
+        try{
+          const host = document.createElement('div');
+          host.id = 'pdf-host';
+          host.style.position='fixed'; host.style.left='-10000px'; host.style.top='-10000px';
+          document.body.appendChild(host);
 
+          host.innerHTML = (typeof window.buildHostHTML === 'function') ? buildHostHTML(st) : '';
+          host.dataset.state = JSON.stringify(st);
 
+          if (withSolutions && def && typeof def.solution === 'function'){
+            def.solution(host, st);
+          }
 
+          (host.querySelectorAll('input, textarea, select, [contenteditable="true"]')||[])
+            .forEach(el=>{
+              const t = document.createTextNode(el.value||' ');
+              el.replaceWith(t);
+            });
 
-      // >>>>>>>>>>>>> async PROMISE RETURN
-  beforeRender(def, st, withSolutions){
-  return (async () => {
-    let host = null;
-    try {
+          const outHTML = withSolutions
+            ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
+            : host.innerHTML;
 
-      // 1. Construire un host OFFSCREEN juste pour récupérer l'état (mais SANS typeset écran)
-      host = document.createElement('div');
-      host.id = 'pdf-host';
-      host.style.position='fixed';
-      host.style.left='-10000px';
-      host.style.top='-10000px';
-      document.body.appendChild(host);
-
-      // on DOIT recréer l'enoncé de base
-      host.innerHTML = buildHostHTML(st);
-      host.dataset.state = JSON.stringify(st);
-
-      // 👉⚠ NE PAS appeler def.solution(host, st) ici,
-      //    car ça MathJax-typeset en CHTML et flingue le LaTeX brut.
-
-      // 2. Construire le HTML qu'on veut envoyer dans le PDF
-      //    - si withSolutions === false : on prend juste l'énoncé tel quel
-      //    - si withSolutions === true  : on fabrique nous-même un bloc
-      //      qui contient st.solHTML (non encore typeset).
-      let innerHTML_for_pdf;
-if (withSolutions){
-  innerHTML_for_pdf = `
-    <div class="exo-block">
-      <span class="exo-title">${st.title}</span>
-      <div class="enonce">
-        ${st.enonce}
-        <div style="margin-top:1rem;font-weight:600">Corrigé :</div>
-      </div>
-      ${st.solHTML}
-    </div>
-  `;
-} else {
-  innerHTML_for_pdf = host.innerHTML;
-}
-
-
-      // 3. IFRAME sandbox pour MathJax SVG ...
-      // (le reste de ton code continue comme avant)
-
-
-      // 2. Créer l'iframe sandbox
-      const iframe = document.createElement('iframe');
-      iframe.style.position   = 'fixed';
-      iframe.style.left       = '-10000px';
-      iframe.style.top        = '-10000px';
-      iframe.style.width      = '0';
-      iframe.style.height     = '0';
-      iframe.style.visibility = 'hidden';
-      document.body.appendChild(iframe);
-
-      const iwin = iframe.contentWindow;
-      const idoc = iframe.contentDocument;
-
-      // 3. Écrire un DOM minimal dans l'iframe
-      // pas de <script> ici pour éviter de casser notre propre <script> parent
-      idoc.open();
-      idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="content"></div></body></html>');
-      idoc.close();
-// 4. Injecter le contenu (énoncé/solution) dans l'iframe
-const contentDiv = idoc.getElementById('content');
-contentDiv.innerHTML = innerHTML_for_pdf;
-
-// 🔧 IMPORTANT : on vire toute trace d'anciens rendus MathJax CHTML
-// (dans le host original il y a déjà des <mjx-container jax="CHTML">...</mjx-container> )
-// On veut repartir du LaTeX brut pour que MathJax SVG refasse tout proprement.
-
-contentDiv.querySelectorAll('mjx-container').forEach(mjx => {
-  // On essaie de récupérer le tex d'origine si MathJax l'a gardé en commentaire,
-  // sinon on remplace par juste le texte rendu (fallback).
-  // Mais dans notre cas, comme l'innerHTML_for_pdf vient AVANT typeset dans l'iframe,
-  // il devrait déjà contenir le LaTeX source (\( ... \)). Donc en pratique,
-  // ce bloc servira surtout si jamais un ancien mjx traine.
-  mjx.replaceWith(mjx.textContent || '');
-});
-
-// Enlever aussi l'accessibilité MathML pré-existante (au cas où)
-contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml')
-  .forEach(n => n.remove());
-
-
-      // 5. Préparer MathJax SVG dans l'iframe
-      //    a) script config MathJax
-      const cfg = idoc.createElement('script');
-      cfg.type = 'text/javascript';
-      cfg.text = `
-        window.MathJax = {
-          tex: {
-            inlineMath: [['\\\\(','\\\\)'], ['$', '$']],
-            displayMath: [['\\\\[','\\\\]'], ['$$','$$']],
-            processEscapes: true,
-            packages: { '[+]': ['bbox','ams'] }
-          },
-          svg: {
-            fontCache: 'none'
-          },
-          options: {
-            skipHtmlTags: ['script','noscript','style','textarea']
-          },
-          startup: { typeset: false }
-        };
-      `;
-      idoc.head.appendChild(cfg);
-
-      //    b) script tex-svg.js (URL absolue pour être sûr)
-      const svgScriptURL = new URL("../../../../es5/tex-svg.js", window.location.href).href;
-      const mj = idoc.createElement('script');
-      mj.type = 'text/javascript';
-      mj.src  = svgScriptURL;
-      idoc.head.appendChild(mj);
-
-// 6. Attendre que tex-svg.js soit chargé puis typer
-await new Promise(resolve=>{
-  mj.onload = resolve;
-  mj.onerror = resolve; // on résout quand même même si ça plante
-});
-
-// sécurité: attendre que MathJax initialise typesetPromise
-async function waitMathJaxReady(win){
-  const limit = 200;
-  let n = 0;
-  while (
-    (!win.MathJax) ||
-    (!win.MathJax.typesetPromise && !win.MathJax.typeset)
-  ){
-    await new Promise(res=>setTimeout(res,5));
-    n++;
-    if(n>limit) break;
-  }
-}
-await waitMathJaxReady(iwin);
-
-// 7. Faire le typeset SVG dans l'iframe
-if (iwin.MathJax && iwin.MathJax.typesetPromise){
-  await iwin.MathJax.typesetPromise([ contentDiv ]);
-} else if (iwin.MathJax && iwin.MathJax.typeset){
-  iwin.MathJax.typeset([ contentDiv ]);
-}
-
-// 8. *** NETTOYAGE ANTI-DOUBLON ***
-//    On enlève la version CHTML héritée de l'écran et on garde la version SVG.
-(function purgeCHTML(){
-  // 1. Supprimer les conteneurs CHTML de l'écran s'ils existent
-  //    (dans ta page écran, MathJax CHTML génère <mjx-container jax="CHTML"> ...)
-  contentDiv.querySelectorAll('mjx-container[jax="CHTML"]').forEach(n => n.remove());
-
-  // 2. Certains contenus d'origine peuvent encore contenir du texte LaTeX brut
-  //    suivi d'un conteneur SVG généré. Ex :
-  //      "f'(x)=" <mjx-container jax="SVG">...</mjx-container>
-  //    → ça va, on garde.
-
-  // 3. Option belt & suspenders :
-  //    Si jamais MathJax SVG a cloné au lieu de remplacer, on vire les doublons restants
-  //    du type <mjx-container jax="CHTML"> même imbriqués.
-  contentDiv.querySelectorAll('mjx-container:not([jax="SVG"])').forEach(n => n.remove());
-
-  // 4. On enlève les aides d’accessibilité inutiles pour le PDF
-  contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml').forEach(n => n.remove());
+          document.body.removeChild(host);
+          return outHTML;
+        }catch(e){
+          console.error('PDF beforeRender error:', e);
+          return null;
+        }
+      }
+    });
+  });
 })();
 
-// 9. Récupérer le HTML final (ne contenant plus que le SVG)
-const finalHTML = contentDiv.innerHTML;
-
-// 10. Nettoyage DOM temporaire
-iframe.remove();
-if (host) host.remove();
-
-// 11. Retourner le HTML prêt pour le PDF
-return finalHTML;
-
-
-    } catch(e){
-      console.error('beforeRender SVG error:', e);
-
-      let fallbackHTML = '';
-      if (host) {
-        fallbackHTML = withSolutions
-          ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
-          : host.innerHTML;
-        host.remove();
-        host = null;
-      }
-      return fallbackHTML;
-    }
-  })(); // IIFE async
-}
-
-    }); // <-- FERMETURE ExoPDF.init
-  }); // <-- FERMETURE addEventListener DOMContentLoaded
-})(); // <-- FERMETURE IIFE global
-
-
-/* =========================================================
-   mobile tweaks (inchangé)
-   ========================================================= */
+/* ===== mobile tweaks ===== */
 document.addEventListener('DOMContentLoaded', () => {
   const coarse = matchMedia('(pointer:coarse)').matches;
 
@@ -1478,9 +1699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 }, {passive:true});
-
 </script>
-
 
 </body>
 </html>

@@ -193,35 +193,44 @@ select,input[type="text"]{
   padding-bottom:.08em;
 }
 
-/* --- anti-"formule géante" en inline sur mobile --- */
+/* =========================================
+   Fix MathJax SVG inline qui explose en géant sur mobile
+   ========================================= */
 @media (max-width:760px){
-  /* cible les math inline MathJax SVG */
+
+  /* 1. Toutes les formules inline doivent se comporter comme du texte normal */
   mjx-container[jax="SVG"][display="inline"]{
-    font-size:1em !important;        /* pas plus gros que le texte */
-    line-height:1.2 !important;      /* évite d'étirer la ligne */
-    vertical-align:-0.2em !important;/* recale un peu vers le bas */
+    display: inline-block;        /* reste dans la ligne */
+    font-size: 1em !important;    /* taille texte */
+    line-height: 1.2 !important;  /* n'ouvre pas la ligne à 4rem */
+    vertical-align: -0.2em !important; /* descend un peu pour aligner visuellement */
+    max-height: 1.2em;            /* empêche le container d'être géant */
+    overflow: visible;
   }
 
-  /* dans les phrases normales (enonce, steps, etc.) */
+  /* 2. Et on écrase la hauteur du SVG interne,
+        parce que c'est lui qui impose la démesure */
+  mjx-container[jax="SVG"][display="inline"] svg{
+    height: 1em !important;       /* impose la vraie taille */
+    width: auto;
+  }
+
+  /* 3. Dans les blocs de texte (énoncé, étapes, mini-tableaux…),
+        pas d'espace en bas ajouté par nos styles desktop */
   .enonce mjx-container[jax="SVG"][display="inline"],
   .steps mjx-container[jax="SVG"][display="inline"],
   .uvtab mjx-container[jax="SVG"][display="inline"],
   .twocol-solution mjx-container[jax="SVG"][display="inline"]{
-    max-height:1.2em;                /* empêche le SVG de dépasser */
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
   }
 
-  /* sécurité : empêche MathJax d'ajouter trop d'espace sous la ligne */
-  mjx-container[jax="SVG"][display="inline"] svg{
-    height:1em;                      /* on cale la hauteur du svg */
-    width:auto;
-  }
-}
-
-@media (max-width:760px){
+  /* 4. Et on annule le padding-bottom prévu pour la version bureau */
   .steps mjx-container{
-    padding-bottom:0;
+    padding-bottom: 0 !important;
   }
 }
+
 </style>
 
 <!-- MathJax SVG -->

@@ -278,23 +278,24 @@ body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;col
 })(window);
 </script>
 <!-- MathJax (SVG, sans Assistive MathML) -->
+<!-- ⭐ MATHJAX CONFIG CHTML (PAS SVG) -->
 <script>
-window.MathJax = {
-  tex: {
-    inlineMath: [['\\(','\\)'], ['$', '$']],
-    displayMath: [['\\[','\\]'], ['$$','$$']],
-    processEscapes: true,
-    packages: { '[+]': ['bbox','ams'] },
-    macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-  },
-  options: {
-    skipHtmlTags: ['script','noscript','style','textarea'],
-    renderActions: { assistiveMml: [] }
-  },
-  startup: { typeset:true }
-};
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: { '[+]': ['bbox','ams'] },
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
 </script>
-<script defer src="../../../../es5/tex-svg.js"></script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<!-- FIN MathJax -->
+
 
 <!-- Ceinture + bretelles : au cas où, on masque aussi l’Assistive MathML en CSS -->
 <style>
@@ -302,7 +303,7 @@ window.MathJax = {
 </style>
 
 <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
-<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
 </head>
 <body>
   <div class="header">
@@ -1617,7 +1618,7 @@ L.push(`<p>\\( f(x) = ${toTeX(s.fx)} \\) donc : \\(f(${fmtNum(a)}) = ${eqOnce(fE
 const dEval = texDerivEvalLine(s.dfx, a); // ex: 3, \dfrac{1}{2}\sqrt{...}, ...
 const dVal  = texRat(m);                  // valeur numérique en fraction
 L.push(`<p>\\( f'(x) = ${toTeX(s.dfx)} \\) donc : \\(f'(${pr(a)}) = ${eqOnce(dEval, dVal)}\\)</p>`);
-L.push(`<p>L'équation de la tangente \\(T\\) au point \\(A\\) de \\(C_f\\) d’abscisse \\( x_A = ${fmtNum(s.xA)} \\) est : </p>`);
+L.push(`<p>L'équation de la tangente \\(T\\) au point \\(A\\) de \\(C_f\\) d’abscisse \\( x_A = ${fmtNum(s.xA)} \\) est \\( \\) : </p>`);
 L.push(`<p>\\(y = f'(${pr(a)})(x ${a<0?'+':'-'} ${fmtNum(Math.abs(a))}) + f(${pr(a)})\\)</p>`);
 
 // L3 : équation point-pente
@@ -1795,22 +1796,198 @@ document.querySelector('#btn-new')?.addEventListener('click', ()=>{
 
 
 
-/* === Invocation de TON kit PDF depuis la fiche ===
-   - Ne modifie pas ton kit.
-   - Ajoute un bouton "🖨️ PDF (Énoncé + Corrigé)" dans .controls.
-   - Expose aussi window.genPDF() si tu veux l’appeler ailleurs.
-*/
-window.addEventListener('load', () => {
-  // 1) Init de ton kit si l'API est là
-  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
-    // Le titre est optionnel : il prendra document.title si tu ne mets rien
-    ExoPDF.init({ title: document.title || "Fiche", autoButton: false });
+/* =========================================================
+   Adaptateur PDF : version iframe SVG
+   ========================================================= */
+(function(){
+  document.addEventListener('DOMContentLoaded', function () {
+  if (window.ExoPDF && typeof ExoPDF.init==='function'){
+    ExoPDF.init({
+      title: document.title,
+      mountAfterSelector: '#host',
+
+      // on veut renvoyer l'état exact (params) qu'a l'exo actif
+beforeGen(def, _ignored, ctx){
+  // récupère le "kind" courant (carré, racine, etc.)
+  const kind = window.__EXO6_KIND__ || 'random';
+
+  // on génère de nouveaux paramètres frais
+  const params = def.gen(kind);
+
+  // on met à jour le cache global pour cohérence UI <-> PDF
+  window.__EXO_PARAMS_CACHE[def.id] = { params };
+
+  // c'est cet objet qui sera passé à beforeRender
+  return { params };
+},
+
+
+      // ATTENTION: doit renvoyer une Promise<string> (HTML final SVG-ready)
+beforeRender(def, st, withSolutions){
+  return (async () => {
+
+    // 0. Récup params
+    const usableParams = st && st.params ? st.params : st;
+
+    // 1. Host caché pour générer enoncé+solution SANS MathJax écran
+    const tmpHost = document.createElement('div');
+    tmpHost.style.position='fixed';
+    tmpHost.style.left='-10000px';
+    tmpHost.style.top='-10000px';
+    tmpHost.style.width='800px';
+    tmpHost.style.zIndex='-1';
+    document.body.appendChild(tmpHost);
+
+    // on sauve et on neutralise retypeMath pour ne PAS lancer CHTML
+    const savedRetypeMath = window.retypeMath;
+    window.retypeMath = function(){};
+
+    // 2. Générer l'énoncé dans tmpHost
+    def.render(tmpHost, {params: usableParams});
+
+    // récupérer le HTML de l'énoncé (.equ)
+    const equEl = tmpHost.querySelector('.equ');
+    let enonceHTML = '';
+    if (equEl){
+      const clone = equEl.cloneNode(true);
+
+      // virer sélecteur "Type de fonction" & boutons
+      clone.querySelector('.hide-print')?.remove();
+      clone.querySelectorAll('button').forEach(b=>b.remove());
+      clone.querySelectorAll('select').forEach(s=>s.remove());
+
+      // virer ticks
+      clone.querySelectorAll('.tick').forEach(t=>t.remove());
+
+      // virer zone steps vide
+      clone.querySelectorAll('#steps6').forEach(s=>s.remove());
+
+      // remplacer les <input> par des jolis "____"
+      clone.querySelectorAll('input').forEach(inp=>{
+        const span = document.createElement('span');
+        span.style.display='inline-block';
+        span.style.minWidth = (inp.style.width||'120px');
+        span.style.borderBottom = '1px solid #000';
+        span.style.height='1.2em';
+        span.style.verticalAlign='baseline';
+        inp.replaceWith(span);
+      });
+
+      enonceHTML = clone.innerHTML;
+    }
+
+    // 3. Générer la solution SI demandé
+    let solBlockHTML = '';
+    if (withSolutions){
+      def.solution(tmpHost); // génère #res avec .steps en LaTeX
+      const stepsBox = tmpHost.querySelector('#res .steps');
+      if (stepsBox){
+        solBlockHTML = `
+          <p><b>Corrigé :</b></p>
+          <div class="steps">${stepsBox.innerHTML}</div>
+        `;
+      }
+    }
+
+    // on restaure retypeMath pour le reste du site
+    window.retypeMath = savedRetypeMath;
+
+    // 4. Construire le HTML complet à envoyer dans l'iframe SVG
+    const blockHTML = `
+      <div class="exo-block">
+        ${enonceHTML}
+        ${solBlockHTML}
+      </div>
+    `;
+
+    // 5. Iframe sandbox MathJax SVG
+    const iframe = document.createElement('iframe');
+    iframe.style.position='fixed';
+    iframe.style.left='-10000px';
+    iframe.style.top='-10000px';
+    iframe.style.width='0';
+    iframe.style.height='0';
+    iframe.style.visibility='hidden';
+    document.body.appendChild(iframe);
+
+    const iwin = iframe.contentWindow;
+    const idoc = iframe.contentDocument;
+
+    idoc.open();
+    idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="content"></div></body></html>');
+    idoc.close();
+
+    const contentDiv = idoc.getElementById('content');
+    contentDiv.innerHTML = blockHTML;
+
+    // ⚠ IMPORTANT : ON NE TOUCHE PAS AU LATEX ICI
+    // surtout pas de "replaceWith(mjx.textContent)"
+
+    // 6. Charger MathJax SVG dans l’iframe
+    const cfg = idoc.createElement('script');
+    cfg.type='text/javascript';
+    cfg.text = `
+      window.MathJax = {
+        tex: {
+          inlineMath: [['\\\\(','\\\\)'], ['$', '$']],
+          displayMath: [['\\\\[','\\\\]'], ['$$','$$']],
+          processEscapes: true,
+          packages: { '[+]': ['bbox','ams'] }
+        },
+        svg: { fontCache: 'none' },
+        options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+        startup: { typeset: false }
+      };
+    `;
+    idoc.head.appendChild(cfg);
+
+          const svgScriptURL = new URL("../../../../es5/tex-svg.js", window.location.href).href;
+          const mj = idoc.createElement('script');
+          mj.type='text/javascript';
+          mj.src = svgScriptURL;
+          idoc.head.appendChild(mj);
+
+    // helper attente
+    async function waitMathJaxReady(win){
+      const limit=200; let n=0;
+      while( (!win.MathJax) ||
+             (!win.MathJax.typesetPromise && !win.MathJax.typeset) ){
+        await new Promise(res=>setTimeout(res,5));
+        n++; if(n>limit) break;
+      }
+    }
+
+    await new Promise(res=>{
+      mj.onload=res;
+      mj.onerror=res;
+    });
+    await waitMathJaxReady(iwin);
+
+    if(iwin.MathJax && iwin.MathJax.typesetPromise){
+      await iwin.MathJax.typesetPromise([contentDiv]);
+    }else if(iwin.MathJax && iwin.MathJax.typeset){
+      iwin.MathJax.typeset([contentDiv]);
+    }
+
+    // 7. On purge tout sauf le SVG
+    contentDiv.querySelectorAll('mjx-container:not([jax="SVG"])').forEach(n=>n.remove());
+    contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml').forEach(n=>n.remove());
+
+    // 8. HTML final pour le PDF
+    const finalHTML = contentDiv.innerHTML;
+
+    // ménage DOM temporaire
+    iframe.remove();
+    tmpHost.remove();
+
+    return finalHTML;
+  })();
+}
+
+    });
   }
-
-
-
-
-});
+  }); // <-- FERMETURE addEventListener DOMContentLoaded
+})(); // <-- FERMETURE IIFE global
 
 
 </script>

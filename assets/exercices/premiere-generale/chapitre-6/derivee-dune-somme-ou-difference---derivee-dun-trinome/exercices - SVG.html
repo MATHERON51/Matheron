@@ -55,23 +55,24 @@
   
 </style>
 
-<!-- ⭐ MATHJAX CONFIG CHTML (PAS SVG) -->
+<!-- MathJax (SVG, sans Assistive MathML) -->
 <script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      packages: { '[+]': ['bbox','ams'] },
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    chtml: { matchFontHeight:false },
-    startup: { typeset: true }
-  };
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true,
+    packages: { '[+]': ['bbox','ams'] },
+    macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+  },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea'],
+    renderActions: { assistiveMml: [] }
+  },
+  startup: { typeset:true }
+};
 </script>
-<script defer src="../../../../es5/tex-chtml.js"></script>
-<!-- FIN MathJax -->
+<script defer src="../../../../es5/tex-svg.js"></script>
 
 <!-- Ceinture + bretelles : au cas où, on masque aussi l’Assistive MathML en CSS -->
 <style>
@@ -112,7 +113,7 @@
 
   <!-- Dépendances (projet) -->
   <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
-<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+  <script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
   <script src='../../../../js/math-kbd.js' defer></script>
   <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 
@@ -716,136 +717,68 @@ function solutionHTML(st){
 
 
   /* ==== Définition des exercices ==== */
-const EXO1 = {
-  id:'poly',
-  title:'Exercice 1 — Polynôme',
-  gen(host){
-    let localHost = host, tempMade = false;
-    if(!localHost){
-      localHost = document.createElement('div');
-      localHost.style.position='fixed';
-      localHost.style.left='-10000px';
-      localHost.style.top='-10000px';
-      localHost.style.width='800px';
-      localHost.style.zIndex='-1';
-      document.body.appendChild(localHost);
-      tempMade = true;
-    }
+  const EXO1 = { id:'poly', title:'Exercice 1 — Polynôme',
+gen(host){
+  const st = genPoly(); // ou genSumUsuelle / genLinComb
+  host.innerHTML = buildHostHTML(st);
 
-    const st = genPoly();
-    localHost.innerHTML = buildHostHTML(st);
+  // ✅ garder l'état VIVANT (avec fonctions) pour la vérif
+  host.__state = st;
 
-    localHost.__state = st;
-    localHost.dataset.state = JSON.stringify({
-      latexF:      st.latexF,
-      latexFp:     st.latexFp,
-      latexFp_raw: st.latexFp_raw,
-      rules:       st.rules || []
-    });
+  // ✅ dataset : version "light" sans fonctions (utile au PDF)
+host.dataset.state = JSON.stringify({
+  latexF:      st.latexF,
+  latexFp:     st.latexFp,      // version simplifiée
+  latexFp_raw: st.latexFp_raw,  // version brute (Application)
+  rules:       st.rules || []
+});
 
-    if(!tempMade && window.MathJax?.typeset) MathJax.typeset();
-
-    if(tempMade){
-      return {
-        st,
-        light:{
-          latexF:      st.latexF,
-          latexFp:     st.latexFp,
-          latexFp_raw: st.latexFp_raw,
-          rules:       st.rules || []
-        },
-        dom: localHost
-      };
-    }
-  },
+  if (window.MathJax?.typeset) MathJax.typeset();
+},
     correct(host, st){ const val=$('#ansF',host)?.value||''; const ok=checkAnswer(st,val); scoreTot+= (val.trim()?1:0); scoreOK+= (ok?1:0); updateScore(); setTick(host, val.trim()?ok:null); },
     solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); if (window.MathJax?.typeset) MathJax.typeset(); },
     reset(host){ $('#res',host).textContent=''; setTick(host,null); }
   };
   const EXO2 = { id:'sum', title:'Exercice 2 — Somme de fonctions usuelles',
-  gen(host){
-    let localHost = host, tempMade = false;
-    if(!localHost){
-      localHost = document.createElement('div');
-      localHost.style.position='fixed';
-      localHost.style.left='-10000px';
-      localHost.style.top='-10000px';
-      localHost.style.width='800px';
-      localHost.style.zIndex='-1';
-      document.body.appendChild(localHost);
-      tempMade = true;
-    }
+gen(host){
+  const st = genSumUsuelle(); 
+  host.innerHTML = buildHostHTML(st);
 
-    const st = genSumUsuelle();
-    localHost.innerHTML = buildHostHTML(st);
+  // ✅ garder l'état VIVANT (avec fonctions) pour la vérif
+  host.__state = st;
 
-    localHost.__state = st;
-    localHost.dataset.state = JSON.stringify({
-      latexF:      st.latexF,
-      latexFp:     st.latexFp,
-      latexFp_raw: st.latexFp_raw,
-      rules:       st.rules || []
-    });
+  // ✅ dataset : version "light" sans fonctions (utile au PDF)
+host.dataset.state = JSON.stringify({
+  latexF:      st.latexF,
+  latexFp:     st.latexFp,      // version simplifiée
+  latexFp_raw: st.latexFp_raw,  // version brute (Application)
+  rules:       st.rules || []
+});
 
-    if(!tempMade && window.MathJax?.typeset) MathJax.typeset();
-
-    if(tempMade){
-      return {
-        st,
-        light:{
-          latexF:      st.latexF,
-          latexFp:     st.latexFp,
-          latexFp_raw: st.latexFp_raw,
-          rules:       st.rules || []
-        },
-        dom: localHost
-      };
-    }
-  },
+  if (window.MathJax?.typeset) MathJax.typeset();
+},
     correct(host, st){ const val=$('#ansF',host)?.value||''; const ok=checkAnswer(st,val); scoreTot+= (val.trim()?1:0); scoreOK+= (ok?1:0); updateScore(); setTick(host, val.trim()?ok:null); },
     solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); if (window.MathJax?.typeset) MathJax.typeset(); },
     reset(host){ $('#res',host).textContent=''; setTick(host,null); }
   };
   const EXO3 = { id:'lin', title:'Exercice 3 — Somme et produit par un réel',
-  gen(host){
-    let localHost = host, tempMade = false;
-    if(!localHost){
-      localHost = document.createElement('div');
-      localHost.style.position='fixed';
-      localHost.style.left='-10000px';
-      localHost.style.top='-10000px';
-      localHost.style.width='800px';
-      localHost.style.zIndex='-1';
-      document.body.appendChild(localHost);
-      tempMade = true;
-    }
+gen(host){
+  const st = genLinComb();
+  host.innerHTML = buildHostHTML(st);
 
-    const st = genLinComb();
-    localHost.innerHTML = buildHostHTML(st);
+  // ✅ garder l'état VIVANT (avec fonctions) pour la vérif
+  host.__state = st;
 
-    localHost.__state = st;
-    localHost.dataset.state = JSON.stringify({
-      latexF:      st.latexF,
-      latexFp:     st.latexFp,
-      latexFp_raw: st.latexFp_raw,
-      rules:       st.rules || []
-    });
+  // ✅ dataset : version "light" sans fonctions (utile au PDF)
+host.dataset.state = JSON.stringify({
+  latexF:      st.latexF,
+  latexFp:     st.latexFp,      // version simplifiée
+  latexFp_raw: st.latexFp_raw,  // version brute (Application)
+  rules:       st.rules || []
+});
 
-    if(!tempMade && window.MathJax?.typeset) MathJax.typeset();
-
-    if(tempMade){
-      return {
-        st,
-        light:{
-          latexF:      st.latexF,
-          latexFp:     st.latexFp,
-          latexFp_raw: st.latexFp_raw,
-          rules:       st.rules || []
-        },
-        dom: localHost
-      };
-    }
-  },
+  if (window.MathJax?.typeset) MathJax.typeset();
+},
     correct(host, st){ const val=$('#ansF',host)?.value||''; const ok=checkAnswer(st,val); scoreTot+= (val.trim()?1:0); scoreOK+= (ok?1:0); updateScore(); setTick(host, val.trim()?ok:null); },
     solution(host, st){ $('#res',host).innerHTML = solutionHTML(st); if (window.MathJax?.typeset) MathJax.typeset(); },
     reset(host){ $('#res',host).textContent=''; setTick(host,null); }
@@ -876,258 +809,101 @@ function reset(){ const ex=get(); const host=$("#host"); ex.reset(host); }
     sel.value=REG[0].id; newOne();
   }
   document.addEventListener('DOMContentLoaded', mount);
- 
-
-
- </script>
+  </script>
 
   <!-- === Adaptateur PDF (copie exacte de la zone .steps) === -->
   <script>
-/* =========================================================
-   Adaptateur PDF : version iframe SVG
-   ========================================================= */
-(function(){
-  document.addEventListener('DOMContentLoaded', function () {
-  if (window.ExoPDF && typeof ExoPDF.init==='function'){
-    ExoPDF.init({
-      title: document.title,
-      mountAfterSelector: '#host',
+  (function(){
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+      ExoPDF.init({
+        title: document.title,
+        mountAfterSelector: '#host',
+        beforeGen(def, _st, ctx){
+          const host = document.createElement('div');
+          if (def && typeof def.gen === 'function') def.gen(host);
+          let st = {};
+          try{ st = JSON.parse(host.dataset.state||'{}'); }catch(_){}
+          return st;
+        },
+        beforeRender(def, st, withSolutions){
+          try{
+            const host = document.createElement('div');
+            host.id = 'pdf-host';
+            host.style.position='fixed'; host.style.left='-10000px'; host.style.top='-10000px';
+            document.body.appendChild(host);
 
-      // on veut renvoyer l'état exact (params) qu'a l'exo actif
-beforeGen(def, _ignored, ctx){
-  // def ici = l'exercice actif (EXO1 ou EXO2 ou EXO3)
-  // On fabrique un host temporaire hors écran pour capturer son état.
-  const tmpHost = document.createElement('div');
-  document.body.appendChild(tmpHost);
+            host.innerHTML = (typeof window.buildHostHTML === 'function') ? buildHostHTML(st) : '';
+            host.dataset.state = JSON.stringify(st);
 
-  // On appelle def.gen(tmpHost) pour générer un nouvel énoncé (tirage frais)
-  def.gen(tmpHost);
+            if (withSolutions && def && typeof def.solution === 'function'){
+              def.solution(host, st);
+            }
 
-  // Récupérer l'état complet calculé par gen()
-  // - tmpHost.__state : objet JS (contient f, fp, latexF, latexFp_raw, etc.)
-  // - tmpHost.dataset.state : version "light" en JSON
-  let light = {};
-  try {
-    light = JSON.parse(tmpHost.dataset.state || '{}');
-  } catch(e){}
+            (host.querySelectorAll('input, textarea, select, [contenteditable="true"]')||[])
+              .forEach(el=>{ const t = document.createTextNode(el.value||' '); el.replaceWith(t); });
 
-  // On n'a plus besoin du nœud temporaire à l'écran
-  tmpHost.remove();
+            const outHTML = withSolutions
+              ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
+              : host.innerHTML;
 
-  // On retourne ce qu'on veut passer ensuite à beforeRender.
-  // On va inclure light (latexF, latexFp_raw, etc.) pour piloter l'énoncé/corrigé.
-  return {
-    params: light
-  };
-},
-
-
-
-      // ATTENTION: doit renvoyer une Promise<string> (HTML final SVG-ready)
-beforeRender(def, st, withSolutions){
-  return (async () => {
-    // 0. Récupère les données "light" venues de beforeGen
-    //    st ressemble à { params: { latexF, latexFp, latexFp_raw, rules:[...] } }
-    const p = (st && st.params) ? st.params : {};
-
-    // 1. On va recréer OFFSCREEN l'énoncé de l'exercice à partir de ces infos
-    //    On ne réutilise pas host de l'écran.
-    const tmpHost = document.createElement('div');
-    tmpHost.style.position='fixed';
-    tmpHost.style.left='-10000px';
-    tmpHost.style.top='-10000px';
-    tmpHost.style.width='800px';
-    tmpHost.style.zIndex='-1';
-    document.body.appendChild(tmpHost);
-
-    // ---- Construire l'énoncé propre pour le PDF ----
-    // On remet le squelette comme buildHostHTML, mais :
-    // - on remplace <input> par une ligne vide soulignée
-    // - on garde le LaTeX brut \( ... \)
-
-    const enonceHTML = `
-      <div class="card">
-        <div>
-          <strong>Exercice :</strong>
-          Soit la fonction \\(f\\) définie par :
-          \\( f(x)=${p.latexF} \\).<br>
-          Donner sa fonction dérivée définie par :
-        </div>
-        <div class="answers">
-          <div class="qa-row">
-            <label><strong>\\(f'(x)=\\)</strong></label>
-      
-          </div>
-        </div>
-      </div>
-    `;
-
-    // ---- Construire le corrigé si demandé ----
-    let solBlockHTML = '';
-    if (withSolutions){
-      // On refabrique le tableau de solution comme solutionHTML(p)
-      // mais ici p.* est "light", sans les fonctions JS.
-      // On refait les mêmes étapes que solutionHTML().
-
-      // Règles : on déduplique
-      const seen = new Set();
-      const rows = [];
-      (p.rules || []).forEach(rulePair => {
-        const rule = rulePair && rulePair[0] ? rulePair[0] : '';
-        if(rule && !seen.has(rule)){
-          rows.push(
-            `<tr><td><em>Règle</em></td><td>\\(${rule}\\)</td></tr>`
-          );
-          seen.add(rule);
+            document.body.removeChild(host);
+            return outHTML;
+          }catch(e){ console.error('PDF beforeRender error:', e); return null; }
         }
       });
-
-      // Application (forme brute)
-      const fpRaw  = p.latexFp_raw || p.latexFp || '';
-      // Simplification éventuelle
-      const fpSimp = p.latexFp || fpRaw;
-
-      rows.push(
-        `<tr><td><em>Application</em></td><td>\\(f'(x) = ${fpRaw}\\)</td></tr>`
-      );
-
-      // On n'affiche la "Simplification" que si ça change vraiment
-      const tidy = s => String(s||'')
-        .replace(/\s+/g,'')
-        .replace(/−/g,'-')
-        .replace(/\+\-/g,'-')
-        .replace(/\-\+/g,'-')
-        .replace(/\-\-/g,'+');
-      if (tidy(fpRaw) !== tidy(fpSimp)){
-        rows.push(
-          `<tr><td><em>Simplification</em></td><td>\\(f'(x) = ${fpSimp}\\)</td></tr>`
-        );
-      }
-
-      solBlockHTML = `
-        <p><b>Corrigé :</b></p>
-        <div class="steps">
-          <table class="table xgap">
-            <thead>
-              <tr>
-                <th style="text-align:center">Justification</th>
-                <th style="text-align:center">Écriture</th>
-              </tr>
-            </thead>
-            <tbody>${rows.join('')}</tbody>
-          </table>
-          <br>
-          <div class="line">
-            <strong>Conclusion :</strong>
-            \\(\\;f'(x) = ${fpSimp}\\).
-          </div>
-        </div>
-      `;
-    }
-
-    // 2. Assemble ce bloc dans un conteneur qu'on va envoyer à l'iframe
-    const blockHTML = `
-      <div class="exo-block">
-        ${enonceHTML}
-        ${solBlockHTML}
-      </div>
-    `;
-
-    // 3. Créer l'iframe sandbox pour MathJax SVG
-    const iframe = document.createElement('iframe');
-    iframe.style.position='fixed';
-    iframe.style.left='-10000px';
-    iframe.style.top='-10000px';
-    iframe.style.width='0';
-    iframe.style.height='0';
-    iframe.style.visibility='hidden';
-    document.body.appendChild(iframe);
-
-    const iwin = iframe.contentWindow;
-    const idoc = iframe.contentDocument;
-
-    idoc.open();
-    idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="content"></div></body></html>');
-    idoc.close();
-
-    const contentDiv = idoc.getElementById('content');
-    contentDiv.innerHTML = blockHTML;
-
-    // 4. Charger MathJax en mode SVG dans l’iframe
-    const cfg = idoc.createElement('script');
-    cfg.type='text/javascript';
-    cfg.text = `
-      window.MathJax = {
-        tex: {
-          inlineMath: [['\\\\(','\\\\)'], ['$', '$']],
-          displayMath: [['\\\\[','\\\\]'], ['$$','$$']],
-          processEscapes: true,
-          packages: { '[+]': ['bbox','ams'] }
-        },
-        svg: { fontCache: 'none' },
-        options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-        startup: { typeset: false }
-      };
-    `;
-    idoc.head.appendChild(cfg);
-
-          const svgScriptURL = new URL("../../../../es5/tex-svg.js", window.location.href).href;
-          const mj = idoc.createElement('script');
-          mj.type='text/javascript';
-          mj.src = svgScriptURL;
-          idoc.head.appendChild(mj);
-
-    // helper pour attendre MathJax prêt
-    async function waitMathJaxReady(win){
-      const limit=200; let n=0;
-      while(
-        (!win.MathJax) ||
-        (!win.MathJax.typesetPromise && !win.MathJax.typeset)
-      ){
-        await new Promise(res=>setTimeout(res,5));
-        n++; if(n>limit) break;
-      }
-    }
-
-    await new Promise(res=>{
-      mj.onload=res;
-      mj.onerror=res;
     });
-    await waitMathJaxReady(iwin);
-
-    if(iwin.MathJax && iwin.MathJax.typesetPromise){
-      await iwin.MathJax.typesetPromise([contentDiv]);
-    } else if(iwin.MathJax && iwin.MathJax.typeset){
-      iwin.MathJax.typeset([contentDiv]);
-    }
-
-    // 5. On nettoie l'accessibilité / CHTML parasite (si jamais)
-    contentDiv
-      .querySelectorAll('mjx-container:not([jax="SVG"])')
-      .forEach(n=>n.remove());
-    contentDiv
-      .querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml')
-      .forEach(n=>n.remove());
-
-    // 6. Voilà le HTML final pour le PDF
-    const finalHTML = contentDiv.innerHTML;
-
-    // ménage
-    iframe.remove();
-    tmpHost.remove();
-
-    return finalHTML;
   })();
-}
-
-
-    });
-  }
-  }); // <-- FERMETURE addEventListener DOMContentLoaded
-})(); // <-- FERMETURE IIFE global
   </script>
 
+<!-- === SHIM universel (inchangé) === -->
+<script>
+(function(){
+  function isHost(x){ return x && x.nodeType===1; }
+  function scaffold(host){
+    if(!host) return;
+    ['enonce','res','solution','statement'].forEach(function(id){
+      if(!host.querySelector('#'+id)){ var d=document.createElement('div'); d.id=id; host.appendChild(d); }
+    });
+  }
+  function wrapDef(def){
+    if(!def || typeof def!=='object') return;
 
+    // Wrap gen
+    var oldGen = def.gen;
+    if(typeof oldGen==='function'){
+      def.gen = function(a,b){
+        if(isHost(a)) return oldGen.call(this, a, b);
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div');
+        scaffold(host);
+        var r = oldGen.call(this, host, st);
+        if(!host.dataset.state) try{ host.dataset.state = JSON.stringify(st||{}); }catch(_){}
+        return host;
+      };
+      if(typeof def.render!=='function'){
+        def.render = function(host, st){ scaffold(host); return oldGen.call(this, host, st); };
+      }
+    }
+
+    var oldSol = def.solution;
+    if(typeof oldSol==='function'){
+      def.solution = function(a,b){
+        if(isHost(a)) return oldSol.call(this, a, b);
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div'); scaffold(host);
+        return oldSol.call(this, host, st);
+      };
+    }
+  }
+
+  function apply(){
+    var list = (window.REGISTRY || window.REG || []);
+    if(Array.isArray(list)) list.forEach(wrapDef);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

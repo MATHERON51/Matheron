@@ -52,23 +52,24 @@
   }
 </style>
 
-<!-- ⭐ MATHJAX CONFIG CHTML (PAS SVG) -->
+<!-- MathJax (SVG, sans Assistive MathML) -->
 <script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['\\(','\\)'], ['$', '$']],
-      displayMath: [['\\[','\\]'], ['$$','$$']],
-      processEscapes: true,
-      packages: { '[+]': ['bbox','ams'] },
-      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
-    },
-    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-    chtml: { matchFontHeight:false },
-    startup: { typeset: true }
-  };
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true,
+    packages: { '[+]': ['bbox','ams'] },
+    macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+  },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea'],
+    renderActions: { assistiveMml: [] }
+  },
+  startup: { typeset:true }
+};
 </script>
-<script defer src="../../../../es5/tex-chtml.js"></script>
-<!-- FIN MathJax -->
+<script defer src="../../../../es5/tex-svg.js"></script>
 
 <style>
   .MJX_Assistive_MathML, mjx-assistive-mml { display:none !important; }
@@ -107,7 +108,7 @@
 
   <!-- Dépendances projet -->
   <script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
-<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+  <script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
   <script src='../../../../js/math-kbd.js' defer></script>
   <script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
 
@@ -563,43 +564,22 @@
     id:'prod-reel',
     title:'Produit par un réel',
     gen(host){
-	 let localHost = host, tempMade = false;
-    if(!localHost){
-      localHost = document.createElement('div');
-      localHost.style.position='fixed';
-      localHost.style.left='-10000px';
-      localHost.style.top='-10000px';
-      localHost.style.width='800px';
-      localHost.style.zIndex='-1';
-      document.body.appendChild(localHost);
-      tempMade = true;
-    }
       const st = genProduitReel();
- localHost.innerHTML = buildHostHTML(st);
+      host.innerHTML = buildHostHTML(st);
 
-    localHost.__state = st;
-    localHost.dataset.state = JSON.stringify({
-      latexF:      st.latexF,
-      latexFp:     st.latexFp,
-      latexFp_raw: st.latexFp_raw,
-      rules:       st.rules || []
-    });
+      // garder l'état riche pour Vérifier
+      host.__state = st;
 
-    if(!tempMade && window.MathJax?.typeset) MathJax.typeset();
+      // sauvegarde "light" POUR LE PDF (⚠ inclure latexFp_raw !)
+      host.dataset.state = JSON.stringify({
+        latexF:      st.latexF,
+        latexFp:     st.latexFp,
+        latexFp_raw: st.latexFp_raw,
+        rules:       st.rules || []
+      });
 
-    if(tempMade){
-      return {
-        st,
-        light:{
-          latexF:      st.latexF,
-          latexFp:     st.latexFp,
-          latexFp_raw: st.latexFp_raw,
-          rules:       st.rules || []
-        },
-        dom: localHost
-      };
-    }
-  },
+      if (window.MathJax?.typeset) MathJax.typeset();
+    },
     correct(host, st){
       const val=$('#ansF',host)?.value||'';
       const ok=checkAnswer(st,val);
@@ -648,254 +628,109 @@
 
 <!-- === Adaptateur PDF === -->
 <script>
-/* =========================================================
-   Adaptateur PDF : version iframe SVG
-   ========================================================= */
 (function(){
   document.addEventListener('DOMContentLoaded', function () {
     if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
-
     ExoPDF.init({
       title: document.title,
       mountAfterSelector: '#host',
-
       beforeGen(def, _st, ctx){
-        const hostTmp = document.createElement('div');
-        if (def && typeof def.gen === 'function') def.gen(hostTmp);
+        const host = document.createElement('div');
+        if (def && typeof def.gen === 'function') def.gen(host);
         let st = {};
-        try {
-          st = JSON.parse(hostTmp.dataset.state || '{}');
-        } catch(_){}
+        try{ st = JSON.parse(host.dataset.state||'{}'); }catch(_){}
         return st;
       },
+      beforeRender(def, st, withSolutions){
+        try{
+          const host = document.createElement('div');
+          host.id = 'pdf-host';
+          host.style.position='fixed'; host.style.left='-10000px'; host.style.top='-10000px';
+          document.body.appendChild(host);
 
+          host.innerHTML = (typeof window.buildHostHTML === 'function') ? buildHostHTML(st) : '';
+          host.dataset.state = JSON.stringify(st);
 
+          if (withSolutions && def && typeof def.solution === 'function'){
+            def.solution(host, st); // va utiliser latexFp_raw -> donc "Simplification" réapparaît si besoin
+          }
 
+          // remplace les inputs par du texte dans la sortie PDF
+          (host.querySelectorAll('input, textarea, select, [contenteditable="true"]')||[])
+            .forEach(el=>{
+              const t = document.createTextNode(el.value||' ');
+              el.replaceWith(t);
+            });
 
-      // >>>>>>>>>>>>> async PROMISE RETURN
-  beforeRender(def, st, withSolutions){
-  return (async () => {
-    let host = null;
-    try {
+          const outHTML = withSolutions
+            ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
+            : host.innerHTML;
 
-      // 1. Construire un host OFFSCREEN juste pour récupérer l'état (mais SANS typeset écran)
-      host = document.createElement('div');
-      host.id = 'pdf-host';
-      host.style.position='fixed';
-      host.style.left='-10000px';
-      host.style.top='-10000px';
-      document.body.appendChild(host);
-
-      // on DOIT recréer l'enoncé de base
-      host.innerHTML = buildHostHTML(st);
-      host.dataset.state = JSON.stringify(st);
-
-      // 👉⚠ NE PAS appeler def.solution(host, st) ici,
-      //    car ça MathJax-typeset en CHTML et flingue le LaTeX brut.
-
-      // 2. Construire le HTML qu'on veut envoyer dans le PDF
-      //    - si withSolutions === false : on prend juste l'énoncé tel quel
-      //    - si withSolutions === true  : on fabrique nous-même un bloc
-      //      qui contient st.solHTML (non encore typeset).
-      // --- construire l'énoncé en LaTeX à partir de st ---
-function enonceForPDF(st){
-  // même phrase que l'écran, mais en pur texte HTML
-  // + une ligne de réponse vide
-  const fClean = st.latexF;
-  return `
-    <div class="exo-enonce">
-      <div><strong>Exercice :</strong> Soit la fonction \\(f\\) définie par : \\(f(x)=${fClean}\\).<br>
-      Donner sa fonction dérivée définie par :</div>
-      <div style="margin-top:.6rem">
-        \\(f'(x)=\\) 
-      </div>
-    </div>
-  `;
-}
-
-// --- construire le corrigé LaTeX exactement comme à l'écran ---
-function solForPDF(st){
-  return `
-    <div style="margin-top:1rem;font-weight:600">Corrigé :</div>
-    ${solutionHTML(st)}
-  `;
-}
-
-let innerHTML_for_pdf;
-if (withSolutions){
-  innerHTML_for_pdf = `
-    <div class="exo-block">
-      ${enonceForPDF(st)}
-      ${solForPDF(st)}
-    </div>
-  `;
-} else {
-  // juste l'énoncé sans la zone de saisie HTML/input
-  innerHTML_for_pdf = `
-    <div class="exo-block">
-      ${enonceForPDF(st)}
-    </div>
-  `;
-}
-
-
-
-      // 3. IFRAME sandbox pour MathJax SVG ...
-      // (le reste de ton code continue comme avant)
-
-
-      // 2. Créer l'iframe sandbox
-      const iframe = document.createElement('iframe');
-      iframe.style.position   = 'fixed';
-      iframe.style.left       = '-10000px';
-      iframe.style.top        = '-10000px';
-      iframe.style.width      = '0';
-      iframe.style.height     = '0';
-      iframe.style.visibility = 'hidden';
-      document.body.appendChild(iframe);
-
-      const iwin = iframe.contentWindow;
-      const idoc = iframe.contentDocument;
-
-      // 3. Écrire un DOM minimal dans l'iframe
-      // pas de <script> ici pour éviter de casser notre propre <script> parent
-      idoc.open();
-      idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="content"></div></body></html>');
-      idoc.close();
-// 4. Injecter le contenu (énoncé/solution) dans l'iframe
-const contentDiv = idoc.getElementById('content');
-contentDiv.innerHTML = innerHTML_for_pdf;
-
-// 🔧 IMPORTANT : on vire toute trace d'anciens rendus MathJax CHTML
-// (dans le host original il y a déjà des <mjx-container jax="CHTML">...</mjx-container> )
-// On veut repartir du LaTeX brut pour que MathJax SVG refasse tout proprement.
-
-contentDiv.querySelectorAll('mjx-container').forEach(mjx => {
-  // On essaie de récupérer le tex d'origine si MathJax l'a gardé en commentaire,
-  // sinon on remplace par juste le texte rendu (fallback).
-  // Mais dans notre cas, comme l'innerHTML_for_pdf vient AVANT typeset dans l'iframe,
-  // il devrait déjà contenir le LaTeX source (\( ... \)). Donc en pratique,
-  // ce bloc servira surtout si jamais un ancien mjx traine.
-  mjx.replaceWith(mjx.textContent || '');
-});
-
-// Enlever aussi l'accessibilité MathML pré-existante (au cas où)
-contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml')
-  .forEach(n => n.remove());
-
-
-      // 5. Préparer MathJax SVG dans l'iframe
-      //    a) script config MathJax
-      const cfg = idoc.createElement('script');
-      cfg.type = 'text/javascript';
-      cfg.text = `
-        window.MathJax = {
-          tex: {
-            inlineMath: [['\\\\(','\\\\)'], ['$', '$']],
-            displayMath: [['\\\\[','\\\\]'], ['$$','$$']],
-            processEscapes: true,
-            packages: { '[+]': ['bbox','ams'] }
-          },
-          svg: {
-            fontCache: 'none'
-          },
-          options: {
-            skipHtmlTags: ['script','noscript','style','textarea']
-          },
-          startup: { typeset: false }
-        };
-      `;
-      idoc.head.appendChild(cfg);
-
-      //    b) script tex-svg.js (URL absolue pour être sûr)
-      const svgScriptURL = new URL("../../../../es5/tex-svg.js", window.location.href).href;
-      const mj = idoc.createElement('script');
-      mj.type = 'text/javascript';
-      mj.src  = svgScriptURL;
-      idoc.head.appendChild(mj);
-
-// 6. Attendre que tex-svg.js soit chargé puis typer
-await new Promise(resolve=>{
-  mj.onload = resolve;
-  mj.onerror = resolve; // on résout quand même même si ça plante
-});
-
-// sécurité: attendre que MathJax initialise typesetPromise
-async function waitMathJaxReady(win){
-  const limit = 200;
-  let n = 0;
-  while (
-    (!win.MathJax) ||
-    (!win.MathJax.typesetPromise && !win.MathJax.typeset)
-  ){
-    await new Promise(res=>setTimeout(res,5));
-    n++;
-    if(n>limit) break;
-  }
-}
-await waitMathJaxReady(iwin);
-
-// 7. Faire le typeset SVG dans l'iframe
-if (iwin.MathJax && iwin.MathJax.typesetPromise){
-  await iwin.MathJax.typesetPromise([ contentDiv ]);
-} else if (iwin.MathJax && iwin.MathJax.typeset){
-  iwin.MathJax.typeset([ contentDiv ]);
-}
-
-// 8. *** NETTOYAGE ANTI-DOUBLON ***
-//    On enlève la version CHTML héritée de l'écran et on garde la version SVG.
-(function purgeCHTML(){
-  // 1. Supprimer les conteneurs CHTML de l'écran s'ils existent
-  //    (dans ta page écran, MathJax CHTML génère <mjx-container jax="CHTML"> ...)
-  contentDiv.querySelectorAll('mjx-container[jax="CHTML"]').forEach(n => n.remove());
-
-  // 2. Certains contenus d'origine peuvent encore contenir du texte LaTeX brut
-  //    suivi d'un conteneur SVG généré. Ex :
-  //      "f'(x)=" <mjx-container jax="SVG">...</mjx-container>
-  //    → ça va, on garde.
-
-  // 3. Option belt & suspenders :
-  //    Si jamais MathJax SVG a cloné au lieu de remplacer, on vire les doublons restants
-  //    du type <mjx-container jax="CHTML"> même imbriqués.
-  contentDiv.querySelectorAll('mjx-container:not([jax="SVG"])').forEach(n => n.remove());
-
-  // 4. On enlève les aides d’accessibilité inutiles pour le PDF
-  contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml').forEach(n => n.remove());
-})();
-
-// 9. Récupérer le HTML final (ne contenant plus que le SVG)
-const finalHTML = contentDiv.innerHTML;
-
-// 10. Nettoyage DOM temporaire
-iframe.remove();
-if (host) host.remove();
-
-// 11. Retourner le HTML prêt pour le PDF
-return finalHTML;
-
-
-    } catch(e){
-      console.error('beforeRender SVG error:', e);
-
-      let fallbackHTML = '';
-      if (host) {
-        fallbackHTML = withSolutions
-          ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
-          : host.innerHTML;
-        host.remove();
-        host = null;
+          document.body.removeChild(host);
+          return outHTML;
+        }catch(e){
+          console.error('PDF beforeRender error:', e);
+          return null;
+        }
       }
-      return fallbackHTML;
-    }
-  })(); // IIFE async
-}
-
-    }); // <-- FERMETURE ExoPDF.init
-  }); // <-- FERMETURE addEventListener DOMContentLoaded
-})(); // <-- FERMETURE IIFE global
+    });
+  });
+})();
 </script>
 
+<!-- === SHIM universel (inchangé) === -->
+<script>
+(function(){
+  function isHost(x){ return x && x.nodeType===1; }
+  function scaffold(host){
+    if(!host) return;
+    ['enonce','res','solution','statement'].forEach(function(id){
+      if(!host.querySelector('#'+id)){
+        var d=document.createElement('div');
+        d.id=id;
+        host.appendChild(d);
+      }
+    });
+  }
+  function wrapDef(def){
+    if(!def || typeof def!=='object') return;
 
+    // Wrap gen
+    var oldGen = def.gen;
+    if(typeof oldGen==='function'){
+      def.gen = function(a,b){
+        if(isHost(a)) return oldGen.call(this, a, b);
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div');
+        scaffold(host);
+        var r = oldGen.call(this, host, st);
+        if(!host.dataset.state) try{ host.dataset.state = JSON.stringify(st||{}); }catch(_){}
+        return host;
+      };
+      if(typeof def.render!=='function'){
+        def.render = function(host, st){ scaffold(host); return oldGen.call(this, host, st); };
+      }
+    }
+
+    var oldSol = def.solution;
+    if(typeof oldSol==='function'){
+      def.solution = function(a,b){
+        if(isHost(a)) return oldSol.call(this, a, b);
+        var st = (a && typeof a==='object') ? a : (b && typeof b==='object' ? b : {});
+        var host = document.createElement('div');
+        scaffold(host);
+        return oldSol.call(this, host, st);
+      };
+    }
+  }
+
+  function apply(){
+    var list = (window.REGISTRY || window.REG || []);
+    if(Array.isArray(list)) list.forEach(wrapDef);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

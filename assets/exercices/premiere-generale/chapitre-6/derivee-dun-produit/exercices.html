@@ -586,49 +586,7 @@ function polyToMonomeData(p){
   return list;
 }
 
-// même ordre que distributiveSymbolicTerms :
-// pour chaque monôme de Pu (u'(x)), puis chaque monôme de Pv (v(x))
-// on écrit directement le produit numérique (plus de parenthèses).
-function distributiveNumericTerms(Pu, Pv){
-  const U = polyToMonomeData(Pu); // [{coeff,deg}, ...] ordre deg max -> deg min
-  const V = polyToMonomeData(Pv);
 
-  const chunks = [];
-
-  for (const mu of U){
-    for (const mv of V){
-      // produit des coeffs
-      const c = mu.coeff * mv.coeff;
-      const degTot = mu.deg + mv.deg;
-
-      // construire le monôme numérique c * x^{degTot}
-      const absC = Math.abs(c);
-      let core;
-      if(degTot === 0){
-        core = String(absC);
-      } else if (degTot === 1){
-        core = (absC === 1) ? 'x' : `${absC}x`;
-      } else {
-        core = (absC === 1) ? `x^{${degTot}}` : `${absC}x^{${degTot}}`;
-      }
-
-      let txt;
-      if (c < 0){
-        txt = `- ${core}`;
-      }else{
-        txt = `+ ${core}`;
-      }
-
-      chunks.push(txt.trim());
-    }
-  }
-
-  // Joindre tous les blocs dans l'ordre de distribution
-  let out = chunks.join(' ');
-  // nettoyer les "+ -" etc et virer un éventuel "+" de début
-  out = cleanSigns(out);
-  return out;
-}
 
 
 function fullDistributiveSymbolic(uPrime,u,vPrime,v){
@@ -641,13 +599,86 @@ function fullDistributiveSymbolic(uPrime,u,vPrime,v){
   all = cleanSigns(all);
   return all;
 }
-function fullDistributiveNumeric(uPrime, v, vPrime, u){
-  const part1 = distributiveNumericTerms(uPrime, v); // u' * v
-  const part2 = distributiveNumericTerms(vPrime, u); // v' * u
-  let all = part1 + ' + ' + part2;
-  all = cleanSigns(all);
-  return all;
+
+
+// retourne les monômes d'un poly sous forme [{coeff,deg}, ...]
+// dans l'ordre "du plus haut degré vers le plus bas"
+function polyToMonomeDataOrdered(p){
+  const out=[];
+  for(let deg=p.length-1; deg>=0; deg--){
+    const c=p[deg];
+    if(c!==0){
+      out.push({coeff:c, deg});
+    }
+  }
+  // si tout est 0 :
+  if(!out.length){
+    out.push({coeff:0, deg:0});
+  }
+  return out;
 }
+
+// transforme "coef * x^deg" en TEX signé ("- 6x^3", "+ 5x^2", "+ 3", etc.)
+// si isFirst=true on ne met pas de "+ " inutile en tête
+function monomeProductToLatex(coef, deg, isFirst){
+  const absC = Math.abs(coef);
+  // construit la partie sans signe
+  let core;
+  if(deg===0){
+    core = String(absC);
+  }else if(deg===1){
+    core = (absC===1 ? 'x' : `${absC}x`);
+  }else{
+    core = (absC===1 ? `x^{${deg}}` : `${absC}x^{${deg}}`);
+  }
+
+  if(isFirst){
+    // premier terme : signe explicite seulement si négatif
+    return (coef<0 ? `- ${core}` : `${core}`);
+  }else{
+    return (coef<0 ? ` - ${core}` : ` + ${core}`);
+  }
+}
+
+// construit la chaîne brute pour u'(x)v(x)
+// puis v'(x)u(x) en concaténant les monômes distribués les uns à la suite
+function buildNumericDevLine(uPrimeCoeffs, vCoeffs, vPrimeCoeffs, uCoeffs){
+  // monômes de u', v, v', u (ordre décroissant des degrés)
+  const Uprime = polyToMonomeDataOrdered(uPrimeCoeffs); // ex [{coeff:6,deg:1},{coeff:-5,deg:0}]
+  const V      = polyToMonomeDataOrdered(vCoeffs);      // ex [{coeff:-1,deg:2},{coeff:-3,deg:1},{coeff:3,deg:0}]
+
+  const Vprime = polyToMonomeDataOrdered(vPrimeCoeffs);
+  const U      = polyToMonomeDataOrdered(uCoeffs);
+
+  const chunks=[];
+
+  // d'abord u'(x)*v(x)
+  let first = true;
+  for(const mu of Uprime){
+    for(const mv of V){
+      const c = mu.coeff * mv.coeff;
+      const degTot = mu.deg + mv.deg;
+      chunks.push(monomeProductToLatex(c, degTot, first));
+      first = false;
+    }
+  }
+
+  // puis v'(x)*u(x)
+  for(const mvp of Vprime){
+    for(const mu2 of U){
+      const c = mvp.coeff * mu2.coeff;
+      const degTot = mvp.deg + mu2.deg;
+      chunks.push(monomeProductToLatex(c, degTot, first));
+      first = false;
+    }
+  }
+
+  // join + nettoyage des espaces/signes
+  let out = chunks.join('').trim();
+  out = cleanSigns(out);
+  return out;
+}
+
 
 
 
@@ -837,7 +868,9 @@ function genEx1(){
   // distributivité brute dans l'ordre :
   // u'(x)v(x) puis v'(x)u(x)
   const symbolicDevLine = fullDistributiveSymbolic(dP, P, dQ, Q);
-  const numericDevLine  = fullDistributiveNumeric(dP, P, dQ, Q);
+const numericDevLine  = buildNumericDevLine(dP, Q, dQ, P);
+
+
 
   const finalClean = cleanSigns(latexdPQ); // dérivée finale ordonnée
 
@@ -1233,10 +1266,11 @@ function genEx2(){
 // u'(x) = a   -> uPrimeCoeffs
 // v'(x) = a   -> vPrimeCoeffs
 
-const partUV  = distributiveNumericTerms(uPrimeCoeffs, vCoeffs); // u' * v
-const partVU  = distributiveNumericTerms(vPrimeCoeffs, uCoeffs); // v' * u
+const numericDevLine = buildNumericDevLine(
+  uPrimeCoeffs, vCoeffs,
+  vPrimeCoeffs, uCoeffs
+);
 
-const numericDevLine = cleanSigns(partUV + ' + ' + partVU);
 
 
     // forme finale rangée :
@@ -1370,11 +1404,11 @@ const solHTML = `
     sumOfTwoProducts(a, vLatex, c, uLatex)
   );
 
-  // ✅ version corrigée de fullDistributiveNumeric (u'v puis v'u)
-  const numericDevLine  = fullDistributiveNumeric(
-    uPrimeCoeffs, vCoeffs,
-    vPrimeCoeffs, uCoeffs
-  );
+const numericDevLine = buildNumericDevLine(
+  uPrimeCoeffs, vCoeffs,
+  vPrimeCoeffs, uCoeffs
+);
+
 
   // Coeffs utiles
   const A=a, B=b, C=c, D=d;

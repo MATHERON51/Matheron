@@ -1948,78 +1948,74 @@ function genQuot(){
   // On veut f(x) = (a x^2 + b)/(p x + q)
   //
   // Hypothèses de l'énoncé :
-  //  - H1 : Cf coupe l’axe des ordonnées en y0  -> f(0)=y0  -> b/q = y0 -> b = q*y0
-  //  - H2 : Cf admet une tangente horizontale en x=X2 -> f'(X2)=0
+  //  - Cf coupe l’axe des ordonnées en y0  -> f(0)=y0  -> b/q = y0 -> b = q*y0
+  //  - Cf admet une tangente horizontale en x=1 -> f'(1)=0 -> a = (p*b)/(p+2q)
   //
-  // Rappels :
-  //   f'(x)= [ (a p)x^2 + (2 a q)x - p b ] / (p x + q)^2
-  //   f'(X2)=0  <=>  (a p)X2^2 + (2 a q)X2 - p b = 0
-  //               <=> a [ p X2^2 + 2 q X2 ] = p b
-  //               <=> a = [ p b ] / [ p X2^2 + 2 q X2 ]
-  //
-  // Contraintes :
+  // Contraintes qu'on impose pour avoir un énoncé propre :
   //  - a,b,p,q entiers petits
   //  - p ≠ 0
-  //  - q ≠ 0 (sinon trop trivial et b=0 trop souvent)
-  //  - dénominateur p X2^2 + 2 q X2 ≠ 0
+  //  - p+2q ≠ 0 (sinon a pas défini)
   //  - a entier
-  //  - PAS de numérateur nul : a=0 ET b=0 interdit
+  //  - PAS de numérateur nul : interdit d'avoir a = 0 ET b = 0
+  //    (c'est le cas que tu refuses : f(x)=0/(...) )
+  //
+  // On boucle jusqu'à trouver un jeu propre.
+  // Si rien de propre après N essais : fallback manuel propre qui respecte les contraintes.
 
-let a,b,p,q,y0,X2;
-let tries = 0;
-while (tries < 200) {
-  tries++;
+  let a,b,p,q,y0;
+  let tries = 0;
+  while (tries < 200) {
+    tries++;
 
-  p  = nzChoose([-3,-2,-1,1,2,3]); // pente du dénominateur, p ≠ 0
-  q  = rnd(-4,4);
-  if (q === 0) continue;          // on garde q≠0 (évite trop trivial + f(0) bien défini)
+    // tirages
+    p  = nzChoose([-3,-2,-1,1,2,3]); // pente du dénominateur
+    q  = rnd(-4,4);                  // ordonnée du dénominateur
+    if (q === 0) continue;           // pas de v(x)=p x (trop simple, et évite b=0 si y0=0 de façon trop fréquente)
+    y0 = rnd(-3,3);
 
-  y0 = rnd(-3,3);
-  b  = q * y0;                     // H1 : f(0)=y0 ⇒ b = q*y0
+    // f(0)=y0 => b/q = y0 => b = q*y0, entier
+    b = q * y0;
 
-  X2 = rnd(-3,3);                  // H2 : tangente horizontale en x = X2
+    const denTest = p + 2*q;
+    if (denTest === 0) continue;     // évite division par 0 dans a
 
-  // sécurité : éviter l'asymptote verticale
-  // asymptote = -q/p, donc si X2 == -q/p c'est interdit
-  if (X2 * p === -q) continue;
+    // a = (p*b)/(p+2q), on veut a entier
+    const numA = p * b;
+    if (numA % denTest !== 0) continue;
+    a = numA / denTest;
 
-  // calcul de a à partir de H2 : f'(X2)=0
-  // denTest = p*X2^2 + 2*q*X2
-  const denTest = p*X2*X2 + 2*q*X2;
-  if (denTest === 0) continue;
+    // bornes de lisibilité
+    if (Math.abs(a) > 10) continue;
+    if (Math.abs(b) > 30) continue;
+    if (Math.abs(p) > 10) continue;
+    if (Math.abs(q) > 10) continue;
 
-  const numA = p * b;
-  if (numA % denTest !== 0) continue;
-  a = numA / denTest;
+    // 🔴 garde-fou majeur : pas de numérateur nul "0 / (px+q)"
+    // c'est-à-dire pas (a=0 ET b=0)
+    if (a === 0 && b === 0) continue;
 
-  // bornes de lisibilité
-  if (Math.abs(a) > 10) continue;
-  if (Math.abs(b) > 30) continue;
-  if (Math.abs(p) > 10) continue;
-  if (Math.abs(q) > 10) continue;
+    // si on arrive ici, tirage validé
+    break;
+  }
 
-  // pas le cas numérateur nul
-  if (a === 0 && b === 0) continue;
-
-  break;
-}
-
-
+  // Fallback si rien trouvé (très rare mais on sécurise)
   if (tries >= 200) {
-    // fallback cohérent pour garantir qu'on sort qqch
+    // On construit explicitement un exemple propre à la main :
+    // p=3, q=-2, y0=1
+    // -> b = q*y0 = -2
+    // denTest = p+2q = 3-4 = -1
+    // -> a = (p*b)/(p+2q) = (3 * -2)/(-1)=6
+    // Ici a=6, b=-2 donc NUM ≠ 0, nickel.
     p=3;
     q=-2;
     y0=1;
-    b = q*y0; // -2
-    X2 = 1;
-    // denTest = p*1^2 + 2*q*1 = 3 + 2*(-2) = -1
-    // numA = p*b = 3*(-2) = -6
-    // a = -6 / -1 = 6
+    b = -2;
     a = 6;
   }
 
-  // Helpers latex identiques à toi
+  // Helpers latex
   function linLatex(px,qx){
+    // rend "3x-2", "-x+5", "x-4", etc.
     let head;
     if (px === 1) head = 'x';
     else if (px === -1) head = '-x';
@@ -2030,6 +2026,7 @@ while (tries < 200) {
   }
 
   function numQuadLatex(ax2, bcte){
+    // ax^2 + b en jolis termes
     const parts=[];
     if (ax2 !== 0){
       const aa = Math.abs(ax2);
@@ -2042,15 +2039,20 @@ while (tries < 200) {
     return parts.join(' ').replace(/^\+\s*/,'').trim();
   }
 
-  // f(x) latex numérique et littéral
+  // f(x) latex
   const fLatex = `\\dfrac{${numQuadLatex(a,b)}}{${linLatex(p,q)}}`;
-  const efLatex = `\\dfrac{ax^{2}+b}{${linLatex(p,q)}}`;
+  const efLatex = `\\dfrac{ax²+b}{${linLatex(p,q)}}`;
 
-  // dérivée numérique finale
-  // numérateur coeffs
+  // dérivée
+  // u = a x^2 + b   -> u' = 2 a x
+  // v = p x + q     -> v' = p
+  //
+  // f'(x)= [2ax(px+q) - p(ax^2+b)]/(px+q)^2
+  //      = [(ap)x^2 + (2aq)x - p b]/(px+q)^2
   const A3 = a*p;
   const B4 = 2*a*q;
   const Cc = -p*b;
+
   function polyNumLatex(Acoef,Bcoef,Ccoef){
     const arr=[];
     if (Acoef!==0){
@@ -2067,311 +2069,78 @@ while (tries < 200) {
     }
     return arr.join(' ').replace(/^\+\s*/,'').trim();
   }
+
   const numLatex   = polyNumLatex(A3,B4,Cc);
   const denomLatex = `\\left(${linLatex(p,q)}\\right)^{2}`;
   const fpLatex    = `\\dfrac{${numLatex}}{${denomLatex}}`;
 
-  // helpers signe/somme (reprends les tiens)
-  function term_ax2(coef){
-    if (coef === 0) return "";
-    if (coef === 1) return "ax^{2}";
-    if (coef === -1) return "-ax^{2}";
-    if (coef > 0) return coef + "ax^{2}";
-    return "-" + Math.abs(coef) + "ax^{2}";
-  }
-  function term_ax(coef){
-    if (coef === 0) return "";
-    if (coef === 1) return "ax";
-    if (coef === -1) return "-ax";
-    if (coef > 0) return coef + "ax";
-    return "-" + Math.abs(coef) + "ax";
-  }
-  function term_b(coef){
-    if (coef === 0) return "";
-    if (coef === 1) return "b";
-    if (coef === -1) return "-b";
-    if (coef > 0) return coef + "b";
-    return "-" + Math.abs(coef) + "b";
-  }
-  function tidySum(str){
-    return str
-      .replace(/\s+/g," ")
-      .replace(/\+\s*-/g,"- ")
-      .replace(/-\s*-/g,"- -")
-      .replace(/\+\s*\+/g,"+ ")
-      .replace(/^\+\s*/,"")
-      .replace(/ - -/g," + ")
-      .trim();
-  }
+function buildSystemQuot_full(a,b,p,q,y0){
 
-  function buildDerivBlockQuot(a,b,p,q){
-    const vLatex = linLatex(p,q);
-    const vp     = p;
-    const upLatex = "2ax";
-    const uLatex  = "ax^{2}+b";
 
-    // tableau u,v,u',v'
-    const tableHTML = `
-      <div class="line">On a \\( f(x)=\\dfrac{u(x)}{v(x)} \\) avec :</div>
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=${uLatex}\\)</td>
-          <td>\\(v(x)=${vLatex}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=${upLatex}\\)</td>
-          <td>\\(v'(x)=${vp}\\)</td>
-        </tr>
-      </table>
-    `;
 
-    // formule générale
-    const lineFormule = `
-      <div class="line">\\(f'(x)=\\dfrac{u'(x)v(x)-v'(x)u(x)}{v(x)^{2}}\\)</div>
-    `;
-
-    // substitution directe
-    let secondFactor;
-    if (vp === 1) {
-      secondFactor = "-(ax^{2}+b)";
-    } else if (vp === -1) {
-      secondFactor = "+(ax^{2}+b)";
-    } else if (vp > 1) {
-      secondFactor = `-${vp}(ax^{2}+b)`;
-    } else {
-      secondFactor = `+${Math.abs(vp)}(ax^{2}+b)`;
-    }
-
-    const lineSubstitution = `
-      <div class="line">\\(f'(x)=\\dfrac{2ax\\,(${vLatex})${secondFactor}}{(${vLatex})^{2}}\\)</div>
-    `;
-
-    // développement brut
-    const coef_x2_first = 2*p;
-    const coef_x_first  = 2*q;
-    const kSecond       = -vp;
-    const coef_x2_second = kSecond;
-    const coef_b_second  = kSecond;
-
-    let rawTerms = [
-      term_ax2(coef_x2_first),
-      term_ax(coef_x_first),
-      term_ax2(coef_x2_second),
-      term_b(coef_b_second)
-    ].filter(t=>t!=="").join(" + ");
-    rawTerms = tidySum(rawTerms);
-
-    const lineDeveloppe = `
-      <div class="line">\\(f'(x)=\\dfrac{${rawTerms}}{(${vLatex})^{2}}\\)</div>
-    `;
-
-    const coef_ax2_final = 2*p - vp; // = p
-    const coef_ax_final  = 2*q;
-    const coef_b_final   = -vp;
-
-    let finalTerms = [
-      term_ax2(coef_ax2_final),
-      term_ax(coef_ax_final),
-      term_b(coef_b_final)
-    ].filter(t=>t!=="").join(" + ");
-    finalTerms = tidySum(finalTerms);
-
-    const lineReduite = `
-      <div class="line">\\(f'(x)=\\dfrac{${finalTerms}}{(${vLatex})^{2}}\\)</div>
-    `;
-
-    const html = `
-    ${tableHTML}
-    ${lineFormule}
-    ${lineSubstitution}
-    ${lineDeveloppe}
-    ${lineReduite}
-  `;
-  
-    return {
-    html,
-    vLatex,
-    finalTerms
-  };
-  }
-
-function buildSystemQuot_full(a,b,p,q,y0,X2,efLatex,fpWithABLatex){
-  // ---------- helpers d'affichage ----------
-
-  // (a) parenthèse autour négatif
-  function parNum(v){
-    return v < 0 ? `(${v})` : `${v}`;
-  }
-
-  // (b) coef * a   -> "a", "-a", "2a", "-3a", "0a"
-  function coeffTimesA(k){
-    if(k === 0) return "0a";
-    if(k === 1) return "a";
-    if(k === -1) return "-a";
-    return k + "a";
-  }
-
-  // (c) coef * b   -> "b", "-b", "2b", "-3b", "0b"
-  function coeffTimesB(k){
-    if(k === 0) return "0b";
-    if(k === 1) return "b";
-    if(k === -1) return "-b";
-    return k + "b";
-  }
-
-  // ---------- calculs symboliques / numériques ----------
-
-  // Numérateur de f'(x2) = 0 :
-  // (a*p)*X2² + (2*a*q)*X2 - p*b = 0
+  // b = q * y0
+  // deuxième équation : a(p+2q) - p b = 0
+  // après substitution explicite :
+  //   a(p+2q) - p * (q*y0) = 0
   //
-  // coeff devant a provenant de p*X2²
-  const c1 = p * (X2*X2);   // ex -9
-  // coeff devant a provenant de 2*q*X2
-  const c2 = 2*q*X2;        // ex 12
-  // partie constante -p*b
-  const constTermNum = -p * b; // ex +6, -18, etc.
-
-  // termes en a (simplifiés, sans "1a")
-  const termA1 = coeffTimesA(c1); // ex "-9a"
-  const termA2 = coeffTimesA(c2); // ex "12a"
-
-  // terme en b symbolique AVANT remplacement de b :
-  // "-p*b" doit sortir comme "-3b", pas "1b"
-  const termB_symbolic = coeffTimesB(-p); // ex "-3b", "2b", etc.
-
-  // Étape 2 (après la 1ère accolade) : on veut
-  //   c1 a + c2 a + (-p)b = 0
-  // ex:  "-9a + 12a -3b = 0"
+  // puis forme isolée de a = ...
+  //   a = [p * (q*y0)] / (p+2q)
   //
-  // On construit en respectant les signes, en évitant "+ -".
-  function joinLinear3(tA1,tA2,tB){
-    // tA1 ex "-9a" ou "a"
-    // tA2 ex "12a" ou "-a"
-    // tB  ex "-3b" ou "b" etc.
-    let parts = [];
-    if(tA1 !== "0a") parts.push(tA1);
-    if(tA2 !== "0a"){
-      if(/^-/.test(tA2)) parts.push(tA2);
-      else parts.push("+ "+tA2);
-    }
-    if(tB !== "0b"){
-      if(/^-/.test(tB)) parts.push(tB);
-      else parts.push("+ "+tB);
-    }
-    let s = parts.join(" ");
-    s = s.replace(/\+\s*-/g,"- ");
-    s = s.replace(/-\s*-/g,"+ ");
-    s = s.replace(/\+\s*\+/g,"+ ");
-    s = s.replace(/^\+\s*/,"");
-    return s.trim();
-  }
+  // ATTENTION aux signes, aux parenthèses seulement si négatif
 
-  const eq_step2 = joinLinear3(termA1, termA2, termB_symbolic);
-  // ex "-9a + 12a - 3b"
+  // on formate p+2q :
+  const denom = p + 2*q;
 
-  // Étape 3 : maintenant on remplace b par sa valeur numérique
-  // b = q*y0 = b
-  // => l'équation devient (c1 a + c2 a + constTermNum = 0)
-  function joinLinear2plusConst(tA1,tA2,constNum){
-    let parts = [];
-    if(tA1 !== "0a") parts.push(tA1);
-    if(tA2 !== "0a"){
-      if(/^-/.test(tA2)) parts.push(tA2);
-      else parts.push("+ "+tA2);
-    }
-    if(constNum !== 0){
-      if(constNum < 0) parts.push(""+constNum);
-      else parts.push("+ "+constNum);
-    }
-    let s = parts.join(" ");
-    s = s.replace(/\+\s*-/g,"- ");
-    s = s.replace(/-\s*-/g,"+ ");
-    s = s.replace(/\+\s*\+/g,"+ ");
-    s = s.replace(/^\+\s*/,"");
-    return s.trim();
-  }
+  // équation substituée explicitement (AVANT simplification)
+  // a(p+2q) - p*(q*y0) = 0
+  const subEq = `a(${p}+2\\times ${q}) - ${p}\\times (${q}\\times ${y0}) = 0`;
 
-  const eq_step3 = joinLinear2plusConst(termA1, termA2, constTermNum);
-  // ex "-9a + 12a + 6"
+  // équation finale isolée :
+  // a = p*(q*y0)/(p+2q)
+  const finalAeq = `a = \\dfrac{${p}\\times (${q}\\times ${y0})}{${p}+2\\times ${q}} = ${a}`;
 
-  // Étape 4 : isoler a
-  // On veut la forme "3a = 6" puis "a = 2".
-  //
-  // coefA_sum = c1 + c2 (ex -9 + 12 = 3)
-  const coefA_sum = c1 + c2;
-  const leftIso   = coeffTimesA(coefA_sum); // ex "3a" / "a" / "-2a"
-  const rightIso  = constTermNum < 0 ? (""+(-constTermNum)) : (""+constTermNum);
-  // attention : dans eq_step3 c'était "... + 6 = 0".
-  // Donc  -9a+12a+6=0  ⇔ 3a = -6 ??? Non.
-  //
-  // On doit être rigoureux :
-  // c1 a + c2 a + constTermNum = 0
-  // (c1+c2)a = -constTermNum
-  //
-  const rhsIsoVal = -constTermNum; // bon membre de droite
-
-
-  const step3a = `${leftIso} = ${rhsIsoVal}`; // ex "3a = 6"
-
-  // puis a = valeur finale
-  const aIso_step4 = `a = ${a}`; // ex "a = 2"
-
-  // b explicité
-  // tu ne veux pas voir "b = q × y0 = -6" avec un "1" devant b, donc juste :
-  const bCalcLine = `b = ${b}`;
-const denomSquared = Math.pow(p * X2 + q, 2);
-
-  // ---------- rendu final avec rappel f et f' ----------
   return `
-    <div class="line"><em>Rappel des fonctions :</em><br/>
-   \\(f(x) = ${efLatex}\\)<br/>
-      \\(f'(x) = ${fpWithABLatex}\\)
-    </div>
-
-    <div class="line" style="margin-top:.6rem"><em>Traduction des hypothèses :</em></div>
+    <div class="line"><em>Traduction des hypothèses :</em></div>
     <div class="line">
-      \\(H_1 : f(0) = ${y0}\\)<br/>
-      \\(H_2 : f'(${X2}) = 0\\)
+      \\(H_1\\) : \\(f(0)=${y0}\\)<br/>
+      \\(H_2\\) : \\(f'(1)=0\\)
     </div>
 
     <div class="line" style="margin-top:.4rem">
     \\[
     \\left\\{
       \\begin{array}{l}
-      f(0) = ${y0} \\\\
-      f'(${X2}) = 0
+      f(0)=${y0} \\\\
+      f'(1)=0
       \\end{array}
     \\right.
     \\Longleftrightarrow
     \\left\\{
       \\begin{array}{l}
       \\dfrac{b}{${q}} = ${y0} \\\\
-\\dfrac{${eq_step2}}{${denomSquared}} = 0 
-      \\end{array}
-     
-    \\right.
-    \\Longleftrightarrow
-    \\left\\{
-      \\begin{array}{l}
-      ${bCalcLine} \\\\
-      ${eq_step3} = 0
+      a(${p}+2\\times ${q}) - ${p}b = 0
       \\end{array}
     \\right.
-    \\Longleftrightarrow
-    \\left\\{
-      \\begin{array}{l}
-      ${bCalcLine} \\\\
-      ${step3a}
-      \\end{array}
-    \\right.
-    \\Longleftrightarrow
-    \\left\\{
-      \\begin{array}{l}
-      ${bCalcLine} \\\\
-      ${aIso_step4}
-      \\end{array}
-    \\right.
-    \\Longleftrightarrow
+    \\]
+    </div>
+
+    <div class="line" style="margin-top:.4rem">
+    Comme \\(\\frac{b}{${q}}=${y0}\\), on a \\(b=${q}\\times ${y0}=${b}\\). On remplace dans la deuxième équation :
+    \\[
+      ${subEq}
+    \\]
+    </div>
+
+    <div class="line" style="margin-top:.4rem">
+    On obtient finalement :
+    \\[
+      ${finalAeq}
+    \\]
+    </div>
+
+    <div class="line" style="margin-top:.4rem">
+    Donc :
+    \\[
     \\left\\{
       \\begin{array}{l}
       a = ${a} \\\\
@@ -2383,66 +2152,281 @@ const denomSquared = Math.pow(p * X2 + q, 2);
   `;
 }
 
-const derivBlock = buildDerivBlockQuot(a,b,p,q);
-// derivBlock.html        -> l'ancien bloc dérivée complet
-// derivBlock.vLatex      -> par ex "( -3x+2 )" etc
-// derivBlock.finalTerms  -> par ex "-3a + 2ax - b" bien nettoyé
+  // petites aides d'affichage pour la partie dérivée style "image"
+  function numStep1_Latex(p,q){
+    // 2ax(px+q) - p(ax²+b)
+    return `\\dfrac{2ax\\,(${linLatex(p,q)})-${p}(ax^{2}+b)}{(${linLatex(p,q)})^{2}}`;
+  }
+  function numStep2_Latex(p,q){
+    // développer mais encore avec a,b,p,q littéraux :
+    // 2ax(px+q) = 2ap x² + 2aq x
+    // -p(ax²+b) = -ap x² -pb
+    // => (2ap x² + 2aq x) + (-ap x² -pb)
+    // On n'essaie pas encore de regrouper, juste on montre la somme brute
+    const term_x2_1 = `2apx^{2}`;   // visuel "2apx²"
+    const term_x_1  = `2aqx`;
+    const term_x2_2 = `-apx^{2}`;
+    const term_cst  = `-pb`;
+    return `\\dfrac{${term_x2_1} + ${term_x_1} ${term_x2_2[0]==='-'? '' : '+ '}${term_x2_2} ${term_cst[0]==='-'? '':'+ '}${term_cst}}{(${linLatex(p,q)})^{2}}`;
+  }
+  function numStep3_Latex(p,q){
+    // Regroupement (2ap - ap)x² + 2aq x - pb = ap x² + 2aq x - pb
+    // On veut la ligne "6ax²-4ax-3a x²-3b" -> "3ax²-4ax-3b" dans ton exemple.
+    // Ici on va calculer avec les VRAIS nombres a,b,p,q tirés.
+    //
+    // numérateur simplifié = (a*p)x² + (2*a*q)x - p*b
+    const Acoef = a*p;
+    const Bcoef = 2*a*q;
+    const Ccoef = -p*b;
 
-// c'est la dérivée "avec a et b" que tu veux rappeler :
-const fpWithABLatex = `\\dfrac{${derivBlock.finalTerms}}{(${derivBlock.vLatex})^{2}}`;
+    // helper pour afficher Ax²+Bx+Cc avec les bons signes, sans 1x etc.
+    function polyNumPretty(A,B,C){
+      const chunks=[];
+      if(A!==0){
+        const AA=Math.abs(A);
+        chunks.push((A<0?'- ':'')+(AA===1?'a x^{2}':AA+'a x^{2}')); // ⚠ NON : on veut déjà numérique ici !
+      }
+    }
+    // MAIS : à cette étape tu veux du NUMÉRIQUE pur (ex. "6ax²-4ax-3a x²-3b" puis "3ax²-4ax-3b").
+    // Dans ton screenshot :
+    // Ligne 2 : 2ax(3x-2) - 3(ax²+b)
+    // Ligne 3 : 6ax²-4ax-3ax²-3b
+    // Ligne 4 : 3ax²-4ax-3b
+    //
+    // Donc en fait on va faire EXACTEMENT ces 4 lignes pour NOS p,q :
+    // LIGNE 1 : f'(x)= (u'v - v'u)/v²
+    // LIGNE 2 : f'(x)= (2ax(px+q) - p(ax²+b))/(px+q)²    ← numStep1_Latex
+    // LIGNE 3 : f'(x)= ( (2ap)x² + (2aq)x -(ap)x² -pb )/(px+q)²
+    //          = f'(x)= ( (2*a*p)x² + (2*a*q)x - (a*p)x² - (p*b) )/(...)²
+    // LIGNE 4 : f'(x)= ( (a*p)x² + (2*a*q)x - (p*b) )/(px+q)²
+    //
+    // Donc plutôt que numStep3_Latex on va construire ligne3/ligne4 directement dans solHTML avec les vrais coeffs.
+  }
 
 
-  // ÉNONCÉ (on met X2 dynamique)
+
+  // ENONCÉ
   const enonceHTML = `
-    On considère la fonction \\(f\\) définie par
-    \\[ f(x)=${efLatex} \\]
-    et l’on note \\( \\)  \\(\\mathcal{C}_f\\) \\( \\)  sa courbe représentative dans le plan muni d’un repère \\( \\)  \\((O;\\vec{i},\\vec{j})\\).
-    <ol style="margin-top:.5rem">
-      <li>Calculer \\(f'(x)\\) en fonction de \\(a\\) et \\(b\\).</li>
-      <li>Déterminer \\(a\\) et \\(b\\) sachant que \\( \\)  \\(\\mathcal{C}_f\\) \\( \\) vérifie les hypothèses suivantes :
-        <ul>
-          <li>\\(H_1 :\\) \\( \\)  \\(\\mathcal{C}_f\\) \\( \\) coupe l’axe des ordonnées au point d’ordonnée \\(${y0}\\).</li>
-          <li>\\(H_2 :\\) \\( \\) \\(\\mathcal{C}_f\\) \\( \\) admet une tangente horizontale au point d’abscisse \\(${X2}\\).</li>
-        </ul>
-        Donner l’expression finale de \\(f(x)\\).
-      </li>
-    </ol>
+  On considère la fonction \\(f\\) définie par
+  \\[ f(x)=${efLatex} \\]
+  et l’on note \\(\\mathcal{C}_f\\) sa courbe représentative dans le plan muni d’un repère \\((O;\\vec{i},\\vec{j})\\).
+  <ol style="margin-top:.5rem">
+    <li>Calculer \\(f'(x)\\) selon \\(a\\) \\( \\) et \\( \\) \\(b\\).</li>
+    <li>Déterminer \\( \\) \\(a\\) et \\(b\\) \\( \\) sachant que \\( \\) \\(\\mathcal{C}_f\\) \\( \\) vérifie les hypothèses suivantes :
+      <ul>
+        <li>\\(H_1 :\\) \\( \\) \\(\\mathcal{C}_f\\)  \\( \\) coupe l’axe des ordonnées au point d’ordonnée \\( \\)  \\(${y0}\\).</li>
+        <li>\\(H_2 :\\) \\( \\) \\(\\mathcal{C}_f\\)  \\( \\) admet une tangente horizontale au point d’abscisse \\( \\)  \\(1\\).</li>
+      </ul>
+      Donner l’expression finale de \\(f(x)\\).
+    </li>
+  </ol>
   `;
+
+function fmtFactorKofExpr(k, exprLatex){
+  // renvoie k*(expr) en LaTeX propre:
+  //  k =  5  -> "5"+expr
+  //  k = -5  -> "-5"+expr
+  //  k =  1  -> expr
+  //  k = -1  -> "-" + expr
+  //  k =  0  -> "0"? (ici ça ne se produit pas pour v'(x))
+  if(k === 1){
+    return exprLatex;
+  } else if(k === -1){
+    return "-" + exprLatex;
+  } else {
+    return k + exprLatex;
+  }
+}
+
+// construit un terme style "coef * ax²"
+function term_ax2(coef){
+  if (coef === 0) return "";
+  if (coef === 1) return "ax^{2}";
+  if (coef === -1) return "-ax^{2}";
+  if (coef > 0) return coef + "ax^{2}";
+  return "-" + Math.abs(coef) + "ax^{2}";
+}
+
+function term_ax(coef){
+  if (coef === 0) return "";
+  if (coef === 1) return "ax";
+  if (coef === -1) return "-ax";
+  if (coef > 0) return coef + "ax";
+  return "-" + Math.abs(coef) + "ax";
+}
+
+function term_b(coef){
+  if (coef === 0) return "";
+  if (coef === 1) return "b";
+  if (coef === -1) return "-b";
+  if (coef > 0) return coef + "b";
+  return "-" + Math.abs(coef) + "b";
+}
+
+// petit nettoyeur d'espaces et de signes
+function tidySum(str){
+  return str
+    .replace(/\s+/g," ")
+    .replace(/\+\s*-/g,"- ")
+    .replace(/-\s*-/g,"- -") // on laisse -- ? on va corriger juste après
+    .replace(/\+\s*\+/g,"+ ")
+    .replace(/^\+\s*/,"")
+    .replace(/ - -/g," + ") // "--" -> "+", règle pédagogique que tu veux déjà partout
+    .trim();
+}
+
+
+
+
+function buildDerivBlockQuot(a,b,p,q){
+  const vLatex = linLatex(p,q); // ex "x-1" ou "-3x+3"
+  const vp     = p;             // v'(x)=p
+  const upLatex = "2ax";
+  const uLatex  = "ax^{2}+b";
+
+  // (1) tableau u / v / u' / v'
+  const tableHTML = `
+    <div class="line">On a \\( f(x)=\\dfrac{u(x)}{v(x)} \\) avec :</div>
+    <table class="uvtab">
+      <tr>
+        <td>\\(u(x)=${uLatex}\\)</td>
+        <td>\\(v(x)=${vLatex}\\)</td>
+      </tr>
+      <tr>
+        <td>\\(u'(x)=${upLatex}\\)</td>
+        <td>\\(v'(x)=${vp}\\)</td>
+      </tr>
+    </table>
+  `;
+
+  // (2) formule générale
+  const lineFormule = `
+    <div class="line">\\(f'(x)=\\dfrac{u'(x)v(x)-v'(x)u(x)}{v(x)^{2}}\\)</div>
+  `;
+
+  // (3) substitution directe
+  // numérateur : 2ax * v(x)  -  v'(x)*(ax²+b)
+  // on doit afficher " - (ax²+b)" si v'(x)=1, et " - (-3)(ax²+b)" si v'(x)=-3, etc.
+  let secondFactor; // la partie "-v'(x)u(x)" propre
+
+if (vp === 1) {
+  // cas v'(x)=+1 : on garde le signe "–" de la formule
+  secondFactor = "-(ax^{2}+b)";
+} else if (vp === -1) {
+  // cas v'(x)=-1 :  -(-1)(ax²+b) → + (ax²+b)
+  secondFactor = "+(ax^{2}+b)";
+} else if (vp > 1) {
+  // cas v'(x)>1 :  -(vp)(ax²+b)
+  secondFactor = `-${vp}(ax^{2}+b)`;
+} else {
+  // cas v'(x)<-1 :  -(-|vp|)(ax²+b) → +|vp|(ax²+b)
+  secondFactor = `+${Math.abs(vp)}(ax^{2}+b)`;
+}
+
+
+  // Et la première partie "2ax * v(x)" on l'écrit simplement "2ax(${vLatex})"
+ const lineSubstitution = `
+  <div class="line">\\(f'(x)=\\dfrac{2ax\\,(${vLatex})${secondFactor}}{(${vLatex})^{2}}\\)</div>
+`;
+
+
+  // (4) développement du numérateur AVANT regroupement
+  //
+  // 2ax(px+q) -> (2p)ax² + (2q)ax
+  // k(ax²+b)  -> k·ax² + k·b, avec k = -vp (cf plus haut)
+  //
+  const coef_x2_first = 2*p;   // pour ax²
+  const coef_x_first  = 2*q;   // pour ax
+  const kSecond       = -vp;   // facteur appliqué à (ax²+b)
+
+  const coef_x2_second = kSecond; // k * ax²
+  const coef_b_second  = kSecond; // k * b
+
+  // construit l'enchaînement des 3/4 termes :
+  let rawTerms = [
+    term_ax2(coef_x2_first),
+    term_ax(coef_x_first),
+    term_ax2(coef_x2_second),
+    term_b(coef_b_second)
+  ].filter(t=>t!=="").join(" + ");
+
+  rawTerms = tidySum(rawTerms);
+
+  const lineDeveloppe = `
+    <div class="line">\\(f'(x)=\\dfrac{${rawTerms}}{(${vLatex})^{2}}\\)</div>
+  `;
+
+  // (5) regroupement final :
+  // ax² : coef_x2_first + coef_x2_second = (2p) + (-vp) = 2p - vp = p
+  // ax  : coef_x_first                  = 2q
+  // b   : coef_b_second                 = -vp
+  const coef_ax2_final = 2*p - vp; // qui est p en vrai
+  const coef_ax_final  = 2*q;
+  const coef_b_final   = -vp;
+
+  let finalTerms = [
+    term_ax2(coef_ax2_final),
+    term_ax(coef_ax_final),
+    term_b(coef_b_final)
+  ].filter(t=>t!=="").join(" + ");
+
+  finalTerms = tidySum(finalTerms);
+
+  const lineReduite = `
+    <div class="line">\\(f'(x)=\\dfrac{${finalTerms}}{(${vLatex})^{2}}\\)</div>
+  `;
+
+  // assemblage final du bloc dérivée :
+  return `
+    ${tableHTML}
+    ${lineFormule}
+    ${lineSubstitution}
+    ${lineDeveloppe}
+    ${lineReduite}
+  `;
+}
+
+
+
 
   // SOLUTION
   const solHTML = `
-    <div class="steps">
-      <div class="line stepTitle">1) Dérivée générale du quotient</div>
-    <div class="line">${derivBlock.html}</div>
+  <div class="steps">
+    <div class="line stepTitle">1) Dérivée générale du quotient</div>
+    <div class="line">${buildDerivBlockQuot(a,b,p,q)}</div>
 
-      <div class="line stepTitle">2) Utilisation des hypothèses</div>
-    ${buildSystemQuot_full(a,b,p,q,y0,X2,efLatex,fpWithABLatex)}
 
-      <div class="line stepTitle">Conclusion</div>
-      <div class="line">\\(a=${a}\\) \\( \\) et \\( \\) \\(b=${b}.\\)</div>
-      <div class="line">Donc \\( \\) \\(f(x)=${fLatex}\\).</div>
-      <div class="line">Et \\( \\) \\(f'(x)=${fpLatex}\\).</div>
-    </div>
+    <div class="line stepTitle">2) Utilisation des hypothèses</div>
+${buildSystemQuot_full(a,b,p,q,y0)}
+
+    <div class="line stepTitle">Conclusion</div>
+    <div class="line">\\(a=${a},\\;b=${b}.\\)</div>
+    <div class="line">Donc \\(f(x)=${fLatex}\\).</div>
+    <div class="line">Et \\(f'(x)=${fpLatex}\\).</div>
+  </div>
   `;
 
-  // pour le check
+  // Pour checkExoB : on renvoie f'(x) numérique
   function fpEval(x){
+    // numérateur dérivée = (a p)x^2 + (2 a q)x - p b
     const num = (a*p)*x*x + (2*a*q)*x + (-p*b);
     const den = (p*x+q)*(p*x+q);
     return num/den;
   }
-  function fEval(x){
-    return (a*x*x + b) / (p*x + q);
-  }
+function fEval(x){
+  return (a*x*x + b) / (p*x + q);
+}
   const coeffsRef = {a,b};
 
+  // formes symboliques attendues
   const fSymbolicLatex  = `\\dfrac{ax^{2}+b}{${linLatex(p,q)}}`;
+  // dérivée symbolique générale (sans remplacer a,b,p,q)
   const fpSymbolicLatex = `\\dfrac{2ax(${linLatex(p,q)})-${p}(ax^{2}+b)}{(${linLatex(p,q)})^{2}}`;
-  const fFinalLatex     = fLatex;
+  const fFinalLatex     = fLatex; // déjà numérique
 
   const hypInputs = [
     { id:"H1", label:"H₁ se traduit par :", expect:`f(0)=${y0}` },
-    { id:"H2", label:"H₂ se traduit par :", expect:`f'(${X2})=0` },
+    { id:"H2", label:"H₂ se traduit par :", expect:`f'(1)=0` },
   ];
 
   return {
@@ -2450,18 +2434,19 @@ const fpWithABLatex = `\\dfrac{${derivBlock.finalTerms}}{(${derivBlock.vLatex})^
     enonce:enonceHTML,
     solHTML,
     fpEval,
-    fEval,
+	  fEval,
     fpLatex,
     coeffsRef,
     hypInputs,
     fpSymbolicLatex,
-    p,
-    q,
+	p,
+q,
+
     fSymbolicLatex,
     fFinalLatex
+	
   };
 }
-
 
 
 
@@ -3521,33 +3506,23 @@ function checkFxFinal(st){
     return {answered:false, ok:false};
   }
 
-  const xs = [-2,-1,0,1,2,3];
-  let testedAtLeastOne = false;
+  const xs=[-2,-1,0,1,2,3];
+  let forbid = null;
+  if (typeof st.p === 'number' && typeof st.q === 'number') {
+    forbid = -st.q / st.p;
+  }
 
   for(const xx of xs){
-    const vRef = st.fEval(xx);
-    if(!Number.isFinite(vRef)){
-      continue; // hors domaine pour la vraie fonction -> on saute
+    if (forbid !== null && Math.abs(xx - forbid) < 1e-9) {
+      continue;
     }
 
     const vUser = evalWithCoeffs(ansFx, st.coeffsRef, xx);
-
-    if(!Number.isFinite(vUser)){
+    const vRef  = st.fEval(xx);
+    if(!Number.isFinite(vUser)||!Number.isFinite(vRef)||!almost(vUser,vRef,1e-6)){
       setTick('#tickFxFinal', false);
       return {answered:true, ok:false};
     }
-
-    testedAtLeastOne = true;
-
-    if(!almost(vUser, vRef, 1e-6)){
-      setTick('#tickFxFinal', false);
-      return {answered:true, ok:false};
-    }
-  }
-
-  if(!testedAtLeastOne){
-    setTick('#tickFxFinal', false);
-    return {answered:true, ok:false};
   }
 
   setTick('#tickFxFinal', true);
@@ -3557,11 +3532,9 @@ function checkFxFinal(st){
 
 
 
-
 function evalWithCoeffs(expr, coeffs, x){
   if(!expr) return NaN;
   let s = String(expr);
-s = normalizeRac(s);
 
   // 0) remplacer "f(x)=" ou "f'(x)=" s'il y en a un
   s = s.replace(/^f'?\(x\)\s*=\s*/i,'');
@@ -3628,47 +3601,32 @@ function checkDeriveeNum(st){
     return {answered:false, ok:false};
   }
 
-  const xs = [-2,-1,0,1,2,3];
-  let testedAtLeastOne = false;
+  const xs=[-2,-1,0,1,2,3];
 
-  for(const xx of xs){
-    // valeur officielle de f'(x) à xx
-    const vRef  = st.fpEval(xx);
-    if(!Number.isFinite(vRef)) {
-      // référence pas définie à ce x (dénominateur nul, racine négative, etc.)
-      continue;
-    }
-
-    // valeur élève
-    const vUser = evalWithCoeffs(ansDeriv, st.coeffsRef, xx);
-
-    if(!Number.isFinite(vUser)){
-      // élève produit pas un nombre là où la ref en produit un -> faux
-      setTick('#tickMain', false);
-      return {answered:true, ok:false};
-    }
-
-    // on a un point de comparaison valable
-    testedAtLeastOne = true;
-
-    if(!almost(vUser, vRef, 1e-6)){
-      setTick('#tickMain', false);
-      return {answered:true, ok:false};
-    }
+  // si c'est un quotient, on a st.p et st.q (on va les renvoyer depuis genQuot)
+  // on évite x = -q/p
+  let forbid = null;
+  if (typeof st.p === 'number' && typeof st.q === 'number') {
+    forbid = -st.q / st.p;
   }
 
-  // si on n'a jamais trouvé un x exploitable (ça arrivera quasiment jamais
-  // sauf si la fonction est définie nulle part dans xs),
-  // on décide de NE PAS valider pour éviter les faux positifs.
-  if(!testedAtLeastOne){
-    setTick('#tickMain', false);
-    return {answered:true, ok:false};
+  for(const xx of xs){
+    if (forbid !== null && Math.abs(xx - forbid) < 1e-9) {
+      continue; // on saute le x qui annule le dénominateur
+    }
+
+    const vUser = evalWithCoeffs(ansDeriv, st.coeffsRef, xx);
+    const vRef  = st.fpEval(xx); // dérivée numérique officielle
+
+    if(!Number.isFinite(vUser)||!Number.isFinite(vRef)||!almost(vUser,vRef,1e-6)){
+      setTick('#tickMain', false);
+      return {answered:true, ok:false};
+    }
   }
 
   setTick('#tickMain', true);
   return {answered:true, ok:true};
 }
-
 
 
 

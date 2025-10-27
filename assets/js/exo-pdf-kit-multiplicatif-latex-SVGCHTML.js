@@ -877,7 +877,12 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 .twocol-solution .line mjx-container{
   padding-bottom:.08em;
 }
-
+.stepTitle{
+  font-weight:600;
+  margin-top:.4rem;
+  margin-bottom:.2rem;
+  text-decoration:underline;
+}
 
 </style>
 

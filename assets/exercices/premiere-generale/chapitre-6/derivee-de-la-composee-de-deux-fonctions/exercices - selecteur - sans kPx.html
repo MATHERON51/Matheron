@@ -248,9 +248,7 @@ select,input[type="text"]{
       <li>Puissances : <code>x^n</code>, <code>x**n</code>, <code>x²</code>…</li>
       <li>Racines : <code>sqrt(…)</code>, <code>rac(…)</code>, <code>√(…)</code>.</li>
       <li>Fractions : <code>a/b</code>. Multiplications implicites acceptées.</li>
-          <li>Attention aux parenthèses pour les fractions si c'est nécessaire.</li>
-
-	</ul>
+    </ul>
   </div>
 
   <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
@@ -338,35 +336,6 @@ function numEval(expr, x){
 function almost(a,b,eps=1e-8){
   return Math.abs(a-b) <= eps*(1+Math.max(1,Math.abs(a),Math.abs(b)));
 }
-
-
-function pickK(){
-  // 50% k = 1
-  // 50% k = autre entier dans [-5..-2] U [-1] U [2..5]
-  // mais tu veux garder la possibilité k=-1 aussi dans ce 50%.
-  // On veut bien inclure -1 dans "≠1".
-  if (Math.random() < 0.5){
-    return 1;
-  } else {
-    const pool = [-5,-4,-3,-2,-1,2,3,4,5];
-    return choice(pool);
-  }
-}
-
-// affichage latex du k DEVANT quelque chose
-// ex:
-//   k = 1      -> ""          (rien)
-//   k = -1     -> "−"         (le signe moins tout seul)
-//   k = 3      -> "3"
-//   k = -4     -> "−4"
-// Attention : on ne met pas d'espace après, tu le géreras où tu l'insères.
-function kPrefixFromK(k){
-  if (k === 1)  return "";
-  if (k === -1) return "−";
-  if (k < 0)    return "−"+Math.abs(k);
-  return String(k);
-}
-
 
 /* ===== helpers d'affichage pour affines / polynômes courts ===== */
 function affineLatex(A,B){
@@ -521,225 +490,216 @@ function buildAfterDivide2(k, dULatex, uLatex){
    Deux méthodes dans la correction.
    ========================================================= */
 function genEx1(mode){
-  // type concret : "pow" ou "sqrt"
+  // détermine le type concret : "pow" ou "sqrt"
   let kind;
   if(mode === 'powAffine'){
     kind = 'pow';
   }else if(mode === 'sqrtAffine'){
     kind = 'sqrt';
   }else{
+    // mix1 ou inconnu -> aléatoire
     kind = choice(["pow","sqrt"]);
   }
 
-  // u(x)=ax+b avec a≠0
+
+
+
+  // génère u(x)=ax+b avec a≠0
   const a = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
   const b = rnd(-6,6);
 
   const uLatex = affineLatex(a,b);
-  const uPrime = a;
+  const uPrime = a; // constante
   const uJS = '('+affineToJS(a,b)+')';
 
   let title = "Exercice 1 : Dérivation d’une composée (avec u affine)";
   let enonce = "";
   let solHTML = "";
   let latexF = "";
-  let fpJS;
-  let fJS;
+  let fpJS;  // fonction JS de f'
+  let fJS;   // fonction JS de f
 
   if(kind==="pow"){
-  const n = rnd(2,7);
+    // puissance n, entre 2 et 7
+    const n = rnd(2,7);
 
-  // nouveau tirage k (50/50 =1 vs autre)
-  const k = pickK(); // entier genre 1, -1, 4, -2...
-  const kPrefix = kPrefixFromK(k); // "" / "−" / "3" / "−4" ...
+    latexF = `(${uLatex})^{${n}}`;
 
-  // u(x)=ax+b, u'(x)=a
-  const uPrimeLatex = String(uPrime);
-  const uPrimePar   = (uPrime<0?`(${uPrimeLatex})`:uPrimeLatex);
+    // f(x) = (u(x))^n
+    // f'(x) = n * (u(x))^{n-1} * u'(x)
+    // pour la méthode 1 on veut la forme g(u(x)) avec g(x)=x^n
+    // g'(x)= n x^{n-1}
+    const gLatex   = `x^{${n}}`;
+    const gPrime   = `${n}x^{${n-1}}`;
 
-  // On construit g(x) = k * x^n SANS écrire "k"
-  // g(x) :
-  //   k=1   -> x^n
-  //   k=-1  -> −x^n
-  //   k=4   -> 4x^n
-  //   k=-3  -> −3x^n
-  let gLatex;
-  if (k === 1){
-    gLatex = `x^{${n}}`;
-  } else if (k === -1){
-    gLatex = `-${n===1?'x':`x^{${n}}`}`; // n>=2 donc x^{n}
-  } else {
-    gLatex = `${kPrefix}x^{${n}}`; // kPrefix est genre "3" ou "−2"
-  }
-
-  // g'(x) = k * n * x^{n-1}
-  // On doit fabriquer proprement ce coefficient k*n :
-  const kn = k * n; // nombre entier
-  // afficher kn*x^{n-1}
-  // attention au cas n-1 = 1
-  let gPrimeNice;
-  if (n === 2){
-    // n-1 =1 => k*n * x
-    // ex si k=3, n=2 => 6x
-    // si k=-1, n=2 => -2x
-    gPrimeNice = `${kn}x`;
-  } else {
-    gPrimeNice = `${kn}x^{${n-1}}`;
-  }
-
-  // g'(u(x)) = kn * (u(x))^{n-1}
-  // version sans afficher puissance 1
-  let gPrimeComposeLatex;
-  if (n === 2){
-    // kn * u(x)
-    gPrimeComposeLatex = `${kn}\\,u(x)`;
-  } else {
-    gPrimeComposeLatex = `${kn}\\,(u(x))^{${n-1}}`;
-  }
-
-  // f'(x) = g'(u(x)) * u'(x)
-  // générique avec u(x), u'(x) symboliques :
-  //   si n=2: kn * u(x) * u'(x)
-  //   sinon : kn * (u(x))^{n-1} * u'(x)
-  const derivGeneric_uLatex =
-    (n === 2)
-      ? `${kn}\\,u(x)u'(x)`
-      : `${kn}\\,(u(x))^{${n-1}}u'(x)`;
-
-  // version substituée u(x)=..., u'(x)=...
-  //   n=2  -> kn * (uLatex) * uPrimePar
-  //   n>2  -> kn * (uLatex)^{n-1} * uPrimePar
-  const derivExpandedLatex =
-    (n === 2)
-      ? `${kn}\\,(${uLatex}) \\times ${uPrimePar}`
-      : `${kn}\\,(${uLatex})^{${n-1}} \\times ${uPrimePar}`;
-
-  // coefficient numérique final kn*uPrime
-  const finalCoeff = kn * uPrime;
-  // dernière ligne finale propre :
-  const finalLatexClean2 =
-    (n === 2)
-      ? `${finalCoeff}\\,(${uLatex})`
-      : `${finalCoeff}\\,(${uLatex})^{${n-1}}`;
-
-  // f(x) pour l'énoncé :
-  //   k=1    -> (uLatex)^n
-  //   k=-1   -> - (uLatex)^n
-  //   k=4    -> 4(uLatex)^n
-  //   k=-3   -> -3(uLatex)^n
-  let fLatexForEnonce;
-  if (k === 1){
-    fLatexForEnonce = `(${uLatex})^{${n}}`;
-  } else if (k === -1){
-    fLatexForEnonce = `-${n===1?`(${uLatex})`:`(${uLatex})^{${n}}`}`;
-  } else {
-    fLatexForEnonce = `${kPrefix}(${uLatex})^{${n}}`;
-  }
-  latexF = fLatexForEnonce;
-
-  enonce =
-    `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
-    `\\[ f(x)= ${fLatexForEnonce} \\]`;
-
-  // === METHODE 1 (chaîne stricte : f(x)=g(u(x)))
-  // Ici on affiche g(x) = [kPrefix] x^n, pas "k × x^n"
-  // et u'(x), g'(x), g'(u(x)) avec les coeffs *numériques déjà multipliés*.
-  const method1HTML = `
-    <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
-
-    <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
-    <table class="uvtab">
-      <tr>
-        <td>\\(u(x)=${uLatex}\\)</td>
-        <td>\\(g(x)=${gLatex}\\)</td>
-      </tr>
-      <tr>
-        <td>\\(u'(x)=${uPrimeLatex}\\)</td>
-        <td>\\(g'(x)=${gPrimeNice}\\)</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
-      </tr>
-    </table>
-
-    <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
-    <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
-
-    <div class="line">\\(f'(x)= ${derivExpandedLatex}\\)</div>
-    <div class="line">\\(f'(x)= ${finalLatexClean2}\\)</div>
-  `;
-
-  // === METHODE 2
-  // Méthode 2 = ta formule "connue" type (k(u(x))^n)' = k*n*(u(x))^{n-1}*u'(x)
-  // Ça te convenait déjà, juste on n'affiche jamais la lettre k toute seule,
-  // donc on réutilise les mêmes chaînes numériques (kn, finalCoeff, etc.)
-  // On affiche f(x)= [kPrefix](u(x))^n
-  // et les lignes cohérentes avec ce coeff.
-  const method2HTML = `
-    <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
-      <div class="line">\\(f(x)=${kPrefix} (u(x))^{${n}}\\) \\( \\) avec :</div>
-    <table class="uvtab">
-      <tr>
-        <td>\\(u(x)=${uLatex}\\)</td>
-      </tr>
-      <tr>
-        <td>\\(u'(x)=${uPrimeLatex}\\)</td>
-      </tr>
-    </table>
-
-    <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
-
-    <div class="line">\\(f'(x)= ${derivExpandedLatex}\\)</div>
-    <div class="line">\\(f'(x)= ${finalLatexClean2}\\)</div>
-  `;
-
-  solHTML = `
-  <div class="steps">
-    <table class="twocol-solution">
-      <tr>
-        <td class="col-gauche">
-          ${method1HTML}
-        </td>
-        <td class="col-droite">
-          ${method2HTML}
-        </td>
-      </tr>
-    </table>
-  </div>`;
-
-  // fonctions numériques pour check
-  const uJS_inner = uJS;
-  fJS = x => {
-    const u = Function("x","return "+uJS_inner+";")(x);
-    return k*Math.pow(u,n);
-  };
-  fpJS = x => {
-    const u  = Function("x","return "+uJS_inner+";")(x);
-    const du = uPrime;
-    return k * n*Math.pow(u,n-1)*du;
-  };
-
-
-
-  } else {
-    // kind==="sqrt"
-    // ICI on change juste le tirage de k avec pickK()
-
-    const k = pickK();
-    const kPrefix = kPrefixFromK(k);
-
+    // Substitution g'(u(x)) = n(u(x))^{n-1}
+    // attention au signe de u'(x) dans le produit final :
+    // On affiche (u'(x)) entre parenthèses si u'(x)<0.
     const uPrimeLatex = String(uPrime);
-    const uPrimePar   = (uPrime<0?`(${uPrimeLatex})`:uPrimeLatex);
-    const uPrimePar2  = (uPrime<0?`${uPrimeLatex}`:uPrimeLatex);
+    const uPrimePar = (uPrime<0?`(${uPrimeLatex})`:uPrimeLatex);
 
-    // f(x)=k√(u(x))
-    latexF =
-      k===1
-        ? `\\sqrt{${uLatex}}`
-        : `${kPrefix}\\sqrt{${uLatex}}`;
+   // Méthode 1 (chaîne g∘u)
+const method1Lines = [
+  `\\(f(x)=g(u(x))\\( \\) \\text{ avec } u(x)=${uLatex},\\ u'(x)=${uPrimeLatex},\\ g(x)=${gLatex},\\ g'(x)=${gPrime}\\)`,
+  `\\(f'(x)=g'(u(x))\\times u'(x)\\)`,
+  `\\(f'(x)= ${n}\\,(${uLatex})^{${n-1}} \\times ${uPrimePar}\\)`
+];
 
-    // g(x)=k√x ; g'(x)=k/(2√x) adapté déjà existant
+// Méthode 2 (formule directe (u^n)' = n u^{n-1} u')
+const method2Lines = [
+  `\\(f(x)=(${uLatex})^{${n}}\\)`,
+  `\\(f'(x)= ${n}\\,(${uLatex})^{${n-1}} \\times ${uPrimePar}\\)`
+];
+
+// résultat simplifié Latex final :
+const finalLatex = `${n}\\,(${uLatex})^{${n-1}}\\times ${uPrimePar}`;
+
+enonce =
+  `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
+  `\\[ f(x)=(${uLatex})^{${n}} \\]`;
+// préparation avant le template HTML
+// ---------------------------------
+
+// version "propre" de g'(x) sans exposant 1
+const gPrimeNice =
+  (n === 2)
+    ? `${n}x`
+    : `${n}x^{${n-1}}`;
+
+// g'(u(x)) déjà nettoyé plus haut :
+const gPrimeComposeLatex =
+  (n === 2)
+    ? `${n}\\,u(x)`
+    : `${n}\\,(u(x))^{${n-1}}`;
+
+// f'(x)= ... sans puissance 1
+const derivGeneric_uLatex =
+  (n === 2)
+    ? `${n}\\,u(x)u'(x)`
+    : `${n}\\,(u(x))^{${n-1}}u'(x)`;
+
+// version développée avec u(x)=... et u'(x)=...
+const derivExpandedLatex =
+  (n === 2)
+    ? `${n}\\,(${uLatex}) \\times ${uPrimePar}`
+    : `${n}\\,(${uLatex})^{${n-1}} \\times ${uPrimePar}`;
+
+// Conclusion finale propre
+const finalLatexClean =
+  (n === 2)
+    ? `${n}\\,(${uLatex}) \\times ${uPrimePar}`
+    : `${n}\\,(${uLatex})^{${n-1}}\\times ${uPrimePar}`;
+
+
+const uPrimeNum = uPrime; // uPrime était déjà le nombre dérivé de u(x) (ex: -3)
+
+const coeffNum = n * uPrimeNum; // nombre pur
+function coeffLatex(c){
+  // si c = -1 ou 1 on garde le ±1 explicite, pas besoin de ruser,
+  // parce que tu montres bien le coefficient numérique final tel quel.
+  return `${c}`;
+}
+
+const derivFinalSimplifiedLatex =
+  (n === 2)
+    ? `${coeffLatex(coeffNum)}\\,(${uLatex})`
+    : `${coeffLatex(coeffNum)}\\,(${uLatex})^{${n-1}}`;
+
+// 7. C'est cette version qu'on veut afficher en DERNIÈRE ligne
+//    dans chaque colonne, et dans "Conclusion :"
+const finalLatexClean2 = derivFinalSimplifiedLatex;
+
+
+solHTML = `
+<div class="steps">
+  <table class="twocol-solution">
+    <tr>
+      <td class="col-gauche">
+        <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+
+        <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
+        <table class="uvtab">
+          <tr>
+            <td>\\(u(x)=${uLatex}\\)</td>
+            <td>\\(g(x)=${gLatex}\\)</td>
+          </tr>
+          <tr>
+            <td>\\(u'(x)=${uPrimeLatex}\\)</td>
+            <td>\\(g'(x)=${gPrimeNice}\\)</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
+          </tr>
+        </table>
+
+        <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
+        <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+
+        <div class="line">\\(f'(x)= ${derivExpandedLatex}\\)</div>
+				  <div class="line">\\(f'(x)= ${finalLatexClean2}\\)</div>
+
+      </td>
+
+      <td class="col-droite">
+        <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+        <div class="line">\\(f(x)=(u(x))^{${n}}\\) \\( \\) avec :</div>
+        <table class="uvtab">
+          <tr>
+            <td>\\(u(x)=${uLatex}\\)</td>
+          </tr>
+          <tr>
+            <td>\\(u'(x)=${uPrimeLatex}\\)</td>
+          </tr>
+        </table>
+
+        <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+
+        <div class="line">\\(f'(x)= ${derivExpandedLatex}\\)</div>
+		  <div class="line">\\(f'(x)= ${finalLatexClean2}\\)</div>
+      </td>
+    </tr>
+  </table>
+
+
+</div>`;
+
+
+
+
+    // fonctions JS num pour check
+    fJS = x => {
+      const u = Function("x","return "+uJS+";")(x);
+      return Math.pow(u,n);
+    };
+    fpJS = x => {
+      const u  = Function("x","return "+uJS+";")(x);
+      const du = uPrime;
+      return n*Math.pow(u,n-1)*du;
+    };
+
+  } else { // kind==="sqrt"
+    // k * sqrt(ax+b)
+    // k non nul, éviter k=1 affiché comme "1√", on gère texte
+    let k = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    // éviter k=1 affiché "1√", on ne l'affiche pas si 1 ; si -1 on affiche juste "−"
+    const kAbs = Math.abs(k);
+    let kPrefix;
+    if(k===1){ kPrefix = ""; }
+    else if(k===-1){ kPrefix = "−"; }
+    else{
+      kPrefix = (k<0? "−"+kAbs : String(kAbs));
+    }
+
+    latexF = `${kPrefix}\\sqrt{${uLatex}}`;
+
+    // Ici f(x)=k√(u(x)).
+    // Posons u(x)=ax+b.
+    // g(t)=k√t → g'(t)=k * 1/(2√t).
+    // Méthode 1 : g∘u.
+    const gLatex   = `${kPrefix}\\sqrt{x}`.replace(/−-/g,'−'); // affichage g(x)
+    // g'(x)=k/(2√x). Attention kPrefix pour la dérivée :
+    // si k=−1 on veut - 1/(2√x) → "- \\dfrac{1}{2\\sqrt{x}}"
     let gPrimeLatex;
     if(k===1){
       gPrimeLatex = `\\dfrac{1}{2\\sqrt{x}}`;
@@ -749,34 +709,38 @@ function genEx1(mode){
       gPrimeLatex = `\\dfrac{${k}}{2\\sqrt{x}}`;
     }
 
-    let fracGeneric_no1;
-    if (k === 1) {
-      fracGeneric_no1 = `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
-    } else if (k === -1) {
-      fracGeneric_no1 = `\\dfrac{-\\,u'(x)}{2\\sqrt{u(x)}}`;
-    } else {
-      fracGeneric_no1 = `\\dfrac{${k}\\,u'(x)}{2\\sqrt{u(x)}}`;
-    }
+    // substitution : g'(u(x)) = k/(2√(u(x)))
+    // puis * u'(x)=a
+    const uPrimeLatex = String(uPrime);
+    // parenthèses autour de u'(x) si négatif pour la ligne produit
+    const uPrimePar = (uPrime<0?`(${uPrimeLatex})`:uPrimeLatex);
 
-    let fracExpanded_no1;
-    if (k === 1) {
-      fracExpanded_no1 = `\\dfrac{${uPrimePar2}}{2\\sqrt{${uLatex}}}`;
-    } else if (k === -1) {
-      fracExpanded_no1 = `\\dfrac{-\\,${uPrimePar}}{2\\sqrt{${uLatex}}}`;
-    } else {
-      fracExpanded_no1 = `\\dfrac{${k}\\times ${uPrimePar}}{2\\sqrt{${uLatex}}}`;
-    }
+    const uPrimePar2 = (uPrime<0?`${uPrimeLatex}`:uPrimeLatex);
 
-    // fraction finale simplifiée avec division par 2 etc. (déjà dans ta version)
-    const rawNum = k*uPrime;
+    // Méthode 1 lignes
+    // On va aussi simplifier comme dans ton screen :
+    // f'(x)= k * u'(x) / (2√(u(x)))
+    // puis réduire k*a /2 etc.
+    // Calcul du numérateur final k*a
+    const numFinal = k*uPrime;
+    // Denom 2√(u(x))
+    // Forme mise au propre : numFinal / (2√(u(x)))
+    // ex : k=-2, a=5 → numFinal=-10 → f'(x)= -10/(2√(...)) = -5/√(...)
+    // On va faire la simplification finale nous-mêmes pour l'affichage "Conclusion".
+    const rawNum   = k*uPrime;
+    const rawDen   = 2;
+    // simplif fraction k*a /2
     function fracSimplif(n,d){
+      // on essaie juste de /2 si possible
       if(n%d===0){ return [n/d,1]; }
       return [n,d];
     }
-    const [simpNum,simpDen]=fracSimplif(rawNum,2);
+    const [simpNum, simpDen] = fracSimplif(rawNum,rawDen);
 
     let finalFracLatex;
     if(simpDen===1){
+      // ex -5 / √(u)
+      // si simpNum = ±1 on veut juste "-" devant ?
       if(simpNum===1){
         finalFracLatex = `\\dfrac{1}{\\sqrt{${uLatex}}}`;
       }else if(simpNum===-1){
@@ -785,6 +749,8 @@ function genEx1(mode){
         finalFracLatex = `\\dfrac{${simpNum}}{\\sqrt{${uLatex}}}`;
       }
     }else{
+      // ex num/2√(u)
+      // si rawNum = 1 → 1/(2√(...)), si -1 → -1/(2√(...)), sinon n/(2√(...))
       if(rawNum===1){
         finalFracLatex = `\\dfrac{1}{2\\sqrt{${uLatex}}}`;
       }else if(rawNum===-1){
@@ -793,90 +759,147 @@ function genEx1(mode){
         finalFracLatex = `\\dfrac{${rawNum}}{2\\sqrt{${uLatex}}}`;
       }
     }
+// On veut gérer proprement l'affichage quand k = 1 ou k = -1
+// kPrefix = "" si k=1, "-" si k=-1, sinon "k"
+// (tu l'as déjà dans ton code, je le réutilise tel quel)
 
-    enonce =
-      `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
-      `\\[ f(x)= ${latexF} \\]`;
+// 1. g'(x) = k / (2√x)
+//    -> si k = 1 on veut 1/(2√x) (ça va, pas de "1×" implicite)
+//    -> si k = -1, on veut -1/(2√x) OK
+//    pas besoin de changer g'(x) ici
 
-    const method1HTML = `
-      <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+// 2. g'(u(x)) = k / (2√(u(x)))
+//    pareille logique, pas de "1×" ici donc c'est déjà bien
 
-      <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
+// 3. f'(x) = [k u'(x)] / [2√(u(x))]
+//    si k = 1 -> u'(x) / (2√(u(x)))
+//    si k = -1 -> -u'(x) / (2√(u(x)))
+//    si k = autre -> (k u'(x)) / (...)
+//
+let fracGeneric_no1;
+if (k === 1) {
+  fracGeneric_no1 = `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
+} else if (k === -1) {
+  // k=-1 : -u'(x)/(2√u(x))
+  fracGeneric_no1 = `\\dfrac{-\\,u'(x)}{2\\sqrt{u(x)}}`;
+} else {
+  fracGeneric_no1 = `\\dfrac{${k}\\,u'(x)}{2\\sqrt{u(x)}}`;
+}
 
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=${uLatex}\\)</td>
-          <td>\\(g(x)=${kPrefix}\\sqrt{x}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=${uPrimeLatex}\\)</td>
-          <td>\\(g'(x)=${gPrimeLatex}\\)</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>\\(g'(u(x))=\\dfrac{${k}}{2\\sqrt{u(x)}}\\)</td>
-        </tr>
-      </table>
+// 4. version avec substitution u'(x)=uPrimePar et u(x)=uLatex
+//    ex avant:  (k × uPrimePar)/(2√(uLatex))
+//    si k = 1 -> (uPrimePar)/(2√(...))
+//    si k = -1 -> (-uPrimePar)/(2√(...))
+//    pas de "1 ×" ni "1 × (...)".
+//    Pas de "k ×" quand k=1.
+//
+let fracExpanded_no1;
+if (k === 1) {
+  // juste uPrimePar au numérateur
+  fracExpanded_no1 = `\\dfrac{${uPrimePar2}}{2\\sqrt{${uLatex}}}`;
+} else if (k === -1) {
+  // -uPrimePar
+  fracExpanded_no1 = `\\dfrac{-\\,${uPrimePar}}{2\\sqrt{${uLatex}}}`;
+} else {
+  fracExpanded_no1 = `\\dfrac{${k}\\times ${uPrimePar}}{2\\sqrt{${uLatex}}}`;
+}
 
-      <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
+// 5. Méthode 2 : première ligne "f(x)= k√{u(x)}"
+//    si k = 1 -> "f(x)=√{u(x)}"
+//    si k = -1 -> "f(x)= -\\sqrt{u(x)}"
+//    sinon "f(x)= k\\sqrt{u(x)}"
+let fxMethod2;
+if (k === 1) {
+  fxMethod2 = `f(x)=\\sqrt{u(x)}`;
+} else if (k === -1) {
+  fxMethod2 = `f(x)=-\\sqrt{u(x)}`;
+} else {
+  fxMethod2 = `f(x)=${k}\\sqrt{u(x)}`;
+}
 
-      <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
+// 6. Dans la fraction finale que tu appelles finalFracLatex,
+//    tu dois t'assurer qu'elle n'a pas "1×" dedans non plus.
+//    On suppose que finalFracLatex c'est déjà la forme réduite genre "-2 / √(-4x-4)".
+//    Si jamais tu la construis encore avec `k * uPrimePar`, pense à appliquer
+//    la même logique que ci-dessus. Mais je la garde telle que tu la fournis.
 
-      <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
+const method1HTML = `
 
-      <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
-    `;
+  <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
 
-    let fxMethod2;
-    if (k === 1) {
-      fxMethod2 = `f(x)=\\sqrt{u(x)}`;
-    } else if (k === -1) {
-      fxMethod2 = `f(x)=-\\sqrt{u(x)}`;
-    } else {
-      fxMethod2 = `f(x)=${k}\\sqrt{u(x)}`;
-    }
+  <table class="uvtab">
+    <tr>
+      <td>\\(u(x)=${uLatex}\\)</td>
+      <td>\\(g(x)=${kPrefix}\\sqrt{x}\\)</td>
+    </tr>
+    <tr>
+      <td>\\(u'(x)=${uPrimeLatex}\\)</td>
+      <td>\\(g'(x)=${gPrimeLatex}\\)</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>\\(g'(u(x))=\\dfrac{${k}}{2\\sqrt{u(x)}}\\)</td>
+    </tr>
+  </table>
 
-    const method2HTML = `
-      <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
-      <div class="line">\\(${fxMethod2}\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=${uLatex}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=${uPrimeLatex}\\)</td>
-        </tr>
-      </table>
+  <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
 
-      <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
+  <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
 
-      <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
+  <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
 
-      <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
-    `;
+  <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
+`;
 
-    solHTML = `
-    <div class="steps">
-      <table class="twocol-solution">
-        <tr>
-          <td class="col-gauche">
-            ${method1HTML}
-          </td>
-          <td class="col-droite">
-            ${method2HTML}
-          </td>
-        </tr>
-      </table>
-    </div>`;
+// Méthode 2 : formule spécifique (k√u)' = k * u' / (2√u)
+const method2HTML = `
+  <div class="line">\\(${fxMethod2}\\) \\( \\) avec :</div>
+  <table class="uvtab">
+    <tr>
+      <td>\\(u(x)=${uLatex}\\)</td>
+    </tr>
+    <tr>
+      <td>\\(u'(x)=${uPrimeLatex}\\)</td>
+    </tr>
+  </table>
 
-    const uJS_inner = uJS;
+  <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
+
+  <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
+
+  <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
+`;
+
+enonce =
+  `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
+  `\\[ f(x)= ${kPrefix}\\sqrt{${uLatex}} \\]`;
+
+solHTML = `
+<div class="steps">
+  <table class="twocol-solution">
+    <tr>
+      <td class="col-gauche">
+        <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+        ${method1HTML}
+      </td>
+      <td class="col-droite">
+        <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+        ${method2HTML}
+      </td>
+    </tr>
+  </table>
+</div>`;
+
+
+    // fonctions JS num pour check :
     fJS = x => {
-      const u = Function("x","return "+uJS_inner+";")(x);
+      const u = Function("x","return "+uJS+";")(x);
       return k*Math.sqrt(u);
     };
     fpJS = x => {
-      const u  = Function("x","return "+uJS_inner+";")(x);
+      const u  = Function("x","return "+uJS+";")(x);
       const du = uPrime;
+      // dérivée num : k * du / (2 sqrt(u))
       return k*du/(2*Math.sqrt(u));
     };
   }
@@ -888,11 +911,11 @@ function genEx1(mode){
     latexF,
     fJS,
     fpJS,
-    latexFp_raw: '',
-    latexFp: ''
+    // pour PDF :
+    latexFp_raw: '', // pas besoin ici mais on laisse pour compat
+    latexFp: ''      // idem
   };
 }
-
 
 /* =========================================================
    EXERCICE 2
@@ -901,136 +924,89 @@ function genEx1(mode){
    ========================================================= */
 function genEx2(mode){
 
-  // fabrique A : f(x)=k*(P(x))^n, P polynôme deg≥2
+  // ----- helpers locaux réutilisés -----
+  const coeffTex = c => `${c}`; // tu l'avais prévu mais on garde la forme simple
+
+  // fabrique A : (P(x))^n avec deg(P)≥2
   function make_powPoly(){
     const P   = randPoly(2,3);
     const dP  = polyDeriv(P);
+
     const Platex  = polyToLatex(P);
     const dPlatex = polyToLatex(dP);
 
     const n = rnd(2,7);
-    const k = pickK();
-    const kPrefix = kPrefixFromK(k);
 
-    // f(x) latex
-    let fLatexForEnonce;
-    if (k === 1){
-      fLatexForEnonce = `(${Platex})^{${n}}`;
-    } else if (k === -1){
-      fLatexForEnonce = `-(${Platex})^{${n}}`;
-    } else {
-      fLatexForEnonce = `${kPrefix}(${Platex})^{${n}}`;
-    }
-
-    let fLatexForEnonce2;
-    if (k === 1){
-      fLatexForEnonce2 = `(u(x))^{${n}}`;
-    } else if (k === -1){
-      fLatexForEnonce2 = `-(u(x))^{${n}}`;
-    } else {
-      fLatexForEnonce2 = `${kPrefix}(u(x))^{${n}}`;
-    }
-	
     const title = "Exercice 2 : Dérivation d’une composée (u non affine)";
-    const latexF = fLatexForEnonce;
+    const latexF = `(${Platex})^{${n}}`;
 
     const enonce =
       `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
-      `\\[ f(x)= ${fLatexForEnonce} \\]`;
+      `\\[ f(x)=(${Platex})^{${n}} \\]`;
 
-    // Méthode 1 avec g(x)=k x^n
-    // kn = k*n
-    const kn = k * n;
+    // g(x)=x^n
+    const gPrimeNice =
+      (n===2)
+        ? `${n}x`
+        : `${n}x^{${n-1}}`;
 
-    // g(x)
-    let gLatex;
-    if (k === 1){
-      gLatex = `x^{${n}}`;
-    } else if (k === -1){
-      gLatex = `-x^{${n}}`;
-    } else {
-      gLatex = `${kPrefix}x^{${n}}`;
-    }
+    const gPrimeComposeLatex =
+      (n===2)
+        ? `${n}\\,u(x)`
+        : `${n}\\,(u(x))^{${n-1}}`;
 
-    // g'(x)
-    let gPrimeNice;
-    if (n === 2){
-      gPrimeNice = `${kn}x`;
-    } else {
-      gPrimeNice = `${kn}x^{${n-1}}`;
-    }
-
-    // g'(u(x))
-    let gPrimeComposeLatex;
-    if (n === 2){
-      gPrimeComposeLatex = `${kn}\\,u(x)`;
-    } else {
-      gPrimeComposeLatex = `${kn}\\,(u(x))^{${n-1}}`;
-    }
-
-    // u(x)=P(x), u'(x)=P'(x)
-    // dérivée générique :
     const derivGeneric_uLatex =
-      (n === 2)
-        ? `${kn}\\,u(x)u'(x)`
-        : `${kn}\\,(u(x))^{${n-1}}u'(x)`;
+      (n===2)
+        ? `${n}\\,u(x)u'(x)`
+        : `${n}\\,(u(x))^{${n-1}}u'(x)`;
 
-    // version développée :
-    const derivExpandedLatex =
-      (n === 2)
-        ? `${kn}\\,(${Platex}) (${dPlatex})`
-        : `${kn}\\,(${Platex})^{${n-1}} (${dPlatex})`;
-
-    // coeff final kn * (pas besoin de plus simple, on l'a déjà)
-    const finalLatexClean2 = derivExpandedLatex;
-
-    const method1HTML = `
-      <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
-
-      <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=${Platex}\\)</td>
-          <td>\\(g(x)=${gLatex}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=${dPlatex}\\)</td>
-          <td>\\(g'(x)=${gPrimeNice}\\)</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
-        </tr>
-      </table>
-
-      <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
-      <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
-      <div class="line">\\(f'(x)=${derivExpandedLatex}\\)</div>
-    `;
-
-    const method2HTML = `
-      <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
-
-      <div class="line">\\(f(x)=${fLatexForEnonce2}\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr><td>\\(u(x)=${Platex}\\)</td></tr>
-        <tr><td>\\(u'(x)=${dPlatex}\\)</td></tr>
-      </table>
-
-      <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
-      <div class="line">\\(f'(x)=${derivExpandedLatex}\\)</div>
-    `;
+    const derivFinalSimplifiedLatex =
+      (n===2)
+        ? `${n}\\,(${Platex})  (${dPlatex})`
+        : `${n}\\,(${Platex})^{${n-1}} (${dPlatex})`;
 
     const solHTML = `
     <div class="steps">
       <table class="twocol-solution">
         <tr>
+
           <td class="col-gauche">
-            ${method1HTML}
+            <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+
+            <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
+            <table class="uvtab">
+              <tr>
+                <td>\\(u(x)=${Platex}\\)</td>
+                <td>\\(g(x)=x^{${n}}\\)</td>
+              </tr>
+              <tr>
+                <td>\\(u'(x)=${dPlatex}\\)</td>
+                <td>\\(g'(x)=${gPrimeNice}\\)</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
+              </tr>
+            </table>
+
+            <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
+            <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+            <div class="line">\\(f'(x)=${derivFinalSimplifiedLatex}\\)</div>
           </td>
+
           <td class="col-droite">
-            ${method2HTML}
+            <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+
+            <div class="line">\\(f(x)=(u(x))^{${n}}\\) \\( \\) avec :</div>
+            <table class="uvtab">
+              <tr><td>\\(u(x)=${Platex}\\)</td></tr>
+              <tr><td>\\(u'(x)=${dPlatex}\\)</td></tr>
+            </table>
+
+            <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+            <div class="line">\\(f'(x)=${derivFinalSimplifiedLatex}\\)</div>
           </td>
+
         </tr>
       </table>
     </div>`;
@@ -1040,12 +1016,12 @@ function genEx2(mode){
 
     const fJS  = x => {
       const u = Function("x","return ("+Pjs+");")(x);
-      return k*Math.pow(u,n);
+      return Math.pow(u,n);
     };
     const fpJS = x => {
       const u  = Function("x","return ("+Pjs+");")(x);
       const du = Function("x","return ("+dPjs+");")(x);
-      return k * n*Math.pow(u,n-1)*du;
+      return n*Math.pow(u,n-1)*du;
     };
 
     return {
@@ -1060,216 +1036,122 @@ function genEx2(mode){
     };
   }
 
-  // fabrique B : f(x)=k√(P(x))
+  // fabrique B : k√(P(x)) avec deg(P)≥2
   function make_sqrtPoly(){
     const P   = randPoly(2,3);
     const dP  = polyDeriv(P);
+
     const Platex  = polyToLatex(P);
     const dPlatex = polyToLatex(dP);
 
-    const k = pickK();
-    const kPrefix = kPrefixFromK(k);
+    let k = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
 
-    // f(x) latex
-    let fLatexForEnonce;
-    if (k === 1){
-      fLatexForEnonce = `\\sqrt{${Platex}}`;
-    } else if (k === -1){
-      fLatexForEnonce = `-\\sqrt{${Platex}}`;
-    } else {
-      fLatexForEnonce = `${kPrefix}\\sqrt{${Platex}}`;
-    }
-	
-	  let fLatexForEnonce2;
-    if (k === 1){
-      fLatexForEnonce2 = `\\sqrt{u(x)}`;
-    } else if (k === -1){
-      fLatexForEnonce2 = `-\\sqrt{u(x)}`;
-    } else {
-      fLatexForEnonce2 = `${kPrefix}\\sqrt{u(x)}`;
-    }
-	
-	
-    const latexF = fLatexForEnonce;
+    const kAbs = Math.abs(k);
+    let kPrefix;
+    if(k===1){ kPrefix=""; }
+    else if(k===-1){ kPrefix="−"; }
+    else{ kPrefix=(k<0? "−"+kAbs : String(kAbs)); }
 
     const title = "Exercice 2 : Dérivation d’une composée (u non affine)";
+    const latexF = `${kPrefix}\\sqrt{${Platex}}`;
+
     const enonce =
       `Dériver la fonction suivante, sans se préoccuper des ensembles de définition/dérivabilité :<br><br>`+
-      `\\[ f(x)= ${fLatexForEnonce} \\]`;
+      `\\[ f(x)= ${kPrefix}\\sqrt{${Platex}} \\]`;
 
-    // Méthode 1 : g(x)=k√x
-    // On va réutiliser la même mini-mécanique que pour la racine affine :
-    // fabriquer g(x), g'(x), g'(u(x)), et trois formes f'(x)
-
-    // g(x)
-    let gLatex;
-    if (k === 1){
-      gLatex = `\\sqrt{x}`;
-    } else if (k === -1){
-      gLatex = `-\\sqrt{x}`;
-    } else {
-      gLatex = `${kPrefix}\\sqrt{x}`;
+    // g'(x)=k/(2√x) sans "1×"
+    let gPrimeLatex;
+    if(k===1){
+      gPrimeLatex = `\\dfrac{1}{2\\sqrt{x}}`;
+    }else if(k===-1){
+      gPrimeLatex = `-\\dfrac{1}{2\\sqrt{x}}`;
+    }else{
+      gPrimeLatex = `\\dfrac{${k}}{2\\sqrt{x}}`;
     }
 
-    // Pour la dérivée racine, on duplique le helper interne
-    function derivSqrtCoeffLatex_poly(kVal, uLatexLocal){
-      // Simplification du facteur k/(2√(·)), comme plus haut
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-      function fmtFrac(num, inside){
-        if (denAfter===1){
-          if (num===1){
-            return `\\dfrac{1}{\\sqrt{${inside}}}`;
-          }else if (num===-1){
-            return `-\\dfrac{1}{\\sqrt{${inside}}}`;
-          }else{
-            return `\\dfrac{${num}}{\\sqrt{${inside}}}`;
-          }
-        }else{
-          if (num===1){
-            return `\\dfrac{1}{2\\sqrt{${inside}}}`;
-          }else if (num===-1){
-            return `-\\dfrac{1}{2\\sqrt{${inside}}}`;
-          }else{
-            return `\\dfrac{${num}}{2\\sqrt{${inside}}}`;
-          }
-        }
-      }
-      return {
-        gx:        fmtFrac(numAfter,"x"),
-        gu:        fmtFrac(numAfter,"u(x)"),
-        gUexplicit:fmtFrac(numAfter,uLatexLocal)
-      };
+    let gPrimeOfU;
+    if(k===1){
+      gPrimeOfU = `\\dfrac{1}{2\\sqrt{u(x)}}`;
+    }else if(k===-1){
+      gPrimeOfU = `-\\dfrac{1}{2\\sqrt{u(x)}}`;
+    }else{
+      gPrimeOfU = `\\dfrac{${k}}{2\\sqrt{u(x)}}`;
     }
 
-    const dS = derivSqrtCoeffLatex_poly(k, Platex);
-    const gPrimeLatex = dS.gx;
-    const gPrimeOfU   = dS.gu;
-
-    // forme symbolique f'(x)=g'(u(x))*u'(x)
-    // On veut la même structure en trois étages :
-    // 1. u(x),u'(x)
-    // 2. substitution P(x),P'(x)
-    // 3. éventuellement simplification
-    //
-    // Étape 1 générique :
-    // On part de k * u'(x) / (2√(u(x))) et on utilise le même pattern de fraction
-    function buildFracGeneric(kVal){
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-      if (denAfter===1){
-        if (numAfter===1){
-          return `\\dfrac{u'(x)}{\\sqrt{u(x)}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{u'(x)}{\\sqrt{u(x)}}`;
-        } else {
-          return `\\dfrac{${numAfter}\\,u'(x)}{\\sqrt{u(x)}}`;
-        }
-      } else {
-        if (numAfter===1){
-          return `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
-        } else {
-          return `\\dfrac{${numAfter}\\,u'(x)}{2\\sqrt{u(x)}}`;
-        }
-      }
+    let derivGeneric_uLatex;
+    if(k===1){
+      derivGeneric_uLatex = `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
+    }else if(k===-1){
+      derivGeneric_uLatex = `\\dfrac{-\\,u'(x)}{2\\sqrt{u(x)}}`;
+    }else{
+      derivGeneric_uLatex = `\\dfrac{${k}\\,u'(x)}{2\\sqrt{u(x)}}`;
     }
 
-    const fracGeneric_u = buildFracGeneric(k);
-
-    // Étape 2 : substitution u'(x)=P'(x), u(x)=P(x)
-    function buildFracExpanded(kVal, dPlatexLocal, PlatexLocal){
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-      if (denAfter===1){
-        if (numAfter===1){
-          return `\\dfrac{${dPlatexLocal}}{\\sqrt{${PlatexLocal}}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{${dPlatexLocal}}{\\sqrt{${PlatexLocal}}}`;
-        } else {
-          return `\\dfrac{${numAfter}(${dPlatexLocal})}{\\sqrt{${PlatexLocal}}}`;
-        }
-      } else {
-        if (numAfter===1){
-          return `\\dfrac{${dPlatexLocal}}{2\\sqrt{${PlatexLocal}}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{${dPlatexLocal}}{2\\sqrt{${PlatexLocal}}}`;
-        } else {
-          return `\\dfrac{${numAfter}(${dPlatexLocal})}{2\\sqrt{${PlatexLocal}}}`;
-        }
-      }
+    let derivExpandedLatex;
+    if(k===1){
+      derivExpandedLatex = `\\dfrac{${dPlatex}}{2\\sqrt{${Platex}}}`;
+    }else if(k===-1){
+      derivExpandedLatex = `\\dfrac{-\\,(${dPlatex})}{2\\sqrt{${Platex}}}`;
+    }else{
+      derivExpandedLatex = `\\dfrac{${k}(${dPlatex})}{2\\sqrt{${Platex}}}`;
     }
 
-    const fracExpanded = buildFracExpanded(k, dPlatex, Platex);
-    const finalFracLatex = fracExpanded;
+    // ligne supplémentaire après division par 2 éventuelle
+    let fracAfterDivide2 = "";
+    if (k % 2 === 0){
+      fracAfterDivide2 = buildAfterDivide2(
+        k,
+        dPlatex,
+        Platex
+      );
+    }
 
-    const method1HTML = `
-      <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
-
-      <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=${Platex}\\)</td>
-          <td>\\(g(x)=${gLatex}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=${dPlatex}\\)</td>
-          <td>\\(g'(x)=${gPrimeLatex}\\)</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>\\(g'(u(x))=${gPrimeOfU}\\)</td>
-        </tr>
-      </table>
-
-      <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
-
-      <div class="line">\\(f'(x)=${fracGeneric_u}\\)</div>
-      <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
-    `;
-
-    const method2HTML = `
-      <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
-
-      <div class="line">\\(f(x)=${fLatexForEnonce2}\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr><td>\\(u(x)=${Platex}\\)</td></tr>
-        <tr><td>\\(u'(x)=${dPlatex}\\)</td></tr>
-      </table>
-
-      <div class="line">\\(f'(x)=${fracGeneric_u}\\)</div>
-      <div class="line">\\(f'(x)= ${finalFracLatex}\\)</div>
-    `;
+    const derivFinalSimplifiedLatex = derivExpandedLatex;
 
     const solHTML = `
     <div class="steps">
       <table class="twocol-solution">
         <tr>
+
           <td class="col-gauche">
-            ${method1HTML}
+            <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+
+            <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
+            <table class="uvtab">
+              <tr>
+                <td>\\(u(x)=${Platex}\\)</td>
+                <td>\\(g(x)=${kPrefix}\\sqrt{x}\\)</td>
+              </tr>
+              <tr>
+                <td>\\(u'(x)=${dPlatex}\\)</td>
+                <td>\\(g'(x)=${gPrimeLatex}\\)</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>\\(g'(u(x))=${gPrimeOfU}\\)</td>
+              </tr>
+            </table>
+
+            <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
+            <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+            <div class="line">\\(f'(x)=${derivFinalSimplifiedLatex}\\)</div>
+            ${ fracAfterDivide2 ? `<div class="line">\\(f'(x)= ${fracAfterDivide2}\\)</div>` : "" }
           </td>
+
           <td class="col-droite">
-            ${method2HTML}
+            <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+
+            <div class="line">\\(f(x)=${kPrefix}\\sqrt{u(x)}\\) \\( \\) avec :</div>
+            <table class="uvtab">
+              <tr><td>\\(u(x)=${Platex}\\)</td></tr>
+              <tr><td>\\(u'(x)=${dPlatex}\\)</td></tr>
+            </table>
+
+            <div class="line">\\(f'(x)=${derivGeneric_uLatex}\\)</div>
+            <div class="line">\\(f'(x)=${derivFinalSimplifiedLatex}\\)</div>
+            ${ fracAfterDivide2 ? `<div class="line">\\(f'(x)= ${fracAfterDivide2}\\)</div>` : "" }
           </td>
+
         </tr>
       </table>
     </div>`;
@@ -1299,157 +1181,39 @@ function genEx2(mode){
     };
   }
 
-  // fabrique C : f(x)=k*(1/x)^n
+  // fabrique C : (1/x)^n
   function make_powInv(){
     const n = rnd(2,6);
-    const k = pickK();
-    const kPrefix = kPrefixFromK(k);
-
-    // f(x)
-    let fLatexForEnonce;
-    if (k === 1){
-      fLatexForEnonce = `\\left(\\dfrac{1}{x}\\right)^{${n}}`;
-    } else if (k === -1){
-      fLatexForEnonce = `-\\left(\\dfrac{1}{x}\\right)^{${n}}`;
-    } else {
-      fLatexForEnonce = `${kPrefix}\\left(\\dfrac{1}{x}\\right)^{${n}}`;
-    }
-	
-	 let fLatexForEnonce2;
-    if (k === 1){
-      fLatexForEnonce2 = `\\big(u(x)\\big)^{${n}}`;
-    } else if (k === -1){
-      fLatexForEnonce2 = `-\\big(u(x)\\big)^{${n}}`;
-    } else {
-      fLatexForEnonce2 = `${kPrefix}\\big(u(x)\\big)^{${n}}`;
-    }
-	
-	
-    const latexF = fLatexForEnonce;
 
     const title = "Exercice 2 : Dérivation d’une composée (u non affine)";
+    const latexF = `(\\dfrac{1}{x})^{${n}}`;
+
     const enonce =
       `Dériver la fonction suivante, sans se préoccuper des ensembles `+
       `de définition/dérivabilité :<br><br>`+
-      `\\[ f(x)= ${fLatexForEnonce} \\]`;
+      `\\[ f(x)=\\left(\\dfrac{1}{x}\\right)^{${n}} \\]`;
 
-    // Méthode 1 :
-    // u(x)=1/x, u'(x)=-1/x²
-    // g(x)=k x^n
-    // g'(x)=k n x^{n-1}
-    // etc.
+    const gPrimeNice =
+      (n === 2)
+        ? `${n}x`
+        : `${n}x^{${n-1}}`;
 
-    // g(x)
-    let gLatex;
-    if (k === 1){
-      gLatex = `x^{${n}}`;
-    } else if (k === -1){
-      gLatex = `-x^{${n}}`;
-    } else {
-      gLatex = `${kPrefix}x^{${n}}`;
-    }
+    const gPrimeComposeLatex =
+      (n === 2)
+        ? `${n}\\,u(x)`
+        : `${n}\\,\\big(u(x)\\big)^{${n-1}}`;
 
-    const kn = k * n;
-    let gPrimeNice;
-    if (n === 2){
-      gPrimeNice = `${kn}x`;
-    } else {
-      gPrimeNice = `${kn}x^{${n-1}}`;
-    }
-
-    let gPrimeComposeLatex;
-    if (n === 2){
-      gPrimeComposeLatex = `${kn}\\,u(x)`;
-    } else {
-      gPrimeComposeLatex = `${kn}\\,\\big(u(x)\\big)^{${n-1}}`;
-    }
-
-    // dérivée générique :
-    // f'(x)= kn * (u(x))^{n-1} * u'(x)
-    // avec u'(x)=-1/x²
     const derivGeneric_uLatex =
       (n === 2)
-        ? `${kn}\\,u(x)\\,u'(x)`
-        : `${kn}\\,\\big(u(x)\\big)^{${n-1}}\\,u'(x)`;
-
-    // version développée :
-    //  kn * (1/x)^{n-1} * (-1/x^2) = -kn / x^{n+1}
-const coefFinal = -kn;       // -(k*n)  -> c'est le vrai coeff final numerique
-
-
-
-
-
-
-
-
-
-
-// dernière ligne avec le bon signe simplifié :
-const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
+        ? `${n}\\,u(x)\\,u'(x)`
+        : `${n}\\,\\big(u(x)\\big)^{${n-1}}\\,u'(x)`;
 
     const derivExpandedLatex =
       (n === 2)
-        ? `${kn}\\,\\left(\\dfrac{1}{x}\\right) \\times \\left(-\\dfrac{1}{x^{2}}\\right)`
-        : `${kn}\\,\\left(\\dfrac{1}{x}\\right)^{${n-1}} \\times \\left(-\\dfrac{1}{x^{2}}\\right)`;
+        ? `${n}\\,\\left(\\dfrac{1}{x}\\right) \\times \\left(-\\dfrac{1}{x^{2}}\\right)`
+        : `${n}\\,\\left(\\dfrac{1}{x}\\right)^{${n-1}} \\times \\left(-\\dfrac{1}{x^{2}}\\right)`;
 
-    const method1HTML = `
-      <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
-
-      <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
-      <table class="uvtab">
-        <tr>
-          <td>\\(u(x)=\\dfrac{1}{x}\\)</td>
-          <td>\\(g(x)=${gLatex}\\)</td>
-        </tr>
-        <tr>
-          <td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td>
-          <td>\\(g'(x)=${gPrimeNice}\\)</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
-        </tr>
-      </table>
-
-      <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
-
-      <div class="line">
-        \\(f'(x)= ${derivGeneric_uLatex}\\)
-      </div>
-
-      <div class="line">
-        \\(f'(x)= ${derivExpandedLatex}\\)
-      </div>
-
-      <div class="line">
-        \\(f'(x)= ${finalFracLatex}\\)
-      </div>
-    `;
-
-    const method2HTML = `
-      <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
-
-      <div class="line">
-        \\(f(x)=${fLatexForEnonce2}\\) \\( \\) avec :
-      </div>
-      <table class="uvtab">
-        <tr><td>\\(u(x)=\\dfrac{1}{x}\\)</td></tr>
-        <tr><td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td></tr>
-      </table>
-
-      <div class="line">
-        \\(f'(x)= ${derivGeneric_uLatex}\\)
-      </div>
-
-      <div class="line">
-        \\(f'(x)= ${derivExpandedLatex}\\)
-      </div>
-
-      <div class="line">
-        \\(f'(x)= ${finalFracLatex}\\)
-      </div>
-    `;
+    const finalFracLatex = `-\\dfrac{${n}}{x^{${n+1}}}`;
 
     const solHTML = `
     <div class="steps">
@@ -1457,21 +1221,69 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
         <tr>
 
           <td class="col-gauche">
-            ${method1HTML}
+            <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+
+            <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
+            <table class="uvtab">
+              <tr>
+                <td>\\(u(x)=\\dfrac{1}{x}\\)</td>
+                <td>\\(g(x)=x^{${n}}\\)</td>
+              </tr>
+              <tr>
+                <td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td>
+                <td>\\(g'(x)=${gPrimeNice}\\)</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>\\(g'(u(x))=${gPrimeComposeLatex}\\)</td>
+              </tr>
+            </table>
+
+            <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
+
+            <div class="line">
+              \\(f'(x)= ${derivGeneric_uLatex}\\)
+            </div>
+
+            <div class="line">
+              \\(f'(x)= ${derivExpandedLatex}\\)
+            </div>
+
+            <div class="line">
+              \\(f'(x)= ${finalFracLatex}\\)
+            </div>
           </td>
 
           <td class="col-droite">
-            ${method2HTML}
+            <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+
+            <div class="line">
+              \\(f(x)=\\big(u(x)\\big)^{${n}}\\) \\( \\) avec :
+            </div>
+            <table class="uvtab">
+              <tr><td>\\(u(x)=\\dfrac{1}{x}\\)</td></tr>
+              <tr><td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td></tr>
+            </table>
+
+            <div class="line">
+              \\(f'(x)= ${derivGeneric_uLatex}\\)
+            </div>
+
+            <div class="line">
+              \\(f'(x)= ${derivExpandedLatex}\\)
+            </div>
+
+            <div class="line">
+              \\(f'(x)= ${finalFracLatex}\\)
+            </div>
           </td>
+
         </tr>
       </table>
     </div>`;
 
-    const fJS  = x => k*Math.pow(1/x,n);
-    const fpJS = x => {
-      // dérivée analytique : k * (-n) / x^(n+1)
-      return -k*n*Math.pow(x,-(n+1));
-    };
+    const fJS  = x => Math.pow(1/x,n);
+    const fpJS = x => -n*Math.pow(x,-(n+1));
 
     return {
       title,
@@ -1485,216 +1297,95 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
     };
   }
 
-  // fabrique D : f(x)=k√(1/x)
+  // fabrique D : k√(1/x)
   function make_sqrtInv(){
-    const k = pickK();
-    const kPrefix = kPrefixFromK(k);
-
-    // f(x)
-    let fLatexForEnonce;
-    if (k === 1){
-      fLatexForEnonce = `\\sqrt{\\dfrac{1}{x}}`;
-    } else if (k === -1){
-      fLatexForEnonce = `-\\sqrt{\\dfrac{1}{x}}`;
-    } else {
-      fLatexForEnonce = `${kPrefix}\\sqrt{\\dfrac{1}{x}}`;
-    }
-	
-	 let fLatexForEnonce2;
-    if (k === 1){
-      fLatexForEnonce2 = `\\sqrt{u(x)}`;
-    } else if (k === -1){
-      fLatexForEnonce2 = `-\\sqrt{u(x)}`;
-    } else {
-      fLatexForEnonce2 = `${kPrefix}\\sqrt{u(x)}`;
-    }
-	
-	
-    const latexF = fLatexForEnonce;
+    let k = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
 
     const title = "Exercice 2 : Dérivation d’une composée (u non affine)";
+
+    const kAbs = Math.abs(k);
+    let kPrefix;
+    if (k === 1){
+      kPrefix = "";
+    } else if (k === -1){
+      kPrefix = "−";
+    } else {
+      kPrefix = (k<0? "−"+kAbs : String(kAbs));
+    }
+
+    const latexF = `${kPrefix}\\sqrt{\\dfrac{1}{x}}`;
+
     const enonce =
       `Dériver la fonction suivante, sans se préoccuper des ensembles `+
       `de définition/dérivabilité :<br><br>`+
-      `\\[ f(x)= ${fLatexForEnonce} \\]`;
+      `\\[ f(x)= ${kPrefix}\\sqrt{\\dfrac{1}{x}} \\]`;
 
-    // Méthode 1 :
-    // u(x)=1/x
-    // g(x)=k√x
-    // g'(x)=k/(2√x) simplifié numériquement
-    // u'(x)=-1/x²
-    //
-    // même logique que racine poly/affine mais avec u(x)=1/x
+    const uPrimeLatex = `-\\dfrac{1}{x^{2}}`;
 
-    // g(x)
-    let gLatex;
+    let gPrimeLatex;
     if (k === 1){
-      gLatex = `\\sqrt{x}`;
+      gPrimeLatex = `\\dfrac{1}{2\\sqrt{x}}`;
     } else if (k === -1){
-      gLatex = `-\\sqrt{x}`;
+      gPrimeLatex = `-\\dfrac{1}{2\\sqrt{x}}`;
     } else {
-      gLatex = `${kPrefix}\\sqrt{x}`;
+      gPrimeLatex = `\\dfrac{${k}}{2\\sqrt{x}}`;
     }
 
-    // helper dérivée racine comme avant
-    function derivSqrtCoeffLatex_inv(kVal){
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-      function fmtFrac(num, inside){
-        if (denAfter===1){
-          if (num===1){
-            return `\\dfrac{1}{\\sqrt{${inside}}}`;
-          }else if (num===-1){
-            return `-\\dfrac{1}{\\sqrt{${inside}}}`;
-          }else{
-            return `\\dfrac{${num}}{\\sqrt{${inside}}}`;
-          }
-        }else{
-          if (num===1){
-            return `\\dfrac{1}{2\\sqrt{${inside}}}`;
-          }else if (num===-1){
-            return `-\\dfrac{1}{2\\sqrt{${inside}}}`;
-          }else{
-            return `\\dfrac{${num}}{2\\sqrt{${inside}}}`;
-          }
-        }
-      }
-      return {
-        gx:  fmtFrac(numAfter,"x"),
-        gu:  fmtFrac(numAfter,"u(x)"),
-        gUexplicit: fmtFrac(numAfter,"\\dfrac{1}{x}")
-      };
+    let gPrimeOfU;
+    if (k === 1){
+      gPrimeOfU = `\\dfrac{1}{2\\sqrt{u(x)}}`;
+    } else if (k === -1){
+      gPrimeOfU = `-\\dfrac{1}{2\\sqrt{u(x)}}`;
+    } else {
+      gPrimeOfU = `\\dfrac{${k}}{2\\sqrt{u(x)}}`;
     }
 
-    const dS = derivSqrtCoeffLatex_inv(k);
-    const gPrimeLatex = dS.gx;
-    const gPrimeOfU   = dS.gu;
-
-    // f'(x)=g'(u(x))*u'(x)
-    // u'(x) = -1/x²
-    // On reprend notre logique en trois étages.
-
-    function buildFracGeneric(kVal){
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-
-      // numAfter * u'(x) / (2√(u(x))) avec u'(x) symbolique
-      // ici u'(x) = -1/x² mais pour la première ligne on laisse "u'(x)"
-      if (denAfter===1){
-        if (numAfter===1){
-          return `\\dfrac{u'(x)}{\\sqrt{u(x)}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{u'(x)}{\\sqrt{u(x)}}`;
-        } else {
-          return `\\dfrac{${numAfter}\\,u'(x)}{\\sqrt{u(x)}}`;
-        }
-      } else {
-        if (numAfter===1){
-          return `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
-        } else if (numAfter===-1){
-          return `-\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
-        } else {
-          return `\\dfrac{${numAfter}\\,u'(x)}{2\\sqrt{u(x)}}`;
-        }
-      }
+    let fracGeneric_no1;
+    if (k === 1){
+      fracGeneric_no1 = `\\dfrac{u'(x)}{2\\sqrt{u(x)}}`;
+    } else if (k === -1){
+      fracGeneric_no1 = `\\dfrac{-\\,u'(x)}{2\\sqrt{u(x)}}`;
+    } else {
+      fracGeneric_no1 = `\\dfrac{${k}\\,u'(x)}{2\\sqrt{u(x)}}`;
     }
 
-    const fracGeneric_u = buildFracGeneric(k);
+    const uPrimeWithParIfK =
+      (k === 1)
+      ? `-\\dfrac{1}{x^{2}}`
+      : `\\left(-\\dfrac{1}{x^{2}}\\right)`;
 
-    // Étape 2 : remplacer u'(x)=-1/x² et u(x)=1/x
-    function buildFracExpanded(kVal){
-      const rawNum = kVal;
-      const rawDen = 2;
-      let numAfter = rawNum;
-      let denAfter = rawDen;
-      if (rawNum % 2 === 0){
-        numAfter = rawNum/2;
-        denAfter = 1;
-      }
-
-      // numAfter * (-1/x²)
-      // -> si numAfter=1 : -(1/x²)
-      // -> si numAfter=-1 : +1/x²
-      // -> sinon : numAfter * (-1/x²)
-
-      function numTimesMinusOneOverX2(num){
-        if(num===1){
-          return `-\\dfrac{1}{x^{2}}`;
-        }else if(num===-1){
-          return `\\dfrac{1}{x^{2}}`; // (-1)*(-1)=+1
-        }else{
-          // ex 4 * (-1/x²) = -4/x²
-          if(num>0){
-            return `-\\dfrac{${num}}{x^{2}}`;
-          }else{
-            // num<0
-            const absn = Math.abs(num);
-            return `\\dfrac{${absn}}{x^{2}}`;
-          }
-        }
-      }
-
-      const numOverX2 = numTimesMinusOneOverX2(numAfter);
-
-      if (denAfter===1){
-        // numOverX2 / √(1/x)
-        return `\\dfrac{${numOverX2}}{\\sqrt{\\dfrac{1}{x}}}`;
-      } else {
-        // numOverX2 / (2√(1/x))
-        return `\\dfrac{${numOverX2}}{2\\sqrt{\\dfrac{1}{x}}}`;
-      }
+    let fracExpanded_no1;
+    if (k === 1){
+      fracExpanded_no1 = `\\dfrac{-\\dfrac{1}{x^{2}}}{2\\sqrt{\\dfrac{1}{x}}}`;
+    } else if (k === -1){
+      fracExpanded_no1 = `\\dfrac{\\dfrac{1}{x^{2}}}{2\\sqrt{\\dfrac{1}{x}}}`;
+    } else {
+      fracExpanded_no1 = `\\dfrac{${k}\\times ${uPrimeWithParIfK}}{2\\sqrt{\\dfrac{1}{x}}}`;
     }
 
-    const fracExpanded = buildFracExpanded(k);
-
-    // Étape 3 : forme finale simplifiée.  
-    // Ta version finale pour sqrtInv dans l’ancienne logique donnait
-    //   f'(x)= [-(k√x)]/(2x²)
-    // qu’on simplifiait en un coeff unique devant √x / x².
-    //
-    // On va la recalculer proprement :
-    //
-    // Théorie :
-    // f(x)=k*(1/x)^{1/2}=k*x^{-1/2}
-    // f'(x)=k*(-1/2)*x^{-3/2}= -(k/2) * sqrt(x)/x^2
-    // => coefficient = -(k/2)
-    //
-    // Simplif ce coeff :
-    const coef_brut = -k; // puis /2 à gérer
-    let finalLatex;
-    if (coef_brut % 2 === 0){
-      const half = coef_brut/2; // entier
-      if (half === 1){
+    // coef final = -(k√x)/(2x²)
+    const coef_brut = -k;
+    let finalLatex = "";
+    if (coef_brut % 2 === 0) {
+      const half = coef_brut / 2;
+      if (half === 1) {
         finalLatex = `\\dfrac{\\sqrt{x}}{x^{2}}`;
-      } else if (half === -1){
+      } else if (half === -1) {
         finalLatex = `-\\dfrac{\\sqrt{x}}{x^{2}}`;
-      } else if (half === 0){
+      } else if (half === 0) {
         finalLatex = `0`;
-      } else if (half > 0){
+      } else if (half > 0) {
         finalLatex = `\\dfrac{${half}\\,\\sqrt{x}}{x^{2}}`;
       } else {
         const absHalf = Math.abs(half);
         finalLatex = `-\\dfrac{${absHalf}\\,\\sqrt{x}}{x^{2}}`;
       }
     } else {
-      // pas divisible par 2 → coef_brut/(2...)
-      if (coef_brut === 1){
+      if (coef_brut === 1) {
         finalLatex = `\\dfrac{\\sqrt{x}}{2x^{2}}`;
-      } else if (coef_brut === -1){
+      } else if (coef_brut === -1) {
         finalLatex = `-\\dfrac{\\sqrt{x}}{2x^{2}}`;
-      } else if (coef_brut > 0){
+      } else if (coef_brut > 0) {
         finalLatex = `\\dfrac{${coef_brut}\\,\\sqrt{x}}{2x^{2}}`;
       } else {
         const absCoef = Math.abs(coef_brut);
@@ -1702,17 +1393,24 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
       }
     }
 
-    const method1HTML = `
-      <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
+    let fracAfterDivide2 = "";
+    if (k % 2 === 0){
+      fracAfterDivide2 = buildAfterDivide2(
+        k,
+        "-\\dfrac{1}{x^{2}}",
+        "\\dfrac{1}{x}"
+      );
+    }
 
+    const method1HTML = `
       <div class="line">\\(f(x)=g(u(x))\\) \\( \\) avec :</div>
       <table class="uvtab">
         <tr>
           <td>\\(u(x)=\\dfrac{1}{x}\\)</td>
-          <td>\\(g(x)=${gLatex}\\)</td>
+          <td>\\(g(x)=${kPrefix}\\sqrt{x}\\)</td>
         </tr>
         <tr>
-          <td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td>
+          <td>\\(u'(x)=${uPrimeLatex}\\)</td>
           <td>\\(g'(x)=${gPrimeLatex}\\)</td>
         </tr>
         <tr>
@@ -1723,25 +1421,34 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
 
       <div class="line">\\(f'(x)=g'(u(x))\\times u'(x)\\)</div>
 
-      <div class="line">\\(f'(x)=${fracGeneric_u}\\)</div>
+      <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
 
-      <div class="line">\\(f'(x)=${fracExpanded}\\)</div>
+      <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
+      ${ fracAfterDivide2 ? `<div class="line">\\(f'(x)= ${fracAfterDivide2}\\)</div>` : "" }
 
       <div class="line">\\(f'(x)= ${finalLatex}\\)</div>
     `;
 
-    const method2HTML = `
-      <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
+    let fxMethod2;
+    if (k === 1){
+      fxMethod2 = `f(x)=\\sqrt{u(x)}`;
+    } else if (k === -1){
+      fxMethod2 = `f(x)=-\\sqrt{u(x)}`;
+    } else {
+      fxMethod2 = `f(x)=${k}\\sqrt{u(x)}`;
+    }
 
-      <div class="line">\\(f(x)=${fLatexForEnonce2}\\) \\( \\) avec :</div>
+    const method2HTML = `
+      <div class="line">\\(${fxMethod2}\\) \\( \\) avec :</div>
       <table class="uvtab">
         <tr><td>\\(u(x)=\\dfrac{1}{x}\\)</td></tr>
-        <tr><td>\\(u'(x)=-\\dfrac{1}{x^{2}}\\)</td></tr>
+        <tr><td>\\(u'(x)=${uPrimeLatex}\\)</td></tr>
       </table>
 
-      <div class="line">\\(f'(x)=${fracGeneric_u}\\)</div>
+      <div class="line">\\(f'(x)=${fracGeneric_no1}\\)</div>
 
-      <div class="line">\\(f'(x)=${fracExpanded}\\)</div>
+      <div class="line">\\(f'(x)=${fracExpanded_no1}\\)</div>
+      ${ fracAfterDivide2 ? `<div class="line">\\(f'(x)= ${fracAfterDivide2}\\)</div>` : "" }
 
       <div class="line">\\(f'(x)= ${finalLatex}\\)</div>
     `;
@@ -1751,10 +1458,12 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
       <table class="twocol-solution">
         <tr>
           <td class="col-gauche">
+            <div class="line"><strong>1<sup>re</sup> méthode :</strong></div>
             ${method1HTML}
           </td>
 
           <td class="col-droite">
+            <div class="line"><strong>2<sup>e</sup> méthode :</strong></div>
             ${method2HTML}
           </td>
         </tr>
@@ -1776,7 +1485,7 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
     };
   }
 
-  // ----- Choix du scénario -----
+  // ----- choix du scénario -----
   function pickScenario(){
     if(mode === 'powPoly')   return make_powPoly;
     if(mode === 'sqrtPoly')  return make_sqrtPoly;
@@ -1789,7 +1498,6 @@ const finalFracLatex = `\\dfrac{${coefFinal}}{x^{${n+1}}}`;
   const scenario = pickScenario();
   return scenario();
 }
-
 
 
 
@@ -1918,13 +1626,7 @@ function checkAnswer(st){
     return {count:0,good:0};
   }
 
-  // filtre anti-"lllgffffd"
-  const looksMathy = /[0-9x√\/\*\^\(\)]|sqrt|rac/.test(val.replace(/\s+/g,''));
-  if(!looksMathy){
-    setTick(false);
-    return {count:1, good:0};
-  }
-
+  // points de test sûrs pour CETTE fonction
   const xs = pickSafeXs(st);
 
   let ok = true;
@@ -1934,6 +1636,7 @@ function checkAnswer(st){
     const got = numEval(val,x);
     const ref = st.fpJS(x);
 
+    // si l'un des deux est pas un nombre fini, on ignore ce x
     if(!Number.isFinite(got) || !Number.isFinite(ref)){
       continue;
     }
@@ -1946,15 +1649,15 @@ function checkAnswer(st){
     }
   }
 
-  // CHANGEMENT ICI
-  if (compared === 0){
-    ok = false;
+  // Si on n'a pas réussi à comparer au moins un x valable,
+  // on NE met PAS faux automatiquement.
+  if(compared===0){
+    ok = true;
   }
 
   setTick(ok);
-  return {count:1, good:(ok?1:0)};
+  return {count:1,good:(ok?1:0)};
 }
-
 
 
 /* =========================================================

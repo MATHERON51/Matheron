@@ -3053,6 +3053,8 @@ function genRacine(){
 
   let a,b,c;
   let xA,m,p,yA;
+  const y0 = c; // pour l’énoncé et pour H3
+
   let tries = 0;
   while (tries < 200) {
     tries++;
@@ -3117,40 +3119,57 @@ function genRacine(){
   const efLatex= `a\\sqrt{x}+bx+c`;
 
   // Helpers LaTeX pour affichage propre
-  function fLatexR(a,b,c){
-    // construit a√x + b x + c
-    // règles :
-    //  - pas "1x"
-    //  - pas "1√x"
-    //  - pas "+0"
-    const parts=[];
+ function fLatexR(a,b,c){
+  const parts=[];
 
-    // terme a√x
-    if (a !== 0){
-      if (a === 1){
-        parts.push(`\\sqrt{x}`);
-      } else if (a === -1){
-        parts.push(`-\\sqrt{x}`);
-      } else {
-        parts.push(`${a}\\sqrt{x}`);
-      }
+  // terme a√x
+  if (a !== 0){
+    if (a === 1){
+      parts.push(`\\sqrt{x}`);
+    } else if (a === -1){
+      parts.push(`-\\sqrt{x}`);
+    } else {
+      parts.push(`${a}\\sqrt{x}`);
     }
-
-    // terme b x
-    if (b !== 0){
-      const bb = Math.abs(b);
-      const mono = (bb===1?'x':bb+'x');
-      parts.push((b<0?'- ':'+ ')+mono);
-    }
-
-    // constante c
-    if (c !== 0 || !parts.length){
-      const cc = Math.abs(c);
-      parts.push((c<0?'- ':'+ ')+cc);
-    }
-
-    return parts.join(' ').replace(/^\+\s*/,'').trim();
   }
+
+  // terme b x
+  if (b !== 0){
+    let bxPart = '';
+    const absb = Math.abs(b);
+    if (absb === 1){
+      bxPart = 'x';
+    } else {
+      bxPart = absb + 'x';
+    }
+
+    if (parts.length === 0){
+      // premier terme affiché
+      bxPart = (b<0 ? '-' : '') + bxPart;
+    } else {
+      bxPart = (b<0 ? '- ' : '+ ') + bxPart;
+    }
+
+    parts.push(bxPart);
+  }
+
+  // constante c
+  if (c !== 0 || !parts.length){
+    let cPart = '';
+    const absc = Math.abs(c);
+
+    if (parts.length === 0){
+      // premier terme (ex : f(x)=5 ou f(x)=-2 )
+      cPart = (c<0 ? '-' : '') + absc;
+    } else {
+      cPart = (c<0 ? '- ' : '+ ') + absc;
+    }
+
+    parts.push(cPart);
+  }
+
+  return parts.join(' ').replace(/^\+\s*/,'').trim();
+}
 
   function fpLatexR(a,b){
     // f'(x)= a/(2√x) + b
@@ -3182,63 +3201,358 @@ function genRacine(){
   const fpLatex  = fpLatexR(a,b);        // f'(x)
 
 function buildSystemRacine_full(a,b,c,xA,yA,m,p){
+  const r = Math.sqrt(xA);   // √xA (entier choisi)
+  const twoR = 2*r;          // 2√xA
+
+  // Tangente propre sans "1x" ni "+0"
+  const tangenteNice = lineTangente(m,p);
+
+  // -------- mini helpers affichage propres --------
+
+  // écrit coeff*a ou coeff*b sans 1 ni +, avec bons signes
+  function term(coeff, variable){
+    if (coeff === 0) return '';
+    if (variable === 'a'){
+      if (coeff === 1) return 'a';
+      if (coeff === -1) return '-a';
+      return coeff + 'a';
+    } else { // 'b'
+      if (coeff === 1) return 'b';
+      if (coeff === -1) return '-b';
+      if (coeff > 0) return coeff + 'b';
+      return coeff + 'b'; // coeff négatif déjà signé
+    }
+  }
+
+  // combine "A a + B b" proprement
+  function lhsAB(Acoef,Bcoef){
+    const ta = term(Acoef,'a');
+    const tb = term(Bcoef,'b');
+    if (ta === '' && tb === '') return '0';
+    if (ta === '') return tb;
+    if (tb === '') return ta;
+    if (tb[0] === '-') return ta + ' ' + tb.replace(/^-/, '- ');
+    return ta + ' + ' + tb;
+  }
+
+  // ajoute une constante si ≠0
+  function lhsABplusConst(Acoef,Bcoef,K){
+    let base = lhsAB(Acoef,Bcoef);
+    if (K === 0) return base;
+    const absK = Math.abs(K);
+    if (K < 0) return base + ' - ' + absK;
+    return base + ' + ' + absK;
+  }
+
+  // nettoyage visuel
+  function tidy(s){
+    return s
+      .replace(/\+\s-\s/g,'- ')
+      .replace(/-\s-\s/g,'+ ')
+      .replace(/\+\s\+/g,'+ ')
+      .replace(/^\+\s*/,'')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  // construit "Xb = Y" sans "1b"
+  function eq_b_only(Bcoef, rhs){
+    let lhs;
+    if (Bcoef === 1) lhs = 'b';
+    else if (Bcoef === -1) lhs = '-b';
+    else lhs = Bcoef + 'b';
+    return lhs + ' = ' + rhs;
+  }
+
+  // Remplacement a -> expr dans Acoef*a + Bcoef*b = RHS
+  function substituteAinEq(Acoef,Bcoef,RHS,aExpr){
+    let left = '';
+    if (Acoef !== 0){
+      if (Acoef === 1){
+        left += aExpr;
+      } else if (Acoef === -1){
+        left += '-(' + aExpr + ')';
+      } else {
+        left += Acoef + '(' + aExpr + ')';
+      }
+    }
+    if (Bcoef !== 0){
+      const absB = Math.abs(Bcoef);
+      const bPart = (absB === 1 ? 'b' : absB + 'b');
+      if (left === ''){
+        left += (Bcoef < 0 ? '-' : '') + bPart;
+      } else {
+        left += (Bcoef < 0 ? ' - ' : ' + ') + bPart;
+      }
+    }
+    return tidy(left) + ' = ' + RHS;
+  }
+
+  // Développement si coefA != ±1
+  function developAfterSub(Acoef,Bcoef,RHS,twoR,m_val){
+    const constTerm = Acoef * (twoR * m_val);
+    const bCoef     = (-Acoef * twoR) + Bcoef;
+    let lhs = '';
+    if (constTerm !== 0){
+      lhs += ''+constTerm;
+    }
+    if (bCoef !== 0){
+      const absB = Math.abs(bCoef);
+      const bChunk = (absB===1 ? 'b' : absB+'b');
+      if (lhs === ''){
+        lhs += (bCoef<0?'-':'') + bChunk;
+      } else {
+        lhs += (bCoef<0?' - ':' + ') + bChunk;
+      }
+    }
+    if (lhs === '') lhs = '0';
+    return tidy(lhs) + ' = ' + RHS;
+  }
+
+  // Après substitution, isoler b :
+  function isolate_b_equation(Acoef,Bcoef,RHS,twoR,m_val){
+    // Acoef * (2r m - 2r b) + Bcoef b = RHS
+    const constTerm = Acoef * (twoR * m_val);
+    const bCoef     = (-Acoef * twoR) + Bcoef;
+    const rhsAfter  = RHS - constTerm;
+    return {bCoef, rhsAfter};
+  }
+
+  // helper pour afficher une valeur numérique dans un produit "× valeur"
+  // règle : si n < 0 => "(n)" ; sinon n
+  function displayForProduct(n){
+    if (n < 0){
+      return `(${n})`;
+    }
+    return `${n}`;
+  }
+
+  // -------- Étapes concrètes --------
+
+  // Étape 0
+  const step0_l1 = `f(${xA})=${yA}`;
+  const step0_l2 = `f'(${xA})=${m}`;
+  const step0_l3 = `f(0)=${c}`;
+
+  // Étape 1
+  const step1_l1 = `a\\sqrt{${xA}} + b\\times ${xA} + c = ${yA}`;
+  const step1_l2 = `\\dfrac{a}{2\\sqrt{${xA}}} + b = ${m}`;
+  const step1_l3 = `c = ${c}`;
+
+  // Étape 2 (numérique brut)
+  function eqPointRaw(r,xA,c,yA){
+    let lhs = lhsABplusConst(r,xA,c);
+    return tidy(lhs) + ' = ' + yA;
+  }
+  const step2_l1 = eqPointRaw(r,xA,c,yA);
+  const step2_l2 = `\\dfrac{a}{${twoR}} + b = ${m}`;
+  const step2_l3 = `c = ${c}`;
+
+  // Étape 3 (mettre la constante à droite, enlever fraction)
+  const cleanEq1_lhs = lhsAB(r,xA);       // ex "3a + 9b"
+  const cleanEq1_rhs = yA - c;            // ex -9  (car -20 - (-11) = -9)
+  const step3_l1 = `${cleanEq1_lhs} = ${cleanEq1_rhs}`;
+
+  const cleanEq2_lhs = lhsAB(1,twoR);     // ex "a + 6b"
+  const cleanEq2_rhs = twoR*m;            // ex -12
+  const step3_l2 = `${cleanEq2_lhs} = ${cleanEq2_rhs}`;
+  const step3_l3 = `c = ${c}`;
+
+  // Étape 4 (isoler a)
+  // a + 6b = -12  ->  a = -12 - 6b
+  const aExpr = `${cleanEq2_rhs} - ${twoR}b`; // ex "-12 - 6b"
+  const step4_l2 = `a = ${aExpr}`;
+
+  // Première équation encore : "3a + 9b = -9"
+  const step4_l1 = step3_l1;
+  const step4_l3 = step3_l3;
+
+  // Étape 5 : substitution de a dans la première
+  const coefA = r;      // coeff devant a dans la 1ère (ex 3)
+  const coefB = xA;     // coeff devant b (ex 9)
+  const RHS1  = cleanEq1_rhs; // ex -9
+
+  const subLine = substituteAinEq(coefA, coefB, RHS1, aExpr);
+  // ex "3(-12 - 6b) + 9b = -9"
+
+
+  // Développement "à plat" : Acoef(C - Db*b) + Bcoef*b
+  // donne "const - ...b + ...b = RHS"
+  // sans regrouper les termes en b.
+  function developLineExpanded(Acoef, Bcoef, RHS, Cconst, Db){
+    const partConst = Acoef * Cconst;
+    const partB1    = -Acoef * Db;
+    const partB2    = Bcoef;
+
+    function renderBterm(coeff){
+      const absB = Math.abs(coeff);
+      const core = (absB===1 ? 'b' : absB+'b');
+      if (coeff < 0){
+        return '- ' + core;
+      } else {
+        return '+ ' + core;
+      }
+    }
+
+    let lhs = ''+partConst;
+    lhs += ' ' + renderBterm(partB1);
+    if (partB2 !== 0){
+      lhs += ' ' + renderBterm(partB2);
+    }
+
+    lhs = lhs
+      .replace(/\+\s-\s/g,'- ')
+      .replace(/-\s-\s/g,'+ ')
+      .replace(/^\+\s*/,'')
+      .trim();
+
+    return lhs + ' = ' + RHS;
+  }
 
 
 
-  const r = Math.sqrt(xA); // entier (1,2,3,...) garanti par génération
-  // pente : f'(xA) = a/(2r) + b = m
-  // point : f(xA) = a*r + b*xA + c = yA
 
-  // On va produire les étapes façon système enchaîné.
+  const devLine = (Math.abs(coefA) === 1)
+    ? null
+    : developAfterSub(coefA, coefB, RHS1, twoR, m);
+  // ex "-36 - 18b + 9b = -9"
 
-  // Substitution explicite sans simplifier "a/(2r) + b = m"
-  const eqPenteSub  = `\\dfrac{a}{2\\times ${r}} + b = ${m}`;
-  // Substitution explicite pour le point :
-  const eqPointSub  = `a\\times ${r} + b\\times ${xA} + c = ${yA}`;
+  const { bCoef, rhsAfter } = isolate_b_equation(coefA,coefB,RHS1,twoR,m);
+  // ex bCoef = -9, rhsAfter = 27 -> "-9b = 27"
+  const step6_main = eq_b_only(bCoef, rhsAfter); // "-9b = 27"
+  const step7_main = `b = ${b}`;                // "b = -3"
 
+  // Étape 7 : remonter dans a
+  // a = -12 - 6b
+  const step8_aBefore = `a = ${aExpr}`; // encore littéral "a = -12 - 6b"
+
+  // a = -12 - 6 × b_numérique
+  // → si b = -3, on veut "a = -12 - 6 \\times (-3)"
+  const bPrintedInProduct = displayForProduct(b);
+  const step8_aMid = `a = ${cleanEq2_rhs} - ${twoR} \\times ${bPrintedInProduct}`;
+
+  // puis valeur finale
+  const step8_aFinal  = `a = ${a}`;
+
+  const keepC = `c = ${c}`;
+
+  // Bloc "substitution"
+  const blockSub = `
+\\left\\{
+  \\begin{array}{l}
+  ${tidy(subLine)} \\\\
+  ${step4_l2} \\\\
+  ${keepC}
+  \\end{array}
+\\right.
+`;
+
+  // Bloc "développement" (seulement si coefA != ±1)
+  const blockDev = (Math.abs(coefA) === 1) ? '' : `
+\\Longleftrightarrow
+\\left\\{
+  \\begin{array}{l}
+  ${tidy(developLineExpanded(coefA, coefB, RHS1, cleanEq2_rhs, twoR))} \\\\
+  ${step4_l2} \\\\
+  ${keepC}
+  \\end{array}
+\\right.
+`;
+
+
+  // Bloc iso b, puis b=..., puis substitution numérique dans a
+  const blockIsoB = `
+\\Longleftrightarrow
+\\left\\{
+  \\begin{array}{l}
+  ${step6_main} \\\\
+  ${step4_l2} \\\\
+  ${keepC}
+  \\end{array}
+\\right.
+
+`;
+
+  // Bloc final pour a avec b numérique, puis a valeur finale
+  const blockAfromB = `
+\\Longleftrightarrow
+\\left\\{
+  \\begin{array}{l}
+  ${step7_main} \\\\
+  ${step8_aMid} \\\\
+  ${keepC}
+  \\end{array}
+\\right.
+\\Longleftrightarrow
+\\left\\{
+  \\begin{array}{l}
+  ${step7_main} \\\\
+  ${step8_aFinal} \\\\
+  ${keepC}
+  \\end{array}
+\\right.
+`;
+
+  // Assemblage final avec les deux grands blocs visuels comme tu fais (avant / après substitution)
   return `
     <div class="line"><em>Traduction des hypothèses :</em></div>
     <div class="line">
-      \\(H_1\\) : \\(A(${xA};${yA})\\in \\mathcal{C}_f\\), donc \\(f(${xA})=${yA}\\)<br/>
-      \\(H_2\\) : la tangente en \\(A\\) a pour équation \\(y=${m}x ${p>=0?'+':'-'} ${Math.abs(p)}\\).
-      Sa pente vaut \\(${m}\\), donc \\(f'(${xA})=${m}\\).
+      \\(H_1:\\) \\(A(${xA};${yA})\\in\\mathcal{C}_f\\), donc \\(f(${xA})=${yA}\\).<br/>
+      \\(H_2:\\) La tangente en \\(A\\) a pour équation \\(${tangenteNice}\\). Sa pente vaut ${m}, donc \\(f'(${xA})=${m}\\).<br/>
+      \\(H_3:\\) \\(\\mathcal{C}_f\\) coupe l'axe des ordonnées en \\((0;${c})\\), donc \\(f(0)=${c}\\).
     </div>
 
-    <div class="line" style="margin-top:.4rem">
+    <div class="line" style="margin-top:.6rem">
     \\[
     \\left\\{
       \\begin{array}{l}
-      f(${xA})=${yA} \\\\
-      f'(${xA})=${m}
+      ${step0_l1} \\\\
+      ${step0_l2} \\\\
+      ${step0_l3}
       \\end{array}
     \\right.
     \\Longleftrightarrow
     \\left\\{
       \\begin{array}{l}
-      a\\sqrt{${xA}} + b\\times ${xA} + c = ${yA} \\\\
-      \\dfrac{a}{2\\sqrt{${xA}}} + b = ${m}
+      ${step1_l1} \\\\
+      ${step1_l2} \\\\
+      ${step1_l3}
       \\end{array}
     \\right.
     \\Longleftrightarrow
     \\left\\{
       \\begin{array}{l}
-      ${eqPointSub} \\\\
-      ${eqPenteSub}
+      ${step2_l1} \\\\
+      ${step2_l2} \\\\
+      ${step2_l3}
+      \\end{array}
+    \\right.
+    \\Longleftrightarrow
+    \\left\\{
+      \\begin{array}{l}
+      ${step3_l1} \\\\
+      ${step3_l2} \\\\
+      ${step3_l3}
+      \\end{array}
+    \\right.
+    \\Longleftrightarrow
+    \\left\\{
+      \\begin{array}{l}
+      ${step3_l1} \\\\
+      ${step4_l2} \\\\
+      ${step3_l3}
       \\end{array}
     \\right.
     \\]
     </div>
 
-    <div class="line" style="margin-top:.4rem">
-    En résolvant ce système en \\(a,b,c\\) (avec \\(\\sqrt{${xA}}=${r}\\)), on obtient :
+    <div class="line" style="margin-top:.6rem">
     \\[
-    \\left\\{
-      \\begin{array}{l}
-      a = ${a} \\\\
-      b = ${b} \\\\
-      c = ${c}
-      \\end{array}
-    \\right.
+    \\Longleftrightarrow
+    ${blockSub}
+    ${blockDev}
+    ${blockIsoB}
+    ${blockAfromB}
     \\]
     </div>
   `;
@@ -3246,6 +3560,52 @@ function buildSystemRacine_full(a,b,c,xA,yA,m,p){
 
 
 
+
+
+
+function lineTangente(m, p){
+  // construit "y = mx + p" proprement :
+  //  - m=1  -> "y = x ..."
+  //  - m=-1 -> "y = -x ..."
+  //  - m=0  -> "y = p"
+  //  - p=0  -> pas d'affichage de "+ 0"
+  //  - signe propre pour p
+
+  let left = 'y = ';
+
+  // partie pente * x
+  if (m === 0){
+    // pas de x du tout, on mettra juste la constante après
+    left += '';
+  } else if (m === 1){
+    left += 'x';
+  } else if (m === -1){
+    left += '-x';
+  } else {
+    left += m + 'x';
+  }
+
+  // partie constante p
+  if (p === 0){
+    if (m === 0){
+      // cas spécial : y = 0
+      left += '0';
+    }
+    // sinon rien à rajouter
+  } else {
+    const absP = Math.abs(p);
+    if (m === 0){
+      // y = +/-k tout seul
+      left += (p<0 ? '-' : '') + absP;
+    } else {
+      left += (p<0 ? ' - ' : ' + ') + absP;
+    }
+  }
+
+  return left;
+}
+
+const tangenteNice = lineTangente(m,p);
 
   // === ENONCE ===
   const enonceHTML = `
@@ -3257,8 +3617,10 @@ function buildSystemRacine_full(a,b,c,xA,yA,m,p){
     <li>Déterminer \\( \\) \\(a, b\\) \\( \\) et \\( \\) \\(c\\) \\( \\) sachant que \\( \\) \\(\\mathcal{C}_f\\) \\( \\) vérifie les hypothèses suivantes :
       <ul>
         <li>\\(H_1 :\\) \\( \\) \\(\\mathcal{C}_f\\)  \\( \\) passe par le point \\( \\)  \\(A(${xA}\\,;\\,${yA})\\).</li>
-        <li>\\(H_2 :\\) \\( \\) La tangente en \\(A\\) à \\(\\mathcal{C}_f\\) \\( \\)  a pour équation réduite \\( \\)  \\(y=${m}x ${p>=0?'+':'-'} ${Math.abs(p)}\\).</li>
-      </ul>
+        <li>\\(H_2 :\\) \\( \\) La tangente en \\(A\\) à \\(\\mathcal{C}_f\\) \\( \\)  a pour équation réduite \\( \\)  \\(${tangenteNice}\\).</li>
+        <li>\\(H_3 :\\) \\( \\) \\(\\mathcal{C}_f\\) \\( \\) coupe l’axe des ordonnées en \\( \\) \\((0\\,;\\,${c})\\).</li>
+
+	  </ul>
       Donner l’expression finale de \\(f(x)\\).
     </li>
   </ol>
@@ -3268,16 +3630,16 @@ function buildSystemRacine_full(a,b,c,xA,yA,m,p){
   const solHTML = `
   <div class="steps">
     <div class="line stepTitle">1) Dérivée générale</div>
-    <div class="line">Si \\(f(x)=a\\sqrt{x}+bx+c\\) alors \\(f'(x)=\\dfrac{a}{2\\sqrt{x}}+b\\).</div>
-    <div class="line">Donc \\(f'(x)=${fpLatex}\\).</div>
+    <div class="line">\\(f(x)=a\\sqrt{x}+bx+c\\) \\( \\) donc \\( \\) \\(f'(x)=\\dfrac{a}{2\\sqrt{x}}+b\\).</div>
 
     <div class="line stepTitle">2) Utilisation des hypothèses</div>
 ${buildSystemRacine_full(a,b,c,xA,yA,m,p)}
+    <div class="line">Remarque : ici on utilise une méthode par substitution, on aurait très bien pu faire une combinaison linéaire qui peut parfois être plus rapide.</div>
 
     <div class="line stepTitle">Conclusion</div>
-    <div class="line">On a \\(a=${a},\\;b=${b},\\;c=${c}.\\)</div>
-    <div class="line">Donc \\(f(x)=${fLatex}\\).</div>
-    <div class="line">Et \\(f'(x)=${fpLatex}\\).</div>
+    <div class="line">On a \\( \\) \\(a=${a},\\;b=${b}\\) \\( \\) et \\( \\) \\(c=${c}.\\)</div>
+    <div class="line">Donc \\( \\) \\(f(x)=${fLatex}\\).</div>
+    <div class="line">Et \\( \\) \\(f'(x)=${fpLatex}\\).</div>
   </div>
   `;
 

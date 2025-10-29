@@ -2239,11 +2239,71 @@ function buildChainParallelograms(){
   // CHOIX DU QUADRILATÈRE CIBLE
   // -------------------------
 
+function rotationsOf(order){
+  // génère les rotations cycliques : [A,B,E,F] -> [B,E,F,A] -> [E,F,A,B] -> [F,A,B,E]
+  const rots = [];
+  for (let i = 0; i < order.length; i++) {
+    rots.push(order.slice(i).concat(order.slice(0,i)));
+  }
+  return rots;
+}
 
+function buildChainParallelograms(){
+  // étage 1
+  const base = makeBaseParallelogram();
+  const {A,B,C,D} = base;
 
+  // étage 2
+  const ext2 = extendSecondParallelogram(C, D);
+  const {E,F} = ext2;
 
+  // éventuellement étage 3
+  const withThird = Math.random() < 0.5;
+  let G,H;
+  if(withThird){
+    const ext3 = extendThirdParallelogram(E, F);
+    G = ext3.G;
+    H = ext3.H;
+  }
 
+  // points visibles
+  const pts = withThird ? {A,B,C,D,E,F,G,H} : {A,B,C,D,E,F};
 
+  // polygones colorés
+  const filledPolys = withThird
+    ? [
+        ['A','B','C','D'],   // étage 1
+        ['C','D','F','E'],   // étage 2
+        ['E','F','H','G']    // étage 3
+      ]
+    : [
+        ['A','B','C','D'],
+        ['C','D','F','E']
+      ];
+
+  // segments tracés
+  const segs = withThird
+    ? [
+        // ABCD
+        ['A','B'],['B','C'],['C','D'],['D','A'],
+        // CDFE
+        ['C','D'],['D','F'],['F','E'],['E','C'],
+        // EFHG
+        ['E','F'],['F','H'],['H','G'],['G','E']
+      ]
+    : [
+        // ABCD
+        ['A','B'],['B','C'],['C','D'],['D','A'],
+        // CDFE
+        ['C','D'],['D','F'],['F','E'],['E','C']
+      ];
+
+  // ancres labels
+  const labelAnchors = withThird
+    ? makeLabelAnchors3(A,B,C,D,E,F,G,H)
+    : makeLabelAnchors2(A,B,C,D,E,F);
+
+}
   // -------------------------------------------------
   // NOUVEAU : choix du quadrilatère cible (option A)
   // -------------------------------------------------
@@ -2497,581 +2557,6 @@ const EXO_PARAL = {
 
 
 
-/* =========================================================
-   EXERCICE 4 — Milieux et nature d'un quadrilatère
-   -------------------------------------------------
-   - On génère un parallélogramme ABCD.
-   - On construit deux points extérieurs I et J.
-   - On choisit un scénario parmi S1..S4.
-   - On affiche l'énoncé (sans quadrillage) + question.
-   - Le bouton "Solution" affiche les 4 lignes de correction
-     exactement dans le style validé.
-   ========================================================= */
-
-/* 1. Fabrique un parallélogramme ABCD "propre" */
-function makeNiceParallelogramNoGrid(){
-  // base horizontale-ish
-  const A = {x:0, y:1.5};
-  const B = {x:3.5, y:1.5};
-  const D = {x:-0.5, y:0};
-  const C = {x:3, y:0};
-
-  // on a donc ABCD parallélogramme penché à droite
-  // Maintenant on place I et J pour que :
-  //  - I soit "prolonge" vers la gauche/haut
-  //  - J soit "prolonge" vers la droite/bas
-  //
-  // On veut qu'I soit tel que A ou B ou D soit milieu selon scénarios,
-  // mais là on ne sait pas encore quel scénario.
-  // -> on NE place pas I et J tout de suite.
-  // On retournera juste {A,B,C,D} et on laissera le scénario les calculer.
-
-  return {A,B,C,D};
-}
-
-/* petit utilitaire vectoriel */
-function midToOtherEndpoint(mid, other){
-  // si M est milieu de [P,Q] et on connaît M et P,
-  // alors Q = 2M - P
-  return {
-    x: 2*mid.x - other.x,
-    y: 2*mid.y - other.y
-  };
-}
-
-
-const SCENARIOS_4 = [
-  // S1 — A milieu [IB], C milieu [DJ]  ->  AI = CJ  (et AJ = CI)  ->  A-I-J-C
-  {
-    name: "S1_A-IB_C-DJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(A, B); // A milieu [IB]  => BA = AI
-      const J = midToOtherEndpoint(C, D); // C milieu [DJ]  => CD = CJ
-      return {I,J};
-    },
-    quad: ["A","I","J","C"], // opposés: AI // CJ et IJ // CA
-    helperSegs: [["I","B"], ["D","J"]],
-    questionQuadLabel: "AICJ",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([IB]\\) \\( \\) ainsi \\( \\)  \\(\\overrightarrow{BA}=\\overrightarrow{AI}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([DJ]\\) \\( \\) ainsi \\( \\)  \\(\\overrightarrow{CD}=\\overrightarrow{JC}\\).",
-      "Comme  \\( \\) \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{BA}=\\overrightarrow{CD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{AI}=\\overrightarrow{JC}\\) \\( \\)  et le quadrilatère \\( \\)  \\(AICJ\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([IB]\\).","\\(C\\) \\( \\) est le milieu de \\([DJ]\\)."]
-  },
-
-  // S2 — B milieu [AI], D milieu [CJ]  ->  BI = JD  ->  B-I-J-D
-  {
-    name: "S2_B-AI_D-CJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(B, A); // AB = BI
-      const J = midToOtherEndpoint(D, C); // DC = DJ
-      return {I,J};
-    },
-    quad: ["B","I","J","D"], // opposés: BI // JD
-    helperSegs: [["A","I"], ["C","J"]],
-    questionQuadLabel: "BIDJ",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([AI]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BI}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([CJ]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{JD}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc  \\( \\) \\(\\overrightarrow{BI}=\\overrightarrow{JD}\\)  \\( \\) et \\( \\)  \\(BIDJ\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([AI]\\).","\\(D\\) \\( \\) est le milieu de \\([CJ]\\)."]
-  },
-
-  // S3 — D milieu [AI], C milieu [BJ]  ->  DI = CJ  ->  D-I-J-C  (on conclut sur DI // CJ)
-  {
-    name: "S3_D-AI_C-BJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(D, A); // AD = DI
-      const J = midToOtherEndpoint(C, B); // BC = CJ
-      return {I,J};
-    },
-    quad: ["D","I","J","C"],
-    helperSegs: [["A","I"], ["B","J"]],
-    questionQuadLabel: "DIJC",
-    statements: [
-      "\\(D\\) \\( \\) est le milieu de \\([AI]\\) \\( \\) ainsi \\(\\overrightarrow{AD}=\\overrightarrow{DI}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([BJ]\\) \\( \\) ainsi \\(\\overrightarrow{BC}=\\overrightarrow{CJ}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AD}=\\overrightarrow{BC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{DI}=\\overrightarrow{CJ}\\)  \\( \\) et \\( \\)  \\(DIJC\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(D\\) \\( \\) est le milieu de \\([AI]\\).","\\(C\\) \\( \\) est le milieu de \\([BJ]\\)."]
-  },
-
-  // S4 — A milieu [DI], B milieu [CJ]  ->  AI = BJ  ->  A-I-J-B
-  {
-    name: "S4_A-DI_B-CJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(A, D); // DA = AI
-      const J = midToOtherEndpoint(B, C); // CB = BJ
-      return {I,J};
-    },
-    quad: ["A","I","J","B"],
-    helperSegs: [["D","I"], ["C","J"]],
-    questionQuadLabel: "AIJB",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([DI]\\) \\( \\) ainsi \\(\\overrightarrow{DA}=\\overrightarrow{AI}\\).",
-      "\\(B\\) \\( \\) est le milieu de \\([CJ]\\) \\( \\) ainsi \\(\\overrightarrow{CB}=\\overrightarrow{BJ}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{DA}=\\overrightarrow{CB}\\).",
-      "Donc  \\( \\) \\(\\overrightarrow{AI}=\\overrightarrow{BJ}\\) \\( \\)  et \\( \\)  \\(AIJB\\) \\( \\)  est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([DI]\\).","\\(B\\) \\( \\) est le milieu de \\([CJ]\\)."]
-  },
-
-  // S5 — A milieu [JB], C milieu [ID]  ->  AJ = CI  ->  A-J-I-C
-  {
-    name: "S5_A-JB_C-ID",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(A, B); // BA = AJ
-      const I = midToOtherEndpoint(C, D); // CD = CI
-      return {I,J};
-    },
-    quad: ["A","J","I","C"],
-    helperSegs: [["J","B"], ["I","D"]],
-    questionQuadLabel: "AJCI",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([JB]\\) \\( \\) ainsi \\(\\overrightarrow{BA}=\\overrightarrow{AJ}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([ID]\\) \\( \\) ainsi \\(\\overrightarrow{CD}=\\overrightarrow{IC}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{BA}=\\overrightarrow{CD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{AJ}=\\overrightarrow{IC}\\)  \\( \\) et \\( \\)  \\(AJCI\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([JB]\\).","\\(C\\) \\( \\) est le milieu de \\([ID]\\)."]
-  },
-
-  // S6 — B milieu [JA], D milieu [IC]  ->  BJ = DI  ->  B-J-I-D
-  {
-    name: "S6_B-JA_D-IC",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(B, A); // AB = BJ
-      const I = midToOtherEndpoint(D, C); // CD = DI
-      return {I,J};
-    },
-    quad: ["B","J","I","D"],
-    helperSegs: [["J","A"], ["I","C"]],
-    questionQuadLabel: "BJDI",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([JA]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BJ}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([IC]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{ID}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc  \\( \\) \\(\\overrightarrow{BJ}=\\overrightarrow{ID}\\)  \\( \\) et \\( \\)  \\(BJDI\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([JA]\\).","\\(D\\) \\( \\) est le milieu de \\([IC]\\)]."]
-  },
-
-  // S7 — C milieu [JD], A milieu [IB]  ->  CJ = AI  ->  C-J-I-A
-  {
-    name: "S7_C-JD_A-IB",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(C, D); // DC = CJ
-      const I = midToOtherEndpoint(A, B); // BA = AI
-      return {I,J};
-    },
-    quad: ["C","J","I","A"],
-    helperSegs: [["J","D"], ["I","B"]],
-    questionQuadLabel: "CJAI",
-    statements: [
-      "\\(C\\) \\( \\) est le milieu de \\([JD]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{CJ}\\).",
-      "\\(A\\) \\( \\) est le milieu de \\([IB]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{IA}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{CJ}=\\overrightarrow{IA}\\)  \\( \\) et \\( \\)  \\(CJAI\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(C\\) \\( \\) est le milieu de \\([JD]\\).","\\(A\\) \\( \\) est le milieu de \\([IB]\\)]."]
-  },
-
-  // S8 — D milieu [IC], B milieu [JA]  ->  DI = BJ  ->  D-I-J-B
-  {
-    name: "S8_D-IC_B-JA",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(D, C); // CD = DI
-      const J = midToOtherEndpoint(B, A); // AB = BJ
-      return {I,J};
-    },
-    quad: ["D","I","J","B"],
-    helperSegs: [["I","C"], ["J","A"]],
-    questionQuadLabel: "IDJB",
-    statements: [
-      "\\(D\\) \\( \\) est le milieu de \\([IC]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{ID}\\).",
-      "\\(B\\) \\( \\) est le milieu de \\([JA]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BJ}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{ID}=\\overrightarrow{BJ}\\)  \\( \\) et \\( \\)  \\(IDJB\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(D\\) \\( \\) est le milieu de \\([IC]\\).","\\(B\\) \\( \\) est le milieu de \\([JA]\\)."]
-  },
-
-  // S9 — A milieu [IB], D milieu [CJ]  ->  AI = JD  ->  A-I-D-J
-  {
-    name: "S9_A-IB_D-CJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(A, B); // BA = AI
-      const J = midToOtherEndpoint(D, C); // DC = JD
-      return {I,J};
-    },
-    quad: ["A","I","D","J"],
-    helperSegs: [["I","B"], ["C","J"]],
-    questionQuadLabel: "AIJD",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([IB]\\) \\( \\) ainsi \\(\\overrightarrow{BA}=\\overrightarrow{AI}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([CJ]\\) \\( \\) ainsi \\(\\overrightarrow{CD}=\\overrightarrow{DJ}\\).",
-      "Comme \\( \\)  \\(ABCD\\) \\( \\)  est un parallélogramme, \\( \\)  \\(\\overrightarrow{BA}=\\overrightarrow{CD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{AI}=\\overrightarrow{DJ}\\)  \\( \\) et \\( \\)  \\(AIJD\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([IB]\\).","\\(D\\) \\( \\) est le milieu de \\([CJ]\\)."]
-  },
-
-  // S10 — B milieu [IA], C milieu [JD]  ->  BI = CJ  ->  B-I-C-J
-  {
-    name: "S10_B-IA_C-JD",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(B, A); // AB = BI
-      const J = midToOtherEndpoint(C, D); // DC = CJ
-      return {I,J};
-    },
-    quad: ["B","I","C","J"],
-    helperSegs: [["I","A"], ["J","D"]],
-    questionQuadLabel: "BIJC",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([IA]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BI}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([JD]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{CJ}\\).",
-      "Comme \\( \\)  \\(ABCD\\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{BI}=\\overrightarrow{CJ}\\) \\( \\)  et \\( \\)  \\(BIJC\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([IA]\\).","\\(C\\) \\( \\) est le milieu de \\([JD]\\)."]
-  },
-
-  // S11 — A milieu [DJ], C milieu [IB]  ->  AJ = CI  ->  A-J-C-I
-  {
-    name: "S11_A-DJ_C-IB",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(A, D); // DA = AJ
-      const I = midToOtherEndpoint(C, B); // CB = CI
-      return {I,J};
-    },
-    quad: ["A","J","C","I"],
-    helperSegs: [["D","J"], ["I","B"]],
-    questionQuadLabel: "AJCI",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([DJ]\\) \\( \\) ainsi \\(\\overrightarrow{DA}=\\overrightarrow{AJ}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([IB]\\) \\( \\) ainsi \\(\\overrightarrow{CB}=\\overrightarrow{IC}\\).",
-      "Comme  \\( \\) \\(ABCD\\)  \\( \\) est un parallélogramme, \\(\\overrightarrow{DA}=\\overrightarrow{CB}\\).",
-      "Donc  \\( \\) \\(\\overrightarrow{AJ}=\\overrightarrow{IC}\\)  \\( \\) et \\( \\)  \\(AJCI\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([DJ]\\).","\\(C\\) \\( \\) est le milieu de \\([IB]\\)."]
-  },
-
-  // S12 — B milieu [CJ], D milieu [IA]  ->  BJ = DI  ->  B-J-D-I
-  {
-    name: "S12_B-CJ_D-IA",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(B, C); // CB = BJ
-      const I = midToOtherEndpoint(D, A); // AD = DI
-      return {I,J};
-    },
-    quad: ["B","J","D","I"],
-    helperSegs: [["C","J"], ["A","I"]],
-    questionQuadLabel: "BJDI",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([CJ]\\) \\( \\) ainsi \\(\\overrightarrow{BC}=\\overrightarrow{JB}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([IA]\\) \\( \\) ainsi \\(\\overrightarrow{AD}=\\overrightarrow{DI}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{BC}=\\overrightarrow{AD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{JB}=\\overrightarrow{DI}\\)  \\( \\) et \\( \\)  \\(BJDI\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([CJ]\\).","\\(D\\) \\( \\) est le milieu de \\([IA]\\)."]
-  },
-
-  // S13 — tout à gauche (A & D)  ->  AJ = CI  ->  A-J-C-I
-  {
-    name: "S13_A-JB_D-IC",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(A, B); // BA = AJ
-      const I = midToOtherEndpoint(D, C); // DC = DI  -> On utilisera DC = CI ? (non : DI = DC)
-      return {I,J};
-    },
-    quad: ["A","J","C","I"],
-    helperSegs: [["J","B"], ["I","C"]],
-    questionQuadLabel: "AJID",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([JB]\\) \\( \\) ainsi \\(\\overrightarrow{BA}=\\overrightarrow{AJ}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([IC]\\) \\( \\) ainsi \\(\\overrightarrow{CD}=\\overrightarrow{DI}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme,  \\( \\) \\(\\overrightarrow{BA}=\\overrightarrow{CD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{AJ}=\\overrightarrow{DI}\\)  \\( \\) et \\( \\)  \\(AJID\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([JB]\\).","\\(D\\) \\( \\) est le milieu de \\([IC]\\)."]
-  },
-
-  // S14 — tout à droite (B & C)  ->  BJ = DI  ->  B-J-I-D
-  {
-    name: "S14_B-JA_C-ID",
-    buildIJ: ({A,B,C,D}) => {
-      const J = midToOtherEndpoint(B, A); // AB = BJ
-      const I = midToOtherEndpoint(C, D); // CD = CI
-      return {I,J};
-    },
-    quad: ["B","J","I","D"],
-    helperSegs: [["J","A"], ["I","D"]],
-    questionQuadLabel: "BJIC",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([JA]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BJ}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([ID]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{CI}\\).",
-      "Comme  \\( \\) \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{BJ}=\\overrightarrow{CI}\\)  \\( \\) et \\( \\)  \\(BJIC\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([JA]\\).","\\(C\\) \\( \\) est le milieu de \\([ID]\\)."]
-  },
-
-  // S15 — mix haut/bas (A & C)  ->  AI = CJ  ->  A-I-J-C
-  {
-    name: "S15_A-BI_C-DJ",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(A, B); // BA = AI
-      const J = midToOtherEndpoint(C, D); // CD = CJ
-      return {I,J};
-    },
-    quad: ["A","I","J","C"],
-    helperSegs: [["B","I"], ["D","J"]],
-    questionQuadLabel: "AIJC",
-    statements: [
-      "\\(A\\) \\( \\) est le milieu de \\([BI]\\) \\( \\) ainsi \\(\\overrightarrow{BA}=\\overrightarrow{AI}\\).",
-      "\\(C\\) \\( \\) est le milieu de \\([DJ]\\) \\( \\) ainsi \\(\\overrightarrow{CD}=\\overrightarrow{CJ}\\).",
-      "Comme  \\( \\) \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{BA}=\\overrightarrow{CD}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{AI}=\\overrightarrow{CJ}\\) \\( \\)  et \\( \\)  \\(AIJC\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(A\\) \\( \\) est le milieu de \\([BI]\\)].","\\(C\\) \\( \\) est le milieu de \\([DJ]\\)."]
-  },
-
-  // S16 — mix haut/bas (B & D)  ->  BI = JD  ->  B-I-D-J
-  {
-    name: "S16_B-IA_D-JC",
-    buildIJ: ({A,B,C,D}) => {
-      const I = midToOtherEndpoint(B, A); // AB = BI
-      const J = midToOtherEndpoint(D, C); // CD = JD
-      return {I,J};
-    },
-    quad: ["B","I","D","J"],
-    helperSegs: [["I","A"], ["J","C"]],
-    questionQuadLabel: "BIDJ",
-    statements: [
-      "\\(B\\) \\( \\) est le milieu de \\([IA]\\) \\( \\) ainsi \\(\\overrightarrow{AB}=\\overrightarrow{BI}\\).",
-      "\\(D\\) \\( \\) est le milieu de \\([JC]\\) \\( \\) ainsi \\(\\overrightarrow{DC}=\\overrightarrow{JD}\\).",
-      "Comme \\( \\)  \\(ABCD\\)  \\( \\) est un parallélogramme, \\( \\)  \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\).",
-      "Donc \\( \\)  \\(\\overrightarrow{BI}=\\overrightarrow{JD}\\)  \\( \\) et \\( \\)  \\(BIDJ\\)  \\( \\) est un parallélogramme."
-    ],
-    milieuSentences: ["\\(B\\) \\( \\) est le milieu de \\([IA]\\).","\\(D\\) \\( \\) est le milieu de \\([JC]\\)."]
-    
-  }
-];
-
-
-
-/* 3. SVG sans quadrillage, avec ABCD rempli + I,J visibles + les lettres propres */
-function renderNoGridFigureParallelogram(st){
-  const {A,B,C,D,I,J} = st;
-
-  // cadre
-  const xs=[A.x,B.x,C.x,D.x,I.x,J.x];
-  const ys=[A.y,B.y,C.y,D.y,I.y,J.y];
-  let minX=Math.min(...xs)-1, maxX=Math.max(...xs)+1;
-  let minY=Math.min(...ys)-1, maxY=Math.max(...ys)+1;
-  const viewW=380, viewH=200, pad=20;
-  const w=maxX-minX, h=maxY-minY;
-  const scale = ((viewW-2*pad)/w < (viewH-2*pad)/h
-                ? (viewW-2*pad)/w
-                : (viewH-2*pad)/h);
-
-  function toPix(P){
-    return {
-      X: pad + (P.x-minX)*scale,
-      Y: pad + (maxY-P.y)*scale
-    };
-  }
-
-  // petit "tick" au milieu d’un segment
-  function midTick(P,Q){
-    const m = { x:(P.x+Q.x)/2, y:(P.y+Q.y)/2 };
-    const d = { x: Q.y-P.y, y: -(Q.x-P.x) }; // perpendiculaire
-    const k = 0.06; // longueur du tick (en unités "math")
-    const A = toPix({x:m.x + k*d.x, y:m.y + k*d.y});
-    const B = toPix({x:m.x - k*d.x, y:m.y - k*d.y});
-    return `<line x1="${A.X.toFixed(1)}" y1="${A.Y.toFixed(1)}"
-                  x2="${B.X.toFixed(1)}" y2="${B.Y.toFixed(1)}"
-                  stroke="#666" stroke-width="1" />`;
-  }
-
-  // polygon ABCD
-  const polyPts=[A,B,C,D].map(P=>{
-    const p=toPix(P);
-    return `${p.X.toFixed(1)},${p.Y.toFixed(1)}`;
-  }).join(' ');
-
-  function dotWithLabel(P,name,dx,dy){
-    const p=toPix(P);
-    return `
-      <circle cx="${p.X.toFixed(1)}" cy="${p.Y.toFixed(1)}" r="3" fill="#111"/>
-      <text x="${(p.X+dx).toFixed(1)}" y="${(p.Y+dy).toFixed(1)}"
-            font-size="12" font-family="system-ui,Segoe UI,Roboto,Arial"
-            fill="#111">${name}</text>`;
-  }
-
-  // ===== NOUVEAU : pointillés = exactement les helperSegs du scénario =====
-  const dashed = (st.scenario?.helperSegs || [])
-    .map(([U,V])=>{
-      const P = st[U], Q = st[V];
-      if(!P || !Q) return '';
-      const p1 = toPix(P), p2 = toPix(Q);
-      return `
-        <line x1="${p1.X.toFixed(1)}" y1="${p1.Y.toFixed(1)}"
-              x2="${p2.X.toFixed(1)}" y2="${p2.Y.toFixed(1)}"
-              stroke="#555" stroke-width="1"
-              stroke-dasharray="6 4" />
-      `;
-    }).join('');
-
-  // arêtes du parallélogramme ABCD
-  const edgesABCD = [[A,B],[B,C],[C,D],[D,A]].map(([P,Q])=>{
-    const p1=toPix(P), p2=toPix(Q);
-    return `<line x1="${p1.X.toFixed(1)}" y1="${p1.Y.toFixed(1)}"
-                   x2="${p2.X.toFixed(1)}" y2="${p2.Y.toFixed(1)}"
-                   stroke="#c48a5a" stroke-width="2" />`;
-  }).join('');
-
-  return `
-    <svg viewBox="0 0 ${viewW} ${viewH}"
-         width="${viewW}" height="${viewH}"
-         style="border:1px solid #ccc;border-radius:6px;background:#fff;
-                width:${viewW}px; max-width:${viewW}px;">
-      <polygon points="${polyPts}"
-               fill="rgba(200,150,100,0.08)"
-               stroke="none"/>
-      ${edgesABCD}
-      ${dashed}
-      ${dotWithLabel(A,"A",  6,-6)}
-      ${dotWithLabel(B,"B",  6,-6)}
-      ${dotWithLabel(C,"C",  6,14)}
-      ${dotWithLabel(D,"D", -12,14)}
-      ${dotWithLabel(I,"I", -10,-10)}
-      ${dotWithLabel(J,"J",  6,14)}
-    </svg>
-  `;
-}
-
-
-
-/* 4. Génération état exercice 4 */
-function genMilieuxExo(){
-  const base = makeNiceParallelogramNoGrid();
-  const scenario = SCENARIOS_4[Math.floor(Math.random()*SCENARIOS_4.length)];
-
-  const {I,J} = scenario.buildIJ(base);
-
-  const st = {
-    A:base.A, B:base.B, C:base.C, D:base.D,
-    I, J,
-    scenario
-  };
-
-  st.figureSVG = renderNoGridFigureParallelogram(st);
-
-  // énoncé en texte
-  // "ABCD est un parallélogramme. ... B est le milieu du segment [AI] ..."
-  const milieuLines = scenario.milieuSentences.map(s=>"      " + s).join("<br>");
-
-  st.enonceHTML = `
-    <div class="subhead" style="margin-bottom:.5rem">
-      On considère les points suivants.
-    </div>
-
-    <div style="line-height:1.8;margin-left:1.2em;">
-      \\(ABCD\\) \\( \\) est un parallélogramme.<br>
-      ${milieuLines}
-    </div>
-
-    <div style="margin-top:1rem;line-height:1.8;">
-      Quelle est la nature du quadrilatère \\(${scenario.questionQuadLabel}\\) ?<br>
-      Justifier.
-    </div>
-
-  
-  `;
-
-  // correction bloc
-  st.corrHTML = `
-    <div class="steps">
-      <div class="stepTitle">Correction</div>
-      ${scenario.statements.map(L=>`<div class="line">${L}</div>`).join('')}
-    </div>
-  `;
-
-  return st;
-}
-
-/* 5. Rendu DOM Exercice 4 */
-function buildHostHTML_exo4(st){
-  return `
-    <div class="exo-block">
-      <span class="exo-title">Exercice 4 — Milieux et nature d’un quadrilatère</span>
-      <table class="exo-layout-table" style="width:100%;border-collapse:collapse;">
-        <tr>
-          <td class="exo-fig-col" style="vertical-align:top;width:50%;min-width:240px;padding:8px 12px;border:none;">
-            <div class="figure-area" style="text-align:center;">
-              ${st.figureSVG}
-            </div>
-          </td>
-          <td class="exo-q-col" style="vertical-align:top;width:50%;min-width:260px;padding:8px 12px;border:none;">
-            ${st.enonceHTML}
-          </td>
-        </tr>
-      </table>
-    </div>
-    <div id="solution-block" style="margin-top:1rem;"></div>
-  `;
-}
-
-/* 6. Objet REG pour Exercice 4 */
-const EXO_MILIEUX = {
-  id:'exo_vect_milieux',
-  title:'Exercice 4 — Milieux et quadrilatère',
-  gen(host){
-    const st = genMilieuxExo();
-    if(host){
-      host.innerHTML = buildHostHTML_exo4(st);
-      host.__state = st;
-      host.dataset.state = JSON.stringify(st);
-      if(window.MathJax?.typeset) MathJax.typeset();
-    }
-    return st;
-  },
-  correct(host, st){
-    // rien à cocher automatiquement, c'est une rédac
-  },
-  solution(host, st){
-    const solZone = host.querySelector('#solution-block');
-    if(solZone){
-      solZone.innerHTML = `
-        <div class="exo-block">
-          <table class="exo-layout-table" style="width:100%;border-collapse:collapse;">
-            <tr>
-              <td class="exo-fig-col" style="vertical-align:top;width:50%;min-width:240px;padding:8px 12px;border:none;">
-                <div class="figure-area" style="text-align:center;">
-                  ${st.figureSVG}
-                </div>
-              </td>
-              <td class="exo-q-col" style="vertical-align:top;width:50%;min-width:260px;padding:8px 12px;border:none;">
-                ${st.corrHTML}
-              </td>
-            </tr>
-          </table>
-        </div>
-      `;
-      if(window.MathJax?.typeset) MathJax.typeset();
-    }
-  },
-  reset(host){}
-};
-
-
-
 
 
 
@@ -3086,7 +2571,7 @@ const EXO_MILIEUX = {
 
 
 // registry
-const REG = [EXO_TABLE, EXO_VF, EXO_PARAL, EXO_MILIEUX];
+const REG = [EXO_TABLE, EXO_VF, EXO_PARAL];
 window.REG = REG;
 window.REGISTRY = REG;
 
@@ -3348,28 +2833,7 @@ function attachInteractiveHandlers(){
             </table>
           </div>
         `;
-            } else if (def.id === 'exo_vect_milieux') {
-        // ----- EXERCICE 4 (Milieux et quadrilatère) -----
-        // On réutilise le rendu sans grille + le texte d’énoncé déjà présents dans l’état.
-        const figHTML = st.figureSVG || '';
-        const enonceHTML4 = st.enonceHTML || '';
-
-        enonceHTML = `
-          <div class="exo-block">
-            <span class="exo-title">Exercice 4 — Milieux et nature d’un quadrilatère</span>
-            <table class="exo-layout-table" style="width:100%;border-collapse:collapse;">
-              <tr>
-                <td class="exo-fig-col" style="vertical-align:top;width:50%;min-width:240px;padding:8px 12px;border:none;">
-                  <div style="text-align:center;">${figHTML}</div>
-                </td>
-                <td class="exo-q-col" style="vertical-align:top;width:50%;min-width:260px;padding:8px 12px;border:none;">
-                  ${enonceHTML4}
-                </td>
-              </tr>
-            </table>
-          </div>
-        `;
-
+      
       }
 
       // Correction PDF si withSolutions
@@ -3433,27 +2897,7 @@ function attachInteractiveHandlers(){
               </div>
             </div>
           `;
-                } else if (def.id === 'exo_vect_milieux') {
-          const figHTML = st.figureSVG || '';
-          const corrHTML4 = st.corrHTML || '';
-          corrHTML = `
-            <div style="margin-top:1rem;">
-              <div class="exo-block">
-                <span class="exo-title">Correction</span>
-                <table class="exo-layout-table" style="width:100%;border-collapse:collapse;">
-                  <tr>
-                    <td class="exo-fig-col" style="vertical-align:top;width:50%;min-width:240px;padding:8px 12px;border:none;">
-                      <div style="text-align:center;">${figHTML}</div>
-                    </td>
-                    <td class="exo-q-col" style="vertical-align:top;width:50%;min-width:260px;padding:8px 12px;border:none;">
-                      ${corrHTML4}
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </div>
-          `;
-}
+        }
       }
 
       // On injecte les deux blocs dans l'iframe pour conversion MathJax SVG

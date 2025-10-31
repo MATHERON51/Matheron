@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2nd - Vecteurs - Coordonnées</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+:root{ --ink:#111; --bg:#fafafa; --card:#fff; --line:#e6e6e6; --muted:#666; --ok:#0e7c3a; --ko:#b00020; }
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:hover{border-color:#bbb}
+.small{color:var(--muted);font-size:.95rem}
+.eq{font-size:17px}
+.ok{color:var(--ok);font-weight:700}
+.ko{color:var(--ko);font-weight:700}
+hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
+.steps p{margin:.25rem 0}
+
+/* Mises en forme des solutions */
+.grid{display:grid;gap:10px;align-items:start}
+.cols-2{grid-template-columns:1fr 1fr}
+.cols-3{grid-template-columns:auto auto 1fr}
+.box{border:1px dashed #bbb;border-radius:8px;padding:8px 10px}
+.box p{margin:.25rem 0}
+.eqcol{display:flex;flex-direction:column;gap:.25rem}
+.eqcol p{margin:0}
+.eqonly{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.center{text-align:center}
+
+/* Bloc solution (UI) */
+#res.steps{
+  background:#f3f4f6;border:1px solid #e5e7eb;border-left:4px solid #9aa0a6;border-radius:8px;padding:10px;
+}
+#res.steps p{margin:.25rem 0}
+
+
+</style>
+
+<!-- MathJax CHTML écran -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: { '[+]': ['bbox','ams'] },
+      macros: { vec: ['\\overrightarrow{#1}',1] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<style>.MJX_Assistive_MathML, mjx-assistive-mml{display:none!important}</style>
+
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+</head>
+<body>
+  <div class="header"><h1 style="margin:0;font-size:1.1rem"><strong>2nd - Vecteurs - Coordonnées</strong></h1></div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score" style="margin-left:auto;font-weight:700">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Coordonnées au format <code>u;v</code> (ex. <code>6;1</code> ou <code>3/2; -5</code>). Virgule décimale « , » ou point « . » acceptés.</li>
+        <li>Jamais de parenthèses : on tape <code>6;1</code> (les parenthèses sont affichées automatiquement).</li>
+        <li>Fractions conservées dans les corrections.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ====== Mini helpers génériques ====== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const HOST = $('#host');
+function retypeset(host){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]); }
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t;} return a||1; }
+
+/* ====== Rationnels “propres” (pour jolies fractions dans les corrections) ====== */
+function R(p,q=1){ if(q<0){p=-p;q=-q;} const g=gcd(p,q); return {p:p/g,q:q/g}; }
+function addR(x,y){ return R(x.p*y.q + y.p*x.q, x.q*y.q); }
+function subR(x,y){ return R(x.p*y.q - y.p*x.q, x.q*y.q); }
+function mulR(x,y){ return R(x.p*y.p, x.q*y.q); }
+function negR(x){ return R(-x.p, x.q); }
+function numR(x){ return x.p/x.q; }
+function latexR(r){ if(r.q===1) return String(r.p); const s=r.p<0?'−':''; const P=Math.abs(r.p); return s+'\\dfrac{'+P+'}{'+r.q+'}'; }
+function textR(r){ return r.q===1 ? String(r.p) : `${r.p}/${r.q}`; }
+// Retourne -\dfrac{|p|}{q} si p<0, sinon \dfrac{p}{q}; et un entier si q=1
+function latexR_leadingMinus(r){
+  const p = r.p, q = r.q;
+  if (q === 1) return String(p);              // pas de /1 affiché dans ton flux final
+  if (p < 0) return `-\\dfrac{${Math.abs(p)}}{${q}}`;
+  return `\\dfrac{${p}}{${q}}`;
+}
+
+/* ====== Affichages “coordonnées” ====== */
+// --- affichages points & vecteurs ---
+const par = n => (n<0?`(${n})`:String(n));
+/* ====== Affichages “coordonnées” — règles de parenthèses ====== */
+// nombres "bruts" (pour les points) : JAMAIS de parenthèses autour d'un négatif
+const nPlain = n => String(n);
+
+// nombre entre parenthèses UNIQUEMENT s'il suit un "−" dans une différence
+const nAfterMinus = n => (n < 0 ? `(${n})` : String(n));
+const plusExpr = (a,b) => `${nPlain(a)} + ${b<0?`(${b})`:nPlain(b)}`;
+const plusExprSimplified = (a,b) => `${nPlain(a)} ${b<0?'-':'+'} ${nPlain(Math.abs(b))}`;
+
+// expressions "a - b" avec parenthèses seulement si b<0
+const minusExpr = (a,b) => `${nPlain(a)} - ${nAfterMinus(b)}`;
+
+// version simplifiée (pour l'étape -- → +)
+const minusExprSimplified = (a,b) => (b < 0 ? `${nPlain(a)} + ${Math.abs(b)}` : `${nPlain(a)} - ${nPlain(b)}`);
+
+// Points en LIGNE, sans par autour des négatifs
+function fmtPtLaNum(P){ return `(${nPlain(P.a)}\\;;\\;${nPlain(P.b)})`; }
+function fmtPtLaR(P){  return `(${latexR(P.a)}\\;;\\;${latexR(P.b)})`; }
+
+// ✅ Vecteur en COLONNE (définitif — laisse celui-ci et SUPPRIME toute redéfinition plus bas)
+function colVecExpr(xExpr, yExpr){
+  return `\\begin{pmatrix} ${xExpr} \\\\ ${yExpr} \\end{pmatrix}`;
+}
+function fmtVecLaNum(x, y){ return colVecExpr(nPlain(x), nPlain(y)); }
+function fmtVecLaR(x, y){  return colVecExpr(latexR(x), latexR(y)); }
+
+// Retourne les étapes LaTeX pour p/q : d'abord p/q, puis (optionnel) la forme réduite.
+function fracStepsLatex(p,q){
+  const g0 = gcd(Math.abs(p), Math.abs(q));
+  const first = `\\dfrac{${p}}{${q}}`;
+  if (g0>1){
+    const pr = p/g0, qr = q/g0;
+    return [first, `\\dfrac{${pr}}{${qr}}`]; // étape "réduction"
+  }
+  return [first]; // déjà irréductible → une seule ligne
+}
+
+/* === Helpers de comparaison (signes & doublons) ========================== */
+// Normalise les signes dans les fractions pour comparer :
+//  \dfrac{-a}{b}  →  -\dfrac{a}{b}
+// enlève espaces superflus et normalise le "−" unicode en "-"
+function normalizeFracSign(s){
+  return String(s)
+    .replace(/\u2212/g, '-') // unicode minus → "-"
+    .replace(/\\dfrac\{\s*-\s*([^}]+)\}\{\s*([^}]+)\}/g, '-\\dfrac{$1}{$2}')
+    .replace(/\(\s*-\s*\\dfrac/g, '(-\\dfrac')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+// Deux coordonnées (x;y) LaTeX sont-elles identiques modulo placement du signe ?
+function sameCoordPair(x1,y1,x2,y2){
+  return normalizeFracSign(x1)===normalizeFracSign(x2)
+      && normalizeFracSign(y1)===normalizeFracSign(y2);
+}
+
+
+/* ====== UI host ====== */
+function mountHost(){
+  HOST.innerHTML = `
+    <div id="lead" class="small"></div>
+    <div id="equ" class="eq"></div>
+    <hr class="sep">
+    <div class="controls">
+      <label class="input">Réponse <input id="ans" class="answer" type="text" inputmode="text" autocomplete="off" placeholder=""></label>
+      <div id="fb"></div>
+    </div>
+    <hr class="sep">
+    <div id="res" class="steps"></div>
+  `;
+}
+
+function setEqu(html){ const box=$('#equ',HOST); if(box) box.innerHTML = html; retypeset(HOST); }
+function setStepsHTML(html){ $('#res',HOST).innerHTML=html; retypeset(HOST); }
+function setSteps(lines){ setStepsHTML(lines.map(L=>`<p>${L}</p>`).join('')); }
+function setFB(ok,msg=''){ const fb=$('#fb',HOST); fb.className = ok?'ok':'ko'; fb.textContent=(ok?'✔︎ Correct. ':'✗ Incorrect. ')+msg; }
+
+/* ====== Parsing des réponses u;v ====== */
+function normalizeMinus(s){ return String(s||'').replace(/\u2212/g,'-').trim(); }
+function parseNumber(token){
+  token = token.replace(',','.');
+  if (/^[-+]?\d+\/\d+$/.test(token)){ const [p,q]=token.split('/').map(Number); return p/q; }
+  return token===''?NaN:Number(token);
+}
+function parsePairUV(s){
+  s = normalizeMinus(s).replace(/\s+/g,'');
+  const m = s.match(/^([^;]+);([^;]+)$/);
+  if(!m) return {ok:false};
+  const u=parseNumber(m[1]), v=parseNumber(m[2]);
+  return (isFinite(u)&&isFinite(v)) ? {ok:true,u,v} : {ok:false};
+}
+
+/* ====== Points aléatoires (entiers), tous distincts ====== */
+function samePt(P,Q){ return P.a===Q.a && P.b===Q.b; }
+function allDistinctPts(list){ for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++) if(samePt(list[i],list[j])) return false; return true; }
+function randPointNum(min,max,existing=[]){
+  let P; do{ P={a:randInt(min,max), b:randInt(min,max)}; }while(existing.some(E=>samePt(E,P)));
+  return P;
+}
+
+/* ====== Générateur d’exos ====== */
+const REGISTRY_MAP = {
+
+  /* e1 — Coordonnées du vecteur AB */
+  e1:{
+    name:"Coordonnées du vecteur AB",
+    gen(){
+      const A = randPointNum(-8,8);
+      const B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère les points \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Calculer les coordonnées du vecteur \\(\\vec{AB}\\).</p>`);
+    },
+    verify(){
+      const {A,B}=this.state;
+      const expect = {u:B.a-A.a, v:B.b-A.b};
+      const ans = parsePairUV($('#ans',HOST).value);
+      const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(\\vec{AB}${fmtVecLaNum(expect.u,expect.v)}\\).`);
+      return ok;
+    },
+solution(){
+  const {A,B}=this.state;
+  const ux=B.a-A.a, vy=B.b-A.b;
+
+  // Substitutions avec parenthèses UNIQUEMENT si le terme suit un "−"
+  const sxSub = minusExpr(B.a, A.a); // "x_B - x_A"
+  const sySub = minusExpr(B.b, A.b); // "y_B - y_A"
+
+  // Lignes
+  const L = [
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${colVecExpr(sxSub, sySub)}\\)`
+  ];
+
+  // Étape "-- → +" uniquement si A.a<0 ou A.b<0
+  if (A.a < 0 || A.b < 0){
+    const sxFix = minusExprSimplified(B.a, A.a);
+    const syFix = minusExprSimplified(B.b, A.b);
+    L.push(`\\(\\vec{AB}${colVecExpr(sxFix, syFix)}\\)`);
+  }
+
+  L.push(`\\(\\vec{AB}${fmtVecLaNum(ux,vy)}\\)`); // résultat en colonne
+  setSteps(L);
+}
+
+
+  },
+
+  /* e2 — Nature du quadrilatère ABCD (parallélogramme) */
+  e2:{
+    name:"Nature du quadrilatère \\(ABCD\\)",
+    gen(){
+      const A = randPointNum(-6,6);
+      const B = randPointNum(-6,6,[A]);
+      const C = randPointNum(-6,6,[A,B]);
+      const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)}; // pour forcer AB=DC
+      if(!allDistinctPts([A,B,C,D])) return this.gen();
+      this.state={A,B,C,D};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
+              <p>Quelle est la nature de \\(ABCD\\) ?</p>`);
+    },
+    verify(){
+      const rep = ($('#ans',HOST).value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const ok = /parallelogramme/.test(rep);
+      setFB(ok, ok?``:`Répondre « parallélogramme ».`);
+      return ok;
+    },
+solution(){
+   const {A,B,C,D}=this.state;
+
+  const ABu=B.a-A.a, ABv=B.b-A.b;
+  const DCu=C.a-D.a, DCv=C.b-D.b;
+
+  const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+  const DC_sub = colVecExpr(minusExpr(C.a,D.a), minusExpr(C.b,D.b));
+
+  const left = [
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${AB_sub}\\)`
+  ];
+  if (A.a<0 || A.b<0){
+    left.push(`\\(\\vec{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
+  }
+  left.push(`\\(\\vec{AB}${fmtVecLaNum(ABu,ABv)}\\)`);
+
+  const right = [
+    `\\(\\vec{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
+    `\\(\\vec{DC}${DC_sub}\\)`
+  ];
+  if (D.a<0 || D.b<0){
+    right.push(`\\(\\vec{DC}${colVecExpr(minusExprSimplified(C.a,D.a), minusExprSimplified(C.b,D.b))}\\)`);
+  }
+  right.push(`\\(\\vec{DC}${fmtVecLaNum(DCu,DCv)}\\)`);
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${left.map(L=>`<p>${L}</p>`).join('')}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right.map(L=>`<p>${L}</p>`).join('')}</td>
+      </tr>
+    </table>
+    <p>Ainsi \\(\\vec{AB}=\\vec{DC}\\), donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`
+  );
+
+}
+
+  },
+
+  /* e3 — Alignement de A, B, C ? (test k·AB = AC) */
+  e3:{
+    name:"Alignement des points \\(A,B,C\\) ?",
+    lead:"Répondre « oui » ou « non ».",
+    gen(){
+      const MIN=-4, MAX=4;
+      const A = randPointNum(MIN,MAX);
+      let B = randPointNum(MIN,MAX,[A]), C, aligned = Math.random()<.5, k=0;
+
+      if(aligned){
+        do{ k=randInt(-5,5);}while(k===0||k===1);
+        C={a:A.a + k*(B.a-A.a), b:A.b + k*(B.b-A.b)};
+        if(!allDistinctPts([A,B,C]) || Math.max(Math.abs(C.a),Math.abs(C.b))>MAX) return this.gen();
+      }else{
+        do{ C=randPointNum(MIN,MAX,[A,B]); }
+        while( (B.a-A.a)*(C.b-A.b) - (B.b-A.b)*(C.a-A.a) === 0 );
+      }
+
+      this.state={A,B,C,aligned,k};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\) et \\(C${fmtPtLaNum(C)}\\).</p>
+              <p>Les points \\(A\\), \\(B\\) et \\(C\\) sont-ils alignés ?</p>`);
+    },
+    verify(){
+      const {aligned}=this.state;
+      const r = ($('#ans',HOST).value||'').toLowerCase();
+      const ok = (aligned && /^o(ui)?$/.test(r)) || (!aligned && /^n(on)?$/.test(r));
+      setFB(ok, ok?``:`Attendu : ${aligned?'oui':'non'}.`);
+      return ok;
+    },
+    solution(){
+ const {A,B,C,aligned,k} = this.state;
+
+  const ABu=B.a-A.a, ABv=B.b-A.b;
+  const ACu=C.a-A.a, ACv=C.b-A.b;
+
+  const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+  const AC_sub = colVecExpr(minusExpr(C.a,A.a), minusExpr(C.b,A.b));
+
+  const col1 = [
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${AB_sub}\\)`
+  ];
+  if (A.a<0 || A.b<0){
+    col1.push(`\\(\\vec{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
+  }
+  col1.push(`\\(\\vec{AB}${fmtVecLaNum(ABu,ABv)}\\)`);
+
+  const col2 = [
+    `\\(\\vec{AC}${colVecExpr('x_C-x_A','y_C-y_A')}\\)`,
+    `\\(\\vec{AC}${AC_sub}\\)`
+  ];
+  if (A.a<0 || A.b<0){
+    col2.push(`\\(\\vec{AC}${colVecExpr(minusExprSimplified(C.a,A.a), minusExprSimplified(C.b,A.b))}\\)`);
+  }
+  col2.push(`\\(\\vec{AC}${fmtVecLaNum(ACu,ACv)}\\)`);
+
+  const tail = (ABu*ACv-ABv*ACu===0)
+    ? `<p>On a \\(\\vec{AC}=k\\,\\vec{AB}\\) (par ex. \\(k=${k||''}\\)). Donc \\(A,B,C\\) sont alignés.</p>`
+    : `<p>\\(\\vec{AC}\\) n’est pas un multiple de \\(\\vec{AB}\\). Donc \\(A,B,C\\) ne sont pas alignés.</p>`;
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${col1.map(L=>`<p>${L}</p>`).join('')}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${col2.map(L=>`<p>${L}</p>`).join('')}</td>
+      </tr>
+    </table>${tail}`
+  );
+}
+
+  },
+
+  /* e4 — (AB) ∥ (CD) ? via det(AB,CD)=0 */
+  e4:{
+    name:"Les droites \\((AB)\\) et \\((CD)\\) sont-elles parallèles ?",
+    lead:"Répondre « oui » ou « non ».",
+    gen(){
+      const A = randPointNum(-4,4);
+      const B = randPointNum(-4,4,[A]);
+      const u = {x:B.a-A.a, y:B.b-A.b};
+      if (u.x===0 && u.y===0) return this.gen();
+
+      const wantParallel = Math.random()<.5;
+      let C,D,k=0;
+      if(wantParallel){
+        do{ k=randInt(-4,4);}while(k===0);
+        let tries=0;
+        do{
+          C=randPointNum(-4,4,[A,B]);
+          D={a:C.a + k*u.x, b:C.b + k*u.y};
+          if(++tries>200) return this.gen();
+        }while(!allDistinctPts([A,B,C,D]) || Math.max(Math.abs(D.a),Math.abs(D.b))>4);
+      }else{
+        let det=0, tries=0;
+        do{
+          C=randPointNum(-4,4,[A,B]);
+          D=randPointNum(-4,4,[A,B,C]);
+          det = (B.a-A.a)*(D.b-C.b) - (B.b-A.b)*(D.a-C.a);
+          if(++tries>300) return this.gen();
+        }while(det===0 || !allDistinctPts([A,B,C,D]));
+      }
+      this.state={A,B,C,D,parallel:wantParallel,k};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
+              <p>Les droites \\((AB)\\) et \\((CD)\\) sont-elles parallèles ?</p>`);
+    },
+    verify(){
+      const rep = ($('#ans',HOST).value||'').toLowerCase();
+      const expect = this.state.parallel ? 'oui' : 'non';
+      const ok = /^(o|oui|n|non)$/.test(rep) && rep[0]===expect[0];
+      setFB(ok, ok?``:`Attendu : ${expect}.`);
+      return ok;
+    },
+    solution(){
+const {A,B,C,D,parallel,k}=this.state;
+
+  const ABu=B.a-A.a, ABv=B.b-A.b;
+  const CDu=D.a-C.a, CDv=D.b-C.b;
+
+  const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+  const CD_sub = colVecExpr(minusExpr(D.a,C.a), minusExpr(D.b,C.b));
+
+  const left = [
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${AB_sub}\\)`
+  ];
+  if (A.a<0 || A.b<0){
+    left.push(`\\(\\vec{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
+  }
+  left.push(`\\(\\vec{AB}${fmtVecLaNum(ABu,ABv)}\\)`);
+
+  const right = [
+    `\\(\\vec{CD}${colVecExpr('x_D-x_C','y_D-y_C')}\\)`,
+    `\\(\\vec{CD}${CD_sub}\\)`
+  ];
+  if (C.a<0 || C.b<0){
+    right.push(`\\(\\vec{CD}${colVecExpr(minusExprSimplified(D.a,C.a), minusExprSimplified(D.b,C.b))}\\)`);
+  }
+  right.push(`\\(\\vec{CD}${fmtVecLaNum(CDu,CDv)}\\)`);
+
+  const det = ABu*CDv - ABv*CDu;
+  const tail = Math.abs(det)<1e-12
+    ? `<p>\\(\\det(\\vec{AB},\\vec{CD})=0\\Rightarrow\\ \\vec{CD}=${k?String(k)+'\\,':''}\\vec{AB}\\). Donc \\((AB)\\) et \\((CD)\\) sont parallèles.</p>`
+    : `<p>\\(\\det(\\vec{AB},\\vec{CD})\\neq0\\). Donc \\((AB)\\) et \\((CD)\\) ne sont pas parallèles.</p>`;
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${left.map(L=>`<p>${L}</p>`).join('')}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right.map(L=>`<p>${L}</p>`).join('')}</td>
+      </tr>
+    </table>${tail}`
+  );
+}
+
+  },
+
+  /* e5 — Milieu de [AB] (coordonnées) */
+  e5:{
+    name:"Milieu de \\([AB]\\)",
+    gen(){
+      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Déterminer les coordonnées du milieu \\(M\\) du segment \\([AB]\\).</p>`);
+    },
+    verify(){
+      const {A,B}=this.state;
+      const expect = {u:(A.a+B.a)/2, v:(A.b+B.b)/2};
+      const ans = parsePairUV($('#ans',HOST).value);
+      const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(M(${par(expect.u)}\\;;\\;${par(expect.v)})\\).`);
+      return ok;
+    },
+    solution(){
+const {A,B}=this.state;
+
+  // numérateurs
+  const px = A.a + B.a;
+  const py = A.b + B.b;
+
+  // Sommes propres (jamais "+-")
+  const sx1 = plusExpr(A.a, B.a);
+  const sy1 = plusExpr(A.b, B.b);
+
+
+// 1) remplace ta fonction pushM par celle-ci
+let lastX=null, lastY=null;
+const L = [];
+function pushM(x,y){
+  const line = `\\(M\\left(${x}\\;;\\;${y}\\right)\\)`;
+  if (lastX !== null && sameCoordPair(lastX,lastY,x,y)){
+    // 👈 équivalents : on REMPLACE la dernière ligne par la version "préférée"
+    L[L.length - 1] = line;
+  } else {
+    L.push(line);
+  }
+  lastX = x; lastY = y;
+}
+
+
+  // 1) Formule
+  L.push(`\\(M\\left(\\dfrac{x_A+x_B}{2}\\;;\\;\\dfrac{y_A+y_B}{2}\\right)\\)`);
+
+  // 2) Substitution des coordonnées
+  L.push(`\\(M\\left(\\dfrac{${sx1}}{2}\\;;\\;\\dfrac{${sy1}}{2}\\right)\\)`);
+
+  // 3) "+(-n) → - n" si besoin
+  if (B.a<0 || B.b<0){
+    const sx2 = plusExprSimplified(A.a, B.a);
+    const sy2 = plusExprSimplified(A.b, B.b);
+    L.push(`\\(M\\left(\\dfrac{${sx2}}{2}\\;;\\;\\dfrac{${sy2}}{2}\\right)\\)`);
+  }
+
+  // 4) Écriture numérique en fractions non réduites
+  const x0 = `\\dfrac{${px}}{2}`;
+  const y0 = `\\dfrac{${py}}{2}`;
+  pushM(x0, y0);
+
+  // 5) Réduction éventuelle (jamais /1 affiché)
+  const rx = R(px,2), ry = R(py,2);
+  const xRed = rx.q>1 ? `\\dfrac{${rx.p}}{${rx.q}}` : null; // null si /1
+  const yRed = ry.q>1 ? `\\dfrac{${ry.p}}{${ry.q}}` : null;
+
+  if (xRed || yRed){
+    // si une seule coordonnée se réduit, l'autre reste telle quelle
+    pushM(xRed || x0, yRed || y0);
+  }
+
+  // 6) Ligne finale (forme exacte) — latexR supprime /1
+// --- ligne finale : signe devant la fraction
+// 2) pour la toute dernière ligne, force le signe DEVANT la fraction
+const mxR = R(px,2), myR = R(py,2);
+const xF  = latexR_leadingMinus(mxR);  // -\dfrac{|p|}{q} si p<0 ; entier si q=1
+const yF  = latexR_leadingMinus(myR);
+pushM(xF, yF);     // 👈 si l’étape précédente était équivalente, elle sera remplacée
+setSteps(L);
+
+
+    }
+  },
+
+  /* e6 — Symétrique de A par rapport à B */
+  e6:{
+    name:"Symétrique de \\(A\\) par rapport à \\(B\\)",
+    gen(){
+      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Déterminer les coordonnées de \\(C\\), symétrique de \\(A\\) par rapport à \\(B\\).</p>`);
+    },
+    verify(){
+      const {A,B}=this.state;
+      const expect={u:2*B.a - A.a, v:2*B.b - A.b};
+      const ans=parsePairUV($('#ans',HOST).value);
+      const ok=ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+      setFB(ok,ok?``:`Attendu : \\(C${fmtVecLaNum(expect.u,expect.v)}\\).`);
+      return ok;
+    },
+	
+	   solution(){
+    const {A,B}=this.state;
+  const cx=2*B.a-A.a, cy=2*B.b-A.b;
+
+  const xSub = minusExpr(2*B.a, A.a);
+  const ySub = minusExpr(2*B.b, A.b);
+
+  const L = [
+    `\\(B\\text{ milieu de }[AC] \\Rightarrow \\begin{cases}x_C=2x_B-x_A\\\\ y_C=2y_B-y_A\\end{cases}\\)`,
+    `\\(C(${xSub}\\;;\\;${ySub})\\)`
+  ];
+
+  if (A.a<0 || A.b<0){
+    const xFix = minusExprSimplified(2*B.a, A.a);
+    const yFix = minusExprSimplified(2*B.b, A.b);
+    L.push(`\\(C(${xFix}\\;;\\;${yFix})\\)`);
+  }
+
+  L.push(`\\(C(${nPlain(cx)}\\;;\\;${nPlain(cy)})\\)`);
+  setSteps(L);
+}
+
+  },
+
+  /* e7 — Trouver D pour que ABCD soit un parallélogramme */
+  e7:{
+    name:"Trouver \\(D\\) pour que \\(ABCD\\) soit un parallélogramme",
+    gen(){
+      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]), C = randPointNum(-8,8,[A,B]);
+      const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)};
+      if(!allDistinctPts([A,B,C,D])) return this.gen();
+      this.state={A,B,C,D};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\).</p>
+              <p>Déterminer les coordonnées de \\(D\\) tel que \\(ABCD\\) soit un parallélogramme.</p>`);
+    },
+    verify(){
+      const {D}=this.state;
+      const ans=parsePairUV($('#ans',HOST).value);
+      const ok=ans.ok && Math.abs(ans.u-D.a)<1e-9 && Math.abs(ans.v-D.b)<1e-9;
+      setFB(ok,ok?``:`Attendu : \\(D${fmtVecLaNum(D.a,D.b)}\\).`);
+      return ok;
+    },
+    solution(){
+  const {A,B,C,D}=this.state;
+
+  // On part de D = C + (B - A)
+  const xSub1 = `\\,${nPlain(C.a)} + (x_B-x_A)`;
+  const ySub1 = `\\,${nPlain(C.b)} + (y_B-y_A)`;
+
+  // substitution symbolique propre dans (B-A)
+  const xSub2 = `${nPlain(C.a)} + ${minusExpr(B.a,A.a)}`;
+  const ySub2 = `${nPlain(C.b)} + ${minusExpr(B.b,A.b)}`;
+
+  const L = [
+    `\\(ABCD\\text{ parallélogramme }\\Longleftrightarrow \\vec{AB}=\\vec{DC}\\)`,
+    `\\(\\Rightarrow\\; D=C + \\vec{AB} = C + (B-A)\\)`,
+    `\\(D(${xSub1}\\;;\\;${ySub1})\\)`,
+    `\\(D(${xSub2}\\;;\\;${ySub2})\\)`
+  ];
+
+  // Simplification du "−(−…)" éventuel à l'intérieur de (B-A)
+  if (A.a<0 || A.b<0){
+    const xFixMinus = `${nPlain(C.a)} + ${minusExprSimplified(B.a,A.a)}`;
+    const yFixMinus = `${nPlain(C.b)} + ${minusExprSimplified(B.b,A.b)}`;
+    L.push(`\\(D(${xFixMinus}\\;;\\;${yFixMinus})\\)`);
+  }
+
+  // Maintenant, si (B-A) est numériquement négatif, on obtient C + (-k) → C - k
+  const dx = B.a - A.a, dy = B.b - A.b;
+  const xPlus = plusExpr(C.a, dx);
+  const yPlus = plusExpr(C.b, dy);
+  L.push(`\\(D(${xPlus}\\;;\\;${yPlus})\\)`);               // affiche "C.a + (-k)" si k<0
+
+  if (dx<0 || dy<0){
+    const xPlusS = plusExprSimplified(C.a, dx);             // "C.a - |k|"
+    const yPlusS = plusExprSimplified(C.b, dy);
+    L.push(`\\(D(${xPlusS}\\;;\\;${yPlusS})\\)`);
+  }
+
+  L.push(`\\(D(${nPlain(D.a)}\\;;\\;${nPlain(D.b)})\\)`);
+  setSteps(L);
+
+
+}
+
+  },
+
+  /* e8 — Distance AB */
+  e8:{
+    name:"Distance \\(AB\\)",
+    lead:"Répondre en entier ou avec une racine.",
+    gen(){
+      let A,B,dx,dy,d2, ok=false;
+      while(!ok){
+        A=randPointNum(-4,4); B=randPointNum(-4,4,[A]);
+        dx=B.a-A.a; dy=B.b-A.b; d2=dx*dx+dy*dy; ok=d2>0;
+      }
+      this.state={A,B,dx,dy,d2};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Calculer la distance \\(AB\\).</p>`);
+    },
+    verify(){
+      const {dx,dy}=this.state;
+      const expect=Math.sqrt(dx*dx+dy*dy);
+      const val = (function evalMaybeSqrt(s){
+        let t=String(s||'').replace(/\u2212/g,'-').replace(',','.');
+        t=t.replace(/√\s*\(([^()]+)\)/g,'Math.sqrt($1)').replace(/√\s*([0-9.]+)/g,'Math.sqrt($1)');
+        try{ const v=Function('return ('+t+')')(); return Number(v); }catch{ return NaN; }
+      })($('#ans',HOST).value);
+      const ok=isFinite(val)&&Math.abs(val-expect)<1e-6;
+      const d2 = dx*dx+dy*dy;
+      const msgBad = Number.isInteger(Math.sqrt(d2)) ? `Attendu : ${Math.sqrt(d2)}.` : `Attendu : \\(\\sqrt{${d2}}\\).`;
+      setFB(ok, ok?``:msgBad); retypeset(HOST);
+      return ok;
+    },
+    solution(){
+      const {A,B,dx,dy,d2}=this.state;
+
+  const innerX = minusExpr(B.a,A.a);
+  const innerY = minusExpr(B.b,A.b);
+  const innerXFix = minusExprSimplified(B.a,A.a);
+  const innerYFix = minusExprSimplified(B.b,A.b);
+
+  const L = [
+    `\\(AB=\\sqrt{(x_B-x_A)^2+(y_B-y_A)^2}\\)`,
+    `\\(AB=\\sqrt{(${innerX})^2+(${innerY})^2}\\)`
+  ];
+
+  if (A.a<0 || A.b<0){
+    L.push(`\\(AB=\\sqrt{(${innerXFix})^2+(${innerYFix})^2}\\)`);
+  }
+
+  L.push(`\\(AB=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
+  if (Number.isInteger(Math.sqrt(d2))){
+    L.push(`\\(AB=${Math.sqrt(d2)}\\)`);
+  } else {
+    L.push(`\\(AB=\\sqrt{${d2}}\\)`);
+  }
+  setSteps(L);
+    }
+  },
+/* e9 — Nature d’un triangle (coordonnées) */
+e9:{ name:"Nature d’un triangle",
+  lead:"Répondre : « quelconque », « équilatéral », « isocèle », « rectangle », « isocèle rectangle ». ",
+  gen(){
+    const MIN=-6, MAX=6;
+    function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+    let A,B,C; do{
+      A=randPointNum(MIN,MAX);
+      B=randPointNum(MIN,MAX,[A]);
+      C=randPointNum(MIN,MAX,[A,B]);
+    }while( (B.a-A.a)*(C.b-A.b)-(B.b-A.b)*(C.a-A.a)===0 ); // pas aligné
+    this.state={A,B,C};
+    setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\) et \\(C${fmtPtLaNum(C)}\\).</p>
+            <p>1) Calculer \\(AB\\), \\(AC\\) et \\(BC\\).<br>2) Donner la nature du triangle \\(ABC\\).</p>`);
+  },
+  verify(){
+    // on demande la nature dans l'input
+    const rep = ($('#ans',HOST).value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const ok = /(equilateral|isoc(e|è)le(\s*rectangle)?|rectangle|quelconque)/.test(rep);
+    setFB(ok, ok?``:`Tape la nature (ex. « isocèle », « rectangle »...).`);
+    return ok;
+  },
+  solution(){
+   const {A,B,C}=this.state;
+  function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+  const AB2=d2(A,B), AC2=d2(A,C), BC2=d2(B,C);
+
+  function lineLen(P,Q,name){
+    const sx = minusExpr(Q.a, P.a);
+    const sy = minusExpr(Q.b, P.b);
+    const sxFix = minusExprSimplified(Q.a, P.a);
+    const syFix = minusExprSimplified(Q.b, P.b);
+    const dx=Q.a-P.a, dy=Q.b-P.b, S=dx*dx+dy*dy;
+    const perfect = Number.isInteger(Math.sqrt(S));
+    const rows = [
+      `\\(${name}=\\sqrt{(x_Q-x_P)^2+(y_Q-y_P)^2}\\)`,
+      `\\(${name}=\\sqrt{(${sx})^2+(${sy})^2}\\)`
+    ];
+    if (P.a<0 || P.b<0){
+      rows.push(`\\(${name}=\\sqrt{(${sxFix})^2+(${syFix})^2}\\)`);
+    }
+    rows.push(`\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
+    rows.push(perfect?`\\(${name}=${Math.sqrt(S)}\\)`: `\\(${name}=\\sqrt{${S}}\\)`);
+    return rows.map(L=>`<p>${L}</p>`).join('');
+  }
+
+  const colAB = lineLen(A,B,'AB');
+  const colAC = lineLen(A,C,'AC');
+  const colBC = lineLen(B,C,'BC');
+
+  let nature='quelconque';
+  const iso = (AB2===AC2||AB2===BC2||AC2===BC2);
+  const rect = (AB2+AC2===BC2)||(AB2+BC2===AC2)||(AC2+BC2===AB2);
+  if (iso && rect) nature='isocèle rectangle';
+  else if (rect) nature='rectangle';
+  else if (iso) nature='isocèle';
+  if (AB2===AC2 && AC2===BC2) nature='équilatéral';
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAB}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAC}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colBC}</td>
+      </tr>
+    </table>
+    <p><strong>Conclusion :</strong> le triangle \\(ABC\\) est <strong>${nature}</strong>.</p>`
+  );
+  }
+},
+
+/* e10 — Cercle de centre Ω (coordonnées) */
+e10:{ name:"Cercle",
+  lead:"Donner la valeur du rayon dans réponse",
+  gen(){
+    // On positionne Ω, puis A et B à la même distance de Ω
+    const O = randPointNum(-4,4);
+    const base = [[1,0],[0,1],[2,0],[0,2],[3,4],[4,3]][randInt(0,5)];
+    const s1 = Math.random()<.5?-1:1, s2 = Math.random()<.5?-1:1;
+    const A = {a:O.a + s1*base[0], b:O.b + s1*base[1]};
+    const B = {a:O.a + s2*base[1], b:O.b + s2*base[0]};
+    this.state={O,A,B};
+    setEqu(`<p>On considère \\(\\Omega${fmtPtLaNum(O)}\\), \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+            <p>Démontrer que \\(A\\) et \\(B\\) sont sur un même cercle de centre \\(\\Omega\\) et déterminer son rayon.</p>`);
+  },
+  verify(){
+    const {O,A}=this.state;
+    const dx=A.a-O.a, dy=A.b-O.b, r=Math.sqrt(dx*dx+dy*dy);
+    const s = ($('#ans',HOST).value||'').replace(',','.');
+    let v; try{ v=Function('return ('+s.replace(/√\s*\(([^()]+)\)/g,'Math.sqrt($1)').replace(/√\s*([0-9.]+)/g,'Math.sqrt($1)')+')')(); }catch{ v=NaN; }
+    const ok = isFinite(v) && Math.abs(v-r)<1e-6;
+    setFB(ok, ok?``:`Indique juste la valeur du rayon (ex. 5 ou √13).`);
+    return ok;
+  },
+  solution(){
+     const {O,A,B}=this.state;
+
+  function bloc(P,name){
+    const sx = minusExpr(P.a, O.a);
+    const sy = minusExpr(P.b, O.b);
+    const sxFix = minusExprSimplified(P.a, O.a);
+    const syFix = minusExprSimplified(P.b, O.b);
+    const dx=P.a-O.a, dy=P.b-O.b, S=dx*dx+dy*dy;
+    const perfect=Number.isInteger(Math.sqrt(S));
+    const lines = [
+      `\\(\\vec{\\Omega ${name}}${colVecExpr('x_'+name+'-x_\\Omega','y_'+name+'-y_\\Omega')}\\)`,
+      `\\(\\vec{\\Omega ${name}}${colVecExpr(sx, sy)}\\)`
+    ];
+    if (O.a<0 || O.b<0){
+      lines.push(`\\(\\vec{\\Omega ${name}}${colVecExpr(sxFix, syFix)}\\)`);
+    }
+    lines.push(`\\(\\Omega ${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
+    lines.push(perfect?`\\(\\Omega ${name}=${Math.sqrt(S)}\\)`:`\\(\\Omega ${name}=\\sqrt{${S}}\\)`);
+    return lines.map(L=>`<p>${L}</p>`).join('');
+  }
+
+  const left = bloc(A,'A');
+  const right= bloc(B,'B');
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${left}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right}</td>
+      </tr>
+    </table>
+    <p>On a \\(\\Omega A=\\Omega B\\). Donc \\(A\\) et \\(B\\) appartiennent au cercle de centre \\(\\Omega\\). Le rayon vaut \\(\\Omega A\\).</p>`
+  );
+  }
+},
+
+};
+
+/* === Adapter pour le kit PDF (identique à avant) === */
+const REGISTRY_ARRAY = Object.entries(REGISTRY_MAP).map(([id, cfg]) => ({
+  id,
+  title: (cfg.name || id).replace(/\\\\/g,'\\'),
+  gen(){ return { n: Math.random() }; }
+}));
+if (typeof window !== 'undefined') window.REGISTRY = REGISTRY_ARRAY;
+
+/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
+window.buildOneForPDFSync = function(defId){
+  const cfg = REGISTRY_MAP[defId];
+  if (!cfg) return { statement:'', solution:'' };
+  const host = document.querySelector('#host');
+  const backup = host ? host.innerHTML : '';
+  if (host) mountHost();
+  document.querySelector('#lead').innerHTML = cfg.lead || '';
+  cfg.gen.call(cfg);
+  const enonce = (document.querySelector('#equ')||{}).innerHTML || '';
+  cfg.solution.call(cfg);
+  const corrige = (document.querySelector('#res')||{}).innerHTML || '';
+  if (host) host.innerHTML = backup;
+  return { statement: enonce, solution: corrige };
+};
+
+/* ======== UI fil rouge ======== */
+(function(){
+  'use strict';
+  function whenReady(cb){ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cb, { once:true }); else cb(); }
+  whenReady(function init(){
+    const sel = document.querySelector('#exo-select');
+    sel.innerHTML = Object.entries(REGISTRY_MAP).map(([k,v]) => `<option value="${k}">${(v.name||'').replace(/\\\\/g,'\\')}</option>`).join('');
+    let ACTIVE = sel.value || Object.keys(REGISTRY_MAP)[0];
+    let SCORE_OK = 0, SCORE_TOT = 0;
+    function updateScore(){ document.querySelector('#score').textContent = `${SCORE_OK} / ${SCORE_TOT}`; }
+    function buildOne(){
+      mountHost();
+      const cfg = REGISTRY_MAP[ACTIVE];
+      document.querySelector('#lead').innerHTML = cfg.lead || '';
+      $('#ans',HOST).value='';
+      $('#fb',HOST).textContent='';
+      $('#res',HOST).innerHTML='';
+      cfg.gen.call(cfg);
+      $('#ans',HOST).addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btn-check').click(); } });
+      retypeset();
+    }
+    document.querySelector('#btn-new').addEventListener('click', buildOne);
+    document.querySelector('#btn-reset').addEventListener('click', ()=>{ const a=$('#ans',HOST); if(a) a.value=''; const f=$('#fb',HOST); if(f) f.textContent=''; const r=$('#res',HOST); if(r) r.innerHTML=''; });
+    document.querySelector('#btn-check').addEventListener('click', ()=>{ SCORE_TOT++; const ok = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE])===true; if(ok) SCORE_OK++; updateScore(); });
+    document.querySelector('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
+    sel.addEventListener('change', ()=>{ ACTIVE = sel.value; buildOne(); });
+    buildOne(); updateScore();
+  });
+})();
+
+/* ======== Adaptateur PDF (SVG) — inchangé, conserve exactement #res ======== */
+(function(){
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+    ExoPDF.init({
+      title: document.title,
+      mountAfterSelector: '#host',
+      beforeGen(){ return {}; },
+      beforeRender(def, _st, withSolutions){
+        return (async () => {
+          const defId = def?.id || '';
+          const label = (window.REGISTRY_MAP?.[defId]?.name || defId || '').replace(/\\\\/g,'\\');
+          const fab = (typeof window.buildOneForPDFSync==='function') ? window.buildOneForPDFSync : (_)=>({statement:'',solution:''});
+          const { statement, solution } = fab(defId);
+
+          const htmlIn =
+            `<div class="exo-block">
+               <span class="exo-title">Exercice — ${label}</span>
+               <div class="exo-statement">${statement||''}</div>
+             </div>` +
+            (withSolutions
+              ? `<div style="margin-top:1rem;">
+                   <div class="exo-block">
+                     <span class="exo-title">Correction</span>
+                     <div class="exo-solution">${solution||''}</div>
+                   </div>
+                 </div>` : '');
+
+          const iframe = document.createElement('iframe');
+          Object.assign(iframe.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',visibility:'hidden'});
+          document.body.appendChild(iframe);
+
+          const idoc = iframe.contentDocument;
+          idoc.open(); idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="root"></div></body></html>'); idoc.close();
+          const root = idoc.getElementById('root'); root.innerHTML = htmlIn;
+
+          const cfg = idoc.createElement('script');
+          cfg.text = `
+            window.MathJax = {
+              loader: {load: ['input/tex','output/svg']},
+              tex: { inlineMath: [['\\\\(','\\\\)'], ['$', '$']], displayMath: [['\\\\[','\\\\]'], ['$$','$$']], processEscapes:true, packages:{'[+]':['bbox','ams']} },
+              svg: { fontCache: 'none' },
+              options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+              startup: { typeset: false }
+            };`;
+          idoc.head.appendChild(cfg);
+          const mj = idoc.createElement('script'); mj.src = new URL("../../../../es5/tex-svg.js", window.location.href).href; idoc.head.appendChild(mj);
+          await new Promise(r=>{ mj.onload=r; mj.onerror=r; });
+
+          const iwin = iframe.contentWindow;
+          for (let i=0;i<300 && !(iwin.MathJax && iwin.MathJax.tex2svg); i++) await new Promise(r=>setTimeout(r,10));
+          if (!(iwin.MathJax && iwin.MathJax.tex2svg)){ const out = root.innerHTML; iframe.remove(); return out; }
+
+          const RX_INLINE=/\\\((.+?)\\\)/gs, RX_DISPLAY_BR=/\\\[(.+?)\\\]/gs, RX_DISPLAY_DOLLAR=/\$\$(.+?)\$\$/gs;
+          function texToStandaloneSVG(tex, display){
+            const mjx = iwin.MathJax.tex2svg(tex,{display}); const svg=mjx.querySelector('svg'); if(!svg) return idoc.createTextNode(tex);
+            const out=svg.cloneNode(true); out.setAttribute('xmlns','http://www.w3.org/2000/svg'); out.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink'); out.setAttribute('overflow','visible');
+            out.querySelectorAll('use').forEach(u=>{const h=u.getAttribute('href');const xh=u.getAttribute('xlink:href'); if(h && !xh) u.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href',h); if(xh && !h) u.setAttribute('href',xh);});
+            return out;
+          }
+          function replaceTeXIn(node){
+            const SKIP=new Set(['SCRIPT','STYLE','CODE','PRE']); if(node.nodeType===1 && SKIP.has(node.tagName)) return;
+            const children=[...node.childNodes];
+            for(const ch of children){
+              if(ch.nodeType===Node.TEXT_NODE){
+                const text=ch.nodeValue; if(!text || !/[\\$]/.test(text)) continue;
+                let parts=null;
+                const consume=(re,display)=>{ re.lastIndex=0; let m,last=0,out=[]; while((m=re.exec(text))!==null){ out.push({t:'text',v:text.slice(last,m.index)}); out.push({t:'math',v:m[1],d:display}); last=re.lastIndex; } if(out.length) out.push({t:'text',v:text.slice(last)}); return out.length?out:null; };
+                parts = consume(RX_DISPLAY_DOLLAR,true) || consume(RX_DISPLAY_BR,true) || consume(RX_INLINE,false);
+                if(parts){ for(const p of parts){ if(p.t==='text') ch.parentNode.insertBefore(idoc.createTextNode(p.v),ch); else ch.parentNode.insertBefore(texToStandaloneSVG(p.v,p.d),ch); } ch.parentNode.removeChild(ch); }
+              }else if(ch.nodeType===Node.ELEMENT_NODE){ replaceTeXIn(ch); }
+            }
+          }
+          replaceTeXIn(root);
+          const finalHTML = root.innerHTML; iframe.remove(); return finalHTML;
+        })().catch(err=>{ console.error(err); return htmlIn; });
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

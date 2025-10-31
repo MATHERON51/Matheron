@@ -883,6 +883,21 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
   margin-bottom:.2rem;
   text-decoration:underline;
 }
+/* --- Anti "barres noires" MathJax (PDF) --- */
+.exo-statement,
+.exo-solution { color:#111 !important; background:transparent !important; }
+
+/* Cas CHTML (au cas où) */
+mjx-container { color:#111 !important; background:transparent !important; }
+mjx-container svg { overflow:visible !important; }
+mjx-container svg rect,
+mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
+
+/* Cas SVG standalone (ce que tu utilises dans l’iframe) */
+.exo-statement svg rect,
+.exo-statement svg path[data-mml-node="mspace"],
+.exo-solution  svg rect,
+.exo-solution  svg path[data-mml-node="mspace"] { fill:none !important; }
 
 </style>
 

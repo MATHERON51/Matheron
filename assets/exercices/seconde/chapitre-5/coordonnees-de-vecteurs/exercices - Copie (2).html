@@ -1103,249 +1103,17 @@ if (namesOK && (coordsEmpty || coordsPart)){
   }
   right.push(`\\(\\overrightarrow{DC}${fmtVecLaNum(DCu,DCv)}\\)`);
 
-// une fois, en haut :
-const P = arr => arr.map(L => `<p>${L}</p>`).join('');
-
-// usage :
-setStepsHTML(`
-    <table style="border-collapse:collapse;width:100%;">
-	      <tr>
-
-     <td style="border:none;vertical-align:top;padding:6px;">${P(left)}</td>
-     <td style="border:none;vertical-align:top;padding:6px;">${P(right)}</td>
-  </tr>
-    </table>
-    <p>Ainsi \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\), donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`
-);
-
-  
-
-}
-},
-
- e7:{
-    name:"Trouver D pour que ABCD soit un parallélogramme",
-    gen(){
-      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]), C = randPointNum(-8,8,[A,B]);
-      const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)};
-      if(!allDistinctPts([A,B,C,D])) return this.gen();
-      this.state={A,B,C,D};
-      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\).</p>
-              <p>Déterminer les coordonnées de \\(D\\) tel que \\(ABCD\\) soit un parallélogramme.</p>`);
-    },
-verify(){
-  const { D } = this.state;
-  const raw = ($('#ans', HOST)?.value || '').trim();
-  if (!raw){
-    setFB(null, '');              // état neutre si vide
-    return false;
-  }
-
-  // normalise le signe "−"
-  let s = normalizeMinus(raw);
-
-  // exiger des parenthèses (refuse "-4;-7")
-  if (!/[()]/.test(s)) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  // retirer un éventuel "D" juste avant la parenthèse : "D(...)" → "(...)"
-  s = s.replace(/^\s*d\s*(?=\()/i, '');
-
-  // enlever exactement une paire de parenthèses englobantes
-  s = s.replace(/^\(\s*/, '').replace(/\s*\)$/, '');
-
-  // supprimer espaces internes
-  s = s.replace(/\s+/g, '');
-
-  // parser "u;v"
-  const m = s.match(/^([^;]+);([^;]+)$/);
-  if (!m) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  const u = parseNumber(m[1]);
-  const v = parseNumber(m[2]);
-
-  const ok = isFinite(u) && isFinite(v)
-          && Math.abs(u - D.a) < 1e-9
-          && Math.abs(v - D.b) < 1e-9;
-
-  setFB(ok, ok ? '' : '');        // aucun “Attendu …”
-  return ok;
-}
-,
-solution(){
-  const {A,B,C,D} = this.state;
-  const ABx = B.a - A.a, ABy = B.b - A.b;
-
-  // blocs LaTeX prêts
-  const AB_sym  = colVecExpr('x_B-x_A','y_B-y_A');
-  const AB_sub  = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
-  const AB_simp = colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b));
-  const AB_val  = fmtVecLaNum(ABx,ABy);
-
-  const DC_sym  = colVecExpr('x_C-x_D','y_C-y_D');
-  const DC_numD = colVecExpr(`${nPlain(C.a)}-x_D`, `${nPlain(C.b)}-y_D`);
-
-  // systèmes
-  const sys1  = `\\left\\{\\begin{array}{l}
-    ${ABx} = x_C - x_D \\\\ ${ABy} = y_C - y_D
-  \\end{array}\\right.`;
-  const sys1b = `\\left\\{\\begin{array}{l}
-    ${ABx} = ${nPlain(C.a)} - x_D \\\\ ${ABy} = ${nPlain(C.b)} - y_D
-  \\end{array}\\right.`;
-
-  const xSimp = plusExprSimplified(C.a, -ABx);   // = C.a − ABx
-  const ySimp = plusExprSimplified(C.b, -ABy);   // = C.b − ABy
-  const sys2  = `\\left\\{\\begin{array}{l}
-    x_D = ${xSimp} \\\\ y_D = ${ySimp}
-  \\end{array}\\right.`;
-  const sys3  = `\\left\\{\\begin{array}{l}
-    x_D = ${nPlain(D.a)} \\\\ y_D = ${nPlain(D.b)}
-  \\end{array}\\right.`;
-
-  // rendu : tableau 2 colonnes (AB | DC), puis systèmes
-  const P = arr => arr.map(L=>`<p>${L}</p>`).join('');
-
-  const left = [
-    `\\(\\overrightarrow{AB}${AB_sym}\\)`,
-    `\\(\\overrightarrow{AB}${AB_sub}\\)`,
-    ...( (A.a<0 || A.b<0) ? [ `\\(\\overrightarrow{AB}${AB_simp}\\)` ] : [] ),
-    `\\(\\overrightarrow{AB}${AB_val}\\)`
-  ];
-
-  const right = [
-    `\\(\\overrightarrow{DC}${DC_sym}\\)`,
-    `\\(\\overrightarrow{DC}${DC_numD}\\)`
-  ];
-
-  setStepsHTML(`
-      <table style="border-collapse:collapse;width:30%">
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
       <tr>
-        <td style="border:none;vertical-align:top;padding:6px">${P(left)}</td>
-        <td style="border:none;vertical-align:top;padding:6px">${P(right)}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${left.map(L=>`<p>${L}</p>`).join('')}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right.map(L=>`<p>${L}</p>`).join('')}</td>
       </tr>
     </table>
-    <p>\\(ABCD\\) parallélogramme \\(\\Longleftrightarrow\\ \\overrightarrow{AB}=\\overrightarrow{DC}\\)</p>
-    <p>\\(\\iff\\ ${sys1b}\\)</p>
-    <p>\\(\\iff\\ ${sys2}\\)</p>
-    <p>\\(\\iff\\ ${sys3}\\)</p>
-    <p>Ainsi \\(D(${nPlain(D.a)}\\;;\\;${nPlain(D.b)})\\).</p>
-  `);
+    <p>Ainsi \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\), donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`
+  );
+
 }
-
-
-
-  },
-  
-  e8:{
-  name:"Trouver D tel que AD=u",
-  gen(){
-    // Point A et vecteur u aléatoires
-    const A = randPointNum(-8,8);
-    let U;
-    do {
-      U = {u:randInt(-6,6), v:randInt(-6,6)};
-    } while(U.u===0 && U.v===0);
-    const D = {a: A.a + U.u, b: A.b + U.v};
-    this.state={A,U,D};
-
-    setEqu(`
-      <p>Soit \\(A${fmtPtLaNum(A)}\\) et \\(\\vec u${fmtVecLaNum(U.u,U.v)}\\).</p>
-      <p>Calculer les coordonnées du point \\(D\\) tel que \\(\\overrightarrow{AD}=\\vec u\\).</p>
-    `);
-  },
-
-verify(){
-  const { D } = this.state;
-  const raw = ($('#ans', HOST)?.value || '').trim();
-  const s = normalizeMinus(String(raw));
-
-  // exiger des parenthèses : refuse "-4;-7"
-  if (!/[()]/.test(s)) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  // retirer un éventuel "D" avant les parenthèses : "D(-4;-7)" -> "(-4;-7)"
-  let t = s.replace(/^\s*d\s*(?=\()/i, '');
-
-  // enlever exactement une paire de parenthèses autour
-  t = t.replace(/^\(\s*/, '').replace(/\s*\)$/, '');
-
-  // supprimer espaces internes
-  t = t.replace(/\s+/g, '');
-
-  // rester au séparateur ';'
-  const m = t.match(/^([^;]+);([^;]+)$/);
-  if (!m) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  const u = parseNumber(m[1]);
-  const v = parseNumber(m[2]);
-  const ok = isFinite(u) && isFinite(v)
-          && Math.abs(u - D.a) < 1e-9
-          && Math.abs(v - D.b) < 1e-9;
-
-  // pas de message "attendu"
-  setFB(ok, ok ? '' : '');
-  return ok;
-},
-
-  solution(){
-    const {A,U,D}=this.state;
-
-    const AD_sym = colVecExpr('x_D - x_A','y_D - y_A');
-    const AD_sub = colVecExpr(minusExpr('x_D',A.a), minusExpr('y_D',A.b))
-                     .replace(/x_D/g, 'x_D').replace(/y_D/g, 'y_D');
-    const AD_num = colVecExpr(`x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)}`,
-                              `y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)}`);
-
-    const sys1 = `\\left\\{\\begin{array}{l}
-      x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)} = ${U.u} \\\\ 
-      y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)} = ${U.v}
-    \\end{array}\\right.`;
-
-    const sys2 = `\\left\\{\\begin{array}{l}
-      x_D = ${U.u} ${A.a<0?'-':'+'} ${Math.abs(A.a)} \\\\ 
-      y_D = ${U.v} + ${nPlain(A.b)}
-    \\end{array}\\right.`;
-
-    const sys3 = `\\left\\{\\begin{array}{l}
-      x_D = ${nPlain(D.a)} \\\\ 
-      y_D = ${nPlain(D.b)}
-    \\end{array}\\right.`;
-
-    // tableau 2 colonnes : AD et u
-    const P = arr => arr.map(L=>`<p>${L}</p>`).join('');
-    const left = [
-      `\\(\\overrightarrow{AD}${colVecExpr('x_D - x_A','y_D - y_A')}\\)`,
-      `\\(\\overrightarrow{AD}${colVecExpr(`x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)}`,
-                                           `y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)}`)}\\)`
-    ];
-    const right = [
-      `\\(\\vec u${fmtVecLaNum(U.u,U.v)}\\)`
-    ];
-
-    setStepsHTML(`
-      <table style="border-collapse:collapse;width:20%">
-        <tr>
-          <td >${P(left)}</td>
-          <td >${P(right)}</td>
-        </tr>
-      </table>
-      <p>\\(\\overrightarrow{AD}=\\vec u\\)</p>
-      <p>\\(\\iff ${sys1}\\)</p>
-      <p>\\(\\iff ${sys2}\\)</p>
-      <p>\\(\\iff ${sys3}\\)</p>
-      <p>Ainsi \\(D(${nPlain(D.a)}\\;;\\;${nPlain(D.b)})\\).</p>
-    `);
-  }
 },
 
 
@@ -1381,24 +1149,11 @@ verify(){
     ui.rep.setPoints(ORIColor.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.color})));
     ui.rep.setVectors([]); ui.rep.clearUserVectors();
 
-// Fabrique <li>…</li>… sans map/join
-const LI = (arr, render = (x)=>x) => {
-  let html = '';
-  for (let i = 0; i < arr.length; i++) html += `<li>${render(arr[i], i)}</li>`;
-  return html;
-};
-
-// <ol>…</ol> avec style par défaut
-const OL = (arr, render, style='margin:6px 0 0 20px') =>
-  `<ol style="${style}">${LI(arr, render)}</ol>`;
-ui.equ.innerHTML = `
-  <p>Tracer, depuis l’origine indiquée, les vecteurs suivants :</p>
-  ${OL(V, (v, i) =>
-    `Depuis \\(${labels[i]}\\), tracer \\(\\overrightarrow v_{${i+1}}${vecCol(v.a, v.b)}\\).`
-  , 'margin:6px 0 0 20px')}
-`;
-retypeset(HOST);
-
+    ui.equ.innerHTML = `<p>Tracer, depuis l’origine indiquée, les vecteurs suivants :</p>
+      <ol style="margin:6px 0 0 20px">
+        ${V.map((v,i)=>`<li>Depuis \\(${labels[i]}\\), tracer \\(\\overrightarrow v_${i+1}\\)\\(${vecCol(v.a,v.b)}\\).</li>`).join('')}
+      </ol>`;
+    retypeset(HOST);
 
     // sélecteur + ticks
     const chips=document.createElement('div');
@@ -1869,31 +1624,19 @@ const alpha = i => String.fromCharCode(97 + i) + '.';
 const rows = [];
 for (let i=0; i<Casks.length; i+=3) rows.push(Casks.slice(i, i+3));
 
-// helper: table 3-cols without map/join
-const TBL3 = (rows) => {
-  let html = '<table class="tbl3">';
-  for (let ri = 0; ri < rows.length; ri++) {
-    const r = rows[ri];
-    html += '<tr>';
-    for (let ci = 0; ci < 3; ci++) {
-      if (ci < r.length) {
-        const c = r[ci];
-        const k = ri * 3 + ci; // index global pour la lettre a), b), c)...
-        html += `<td><small>${alpha(k)}</small>
-                  \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
-                 </td>`;
-      } else {
-        html += '<td></td>'; // cellules vides pour compléter la ligne
-      }
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-  return html;
-};
-
-const table3 = TBL3(rows);
-
+const table3 = `
+  <table class="tbl3">
+    ${rows.map((r,ri)=>{
+      return `<tr>${
+        r.map((c,ci)=>{
+          const k = ri*3 + ci; // index global pour la lettre
+          return `<td><small>${alpha(k)}</small>
+                    \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
+                  </td>`;
+        }).join('') + (r.length<3 ? '<td></td>'.repeat(3-r.length) : '')
+      }</tr>`;
+    }).join('')}
+  </table>`;
 
 // --- énoncé complet
 ui.equ.innerHTML = `
@@ -2030,16 +1773,32 @@ this.buildFlat12 = () => {
 
 
 // --- helper global au module e5 : cache/masque le libellé du vecteur utilisateur ---
-// --- masque définitivement le libellé du vecteur utilisateur (v_c1, v_c2, …)
-function hideUserVectorLabel(rep, id){
-  // ex: id = "c1", "c2", …
-  const g = rep.gUserVec?.querySelector(`g[data-vlabel="${id}"]`);
-  if (!g) return;
-  // labels possibles : foreignObject (MathJax) ou text brut selon versions
-  const fo = g.querySelector('foreignObject'); if (fo) fo.remove();
-  const tx = g.querySelector('text');          if (tx) tx.remove();
-}
+function hideUserVectorLabel(ui, id){
+  // 1) côté modèle (objet JS) : envoie le label très loin + tente showLabel=false si dispo
+  const u = (ui.rep.userVectors||[]).find(v => v.label === id);
+  if (u){
+    u.lx = 1e7;             // hors-cadre (plus robuste que 9999 si l’amplitude change)
+    u.ly = 1e7;
+    // si l'implémentation supporte un flag, on le coupe
+    if ('showLabel' in u) u.showLabel = false;
+    if ('text' in u) u.text = '';     // selon les versions, parfois c'est `text`
+    if ('name' in u) u.name = '';     // ou `name`
+  }
 
+  // 2) côté DOM/SVG : masque la balise <text> éventuelle liée au vecteur
+  //    on tente plusieurs sélecteurs tolérants (selon l’implémentation du repère)
+  const svg = ui.rep && ui.rep.svg;
+  if (svg){
+    const cand =
+      svg.querySelector(`[data-id="${id}"] text`) ||
+      svg.querySelector(`[data-vlabel="${id}"]`) ||
+      svg.querySelector(`text[data-id="${id}"]`);
+    if (cand) cand.style.display = 'none';
+  }
+
+  // 3) redraw pour être sûr
+  ui.rep.redraw && ui.rep.redraw();
+}
 
 
 
@@ -2059,7 +1818,8 @@ ui.rep.onClick = ({x,y})=>{
 
   // place le vecteur utilisateur (comme avant)
   ui.rep.placeUserVector('c'+(idx+1), c.ox, c.oy, x, y, colorOfIndex(idx+10));
-hideUserVectorLabel(ui.rep, 'c'+(idx+1));  
+hideUserVectorLabel(ui, 'c'+(idx+1));
+
   // --- ajoute le point d'arrivée (K, L, M…) au bout de la flèche
   const lbl = c.to;                 // ex: 'K'
   const dx  = 6, dy = -6;           // petit décalage pour ne pas chevaucher la pointe
@@ -2238,31 +1998,17 @@ function buildEquAndActions(){
   const list2 = st.U.map((_,i)=>`\\(\\overrightarrow{v_{${i+1}}}\\)`).join(', ');
 
   const rows=[]; for(let i=0;i<st.Casks.length;i+=3) rows.push(st.Casks.slice(i,i+3));
-// Helper table sans map/join (par défaut 3 colonnes)
-function buildTableCols(rows, cols = 3){
-  let html = '<table class="tbl3">';
-  for (let ri = 0; ri < rows.length; ri++){
-    const r = rows[ri];
-    html += '<tr>';
-    for (let ci = 0; ci < cols; ci++){
-      if (ci < r.length){
-        const c = r[ci];
-        const k = ri * cols + ci;           // index global pour a), b), c)…
-        html += `<td><small>${alpha(k)}</small>
-                   \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
-                 </td>`;
-      } else {
-        html += '<td></td>';                // cellule vide pour compléter la ligne
-      }
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-  return html;
-}
-
-const table3 = buildTableCols(rows, 3);
-
+  const table3 = `
+    <table class="tbl3">
+      ${rows.map((r,ri)=>`<tr>${
+        r.map((c,ci)=>{
+          const k=ri*3+ci;
+          return `<td><small>${alpha(k)}</small>
+                    \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
+                  </td>`;
+        }).join('') + (r.length<3 ? '<td></td>'.repeat(3-r.length) : '')
+      }</tr>`).join('')}
+    </table>`;
 
   st.ui.equ.innerHTML = `
     <ol style="margin:0 0 0 18px; line-height:1.6">
@@ -2328,7 +2074,7 @@ st.ui.rep.onClick = ({x,y})=>{
 
   // trace
   st.ui.rep.placeUserVector('c'+(idx+1), c.ox, c.oy, x, y, colorOfIndex(idx+10));
-hideUserVectorLabel(ui.rep, 'c'+(idx+1));   
+hideUserVectorLabel(ui, 'c'+(idx+1));
 
   // ajoute le point K/L/M… au bout
   const lbl = c.to, dx = 6, dy = -6, fill = colorOfIndex(idx+10);
@@ -2738,7 +2484,7 @@ const solution =
 function toggleAmpbar(activeId){
   const bar = document.getElementById('ampbar');
   if (!bar) return;
-  const hide = (activeId === 'e1' || activeId === 'e2'|| activeId === 'e7'|| activeId === 'e8');
+  const hide = (activeId === 'e1' || activeId === 'e2');
   bar.style.display = hide ? 'none' : '';
 }
 
@@ -2869,7 +2615,7 @@ const solutionTight  = tightenVectorsForPDF(solution);
 
           const htmlIn =
   `<div class="exo-block">
-     <span class="exo-title">Exercice</span>
+     <span class="exo-title">Exercice — ${label}</span>
      <div class="exo-statement">${statementTight||''}</div>
    </div>` +
   (withSolutions

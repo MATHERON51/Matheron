@@ -170,37 +170,6 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
 .hidden{ display:none; }
 
 
-/* — Anti “barres noires” MathJax — */
-.steps mjx-container { color: #111 !important; background: transparent !important; }
-.steps mjx-container svg { overflow: visible !important; }
-.steps mjx-container svg rect,
-.steps mjx-container svg path[data-mml-node="mspace"] { fill: none !important; }
-.steps mjx-mrow, .steps mjx-mi, .steps mjx-mo, .steps mjx-mn { background: transparent !important; }
-
-/* ==== Nom de vecteur avec flèche au-dessus ============================== */
-.vecname{ position:relative; display:inline-block; }
-.vecname input{
-  width:72px; text-align:center; font-weight:700; font-size:15px;
-  letter-spacing:.12em; text-transform:uppercase;
-  padding:14px 10px 6px 10px; /* place pour la flèche au-dessus */
-  border:1px solid #ddd; border-radius:8px; background:#fff;
-}
-.vecname::before{
-  content:""; position:absolute; left:12px; right:20px; top:6px; height:2px; background:#111;
-}
-.vecname::after{
-  content:""; position:absolute; top:2px; right:12px;
-  border-left:8px solid #111; border-top:5px solid transparent; border-bottom:5px solid transparent;
-}
-
-/* Lignes compactes sous le repère pour e2 */
-.vecrow{ display:flex; align-items:center; gap:12px; margin:6px 0; flex-wrap:wrap; }
-.vecrow .lbl{ font-weight:700; min-width:max-content; }
-.vecrow .tick{ min-width:1.4rem; font-weight:900; }
-.tbl-invis{border-collapse:collapse;width:100%}
-.tbl-invis td{border:none;padding:6px 10px;vertical-align:top;width:50%}
-.pair{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.pair .lbl{font-weight:700;min-width:1.6rem}
 
 
 </style>
@@ -271,10 +240,8 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
 /* ====== Mini helpers génériques ====== */
 const $ = (sel,root=document)=>root.querySelector(sel);
 const HOST = $('#host');
-function retypeset(host){
-  if (window.__PDF_BUILDING) return;              // ⬅️ ignore en phase PDF
-  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]);
-}function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function retypeset(host){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]); }
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t;} return a||1; }
 
 /* ====== Rationnels “propres” (pour jolies fractions dans les corrections) ====== */
@@ -383,17 +350,7 @@ function mountHost(){
 function setEqu(html){ const box=$('#equ',HOST); if(box) box.innerHTML = html; retypeset(HOST); }
 function setStepsHTML(html){ $('#res',HOST).innerHTML=html; retypeset(HOST); }
 function setSteps(lines){ setStepsHTML(lines.map(L=>`<p>${L}</p>`).join('')); }
-function setFB(ok, msg=''){
-  const fb = $('#fb', HOST);
-  if (!fb) return;
-  if (ok === null){        // ⬅️ mode neutre
-    fb.className = '';     // ni .ok ni .ko
-    fb.innerHTML = msg;    // message libre (peut contenir du HTML)
-    return;
-  }
-  fb.className = ok ? 'ok' : 'ko';
-  fb.textContent = (ok?'✔︎ Correct. ':'✗ Incorrect. ') + msg;
-}
+function setFB(ok,msg=''){ const fb=$('#fb',HOST); fb.className = ok?'ok':'ko'; fb.textContent=(ok?'✔︎ Correct. ':'✗ Incorrect. ')+msg; }
 
 /* ====== Parsing des réponses u;v ====== */
 function normalizeMinus(s){ return String(s||'').replace(/\u2212/g,'-').trim(); }
@@ -444,39 +401,6 @@ function getPairFromInputs(idBase){
   return parsePairUV(tEl.value);
 }
 
-
-/* ==== Helpers noms de vecteurs & coordonnées =========================== */
-function mkVecNameInput(id, placeholder='AB'){
-  return `<span class="vecname"><input id="${id}" type="text" maxlength="2" autocomplete="off" placeholder="${placeholder}"></span>`;
-}
-function normVName(s){
-  return String(s||'').toUpperCase().replace(/[^ABCD]/g,'').slice(0,2); // garde A,B,C,D uniquement (2 lettres)
-}
-const VALID_NAMES = new Set(['AB','BA','BC','CB','CD','DC','AD','DA']);
-const VALID_PAIRS = new Set([
-  'AB|DC','DC|AB',
-  'BA|CD','CD|BA',
-  'BC|AD','AD|BC',
-  'CB|DA','DA|CB',
-]);
-
-function pairOK(n1,n2){ return VALID_PAIRS.has(`${n1}|${n2}`); }
-
-function vecByName(name, S){ // S = {A,B,C,D} avec a,b en entiers
-  const {A,B,C,D} = S;
-  switch(name){
-    case 'AB': return {u: B.a-A.a, v: B.b-A.b};
-    case 'BA': return {u: A.a-B.a, v: A.b-B.b};
-    case 'BC': return {u: C.a-B.a, v: C.b-B.b};
-    case 'CB': return {u: B.a-C.a, v: B.b-C.b};
-    case 'CD': return {u: D.a-C.a, v: D.b-C.b};
-    case 'DC': return {u: C.a-D.a, v: C.b-D.b};
-    case 'AD': return {u: D.a-A.a, v: D.b-A.b};
-    case 'DA': return {u: A.a-D.a, v: A.b-D.b};
-    default:   return null;
-  }
-}
-function sameUV(ans, exp){ return ans && exp && Math.abs(ans.u-exp.u)<1e-9 && Math.abs(ans.v-exp.v)<1e-9; }
 
 
 
@@ -622,57 +546,26 @@ class Repere{
   vLn.setAttribute('stroke','#000'); vLn.setAttribute('stroke-width','2'); vLn.setAttribute('marker-end','url(#arrow)');
   this.gAxes.appendChild(vLn);
   // labels LaTeX
-  this.gAxes.appendChild(this._latexFO('\\(\\overrightarrow i\\)', I.x, I.y));
-  this.gAxes.appendChild(this._latexFO('\\(\\overrightarrow j\\)', J.x+6, J.y-18));
+  this.gAxes.appendChild(this._latexFO('\\(\\vec u\\)', I.x+6, I.y-18));
+  this.gAxes.appendChild(this._latexFO('\\(\\vec v\\)', J.x+6, J.y-18));
   
 
   // points fixes
-  // ⬇️ remplace le bloc "points fixes" dans redraw()
-for(const p of this.points){
-  const P=this.coordToScreen(p.x,p.y);
-  const g=document.createElementNS(this.el.namespaceURI,'g');
-  const c=document.createElementNS(this.el.namespaceURI,'circle');
-  c.setAttribute('cx',P.x); c.setAttribute('cy',P.y); c.setAttribute('r',4.2);
-  c.setAttribute('fill',p.fill||'#000'); g.appendChild(c);
-  if(p.label){
-    const t=document.createElementNS(this.el.namespaceURI,'text');
-    const dx = (typeof p.dx==='number') ? p.dx : 6;
-    const dy = (typeof p.dy==='number') ? p.dy : -6;
-    t.setAttribute('x', P.x + dx);
-    t.setAttribute('y', P.y + dy);
-    t.setAttribute('font-size','13');
-    t.textContent = p.label;
-    g.appendChild(t);
+  for(const p of this.points){
+    const P=this.coordToScreen(p.x,p.y);
+    const g=document.createElementNS(this.el.namespaceURI,'g');
+    const c=document.createElementNS(this.el.namespaceURI,'circle'); c.setAttribute('cx',P.x); c.setAttribute('cy',P.y); c.setAttribute('r',4.2); c.setAttribute('fill',p.fill||'#000'); g.appendChild(c);
+    if(p.label){ const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',P.x+6); t.setAttribute('y',P.y-6); t.setAttribute('font-size','13'); t.textContent=p.label; g.appendChild(t); }
+    this.gPts.appendChild(g);
   }
-  this.gPts.appendChild(g);
-}
 
-// ⬇️ remplace le bloc "vecteurs fixes" dans redraw()
-for(const v of this.vectors){
-  const p1=this.coordToScreen(v.x1,v.y1), p2=this.coordToScreen(v.x2,v.y2);
-  const ln=document.createElementNS(this.el.namespaceURI,'line');
-  ln.setAttribute('x1',p1.x); ln.setAttribute('y1',p1.y);
-  ln.setAttribute('x2',p2.x); ln.setAttribute('y2',p2.y);
-  ln.setAttribute('stroke',v.stroke||'#000'); ln.setAttribute('stroke-width','2');
-  ln.setAttribute('marker-end','url(#arrow)');
-  this.gVec.appendChild(ln);
-
-  if(v.label){
-    // offset par défaut selon la direction, sauf si v.lx/ly fournis
-    const dx = v.x2 - v.x1, dy = v.y2 - v.y1;
-    const defLx = (dx >= 0 ? -36 : 8);
-    const defLy = (dy >= 0 ?  14 : -20);
-    const lx = (typeof v.lx==='number') ? v.lx : defLx;
-    const ly = (typeof v.ly==='number') ? v.ly : defLy;
-
-    this.gVec.appendChild(
-      this._latexFO(`\\(\\overrightarrow v_{${String(v.label).replace(/^[^0-9]*/,'')}}\\)`,
-        p2.x + lx, p2.y + ly, v.stroke||'#000'
-      )
-    );
+  // vecteurs fixes
+  for(const v of this.vectors){
+    const p1=this.coordToScreen(v.x1,v.y1), p2=this.coordToScreen(v.x2,v.y2);
+    const ln=document.createElementNS(this.el.namespaceURI,'line'); ln.setAttribute('x1',p1.x); ln.setAttribute('y1',p1.y); ln.setAttribute('x2',p2.x); ln.setAttribute('y2',p2.y);
+    ln.setAttribute('stroke',v.stroke||'#000'); ln.setAttribute('stroke-width','2'); ln.setAttribute('marker-end','url(#arrow)'); this.gVec.appendChild(ln);
+    if(v.label){ this.gVec.appendChild(this._latexFO(`\\(\\vec v_{${v.label.replace('v','')}}\\)`, p2.x+6, p2.y-18, v.stroke||'#000')); }
   }
-}
-
 
   // re-typeset pour les foreignObjects
   MJ(this.el.parentNode||document.body);
@@ -696,7 +589,7 @@ for(const v of this.vectors){
     if(!g){
       g=document.createElementNS(this.el.namespaceURI,'g'); g.dataset.vlabel=label;
       const ln=document.createElementNS(this.el.namespaceURI,'line'); ln.setAttribute('stroke',color); ln.setAttribute('stroke-width','2'); ln.setAttribute('marker-end','url(#arrow)');
-      const fo=this._latexFO(`\\(\\overrightarrow v_{${label.replace('v','')}}\\)`, 0, 0, color);
+      const fo=this._latexFO(`\\(\\vec v_{${label.replace('v','')}}\\)`, 0, 0, color);
       g.appendChild(ln); g.appendChild(fo); this.gUserVec.appendChild(g);
     }
     const p1=this.coordToScreen(x1,y1), p2=this.coordToScreen(x2,y2);
@@ -713,7 +606,7 @@ for(const v of this.vectors){
 /* ==== Couleurs & rendu rapide du repère ==== */
 const PALETTE = ['#0a84ff','#d32f2f','#2e7d32','#6a1b9a','#f57c00','#00897b','#c62828','#6d4c41','#ad1457','#283593','#0277bd'];
 const colorOfIndex = i => PALETTE[i % PALETTE.length];
-const vecCol = (a,b) => `\\begin{pmatrix} ${a} \\\\ ${b} \\end{pmatrix}`;
+const vecCol = (a,b) => `\\left(\\begin{array}{c} ${a} \\\\ ${b} \\end{array}\\right)`;
 
 
 // mini “view” : on place un repère à gauche et à droite l’énoncé + actions + #res
@@ -808,20 +701,6 @@ function shrinkSVG(html,size){ return html.replace('class="svgbox"','class="svgb
 
 
 
-// helpers you may already have:
-const isEmptyTxt = id => !($('#'+id)?.value||'').trim();
-const isEmptyCol = id => !($('#'+id+'_u')?.value||'').trim() && !($('#'+id+'_v')?.value||'').trim();
-
-function namesArePaired(n1, n2){
-  const s = v => String(v||'').toUpperCase().replace(/\s+/g,'');
-  const map = { AB:'DC', BA:'CD', BC:'AD', CB:'DA' };
-  const a = s(n1), b = s(n2);
-  return !!(map[a] && map[a] === b);
-}
-
-function setTick(id, kind){ const el = document.getElementById(id); if(el){ el.className='tick '+(kind||''); el.textContent = kind==='ok' ? '✓' : kind==='ko' ? '✗' : ''; } }
-
-
 
 /* ====== Générateur d’exos ====== */
 const REGISTRY_MAP = {
@@ -829,254 +708,69 @@ const REGISTRY_MAP = {
   /* e1 — Coordonnées du vecteur AB */
   e1:{
     name:"Coordonnées du vecteur AB",
-gen(){
-  const A = randPointNum(-8,8);
-  const B = randPointNum(-8,8,[A]);
-  this.state={A,B};
-  setEqu(`<p>On considère les points \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
-          <p>Calculer les coordonnées du vecteur \\(\\overrightarrow{AB}\\).</p>`);
-
-  // ⬇️ AJOUT pour basculer l'input en colonne
-  const lab = HOST.querySelector('.controls .input');
-  if (lab) {
-    lab.innerHTML = `\\(\\overrightarrow{AB}\\) ${mkColInput('ans','u','v')}`;
-  }
-  retypeset(HOST);
-},
-
-verify(){
-  const {A,B}=this.state;
-  const expect = {u:B.a-A.a, v:B.b-A.b};
-
-  // ⬇️ REMPLACE la lecture ancienne par :
-  const ans = getPairFromInputs('ans'); // lit ans_u / ans_v
-
-  const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
-  setFB(ok, ok ? `` : `Essaye encore`);
-  return ok;
-},
-
-// e1 — Coordonnées du vecteur AB : correction en steps
+    gen(){
+      const A = randPointNum(-8,8);
+      const B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère les points \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Calculer les coordonnées du vecteur \\(\\vec{AB}\\).</p>`);
+    },
+    verify(){
+      const {A,B}=this.state;
+      const expect = {u:B.a-A.a, v:B.b-A.b};
+      const ans = parsePairUV($('#ans',HOST).value);
+      const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(\\vec{AB}${fmtVecLaNum(expect.u,expect.v)}\\).`);
+      return ok;
+    },
 solution(){
   const {A,B}=this.state;
-  const ux = B.a - A.a;
-  const vy = B.b - A.b;
+  const ux=B.a-A.a, vy=B.b-A.b;
 
+  // Substitutions avec parenthèses UNIQUEMENT si le terme suit un "−"
+  const sxSub = minusExpr(B.a, A.a); // "x_B - x_A"
+  const sySub = minusExpr(B.b, A.b); // "y_B - y_A"
+
+  // Lignes
   const L = [
-    `\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
-    `\\(\\overrightarrow{AB}${colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b))}\\)`
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${colVecExpr(sxSub, sySub)}\\)`
   ];
 
-  // Étape "-- → +" uniquement si nécessaire
+  // Étape "-- → +" uniquement si A.a<0 ou A.b<0
   if (A.a < 0 || A.b < 0){
-    L.push(`\\(\\overrightarrow{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
+    const sxFix = minusExprSimplified(B.a, A.a);
+    const syFix = minusExprSimplified(B.b, A.b);
+    L.push(`\\(\\vec{AB}${colVecExpr(sxFix, syFix)}\\)`);
   }
 
-  // Résultat (vecteur en colonne)
-  L.push(`\\(\\overrightarrow{AB}${fmtVecLaNum(ux,vy)}\\)`);
-
+  L.push(`\\(\\vec{AB}${fmtVecLaNum(ux,vy)}\\)`); // résultat en colonne
   setSteps(L);
 }
-
 
 
   },
 
   /* e2 — Nature du quadrilatère ABCD (parallélogramme) */
-  /* e2 — Nature du quadrilatère ABCD (avec 2× (nom + coordonnées colonne)) */
-e2:{
-  name:"Nature du quadrilatère \\(ABCD\\)",
-  gen(){
-    const A = randPointNum(-6,6);
-    const B = randPointNum(-6,6,[A]);
-    const C = randPointNum(-6,6,[A,B]);
-    const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)}; // force AB = DC
-    if(!allDistinctPts([A,B,C,D])) return this.gen();
-
-    this.state = {A,B,C,D};
-
-    setEqu(`
-      <p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
-<div class="sec hide-print">
-
-	  <p>Compléter <strong>le nom des vecteurs</strong> puis leurs <strong>coordonnées en colonne</strong>.</p>
-     	  <p>Attention : les vecteurs ne seront validés que si le couple de vecteurs est le bon.</p>
-
-	 <table class="tbl-invis two-cols">
-    <tr>
-      <td>
-        <div class="pair">
-          ${mkVecNameInput('vn1','')}
-          ${mkColInput('v1')}
-          <span id="tick1" class="tick"></span>
-        </div>
-      </td>
-      <td>
-        <div class="pair">
-          ${mkVecNameInput('vn2','')}
-          ${mkColInput('v2')}
-          <span id="tick2" class="tick"></span>
-        </div>
-      </td>
-    </tr>
-  </table>    </div>
-            <p>Quelle est la nature de \\(ABCD\\) ?</p>
-
-    `);
-
-    // uppercasing & filtrage des noms en live
-    ['vn1','vn2'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.addEventListener('input', (e)=>{ e.target.value = normVName(e.target.value); });
-    });
-
-    retypeset(HOST);
-  },
-
-verify(){
-  const {A,B,C,D} = this.state;
-
-  // ---- helpers ----
-  const norm = s => String(s||'').toUpperCase().replace(/\s+/g,'').replace(/[^ABCD]/g,'');
-  const vecUV = (nm) => {
-    if (nm.length!==2) return null;
-    const P = {A,B,C,D}[nm[0]], Q = {A,B,C,D}[nm[1]];
-    if (!P || !Q) return null;
-    return {u: Q.a - P.a, v: Q.b - P.b};
-  };
-  const isEmptyCol = (idBase) => {
-    const u = (document.getElementById(idBase+'_u')?.value||'').trim();
-    const v = (document.getElementById(idBase+'_v')?.value||'').trim();
-    return (!u && !v);
-  };
-  const readCol = (idBase) => {
-    const r = readColInput(idBase);
-    return (r && r.ok) ? {ok:true,u:r.u,v:r.v} : {ok:false};
-  };
-  const same = (x,y)=>Math.abs(x-y)<1e-9;
-
-  // ticks (ne rien afficher visuellement : pas de ✓/✗)
-  const setTick = (id,st)=>{
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('ok','ko');
-    if (st==='ok') el.classList.add('ok');
-    else if (st==='ko') el.classList.add('ko');
-    el.textContent = '';
-  };
-
-
-
-
-  // ---- lecture UI ----
-  const vn1 = norm(document.getElementById('vn1')?.value);
-  const vn2 = norm(document.getElementById('vn2')?.value);
-  const v1Empty = isEmptyCol('v1');
-  const v2Empty = isEmptyCol('v2');
-  const v1 = readCol('v1');
-  const v2 = readCol('v2');
-// namesCount === 1  ET  aucune coordonnée encore saisie  ET  nature vide
-if ((!!vn1 ^ !!vn2) && coordsEmpty && !ansRaw) {
-  setFB(null, '');           // aucun message
-  return false;              // état neutre
-}
-
-  // Nature : accepter « parallélogramme » avec 1/2 l et/ou 1/2 m, accents facultatifs
-  const natRaw = (document.getElementById('ans')?.value||'')
-                  .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const natStr = natRaw.replace(/\s+/g,'').replace(/[^a-z]/g,'');
-  const natOK  = /^paral{1,2}elogram{1,2}e$/.test(natStr);
-  const natEmpty = natStr.length === 0;
-
-  // règle des couples de noms
-  const namesOK = new Set([
-    'AB-DC','DC-AB','BA-CD','CD-BA','BC-AD','AD-BC','CB-DA','DA-CB'
-  ]).has(`${vn1}-${vn2}`);
-  const namesAnyTyped = (vn1||vn2);
-
-  // ====== tout vide ======
-  if (!namesAnyTyped && v1Empty && v2Empty && natEmpty){
-    setTick('tick1',''); setTick('tick2',''); setTick('tickNat','');
-    setFB(null,'');
-    return false;
-  }
-
-  // ====== vecteurs vides ======
-  if (v1Empty && v2Empty){
-    if (natEmpty){
-      setTick('tickNat','');
-      setFB(null,'Saisis la nature ou complète les vecteurs.');
-      return false;
-    }
-    if (natOK){
-      setTick('tickNat','ok');
-      setFB(null,'Nature : ✔︎. Saisis maintenant les deux vecteurs.');
-      return false;
-    }
-    // nature tapée mais incorrecte → compter faux
-    setTick('tickNat',''); // pas d’icône, mais c’est faux
-    setFB(false,'Nature incorrecte. Attendu : « parallélogramme ».');
-    return false;
-  }
-
-  // ====== couples de noms corrects mais coordonnées incomplètes ======
-// ====== couples de noms corrects mais coordonnées incomplètes ======
-const coordsEmpty  = v1Empty && v2Empty;
-const coordsPart   = (v1Empty ^ v2Empty) || !(v1.ok && v2.ok);
-
-if (namesOK && (coordsEmpty || coordsPart)){
-  setTick('tick1',''); setTick('tick2',''); // pas de ✓/✗
-  if (coordsEmpty){
-    setFB(null, 'Le couple est bon.');
-  } else {
-    setFB(null, 'Le couple est bon. Complète les coordonnées.');
-  }
-  return false;
-}
-
-  // ====== noms saisis mais faux ======
-  if (namesAnyTyped && !namesOK){
-    setTick('tick1',''); setTick('tick2','');
-    setFB(false,'Règle attendue : AB ↔ DC, BA ↔ CD, BC ↔ AD, CB ↔ DA.');
-    return false;
-  }
-
-  // ====== contrôle complet : noms OK + deux colonnes remplies ======
-  if (namesOK && v1.ok && v2.ok){
-    const e1 = vecUV(vn1), e2 = vecUV(vn2);
-    const ok1 = e1 && same(v1.u,e1.u) && same(v1.v,e1.v);
-    const ok2 = e2 && same(v2.u,e2.u) && same(v2.v,e2.v);
-
-    if (ok1 && ok2){
-      setTick('tick1','ok'); setTick('tick2','ok');
-      if (natOK){
-        setTick('tickNat','ok');
-        setFB(true,' Bravo.');
-        return true;
-      }
-      if (natEmpty){
-        setTick('tickNat','');
-        setFB(null,'Vecteurs : ✔︎. Indique maintenant la nature de ABCD.');
-        return false;
-      }
-      // nature présente mais incorrecte → faux
-      setTick('tickNat','');
-      setFB(false,'Vecteurs : ✔︎. Nature attendue : « parallélogramme ».');
-      return false;
-    }else{
-      setTick('tick1',''); setTick('tick2','');
-      setFB(false,'Couple de vecteurs correct, mais les coordonnées sont à corriger.');
-      return false;
-    }
-  }
-
-  // fallback
-  setTick('tick1',''); setTick('tick2',''); setTick('tickNat','');
-  setFB(null,'');
-  return false;
-},
-
-  solution(){
+  e2:{
+    name:"Nature du quadrilatère \\(ABCD\\)",
+    gen(){
+      const A = randPointNum(-6,6);
+      const B = randPointNum(-6,6,[A]);
+      const C = randPointNum(-6,6,[A,B]);
+      const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)}; // pour forcer AB=DC
+      if(!allDistinctPts([A,B,C,D])) return this.gen();
+      this.state={A,B,C,D};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
+              <p>Quelle est la nature de \\(ABCD\\) ?</p>`);
+    },
+    verify(){
+      const rep = ($('#ans',HOST).value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const ok = /parallelogramme/.test(rep);
+      setFB(ok, ok?``:`Répondre « parallélogramme ».`);
+      return ok;
+    },
+solution(){
    const {A,B,C,D}=this.state;
 
   const ABu=B.a-A.a, ABv=B.b-A.b;
@@ -1086,268 +780,36 @@ if (namesOK && (coordsEmpty || coordsPart)){
   const DC_sub = colVecExpr(minusExpr(C.a,D.a), minusExpr(C.b,D.b));
 
   const left = [
-    `\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
-    `\\(\\overrightarrow{AB}${AB_sub}\\)`
+    `\\(\\vec{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\vec{AB}${AB_sub}\\)`
   ];
   if (A.a<0 || A.b<0){
-    left.push(`\\(\\overrightarrow{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
+    left.push(`\\(\\vec{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)`);
   }
-  left.push(`\\(\\overrightarrow{AB}${fmtVecLaNum(ABu,ABv)}\\)`);
+  left.push(`\\(\\vec{AB}${fmtVecLaNum(ABu,ABv)}\\)`);
 
   const right = [
-    `\\(\\overrightarrow{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
-    `\\(\\overrightarrow{DC}${DC_sub}\\)`
+    `\\(\\vec{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
+    `\\(\\vec{DC}${DC_sub}\\)`
   ];
   if (D.a<0 || D.b<0){
-    right.push(`\\(\\overrightarrow{DC}${colVecExpr(minusExprSimplified(C.a,D.a), minusExprSimplified(C.b,D.b))}\\)`);
+    right.push(`\\(\\vec{DC}${colVecExpr(minusExprSimplified(C.a,D.a), minusExprSimplified(C.b,D.b))}\\)`);
   }
-  right.push(`\\(\\overrightarrow{DC}${fmtVecLaNum(DCu,DCv)}\\)`);
+  right.push(`\\(\\vec{DC}${fmtVecLaNum(DCu,DCv)}\\)`);
 
-// une fois, en haut :
-const P = arr => arr.map(L => `<p>${L}</p>`).join('');
-
-// usage :
-setStepsHTML(`
-    <table style="border-collapse:collapse;width:100%;">
-	      <tr>
-
-     <td style="border:none;vertical-align:top;padding:6px;">${P(left)}</td>
-     <td style="border:none;vertical-align:top;padding:6px;">${P(right)}</td>
-  </tr>
-    </table>
-    <p>Ainsi \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\), donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`
-);
-
-  
-
-}
-},
-
- e7:{
-    name:"Trouver D pour que ABCD soit un parallélogramme",
-    gen(){
-      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]), C = randPointNum(-8,8,[A,B]);
-      const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)};
-      if(!allDistinctPts([A,B,C,D])) return this.gen();
-      this.state={A,B,C,D};
-      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\).</p>
-              <p>Déterminer les coordonnées de \\(D\\) tel que \\(ABCD\\) soit un parallélogramme.</p>`);
-    },
-verify(){
-  const { D } = this.state;
-  const raw = ($('#ans', HOST)?.value || '').trim();
-  if (!raw){
-    setFB(null, '');              // état neutre si vide
-    return false;
-  }
-
-  // normalise le signe "−"
-  let s = normalizeMinus(raw);
-
-  // exiger des parenthèses (refuse "-4;-7")
-  if (!/[()]/.test(s)) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  // retirer un éventuel "D" juste avant la parenthèse : "D(...)" → "(...)"
-  s = s.replace(/^\s*d\s*(?=\()/i, '');
-
-  // enlever exactement une paire de parenthèses englobantes
-  s = s.replace(/^\(\s*/, '').replace(/\s*\)$/, '');
-
-  // supprimer espaces internes
-  s = s.replace(/\s+/g, '');
-
-  // parser "u;v"
-  const m = s.match(/^([^;]+);([^;]+)$/);
-  if (!m) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  const u = parseNumber(m[1]);
-  const v = parseNumber(m[2]);
-
-  const ok = isFinite(u) && isFinite(v)
-          && Math.abs(u - D.a) < 1e-9
-          && Math.abs(v - D.b) < 1e-9;
-
-  setFB(ok, ok ? '' : '');        // aucun “Attendu …”
-  return ok;
-}
-,
-solution(){
-  const {A,B,C,D} = this.state;
-  const ABx = B.a - A.a, ABy = B.b - A.b;
-
-  // blocs LaTeX prêts
-  const AB_sym  = colVecExpr('x_B-x_A','y_B-y_A');
-  const AB_sub  = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
-  const AB_simp = colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b));
-  const AB_val  = fmtVecLaNum(ABx,ABy);
-
-  const DC_sym  = colVecExpr('x_C-x_D','y_C-y_D');
-  const DC_numD = colVecExpr(`${nPlain(C.a)}-x_D`, `${nPlain(C.b)}-y_D`);
-
-  // systèmes
-  const sys1  = `\\left\\{\\begin{array}{l}
-    ${ABx} = x_C - x_D \\\\ ${ABy} = y_C - y_D
-  \\end{array}\\right.`;
-  const sys1b = `\\left\\{\\begin{array}{l}
-    ${ABx} = ${nPlain(C.a)} - x_D \\\\ ${ABy} = ${nPlain(C.b)} - y_D
-  \\end{array}\\right.`;
-
-  const xSimp = plusExprSimplified(C.a, -ABx);   // = C.a − ABx
-  const ySimp = plusExprSimplified(C.b, -ABy);   // = C.b − ABy
-  const sys2  = `\\left\\{\\begin{array}{l}
-    x_D = ${xSimp} \\\\ y_D = ${ySimp}
-  \\end{array}\\right.`;
-  const sys3  = `\\left\\{\\begin{array}{l}
-    x_D = ${nPlain(D.a)} \\\\ y_D = ${nPlain(D.b)}
-  \\end{array}\\right.`;
-
-  // rendu : tableau 2 colonnes (AB | DC), puis systèmes
-  const P = arr => arr.map(L=>`<p>${L}</p>`).join('');
-
-  const left = [
-    `\\(\\overrightarrow{AB}${AB_sym}\\)`,
-    `\\(\\overrightarrow{AB}${AB_sub}\\)`,
-    ...( (A.a<0 || A.b<0) ? [ `\\(\\overrightarrow{AB}${AB_simp}\\)` ] : [] ),
-    `\\(\\overrightarrow{AB}${AB_val}\\)`
-  ];
-
-  const right = [
-    `\\(\\overrightarrow{DC}${DC_sym}\\)`,
-    `\\(\\overrightarrow{DC}${DC_numD}\\)`
-  ];
-
-  setStepsHTML(`
-      <table style="border-collapse:collapse;width:30%">
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
       <tr>
-        <td style="border:none;vertical-align:top;padding:6px">${P(left)}</td>
-        <td style="border:none;vertical-align:top;padding:6px">${P(right)}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${left.map(L=>`<p>${L}</p>`).join('')}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right.map(L=>`<p>${L}</p>`).join('')}</td>
       </tr>
     </table>
-    <p>\\(ABCD\\) parallélogramme \\(\\Longleftrightarrow\\ \\overrightarrow{AB}=\\overrightarrow{DC}\\)</p>
-    <p>\\(\\iff\\ ${sys1b}\\)</p>
-    <p>\\(\\iff\\ ${sys2}\\)</p>
-    <p>\\(\\iff\\ ${sys3}\\)</p>
-    <p>Ainsi \\(D(${nPlain(D.a)}\\;;\\;${nPlain(D.b)})\\).</p>
-  `);
+    <p>Ainsi \\(\\vec{AB}=\\vec{DC}\\), donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`
+  );
+
 }
 
-
-
   },
-  
-  e8:{
-  name:"Trouver D tel que AD=u",
-  gen(){
-    // Point A et vecteur u aléatoires
-    const A = randPointNum(-8,8);
-    let U;
-    do {
-      U = {u:randInt(-6,6), v:randInt(-6,6)};
-    } while(U.u===0 && U.v===0);
-    const D = {a: A.a + U.u, b: A.b + U.v};
-    this.state={A,U,D};
-
-    setEqu(`
-      <p>Soit \\(A${fmtPtLaNum(A)}\\) et \\(\\vec u${fmtVecLaNum(U.u,U.v)}\\).</p>
-      <p>Calculer les coordonnées du point \\(D\\) tel que \\(\\overrightarrow{AD}=\\vec u\\).</p>
-    `);
-  },
-
-verify(){
-  const { D } = this.state;
-  const raw = ($('#ans', HOST)?.value || '').trim();
-  const s = normalizeMinus(String(raw));
-
-  // exiger des parenthèses : refuse "-4;-7"
-  if (!/[()]/.test(s)) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  // retirer un éventuel "D" avant les parenthèses : "D(-4;-7)" -> "(-4;-7)"
-  let t = s.replace(/^\s*d\s*(?=\()/i, '');
-
-  // enlever exactement une paire de parenthèses autour
-  t = t.replace(/^\(\s*/, '').replace(/\s*\)$/, '');
-
-  // supprimer espaces internes
-  t = t.replace(/\s+/g, '');
-
-  // rester au séparateur ';'
-  const m = t.match(/^([^;]+);([^;]+)$/);
-  if (!m) {
-    setFB(false, 'Utilise des parenthèses : D(x;y) ou (x;y).');
-    return false;
-  }
-
-  const u = parseNumber(m[1]);
-  const v = parseNumber(m[2]);
-  const ok = isFinite(u) && isFinite(v)
-          && Math.abs(u - D.a) < 1e-9
-          && Math.abs(v - D.b) < 1e-9;
-
-  // pas de message "attendu"
-  setFB(ok, ok ? '' : '');
-  return ok;
-},
-
-  solution(){
-    const {A,U,D}=this.state;
-
-    const AD_sym = colVecExpr('x_D - x_A','y_D - y_A');
-    const AD_sub = colVecExpr(minusExpr('x_D',A.a), minusExpr('y_D',A.b))
-                     .replace(/x_D/g, 'x_D').replace(/y_D/g, 'y_D');
-    const AD_num = colVecExpr(`x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)}`,
-                              `y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)}`);
-
-    const sys1 = `\\left\\{\\begin{array}{l}
-      x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)} = ${U.u} \\\\ 
-      y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)} = ${U.v}
-    \\end{array}\\right.`;
-
-    const sys2 = `\\left\\{\\begin{array}{l}
-      x_D = ${U.u} ${A.a<0?'-':'+'} ${Math.abs(A.a)} \\\\ 
-      y_D = ${U.v} + ${nPlain(A.b)}
-    \\end{array}\\right.`;
-
-    const sys3 = `\\left\\{\\begin{array}{l}
-      x_D = ${nPlain(D.a)} \\\\ 
-      y_D = ${nPlain(D.b)}
-    \\end{array}\\right.`;
-
-    // tableau 2 colonnes : AD et u
-    const P = arr => arr.map(L=>`<p>${L}</p>`).join('');
-    const left = [
-      `\\(\\overrightarrow{AD}${colVecExpr('x_D - x_A','y_D - y_A')}\\)`,
-      `\\(\\overrightarrow{AD}${colVecExpr(`x_D ${A.a<0?'+':'-'} ${Math.abs(A.a)}`,
-                                           `y_D ${A.b<0?'+':'-'} ${Math.abs(A.b)}`)}\\)`
-    ];
-    const right = [
-      `\\(\\vec u${fmtVecLaNum(U.u,U.v)}\\)`
-    ];
-
-    setStepsHTML(`
-      <table style="border-collapse:collapse;width:20%">
-        <tr>
-          <td >${P(left)}</td>
-          <td >${P(right)}</td>
-        </tr>
-      </table>
-      <p>\\(\\overrightarrow{AD}=\\vec u\\)</p>
-      <p>\\(\\iff ${sys1}\\)</p>
-      <p>\\(\\iff ${sys2}\\)</p>
-      <p>\\(\\iff ${sys3}\\)</p>
-      <p>Ainsi \\(D(${nPlain(D.a)}\\;;\\;${nPlain(D.b)})\\).</p>
-    `);
-  }
-},
-
 
  e3:{
   name: "Placer des vecteurs d’après leurs coordonnées (origines données)",
@@ -1381,24 +843,11 @@ verify(){
     ui.rep.setPoints(ORIColor.map(p=>({x:p.x,y:p.y,label:p.label,fill:p.color})));
     ui.rep.setVectors([]); ui.rep.clearUserVectors();
 
-// Fabrique <li>…</li>… sans map/join
-const LI = (arr, render = (x)=>x) => {
-  let html = '';
-  for (let i = 0; i < arr.length; i++) html += `<li>${render(arr[i], i)}</li>`;
-  return html;
-};
-
-// <ol>…</ol> avec style par défaut
-const OL = (arr, render, style='margin:6px 0 0 20px') =>
-  `<ol style="${style}">${LI(arr, render)}</ol>`;
-ui.equ.innerHTML = `
-  <p>Tracer, depuis l’origine indiquée, les vecteurs suivants :</p>
-  ${OL(V, (v, i) =>
-    `Depuis \\(${labels[i]}\\), tracer \\(\\overrightarrow v_{${i+1}}${vecCol(v.a, v.b)}\\).`
-  , 'margin:6px 0 0 20px')}
-`;
-retypeset(HOST);
-
+    ui.equ.innerHTML = `<p>Tracer, depuis l’origine indiquée, les vecteurs suivants :</p>
+      <ol style="margin:6px 0 0 20px">
+        ${V.map((v,i)=>`<li>Depuis \\(${labels[i]}\\), tracer \\(\\vec v_${i+1}\\)\\(${vecCol(v.a,v.b)}\\).</li>`).join('')}
+      </ol>`;
+    retypeset(HOST);
 
     // sélecteur + ticks
     const chips=document.createElement('div');
@@ -1408,7 +857,7 @@ retypeset(HOST);
       const id='v'+(i+1);
       const wrap=document.createElement('div'); wrap.className='chipwrap';
       const sp=document.createElement('span'); sp.className='chip'; sp.dataset.l=id;
-      sp.innerHTML = `<span class="dot" style="background:${colorOfIndex(i)}"></span> \\(\\overrightarrow v_${i+1}\\)`;
+      sp.innerHTML = `<span class="dot" style="background:${colorOfIndex(i)}"></span> \\(\\vec v_${i+1}\\)`;
       const tk=document.createElement('span'); tk.className='tick'; tk.id='tk_'+id; tk.style.color=colorOfIndex(i);
       wrap.appendChild(sp); wrap.appendChild(tk); chips.appendChild(wrap);
       sp.addEventListener('click',()=>{
@@ -1485,7 +934,7 @@ retypeset(HOST);
             const id='v'+(i+1);
             const wrap=document.createElement('div'); wrap.className='chipwrap';
             const sp=document.createElement('span'); sp.className='chip'; sp.dataset.l=id;
-            sp.innerHTML = `<span class="dot" style="background:${color}"></span> \\(\\overrightarrow v_${i+1}\\)`;
+            sp.innerHTML = `<span class="dot" style="background:${color}"></span> \\(\\vec v_${i+1}\\)`;
             const tk=document.createElement('span'); tk.className='tick'; tk.id='tk_'+id; tk.style.color=color;
             wrap.appendChild(sp); wrap.appendChild(tk); chipsHost.appendChild(wrap);
             sp.addEventListener('click',()=>{
@@ -1543,22 +992,13 @@ retypeset(HOST);
     setFB(ok===tot, `${ok} / ${tot}`); return ok===tot;
   },
 
-// PATCH léger (remplace entièrement e3.solution)
-solution(){
-  const {ui,V,ORI}=this.state;
-  const vects = V.map((v,i)=>({
-    label:'v'+(i+1),
-    x1:ORI[i].x, y1:ORI[i].y,
-    x2:ORI[i].x+v.a, y2:ORI[i].y+v.b,
-    stroke:colorOfIndex(i)
-  }));
-  ui.rep.setVectors(vects);
-  ui.rep.clickable = false; // ⬅️ pas d’interaction pendant le corrigé
-  ui.res.innerHTML =
-    `<div class="step">${V.map((v,i)=>`\\(\\overrightarrow{v_{${i+1}}} ${vecCol(v.a,v.b)}\\)`).join(' ; ')}</div>`;
-  retypeset(HOST);
-}
-
+  solution(){
+    const {ui,V,ORI}=this.state;
+    const vects=V.map((v,i)=>({label:'v'+(i+1), x1:ORI[i].x,y1:ORI[i].y, x2:ORI[i].x+v.a,y2:ORI[i].y+v.b, stroke:colorOfIndex(i)}));
+    ui.rep.setVectors(vects);
+    ui.res.innerHTML = `<div class="step">${V.map((v,i)=>`\\(\\vec v_{${i+1}}  ${vecCol(v.a,v.b)}\\)`).join(' ; ')}</div>`;
+    retypeset(HOST);
+  }
 },
 
 
@@ -1583,10 +1023,10 @@ ex4:{
 
     const ui=renderWithRepereIntoHost(HOST,R);
     ui.rep.setVectors(V.map((v,i)=>({label:'v'+(i+1), x1:v.x1,y1:v.y1, x2:v.x2,y2:v.y2, stroke:colorOfIndex(i)})));
-    ui.equ.innerHTML = `<p>Par lecture graphique, donner les coordonnées des vecteurs \\( \\) \\(\\overrightarrow v_1,\\overrightarrow v_2,\\dots\\).</p>`;
+    ui.equ.innerHTML = `<p>Par lecture graphique, donner les coordonnées des vecteurs \\(\\vec v_1,\\vec v_2,\\dots\\) (format \\((u;v)\\)).</p>`;
     V.forEach((_,i)=>{
       const row=document.createElement('div');
-row.innerHTML = `\\(\\overrightarrow{v_{${i+1}}}\\) ${mkColInput('ans_v_'+(i+1),'u','v')} <span class="tick" id="tk_v${i+1}"></span>`;
+row.innerHTML = `\\(\\vec v_{${i+1}}\\) ${mkColInput('ans_v_'+(i+1),'u','v')} <span class="tick" id="tk_v${i+1}"></span>`;
       ui.actions.appendChild(row);
     });
     retypeset(HOST);
@@ -1625,7 +1065,7 @@ row.innerHTML = `\\(\\overrightarrow{v_{${i+1}}}\\) ${mkColInput('ans_v_'+(i+1),
           // tracer + input
           st.ui.rep.setVectors(st.V.map((v,j)=>({label:'v'+(j+1), x1:v.x1,y1:v.y1, x2:v.x2,y2:v.y2, stroke:colorOfIndex(j)})));
           const row=document.createElement('div');
-row.innerHTML = `\\(\\overrightarrow{v_{${i+1}}}\\) ${mkColInput('ans_v_'+(i+1),'u','v')} <span class="tick" id="tk_v${i+1}"></span>`;
+row.innerHTML = `\\(\\vec v_{${i+1}}\\) ${mkColInput('ans_v_'+(i+1),'u','v')} <span class="tick" id="tk_v${i+1}"></span>`;
           st.ui.actions.appendChild(row);
           retypeset(HOST);
         }
@@ -1666,14 +1106,14 @@ const good = got.ok && (got.u===V[i].a && got.v===V[i].b);
 
   solution(){
     const {ui,V}=this.state;
-    ui.res.innerHTML = `<div class="step">${V.map((v,i)=>`\\(\\overrightarrow{v_{${i+1}}}  ${vecCol(v.a,v.b)}\\)`).join(' ; ')}</div>`;
+    ui.res.innerHTML = `<div class="step">${V.map((v,i)=>`\\(\\vec v_{${i+1}}  ${vecCol(v.a,v.b)}\\)`).join(' ; ')}</div>`;
     retypeset(HOST);
   }
 },
 
 e5:{
   name:"Mix — Lecture & tracé de vecteurs (modèle écran)",
-  lead:"On se place dans un repère \\((O;\\, \\overrightarrow i,\\, \\overrightarrow j)\\).",
+  lead:"On se place dans un repère \\((O;\\, \\vec i,\\, \\vec j)\\).",
   gen(){
     const R={...AMP};
     const lim={ xmin:R.xmin+1, xmax:R.xmax-1, ymin:R.ymin+1, ymax:R.ymax-1 };
@@ -1861,7 +1301,7 @@ for (let i=0; i<nC; i++){
 
     // ---- Enoncé façon capture d’écran ----
     const list1 = pairs.map(([i,j])=>`\\(\\overrightarrow{${letters1[i]}${letters1[j]}}\\)`).join(', ');
-const list2 = Array.from({length:nU},(_,i)=>`\\(\\overrightarrow{v_{${i+1}}}\\)`).join(', ');
+    const list2 = Array.from({length:nU},(_,i)=>`\\(\\overrightarrow{u_${i+1}}\\)`).join(', ');
 // --- petit helper pour le libellé a), b), c) ...
 const alpha = i => String.fromCharCode(97 + i) + '.';
 
@@ -1869,31 +1309,19 @@ const alpha = i => String.fromCharCode(97 + i) + '.';
 const rows = [];
 for (let i=0; i<Casks.length; i+=3) rows.push(Casks.slice(i, i+3));
 
-// helper: table 3-cols without map/join
-const TBL3 = (rows) => {
-  let html = '<table class="tbl3">';
-  for (let ri = 0; ri < rows.length; ri++) {
-    const r = rows[ri];
-    html += '<tr>';
-    for (let ci = 0; ci < 3; ci++) {
-      if (ci < r.length) {
-        const c = r[ci];
-        const k = ri * 3 + ci; // index global pour la lettre a), b), c)...
-        html += `<td><small>${alpha(k)}</small>
-                  \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
-                 </td>`;
-      } else {
-        html += '<td></td>'; // cellules vides pour compléter la ligne
-      }
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-  return html;
-};
-
-const table3 = TBL3(rows);
-
+const table3 = `
+  <table class="tbl3">
+    ${rows.map((r,ri)=>{
+      return `<tr>${
+        r.map((c,ci)=>{
+          const k = ri*3 + ci; // index global pour la lettre
+          return `<td><small>${alpha(k)}</small>
+                    \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
+                  </td>`;
+        }).join('') + (r.length<3 ? '<td></td>'.repeat(3-r.length) : '')
+      }</tr>`;
+    }).join('')}
+  </table>`;
 
 // --- énoncé complet
 ui.equ.innerHTML = `
@@ -1913,7 +1341,7 @@ retypeset(HOST);
       const id='p1_'+k;
       const row=document.createElement('div');
       row.className='indline';
-row.innerHTML = `<span class="lbl">\\(\\overrightarrow{${letters1[i]}${letters1[j]}}\\)</span>
+row.innerHTML = `<span class="lbl">\\(\\vec{${letters1[i]}${letters1[j]}}\\)</span>
   ${mkColInput('p1_'+k,'u','v')} <span class="tick" id="tk_p1_${k}"></span>`;
 
       pane1.appendChild(row);
@@ -1921,12 +1349,12 @@ row.innerHTML = `<span class="lbl">\\(\\overrightarrow{${letters1[i]}${letters1[
 
     // 2) Inputs pour u_i (même lecteur que ton ex4)
     const pane2=document.createElement('div');
-    pane2.innerHTML = `<div class="small" style="margin-top:.5rem"><strong>2) Lecture des \\(\\overrightarrow v_i\\) :</strong></div>`;
+    pane2.innerHTML = `<div class="small" style="margin-top:.5rem"><strong>2) Lecture des \\(\\vec u_i\\) :</strong></div>`;
     U.forEach((_,i)=>{
       const id='u_'+(i+1);
       const row=document.createElement('div');
       row.className='indline';
-row.innerHTML = `\\(\\overrightarrow{v_{${i+1}}}\\) ${mkColInput('u_'+(i+1),'u','v')}
+row.innerHTML = `\\(\\vec u_{${i+1}}\\) ${mkColInput('u_'+(i+1),'u','v')}
   <span class="tick" id="tk_u_${i+1}"></span>`;
 
       pane2.appendChild(row);
@@ -2008,18 +1436,18 @@ this.buildFlat12 = () => {
     st.pairs,                                              // [ [i,j], ... ]
     ([i,j], k) => {
       const A = st.pts[i], B = st.pts[j];
-      return `\\(\\overrightarrow{${A.label}${B.label}}\\) ${mkColInput('p1_'+k,'u','v')}
+      return `\\(\\vec{${A.label}${B.label}}\\) ${mkColInput('p1_'+k,'u','v')}
               <span class="tick" id="tk_p1_${k}"></span>`;
     }
   );
 
   // SECTION 2 : lecture des u_i
   addSection(
-    '2) Lecture des \\(\\overrightarrow v_i\\) :',
+    '2) Lecture des \\(\\vec u_i\\) :',
     st.U,                                                  // objets u1..uN
     (_v, i) => {
       const idx = i + 1;
-      return `\\(\\overrightarrow v_{${idx}}\\) ${mkColInput('u_'+idx,'u','v')}
+      return `\\(\\vec u_{${idx}}\\) ${mkColInput('u_'+idx,'u','v')}
               <span class="tick" id="tk_u_${idx}"></span>`;
     }
   );
@@ -2028,17 +1456,6 @@ this.buildFlat12 = () => {
   retypeset(HOST);
 };
 
-
-// --- helper global au module e5 : cache/masque le libellé du vecteur utilisateur ---
-// --- masque définitivement le libellé du vecteur utilisateur (v_c1, v_c2, …)
-function hideUserVectorLabel(rep, id){
-  // ex: id = "c1", "c2", …
-  const g = rep.gUserVec?.querySelector(`g[data-vlabel="${id}"]`);
-  if (!g) return;
-  // labels possibles : foreignObject (MathJax) ou text brut selon versions
-  const fo = g.querySelector('foreignObject'); if (fo) fo.remove();
-  const tx = g.querySelector('text');          if (tx) tx.remove();
-}
 
 
 
@@ -2049,36 +1466,11 @@ function hideUserVectorLabel(rep, id){
 
     // Interaction de tracé (partie 3)
     ui.rep.clickable=true;
-// état pour les points posés en Q3
-this.state._placedTargets = [];
-
-ui.rep.onClick = ({x,y})=>{
-  const st = this.state;
-  const idx = Math.max(0, (+st._curC.replace('c',''))-1);
-  const c = st.Casks[idx]; if(!c) return;
-
-  // place le vecteur utilisateur (comme avant)
-  ui.rep.placeUserVector('c'+(idx+1), c.ox, c.oy, x, y, colorOfIndex(idx+10));
-hideUserVectorLabel(ui.rep, 'c'+(idx+1));  
-  // --- ajoute le point d'arrivée (K, L, M…) au bout de la flèche
-  const lbl = c.to;                 // ex: 'K'
-  const dx  = 6, dy = -6;           // petit décalage pour ne pas chevaucher la pointe
-  const fill = colorOfIndex(idx+10);
-
-  // remplace / enregistre le point pour ce c#
-  st._placedTargets = st._placedTargets.filter(p => p.id !== ('c'+(idx+1)));
-  st._placedTargets.push({ id:'c'+(idx+1), x, y, label: lbl, dx, dy, fill });
-
-  // re-affiche tous les points (A… + K,L,M déjà posés)
-  const basePts = st.pts.map(p => ({ x:p.x, y:p.y, label:p.label, fill:'#000' }));
-  const endPts  = st._placedTargets.map(p => ({ x:p.x, y:p.y, label:p.label, dx:p.dx, dy:p.dy, fill:p.fill }));
-  ui.rep.setPoints([...basePts, ...endPts]);
-
-  // cacher visuellement le libellé du vecteur utilisateur (voir 2)
-  const u = (ui.rep.userVectors||[]).find(v => v.label === ('c'+(idx+1)));
-  if (u){ u.lx = 9999; u.ly = 9999; ui.rep.redraw(); }   // label hors-cadre
-};
-
+    ui.rep.onClick = ({x,y})=>{
+      const idx = Math.max(0, (+state._curC.replace('c',''))-1);
+      const c = state.Casks[idx]; if(!c) return;
+      ui.rep.placeUserVector('c'+(idx+1), c.ox,c.oy, x,y, colorOfIndex(idx+10));
+    };
 	this.state = { R, pts, pairs, U, Casks, ui };
 // en fin de gen(), après this.state = { ... } actuel :
 // === Post-gen : masters immuables + renderer piloté par le slider ===
@@ -2235,34 +1627,20 @@ st._masters = {
 // ---------- 2) RENDERER (inchangé sauf qu’on slice dans _masters) ----------
 function buildEquAndActions(){
   const list1 = st.pairs.map(([i,j])=>`\\(\\overrightarrow{${st.pts[i].label}${st.pts[j].label}}\\)`).join(', ');
-  const list2 = st.U.map((_,i)=>`\\(\\overrightarrow{v_{${i+1}}}\\)`).join(', ');
+  const list2 = st.U.map((_,i)=>`\\(\\overrightarrow{u_${i+1}}\\)`).join(', ');
 
   const rows=[]; for(let i=0;i<st.Casks.length;i+=3) rows.push(st.Casks.slice(i,i+3));
-// Helper table sans map/join (par défaut 3 colonnes)
-function buildTableCols(rows, cols = 3){
-  let html = '<table class="tbl3">';
-  for (let ri = 0; ri < rows.length; ri++){
-    const r = rows[ri];
-    html += '<tr>';
-    for (let ci = 0; ci < cols; ci++){
-      if (ci < r.length){
-        const c = r[ci];
-        const k = ri * cols + ci;           // index global pour a), b), c)…
-        html += `<td><small>${alpha(k)}</small>
-                   \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
-                 </td>`;
-      } else {
-        html += '<td></td>';                // cellule vide pour compléter la ligne
-      }
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-  return html;
-}
-
-const table3 = buildTableCols(rows, 3);
-
+  const table3 = `
+    <table class="tbl3">
+      ${rows.map((r,ri)=>`<tr>${
+        r.map((c,ci)=>{
+          const k=ri*3+ci;
+          return `<td><small>${alpha(k)}</small>
+                    \\(\\overrightarrow{${c.from}${c.to}}\\;${vecCol(c.a,c.b)}\\)
+                  </td>`;
+        }).join('') + (r.length<3 ? '<td></td>'.repeat(3-r.length) : '')
+      }</tr>`).join('')}
+    </table>`;
 
   st.ui.equ.innerHTML = `
     <ol style="margin:0 0 0 18px; line-height:1.6">
@@ -2278,16 +1656,16 @@ const table3 = buildTableCols(rows, 3);
   pane1.innerHTML = `<div class="small"><strong>1) Lecture des vecteurs entre points :</strong></div>`;
   st.pairs.forEach(([i,j],k)=>{
     const row=document.createElement('div'); row.className='indline';
-    row.innerHTML = `<span class="lbl">\\(\\overrightarrow{${st.pts[i].label}${st.pts[j].label}}\\)</span>
+    row.innerHTML = `<span class="lbl">\\(\\vec{${st.pts[i].label}${st.pts[j].label}}\\)</span>
       ${mkColInput('p1_'+k,'u','v')} <span class="tick" id="tk_p1_${k}"></span>`;
     pane1.appendChild(row);
   });
 
   const pane2=document.createElement('div');
-  pane2.innerHTML = `<div class="small" style="margin-top:.5rem"><strong>2) Lecture des \\(\\overrightarrow v_i\\) :</strong></div>`;
+  pane2.innerHTML = `<div class="small" style="margin-top:.5rem"><strong>2) Lecture des \\(\\vec u_i\\) :</strong></div>`;
   st.U.forEach((_,i)=>{
     const row=document.createElement('div'); row.className='indline';
-    row.innerHTML = `\\(\\overrightarrow{v_{${i+1}}}\\) ${mkColInput('u_'+(i+1),'u','v')} <span class="tick" id="tk_u_${i+1}"></span>`;
+    row.innerHTML = `\\(\\vec u_{${i+1}}\\) ${mkColInput('u_'+(i+1),'u','v')} <span class="tick" id="tk_u_${i+1}"></span>`;
     pane2.appendChild(row);
   });
 
@@ -2319,32 +1697,11 @@ this.buildFlat12 && this.buildFlat12();
   if (chipEls[0]) setActive('c1');
 
   st.ui.rep.clickable=true;
-// état pour les points posés s’il n’existe pas déjà
-if (!st._placedTargets) st._placedTargets = [];
-
-st.ui.rep.onClick = ({x,y})=>{
-  const idx = Math.max(0, (+st._curC.replace('c',''))-1);
-  const c = st.Casks[idx]; if(!c) return;
-
-  // trace
-  st.ui.rep.placeUserVector('c'+(idx+1), c.ox, c.oy, x, y, colorOfIndex(idx+10));
-hideUserVectorLabel(ui.rep, 'c'+(idx+1));   
-
-  // ajoute le point K/L/M… au bout
-  const lbl = c.to, dx = 6, dy = -6, fill = colorOfIndex(idx+10);
-  st._placedTargets = st._placedTargets.filter(p => p.id !== ('c'+(idx+1)));
-  st._placedTargets.push({ id:'c'+(idx+1), x, y, label: lbl, dx, dy, fill });
-
-  // rafraîchit les points
-  const basePts = st.pts.map(p => ({ x:p.x, y:p.y, label:p.label, fill:'#000' }));
-  const endPts  = st._placedTargets.map(p => ({ x:p.x, y:p.y, label:p.label, dx:p.dx, dy:p.dy, fill:p.fill }));
-  st.ui.rep.setPoints([...basePts, ...endPts]);
-
-  // masque le nom du vecteur utilisateur (envoie le label hors-cadre)
-  const u = (st.ui.rep.userVectors||[]).find(v => v.label === ('c'+(idx+1)));
-  if (u){ u.lx = 9999; u.ly = 9999; st.ui.rep.redraw(); }
-};
-
+  st.ui.rep.onClick = ({x,y})=>{
+    const idx = Math.max(0, (+st._curC.replace('c',''))-1);
+    const c = st.Casks[idx]; if(!c) return;
+    st.ui.rep.placeUserVector('c'+(idx+1), c.ox,c.oy, x,y, colorOfIndex(idx+10));
+  };
 
   retypeset(HOST);
 }
@@ -2483,50 +1840,19 @@ if (typeof this.buildFlat12 === 'function') this.buildFlat12();
     const st=this.state, {ui}=st;
 
     // On superpose : les u_i (déjà visibles) + les vecteurs attendus de la partie 3 (AH, CK, ...)
-    const vectsC = st.Casks.map((c,i)=>{
-    // direction
-    const dx = c.a, dy = c.b;
-    // label vecteur : côté "opposé" au label du point
-    const lx = (dx >= 0 ? -36 : 8);
-    const ly = (dy >= 0 ?  14 : -20);
-    return {
-    label:'',  // pas de nom visible
-      x1:c.ox, y1:c.oy, x2:c.ox+dx, y2:c.oy+dy,
-      stroke:colorOfIndex(i+10),
-      lx, ly
-	      };
-  });
+    const vectsC = st.Casks.map((c,i)=>({label:'c'+(i+1), x1:c.ox,y1:c.oy, x2:c.ox+c.a,y2:c.oy+c.b, stroke:colorOfIndex(i+10)}));
     ui.rep.setVectors([
       ...st.U.map((v,i)=>({label:'u'+(i+1), x1:v.x1,y1:v.y1,x2:v.x2,y2:v.y2, stroke:colorOfIndex(i)})),
       ...vectsC
     ]);
-  // Points existants + points d’arrivée K,L,M,... avec offsets complémentaires
-  const basePts = st.pts.map(p => ({ x:p.x, y:p.y, label:p.label, fill:'#000' }));
-  const arrivalPts = st.Casks.map((c,i)=>{
-    const dx = c.a, dy = c.b;
-    // label point : coin "classique" opposé au label vecteur
-    const pdx = (dx >= 0 ? 6 : -12);
-    const pdy = (dy >= 0 ? -6 : 16);
-    return {
-      x: c.ox + dx,
-      y: c.oy + dy,
-      label: c.to,
-      fill: colorOfIndex(i+10),
-      dx: pdx, dy: pdy
-    };
-  });
-  
-    ui.rep.setPoints([...basePts, ...arrivalPts]);
 
-  
-  
     // Rendu texte compact façon “corrigé”
     const bloc1 = st.pairs.map(([i,j])=>{
       const A=st.pts[i], B=st.pts[j];
       return `\\(\\overrightarrow{${st.pts[i].label}${st.pts[j].label}}\\;${vecCol(B.x-A.x, B.y-A.y)}\\)`;
     }).join(' ; ');
 
-    const bloc2 = st.U.map((v,i)=>`\\(\\overrightarrow{v_{${i+1}}}${vecCol(v.a,v.b)}\\)`).join(' ; ');
+    const bloc2 = st.U.map((v,i)=>`\\(\\vec u_{${i+1}}${vecCol(v.a,v.b)}\\)`).join(' ; ');
     const bloc3 = st.Casks.map((c)=>`\\(\\overrightarrow{${c.from}${c.to}}${vecCol(c.a,c.b)}\\)`).join(' ; ');
 
     ui.res.innerHTML =
@@ -2549,64 +1875,19 @@ const REGISTRY_ARRAY = Object.entries(REGISTRY_MAP).map(([id, cfg]) => ({
 }));
 if (typeof window !== 'undefined') window.REGISTRY = REGISTRY_ARRAY;
 
-
-// PDF-only — resserre *pmatrix* en array compact
-// PDF-only — compacte les vecteurs-colonne sans toucher l'écran
-function tightenVectorsForPDF(html){
-  if(!html) return html;
-
-  // (a)  \begin{pmatrix} ... \end{pmatrix}  ->  ( array{c} ) + espaces négatifs
-  html = html.replace(
-    /\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g,
-    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-  );
-
-  // (b)  \left( \begin{array}{c} ... \end{array} \right)  -> ajoute \! et réduit arraycolsep
-  html = html.replace(
-    /\\left\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\\right\)/g,
-    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-  );
-
-  // (c)  versions sans \left...\right (rare) : ( array{c} ) → ajoute \!
-  html = html.replace(
-    /\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\)/g,
-    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-  );
-
-  // (d)  \pmatrix{…} macro éventuelle
-  html = html.replace(
-    /\\pmatrix\{([\s\S]*?)\}/g,
-    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-  );
-
-  return html;
-}
-
-
-
-
-
-/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
 /* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
 window.buildOneForPDFSync = function(defId){
-  window.__PDF_BUILDING = true;           // ⬅️ démarre la zone neutre
+  const cfg = REGISTRY_MAP[defId];
+  if (!cfg) return { statement:'', solution:'' };
 
-  try {
-    const cfg = REGISTRY_MAP[defId];
-    if (!cfg) return { statement:'', solution:'' };
+  const host   = document.querySelector('#host');
+  const backup = host ? host.innerHTML : '';
 
-    const host   = document.querySelector('#host');
-    const backup = host ? host.innerHTML : '';
+  if (host) mountHost();
+  document.querySelector('#lead').innerHTML = cfg.lead || '';
 
-    if (host) mountHost();
-    document.querySelector('#lead').innerHTML = cfg.lead || '';
-
-    // ⬇️ on génère l’écran, mais retypeset() s’auto-désactivera grâce au flag
-    cfg.gen.call(cfg);
-
-
-  // --- Restaure pour l’écran ---
-
+  // Génère l’écran (crée le repère pour e3/ex4/e5)
+  cfg.gen.call(cfg);
 
   // ---- 1) Récupérer le repère s’il existe
   const svgEl =
@@ -2627,7 +1908,7 @@ window.buildOneForPDFSync = function(defId){
     repereHTML = clone.outerHTML;
   }
 
-  // ---- 2) Énoncé texte (écran)
+  // ---- 2) Énoncé texte
   const equHTML = (document.querySelector('#equ')||{}).innerHTML || '';
 
   // Énoncé final : grille 2 colonnes si on a un repère, sinon texte seul
@@ -2638,107 +1919,18 @@ window.buildOneForPDFSync = function(defId){
        </div>`
     : equHTML;
 
-  // ---- 3) Correction (écran)
-const _oldRetypeset2 = window.retypeset;
-  const _oldMJ2        = window.MJ;
-  window.retypeset = function(){};
-  window.MJ        = function(){};
+  // ---- 3) Correction
   cfg.solution.call(cfg);
-  
-  // ---- Après cfg.solution.call(cfg); (et avant le restore) ----
-
-// 2.1) Récupérer le SVG *corrigé*
-let corrigeRepereHTML = '';
-{
-  const svgSol = document.querySelector('.row svg.svgbox') || document.querySelector('svg.svgbox');
-  if (svgSol){
-    const clone = svgSol.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.setAttribute('width','300');      // taille PDF
-    clone.setAttribute('height','300');
-    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-    if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox','0 0 420 420');
-    corrigeRepereHTML = clone.outerHTML;
-  }
-}
-
-// 2.2) Récupérer le HTML texte de la correction
-const corrigeTexteHTML = (document.querySelector('#res')||{}).innerHTML || '';
-
-// 2.3) Composer la *correction* pour le PDF : repère + texte
-const solution =
-  corrigeRepereHTML
-    ? `<div style="display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start">
-         <div>${corrigeRepereHTML}</div>
-         <div>${corrigeTexteHTML}</div>
-       </div>`
-    : corrigeTexteHTML;
-
-  
-  
-  window.retypeset = _oldRetypeset2;
-  window.MJ        = _oldMJ2;
+  const solution = (document.querySelector('#res')||{}).innerHTML || '';
 
   if (host) host.innerHTML = backup;
-
-  // ---- 4) PDF-only : resserrer les pmatrix via TeX (espace interne)
-  function tightenVectorsForPDF(html){
-    if(!html) return html;
-    // pmatrix -> array{c} + espaces négatifs
-    html = html.replace(
-      /\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g,
-      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-    );
-    // \left( \begin{array}{c} ... \end{array} \right) -> ajoute \!
-    html = html.replace(
-      /\\left\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\\right\)/g,
-      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-    );
-    // versions sans \left...\right
-    html = html.replace(
-      /\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\)/g,
-      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-    );
-    // \pmatrix{…}
-    html = html.replace(
-      /\\pmatrix\{([\s\S]*?)\}/g,
-      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
-    );
-    return html;
-  }
-
-  const statementTight = statement;
-  const solutionTight  = solution;
-  
- function stripCHTML(html){
-  if(!html) return html;
-  return html
-     .replace(/<mjx-container[\s\S]*?<\/mjx-container>/g, (m)=>{
-       // On essaie de récupérer le TeX source si MathJax l’a laissé en data-tex,
-       // sinon on supprime (on n’en veut pas dans le PDF SVG).
-       const tex = m.match(/data-tex="([^"]+)"/);
-       return tex ? `\\(${tex[1]}\\)` : '';
-     });
- }
- const statementClean = stripCHTML(statementTight);
- const solutionClean  = stripCHTML(solutionTight);
-
-  // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
-    return {
-      statement: `<div class="vec-tight">${statementTight||''}</div>`,
-      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
-    };
-  } finally {
-    window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
-  }
+  return { statement, solution };
 };
-
 
 function toggleAmpbar(activeId){
   const bar = document.getElementById('ampbar');
   if (!bar) return;
-  const hide = (activeId === 'e1' || activeId === 'e2'|| activeId === 'e7'|| activeId === 'e8');
+  const hide = (activeId === 'e1' || activeId === 'e2');
   bar.style.display = hide ? 'none' : '';
 }
 
@@ -2787,9 +1979,6 @@ function toggleAmpbar(activeId){
   // génère l'exo (peut remplacer entièrement le host, ex. e3/ex4)
   cfg.gen.call(cfg);
 
-
-
-
   // (re)typeset
   retypeset();
   toggleAmpbar(ACTIVE);
@@ -2797,16 +1986,9 @@ function toggleAmpbar(activeId){
 }
 
     document.querySelector('#btn-new').addEventListener('click', buildOne);
-document.querySelector('#btn-reset').addEventListener('click', ()=>{
-  const a=$('#ans',HOST); if(a) a.value='';
-  document.querySelectorAll('.colvec input').forEach(i=> i.value=''); // ⬅️ AJOUT
-  const f=$('#fb',HOST); if(f) f.textContent='';
-  const r=$('#res',HOST); if(r) r.innerHTML='';
-});
+    document.querySelector('#btn-reset').addEventListener('click', ()=>{ const a=$('#ans',HOST); if(a) a.value=''; const f=$('#fb',HOST); if(f) f.textContent=''; const r=$('#res',HOST); if(r) r.innerHTML=''; });
     document.querySelector('#btn-check').addEventListener('click', ()=>{ SCORE_TOT++; const ok = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE])===true; if(ok) SCORE_OK++; updateScore(); });
     document.querySelector('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
-
-
 function adjustLive(kind){
   const id = ACTIVE;
   if (id === 'e3'   && REGISTRY_MAP.e3.adjustLive)   REGISTRY_MAP.e3.adjustLive(kind);
@@ -2851,37 +2033,19 @@ if (nbEl){
           const label = (window.REGISTRY_MAP?.[defId]?.name || defId || '').replace(/\\\\/g,'\\');
           const fab = (typeof window.buildOneForPDFSync==='function') ? window.buildOneForPDFSync : (_)=>({statement:'',solution:''});
           const { statement, solution } = fab(defId);
-// --- PDF-only: resserre les parenthèses des vecteurs-colonne ---
-function tightenVectorsForPDF(html){
-  if(!html) return html;
-  // 1) diminue l'espace colonne dans les array (équivalent \arraycolsep)
-  html = html.replace(/\\begin\{array\}\{c\}/g, '{\\arraycolsep=1.5pt\\begin{array}{c}');
-  // 2) colle les grandes parenthèses à la matrice (\left( ... \right))
-  //    (sans toucher le reste du doc)
-  html = html
-    .replace(/\\left\(\s*\\begin\{array\}\{c\}/g, '\\left(\\mkern-6mu\\begin{array}{c}')
-    .replace(/\\end\{array\}\s*\\right\)/g, '\\end{array}\\mkern-6mu\\right)');
-  return html;
-}
-
-const statementTight = tightenVectorsForPDF(statement);
-const solutionTight  = tightenVectorsForPDF(solution);
 
           const htmlIn =
-  `<div class="exo-block">
-     <span class="exo-title">Exercice</span>
-     <div class="exo-statement">${statementTight||''}</div>
-   </div>` +
-  (withSolutions
-    ? `<div style="margin-top:1rem;">
-         <div class="exo-block"><div class="steps" id="pdf-steps">
-           <span class="exo-title">Correction</span>
-           <!-- ⬇️ Ajout d’un conteneur .steps pour retrouver la zone grise -->
-           <div class="exo-solution">${solutionTight||''}</div></div>
-         </div>
-       </div>`
-    : '');
-
+            `<div class="exo-block">
+               <span class="exo-title">Exercice — ${label}</span>
+               <div class="exo-statement">${statement||''}</div>
+             </div>` +
+            (withSolutions
+              ? `<div style="margin-top:1rem;">
+                   <div class="exo-block">
+                     <span class="exo-title">Correction</span>
+                     <div class="exo-solution">${solution||''}</div>
+                   </div>
+                 </div>` : '');
 
           const iframe = document.createElement('iframe');
           Object.assign(iframe.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',visibility:'hidden'});
@@ -2890,59 +2054,6 @@ const solutionTight  = tightenVectorsForPDF(solution);
           const idoc = iframe.contentDocument;
           idoc.open(); idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="root"></div></body></html>'); idoc.close();
           const root = idoc.getElementById('root'); root.innerHTML = htmlIn;
-const css = idoc.createElement('style');
-css.textContent = `
-  :root{
-    --ink:#111; --bg:#fafafa; --card:#fff; --line:#e5e7eb; --muted:#666;
-    --steps-bg:#f3f4f6; --steps-border:#e5e7eb; --steps-left:#9aa0a6;
-  }
-  body{font:16px/1.55 system-ui,Segoe UI,Roboto,Arial;color:var(--ink);}
-  .exo-title{display:block;font-weight:700;margin:0 0 6px}
-  /* ⚙️ Zone grise identique à l’écran (#res.steps) */
-  .steps{
-    background:var(--steps-bg);
-    border:1px solid var(--steps-border);
-    border-left:4px solid var(--steps-left);
-    border-radius:8px;
-    padding:10px;
-    margin:.45rem 0 0 .15rem;
-  }
-  .steps p{margin:.25rem 0}
-  /* Table “e5” compacte */
-  .tbl3{border-collapse:collapse}
-  .tbl3 td{padding:2px 6px;vertical-align:top}
-  
-  /* === Tighten parentheses around column vectors (SVG output) === */
-/* CHTML (au cas où), agit sur les delimiters extensibles */
-.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:first-child { margin-right: -0.18em; }
-.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:last-child  { margin-left:  -0.18em; }
-.vec-tight mjx-mtable mjx-mtd { padding-left: .15em; padding-right: .15em; }
-.vec-tight mjx-mtable > mjx-table { margin-left: 0; margin-right: 0; }
-
-/* SVG : décaler légèrement OPEN/CLOSE pour coller les parenthèses au tableau */
-.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="OPEN"]  { transform: translateX(-0.18em); }
-.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="CLOSE"] { transform: translateX( 0.18em); }
-
-/* Ajustement global très léger si besoin (peut être mis à 0 si tu préfères) */
-.vec-tight svg[aria-hidden="true"] { margin-left:-0.10em; margin-right:-0.10em; }
-/* --- Anti "barres noires" MathJax (PDF) --- */
-.exo-statement,
-.exo-solution { color:#111 !important; background:transparent !important; }
-
-/* Cas CHTML (au cas où) */
-mjx-container { color:#111 !important; background:transparent !important; }
-mjx-container svg { overflow:visible !important; }
-mjx-container svg rect,
-mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
-
-/* Cas SVG standalone (ce que tu utilises dans l’iframe) */
-.exo-statement svg rect,
-.exo-statement svg path[data-mml-node="mspace"],
-.exo-solution  svg rect,
-.exo-solution  svg path[data-mml-node="mspace"] { fill:none !important; }
-
-`;
-idoc.head.appendChild(css);
 
           const cfg = idoc.createElement('script');
           cfg.text = `

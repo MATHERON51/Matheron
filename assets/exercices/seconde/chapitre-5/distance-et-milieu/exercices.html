@@ -1,12 +1,1842 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exercices — Chapitre 5 — Distance et milieu</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:24px}.muted{color:#666}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2nd - Vecteurs - Milieu, distance et parallélogramme</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+:root{ --ink:#111; --bg:#fafafa; --card:#fff; --line:#e6e6e6; --muted:#666; --ok:#0e7c3a; --ko:#b00020; }
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-weight:600}
+select,input[type=text]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}
+.btn:hover{border-color:#bbb}
+.small{color:var(--muted);font-size:.95rem}
+.eq{font-size:17px}
+.ok{color:var(--ok);font-weight:700}
+.ko{color:var(--ko);font-weight:700}
+hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
+.steps p{margin:.25rem 0}
+
+/* Mises en forme des solutions */
+.grid{display:grid;gap:10px;align-items:start}
+.cols-2{grid-template-columns:1fr 1fr}
+.cols-3{grid-template-columns:auto auto 1fr}
+.box{border:1px dashed #bbb;border-radius:8px;padding:8px 10px}
+.box p{margin:.25rem 0}
+.eqcol{display:flex;flex-direction:column;gap:.25rem}
+.eqcol p{margin:0}
+.eqonly{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.center{text-align:center}
+
+/* Bloc solution (UI) */
+#res.steps{
+  background:#f3f4f6;border:1px solid #e5e7eb;border-left:4px solid #9aa0a6;border-radius:8px;padding:10px;
+}
+#res.steps p{margin:.25rem 0}
+
+.row{display:grid;grid-template-columns:420px 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.res-ok{color:#11823b;font-weight:700}
+.res-ko{color:#b00020;font-weight:700}
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.steps{margin:.45rem 0 0 .15rem;padding:.5rem .6rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.svgbox{width:420px;height:420px;border:1px solid #ddd;border-radius:8px;background:#fff; touch-action: manipulation; user-select: none;}
+.optionline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chips{display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.chip{border:1px solid #bbb;border-radius:999px;padding:.2rem .55rem;cursor:pointer;user-select:none;background:#fff}
+.chip.active{border-color:#111;box-shadow:inset 0 0 0 1px #111}
+.chip .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
+.chipwrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.chipwrap .tick{height:1rem;line-height:1rem}
+:root{ --tick-ok: #11823b; --tick-ko: #b00020; }
+.indline{margin:4px 0; font-size:.95rem; display:flex; align-items:center; gap:6px}
+.indline .lbl{min-width:2.2rem; font-weight:700}
+.indline .tick{min-width:1.4rem; font-weight:900}
+.indline .tick.ok{color:var(--tick-ok)}
+.indline .tick.ko{color:var(--tick-ko)}
+.indline .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%}
+@media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
+
+
+/* Parenthèses larges et "stretchy" autour des deux inputs */
+/* Input colonne compact avec grandes parenthèses */
+.colvec{
+  /* Réglages rapides */
+  --parenW: 10px;   /* largeur parenthèse */
+  --padX:   6px;    /* marge interne gauche/droite */
+  --gap:    4px;    /* écart entre les deux inputs */
+  --inW:    54px;   /* largeur d’un input */
+  --inPx:   6px;    /* padding horizontal input */
+  --inPy:   4px;    /* padding vertical input */
+  --inFs:   14px;   /* font-size input */
+
+  position: relative;
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  row-gap: var(--gap);
+  padding: 6px calc(var(--padX) + var(--parenW));
+  vertical-align: middle;
+}
+.colvec input{
+  width: var(--inW);
+  text-align: center;
+  padding: var(--inPy) var(--inPx);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: var(--inFs);
+}
+
+/* Parenthèses stretch */
+.colvec::before,
+.colvec::after{
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: var(--parenW);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: .95;
+}
+.colvec::before{
+  left: 0;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 100" preserveAspectRatio="none"><path d="M18,2 C6,14 6,86 18,98" fill="none" stroke="%23111" stroke-width="3" stroke-linecap="round"/></svg>');
+}
+.colvec::after{
+  right: 0; transform: scaleX(-1);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 100" preserveAspectRatio="none"><path d="M18,2 C6,14 6,86 18,98" fill="none" stroke="%23111" stroke-width="3" stroke-linecap="round"/></svg>');
+}
+
+/* Tailles prêtes à l’emploi */
+.colvec.sm { --parenW: 9px;  --padX: 6px; --gap: 4px; --inW: 48px; --inPy: 3px; --inFs: 13px; }
+.colvec.xs { --parenW: 8px;  --padX: 5px; --gap: 3px; --inW: 42px; --inPy: 2px; --inFs: 12px; }
+
+
+
+
+/* (facultatif) un peu plus épais sur écran Retina/print */
+@media (min-resolution: 2dppx){
+  .colvec::before, .colvec::after{
+    filter: saturate(1.1);
+  }
+}
+
+/* Grille 3 colonnes pour les vecteurs à placer (partie 3) */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;           /* espace lignes/colonnes */
+  align-items: start;
+}
+.grid3 .chipwrap { width: 100%; }
+
+/* ---- Blocs sous le repère : 2 lignes × 5 colonnes ---- */
+.flat12-wrap{ margin-top:10px; }
+
+.sec{ margin:10px 0; }
+.sec .title{ font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+/* une grille de 5 colonnes */
+.grid5{
+  display:grid;
+  grid-template-columns: repeat(5, max-content);
+  gap:8px 14px;
+  align-items:center;
+}
+
+/* cellules : libellé + vecteur-colonne + tick */
+.grid5 .inlinecell{ display:flex; align-items:center; gap:6px; }
+
+/* vecteurs en colonne compacts pour tenir à 5×2 */
+.grid5 .colvec{
+  --parenW:8px; --padX:5px; --gap:3px;
+  --inW:44px; --inPy:2px; --inFs:12.5px;
+}
+
+.hidden{ display:none; }
+
+
+/* — Anti “barres noires” MathJax — */
+.steps mjx-container { color: #111 !important; background: transparent !important; }
+.steps mjx-container svg { overflow: visible !important; }
+.steps mjx-container svg rect,
+.steps mjx-container svg path[data-mml-node="mspace"] { fill: none !important; }
+.steps mjx-mrow, .steps mjx-mi, .steps mjx-mo, .steps mjx-mn { background: transparent !important; }
+
+/* ==== Nom de vecteur avec flèche au-dessus ============================== */
+.vecname{ position:relative; display:inline-block; }
+.vecname input{
+  width:72px; text-align:center; font-weight:700; font-size:15px;
+  letter-spacing:.12em; text-transform:uppercase;
+  padding:14px 10px 6px 10px; /* place pour la flèche au-dessus */
+  border:1px solid #ddd; border-radius:8px; background:#fff;
+}
+.vecname::before{
+  content:""; position:absolute; left:12px; right:20px; top:6px; height:2px; background:#111;
+}
+.vecname::after{
+  content:""; position:absolute; top:2px; right:12px;
+  border-left:8px solid #111; border-top:5px solid transparent; border-bottom:5px solid transparent;
+}
+
+/* Lignes compactes sous le repère pour e2 */
+.vecrow{ display:flex; align-items:center; gap:12px; margin:6px 0; flex-wrap:wrap; }
+.vecrow .lbl{ font-weight:700; min-width:max-content; }
+.vecrow .tick{ min-width:1.4rem; font-weight:900; }
+.tbl-invis{border-collapse:collapse;width:100%}
+.tbl-invis td{border:none;padding:6px 10px;vertical-align:top;width:50%}
+.pair{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pair .lbl{font-weight:700;min-width:1.6rem}
+
+
+</style>
+
+<!-- MathJax CHTML écran -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: { '[+]': ['bbox','ams'] },
+      macros: { vec: ['\\overrightarrow{#1}',1] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<style>.MJX_Assistive_MathML, mjx-assistive-mml{display:none!important}</style>
+
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+  <script src="../../../../js/repere_patch_0813.js" defer></script>
+
 </head>
 <body>
-  <h1>Seconde – Chapitre 5 — Distance et milieu</h1>
-  <p class="muted">La page d’exercices pour ce thème n’est pas encore prête. Placez votre fichier ici : <code>exercices.html</code>.</p>
+  <div class="header"><h1 style="margin:0;font-size:1.1rem"><strong>2nd - Vecteurs - Milieu, distance et parallélogramme</strong></h1></div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score" style="margin-left:auto;font-weight:700">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small" id="info-saisie">
+      <strong>Saisie &amp; réponses acceptées :</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Coordonnées au format <code>u;v</code> (ex. <code>6;1</code> ou <code>3/2; -5</code>). Virgule décimale « , » ou point « . » acceptés.</li>
+        <li>Jamais de parenthèses : on tape <code>6;1</code> (les parenthèses sont affichées automatiquement).</li>
+        <li>Fractions conservées dans les corrections.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+/* ====== Mini helpers génériques ====== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const HOST = $('#host');
+function retypeset(host){
+  if (window.__PDF_BUILDING) return;              // ⬅️ ignore en phase PDF
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]);
+}function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t;} return a||1; }
+
+/* ====== Rationnels “propres” (pour jolies fractions dans les corrections) ====== */
+function R(p,q=1){ if(q<0){p=-p;q=-q;} const g=gcd(p,q); return {p:p/g,q:q/g}; }
+function addR(x,y){ return R(x.p*y.q + y.p*x.q, x.q*y.q); }
+function subR(x,y){ return R(x.p*y.q - y.p*x.q, x.q*y.q); }
+function mulR(x,y){ return R(x.p*y.p, x.q*y.q); }
+function negR(x){ return R(-x.p, x.q); }
+function numR(x){ return x.p/x.q; }
+function latexR(r){ if(r.q===1) return String(r.p); const s=r.p<0?'−':''; const P=Math.abs(r.p); return s+'\\dfrac{'+P+'}{'+r.q+'}'; }
+function textR(r){ return r.q===1 ? String(r.p) : `${r.p}/${r.q}`; }
+// Retourne -\dfrac{|p|}{q} si p<0, sinon \dfrac{p}{q}; et un entier si q=1
+function latexR_leadingMinus(r){
+  const p = r.p, q = r.q;
+  if (q === 1) return String(p);              // pas de /1 affiché dans ton flux final
+  if (p < 0) return `-\\dfrac{${Math.abs(p)}}{${q}}`;
+  return `\\dfrac{${p}}{${q}}`;
+}
+
+
+/* ===== MathJax helper ===== */
+function MJ(el){
+  try{
+    if (window.MathJax){
+      if (MathJax.typesetPromise) MathJax.typesetPromise([el||document.body]).catch(()=>{});
+      else if (typeof MathJax.typeset === 'function') MathJax.typeset([el||document.body]);
+    }
+  }catch(_){}
+}
+
+
+/* ====== Affichages “coordonnées” ====== */
+// --- affichages points & vecteurs ---
+const par = n => (n<0?`(${n})`:String(n));
+/* ====== Affichages “coordonnées” — règles de parenthèses ====== */
+// nombres "bruts" (pour les points) : JAMAIS de parenthèses autour d'un négatif
+const nPlain = n => String(n);
+
+// nombre entre parenthèses UNIQUEMENT s'il suit un "−" dans une différence
+const nAfterMinus = n => (n < 0 ? `(${n})` : String(n));
+const plusExpr = (a,b) => `${nPlain(a)} + ${b<0?`(${b})`:nPlain(b)}`;
+const plusExprSimplified = (a,b) => `${nPlain(a)} ${b<0?'-':'+'} ${nPlain(Math.abs(b))}`;
+
+// expressions "a - b" avec parenthèses seulement si b<0
+const minusExpr = (a,b) => `${nPlain(a)} - ${nAfterMinus(b)}`;
+
+// version simplifiée (pour l'étape -- → +)
+const minusExprSimplified = (a,b) => (b < 0 ? `${nPlain(a)} + ${Math.abs(b)}` : `${nPlain(a)} - ${nPlain(b)}`);
+
+// Points en LIGNE, sans par autour des négatifs
+function fmtPtLaNum(P){ return `(${nPlain(P.a)}\\;;\\;${nPlain(P.b)})`; }
+function fmtPtLaR(P){  return `(${latexR(P.a)}\\;;\\;${latexR(P.b)})`; }
+
+// ✅ Vecteur en COLONNE (définitif — laisse celui-ci et SUPPRIME toute redéfinition plus bas)
+function colVecExpr(xExpr, yExpr){
+  return `\\begin{pmatrix} ${xExpr} \\\\ ${yExpr} \\end{pmatrix}`;
+}
+function fmtVecLaNum(x, y){ return colVecExpr(nPlain(x), nPlain(y)); }
+function fmtVecLaR(x, y){  return colVecExpr(latexR(x), latexR(y)); }
+
+// Retourne les étapes LaTeX pour p/q : d'abord p/q, puis (optionnel) la forme réduite.
+function fracStepsLatex(p,q){
+  const g0 = gcd(Math.abs(p), Math.abs(q));
+  const first = `\\dfrac{${p}}{${q}}`;
+  if (g0>1){
+    const pr = p/g0, qr = q/g0;
+    return [first, `\\dfrac{${pr}}{${qr}}`]; // étape "réduction"
+  }
+  return [first]; // déjà irréductible → une seule ligne
+}
+
+/* === Helpers de comparaison (signes & doublons) ========================== */
+// Normalise les signes dans les fractions pour comparer :
+//  \dfrac{-a}{b}  →  -\dfrac{a}{b}
+// enlève espaces superflus et normalise le "−" unicode en "-"
+function normalizeFracSign(s){
+  return String(s)
+    .replace(/\u2212/g, '-') // unicode minus → "-"
+    .replace(/\\dfrac\{\s*-\s*([^}]+)\}\{\s*([^}]+)\}/g, '-\\dfrac{$1}{$2}')
+    .replace(/\(\s*-\s*\\dfrac/g, '(-\\dfrac')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+// Deux coordonnées (x;y) LaTeX sont-elles identiques modulo placement du signe ?
+function sameCoordPair(x1,y1,x2,y2){
+  return normalizeFracSign(x1)===normalizeFracSign(x2)
+      && normalizeFracSign(y1)===normalizeFracSign(y2);
+}
+
+
+/* ====== UI host ====== */
+function mountHost(){
+  HOST.innerHTML = `
+    <div id="lead" class="small"></div>
+    <div id="equ" class="eq"></div>
+    <hr class="sep">
+    <div class="controls">
+      <label class="input">Réponse <input id="ans" class="answer" type="text" inputmode="text" autocomplete="off" placeholder=""></label>
+      <div id="fb"></div>
+    </div>
+    <hr class="sep">
+    <div id="res" class="steps"></div>
+  `;
+}
+
+function setEqu(html){ const box=$('#equ',HOST); if(box) box.innerHTML = html; retypeset(HOST); }
+function setStepsHTML(html){ $('#res',HOST).innerHTML=html; retypeset(HOST); }
+function setSteps(lines){ setStepsHTML(lines.map(L=>`<p>${L}</p>`).join('')); }
+function setFB(ok, msg=''){
+  const fb = $('#fb', HOST);
+  if (!fb) return;
+  if (ok === null){        // ⬅️ mode neutre
+    fb.className = '';     // ni .ok ni .ko
+    fb.innerHTML = msg;    // message libre (peut contenir du HTML)
+    return;
+  }
+  fb.className = ok ? 'ok' : 'ko';
+  fb.textContent = (ok?'✔︎ Correct. ':'✗ Incorrect. ') + msg;
+}
+
+/* ====== Parsing des réponses u;v ====== */
+function normalizeMinus(s){ return String(s||'').replace(/\u2212/g,'-').trim(); }
+function parseNumber(token){
+  token = token.replace(',','.');
+  if (/^[-+]?\d+\/\d+$/.test(token)){ const [p,q]=token.split('/').map(Number); return p/q; }
+  return token===''?NaN:Number(token);
+}
+function parsePairUV(s){
+  s = normalizeMinus(s).replace(/\s+/g,'');
+  const m = s.match(/^([^;]+);([^;]+)$/);
+  if(!m) return {ok:false};
+  const u=parseNumber(m[1]), v=parseNumber(m[2]);
+  return (isFinite(u)&&isFinite(v)) ? {ok:true,u,v} : {ok:false};
+}
+
+
+// fabrique un "input colonne" avec deux champs empilés
+function mkColInput(idBase, placeholderU='u', placeholderV='v',cls='sm'){
+  return `<span class="colvec">
+    <input id="${idBase}_u" type="text" inputmode="text" placeholder="">
+    <input id="${idBase}_v" type="text" inputmode="text" placeholder="">
+  </span>`;
+}
+
+// lit un "input colonne"
+function readColInput(idBase){
+  const uEl = document.getElementById(idBase+'_u');
+  const vEl = document.getElementById(idBase+'_v');
+  if (!uEl || !vEl) return {ok:false};
+  const u = parseNumber(normalizeMinus(uEl.value.replace(',', '.')).trim());
+  const v = parseNumber(normalizeMinus(vEl.value.replace(',', '.')).trim());
+  if (!isFinite(u) || !isFinite(v)) return {ok:false};
+  return {ok:true, u, v};
+}
+
+// lit soit un input colonne (idBase_u/idBase_v), soit un champ texte "u;v" (idBase)
+function getPairFromInputs(idBase){
+  const uEl = document.getElementById(idBase+'_u');
+  const vEl = document.getElementById(idBase+'_v');
+  if (uEl && vEl){
+    if (!uEl.value && !vEl.value) return {ok:false, empty:true};
+    return readColInput(idBase);
+  }
+  const tEl = document.getElementById(idBase);
+  if (!tEl) return {ok:false};
+  if (!tEl.value) return {ok:false, empty:true};
+  return parsePairUV(tEl.value);
+}
+
+
+/* ==== Helpers noms de vecteurs & coordonnées =========================== */
+function mkVecNameInput(id, placeholder='AB'){
+  return `<span class="vecname"><input id="${id}" type="text" maxlength="2" autocomplete="off" placeholder="${placeholder}"></span>`;
+}
+function normVName(s){
+  return String(s||'').toUpperCase().replace(/[^ABCD]/g,'').slice(0,2); // garde A,B,C,D uniquement (2 lettres)
+}
+const VALID_NAMES = new Set(['AB','BA','BC','CB','CD','DC','AD','DA']);
+const VALID_PAIRS = new Set([
+  'AB|DC','DC|AB',
+  'BA|CD','CD|BA',
+  'BC|AD','AD|BC',
+  'CB|DA','DA|CB',
+]);
+
+function pairOK(n1,n2){ return VALID_PAIRS.has(`${n1}|${n2}`); }
+
+function vecByName(name, S){ // S = {A,B,C,D} avec a,b en entiers
+  const {A,B,C,D} = S;
+  switch(name){
+    case 'AB': return {u: B.a-A.a, v: B.b-A.b};
+    case 'BA': return {u: A.a-B.a, v: A.b-B.b};
+    case 'BC': return {u: C.a-B.a, v: C.b-B.b};
+    case 'CB': return {u: B.a-C.a, v: B.b-C.b};
+    case 'CD': return {u: D.a-C.a, v: D.b-C.b};
+    case 'DC': return {u: C.a-D.a, v: C.b-D.b};
+    case 'AD': return {u: D.a-A.a, v: D.b-A.b};
+    case 'DA': return {u: A.a-D.a, v: A.b-D.b};
+    default:   return null;
+  }
+}
+function sameUV(ans, exp){ return ans && exp && Math.abs(ans.u-exp.u)<1e-9 && Math.abs(ans.v-exp.v)<1e-9; }
+
+
+
+/* ====== Points aléatoires (entiers), tous distincts ====== */
+function samePt(P,Q){ return P.a===Q.a && P.b===Q.b; }
+function allDistinctPts(list){ for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++) if(samePt(list[i],list[j])) return false; return true; }
+function randPointNum(min,max,existing=[]){
+  let P; do{ P={a:randInt(min,max), b:randInt(min,max)}; }while(existing.some(E=>samePt(E,P)));
+  return P;
+}
+
+
+
+
+
+
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// cellules 3×3 à l'intérieur des limites "lim"
+function makeCells(lim, rows=3, cols=3){
+  const w = (lim.xmax - lim.xmin + 1), h = (lim.ymax - lim.ymin + 1);
+  const cw = Math.floor(w / cols), ch = Math.floor(h / rows);
+  const cells = [];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const x0 = lim.xmin + c*cw, x1 = (c===cols-1) ? lim.xmax : (x0+cw-1);
+      const y0 = lim.ymin + r*ch, y1 = (r===rows-1) ? lim.ymax : (y0+ch-1);
+      cells.push({xmin:x0, xmax:x1, ymin:y0, ymax:y1});
+    }
+  }
+  return cells;
+}
+function randIntInCell(cell){ return { x: randInt(cell.xmin, cell.xmax), y: randInt(cell.ymin, cell.ymax) }; }
+function fits(lim, x, y){ return x>=lim.xmin && x<=lim.xmax && y>=lim.ymin && y<=lim.ymax; }
+
+
+// --- Unicité de pente : clé de colinéarité (ignore l'échelle et le signe global)
+function slopeKey(dx, dy){
+  if (dx === 0) return 'V';     // vertical
+  if (dy === 0) return 'H';     // horizontal
+  // normalise le signe pour que (dx,dy) et (-dx,-dy) donnent la même clé
+  if (dx < 0){ dx = -dx; dy = -dy; }
+  const g0 = gcd(Math.abs(dx), Math.abs(dy)) || 1;
+  const a = dx / g0, b = dy / g0; // a = dx', b = dy' primitifs
+  return b + '/' + a;             // on encode la pente (dy/dx) comme "b/a"
+}
+
+
+// --- Unicité stricte des coordonnées (a;b) pour la partie 3
+const abKey = (a,b) => a + ';' + b;
+
+
+/* ===== Utilitaire PDF : forcer la taille du SVG (300×300) ===== */
+function shrinkSVG(html,size){ return html.replace('class="svgbox"','class="svgbox" style="width:'+size+'px;height:'+size+'px"'); }
+
+
+
+// helpers you may already have:
+const isEmptyTxt = id => !($('#'+id)?.value||'').trim();
+const isEmptyCol = id => !($('#'+id+'_u')?.value||'').trim() && !($('#'+id+'_v')?.value||'').trim();
+
+function namesArePaired(n1, n2){
+  const s = v => String(v||'').toUpperCase().replace(/\s+/g,'');
+  const map = { AB:'DC', BA:'CD', BC:'AD', CB:'DA' };
+  const a = s(n1), b = s(n2);
+  return !!(map[a] && map[a] === b);
+}
+
+function setTick(id, kind){ const el = document.getElementById(id); if(el){ el.className='tick '+(kind||''); el.textContent = kind==='ok' ? '✓' : kind==='ko' ? '✗' : ''; } }
+
+function makeParallelogramSVG(){
+  // AB horizontal (base)
+  const A = { x: 30,  y: 140, L: 'A' };
+  const B = { x: 230, y: 140, L: 'B' };
+
+  // Translation vers le haut pour CD (reste horizontal)
+  const t  = { x: 40, y: -50 };
+  const D  = { x: A.x + t.x, y: A.y + t.y, L: 'D' };
+  const C  = { x: B.x + t.x, y: B.y + t.y, L: 'C' };
+
+  const poly = `${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y} ${D.x},${D.y}`;
+
+  // Offsets extérieurs
+  const vOut = 12;  // décalage vertical pour sortir du polygone
+  const hOut = 8;   // décalage horizontal vers l’extérieur
+
+  return `
+  <svg width="320" height="180" viewBox="0 0 320 180"
+       xmlns="http://www.w3.org/2000/svg" aria-label="Parallélogramme ABCD">
+    <style>
+      .pg   { fill: none; stroke: #111; stroke-width: 2; }
+      .diag { stroke: #888; stroke-width: 1.5; stroke-dasharray: 5 3; }
+      circle{ fill:#111; }
+      text  { font: 14px/1.4 system-ui,Segoe UI,Roboto,Arial; fill:#111; }
+    </style>
+
+    <!-- Polygone ABCD (AB et CD horizontaux) -->
+    <polygon class="pg" points="${poly}"></polygon>
+
+    <!-- Diagonales -->
+    <line class="diag" x1="${A.x}" y1="${A.y}" x2="${C.x}" y2="${C.y}"></line>
+    <line class="diag" x1="${B.x}" y1="${B.y}" x2="${D.x}" y2="${D.y}"></line>
+
+    <!-- Points -->
+    <circle cx="${A.x}" cy="${A.y}" r="3.5"></circle>
+    <circle cx="${B.x}" cy="${B.y}" r="3.5"></circle>
+    <circle cx="${C.x}" cy="${C.y}" r="3.5"></circle>
+    <circle cx="${D.x}" cy="${D.y}" r="3.5"></circle>
+
+    <!-- Étiquettes à l’extérieur -->
+    <!-- A : à gauche & sous la base -->
+    <text x="${A.x - hOut}" y="${A.y + vOut}" text-anchor="end" dominant-baseline="hanging">A</text>
+    <!-- B : à droite & sous la base -->
+    <text x="${B.x + hOut}" y="${B.y + vOut}" text-anchor="start" dominant-baseline="hanging">B</text>
+    <!-- C : à droite & au-dessus -->
+    <text x="${C.x + hOut}" y="${C.y - vOut}" text-anchor="start" dominant-baseline="baseline">C</text>
+    <!-- D : à gauche & au-dessus -->
+    <text x="${D.x - hOut}" y="${D.y - vOut}" text-anchor="end" dominant-baseline="baseline">D</text>
+  </svg>`;
+}
+
+function powTerm(n){ return (n<0 ? `(${n})` : `${n}`) + `^2`; }
+
+// === Helpers spécifiques pour e5 ==========================================
+function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+function isIso(A,B,C){
+  const AB=d2(A,B), AC=d2(A,C), BC=d2(B,C);
+  return AB===AC || AB===BC || AC===BC;
+}
+function isRight(A,B,C){
+  const AB=d2(A,B), AC=d2(A,C), BC=d2(B,C);
+  // théorème de Pythagore (carrés d’entiers)
+  return AB+AC===BC || AB+BC===AC || AC+BC===AB;
+}
+// (théoriquement impossible en Z^2, mais on la garde pour sûreté)
+function isEqui(A,B,C){
+  const AB=d2(A,B), AC=d2(A,C), BC=d2(B,C);
+  return AB===AC && AC===BC;
+}
+
+// --- Outils locaux ---
+function rint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pickVertex(){ return ['A','B','C'][rint(0,2)]; }
+
+// Place O afin que O+u et O+v restent dans [MIN,MAX]^2
+function placeWithRoom(u,v,MIN,MAX){
+  const mX = Math.max(Math.abs(u.x), Math.abs(v.x));
+  const mY = Math.max(Math.abs(u.y), Math.abs(v.y));
+  const OxMin = MIN + mX, OxMax = MAX - mX;
+  const OyMin = MIN + mY, OyMax = MAX - mY;
+  if (OxMin>OxMax || OyMin>OyMax) return null;
+  return {x:rint(OxMin,OxMax), y:rint(OyMin,OyMax)};
+}
+
+// Construction à partir d’un sommet V et de deux vecteurs u,v
+function buildABC(V,O,u,v){
+  const A={a:O.x, b:O.y}, B={a:O.x, b:O.y}, C={a:O.x, b:O.y};
+  if (V==='A'){ B.a+=u.x; B.b+=u.y; C.a+=v.x; C.b+=v.y; }
+  if (V==='B'){ A.a+=u.x; A.b+=u.y; C.a+=v.x; C.b+=v.y; }
+  if (V==='C'){ A.a+=u.x; A.b+=u.y; B.a+=v.x; B.b+=v.y; }
+  return {A,B,C};
+}
+
+// Produit scalaire et colinéarité
+function dot(u,v){ return u.x*v.x + u.y*v.y; }
+function collinear(A,B,C){ return (B.a-A.a)*(C.b-A.b) - (B.b-A.b)*(C.a-A.a) === 0; }
+
+// Longueurs au carré (entiers)
+function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+
+// === 1) Isocèle-rectangle (sommet aléatoire) ===
+// u ⟂ v et |u|=|v|
+function genIsoRight(MIN,MAX){
+  for(let tries=0; tries<200; tries++){
+    const V = pickVertex();
+    // u=(p,q) non nul, composantes petites pour garder de la marge
+    const p = rint(-4,4), q = rint(-4,4);
+    if (p===0 && q===0) continue;
+    const u = {x:p, y:q};
+    const v = {x:-q, y:p};  // perpendiculaire, même norme
+    const O = placeWithRoom(u,v,MIN,MAX); if(!O) continue;
+    const tri = buildABC(V,O,u,v);
+    if (collinear(tri.A,tri.B,tri.C)) continue;
+    // Vérif isocèle-rectangle
+    const AB2=d2(tri.A,tri.B), AC2=d2(tri.A,tri.C), BC2=d2(tri.B,tri.C);
+    const isIso = (AB2===AC2)||(AB2===BC2)||(AC2===BC2);
+    const isRect = (AB2+AC2===BC2)||(AB2+BC2===AC2)||(AC2+BC2===AB2);
+    if (isIso && isRect) return tri;
+  }
+  // secours
+  return genIsoRight(MIN,MAX);
+}
+
+// === 2) Rectangle uniquement (sommet aléatoire) ===
+// u ⟂ v mais |u| ≠ |v|
+function genRightOnly(MIN,MAX){
+  for(let tries=0; tries<300; tries++){
+    const V = pickVertex();
+    const p = rint(-4,4), q = rint(-4,4);
+    if (p===0 && q===0) continue;
+    const u = {x:p, y:q};
+    // v = k * (-q, p) avec k ≠ 1 pour éviter isocèle-rectangle
+    const k = [2,3][-rint(0,1)]; // 2 ou 3
+    const v = {x:-k*q, y:k*p};
+    const O = placeWithRoom(u,v,MIN,MAX); if(!O) continue;
+    const tri = buildABC(V,O,u,v);
+    if (collinear(tri.A,tri.B,tri.C)) continue;
+
+    const AB2=d2(tri.A,tri.B), AC2=d2(tri.A,tri.C), BC2=d2(tri.B,tri.C);
+    const isRect = (AB2+AC2===BC2)||(AB2+BC2===AC2)||(AC2+BC2===AB2);
+    const isIso  = (AB2===AC2)||(AB2===BC2)||(AC2===BC2);
+    if (isRect && !isIso) return tri;
+  }
+  return genRightOnly(MIN,MAX);
+}
+
+// === 3) Isocèle uniquement (sommet aléatoire) ===
+// |u|=|v| mais u non perpendiculaire à v et non colinéaire
+function genIsoOnly(MIN,MAX){
+  for(let tries=0; tries<300; tries++){
+    const V = pickVertex();
+    // u=(p,q) avec p,q ≠ 0 et |p| ≠ |q| pour éviter ⟂ et // avec (q,p)
+    const p = rint(-4,4), q = rint(-4,4);
+    if (p===0 || q===0 || Math.abs(p)===Math.abs(q)) continue;
+    const u = {x:p, y:q};
+    const v = {x:q, y:p}; // même norme, pas ⟂ (p*q ≠ 0), pas //
+    const O = placeWithRoom(u,v,MIN,MAX); if(!O) continue;
+    const tri = buildABC(V,O,u,v);
+    if (collinear(tri.A,tri.B,tri.C)) continue;
+
+    const AB2=d2(tri.A,tri.B), AC2=d2(tri.A,tri.C), BC2=d2(tri.B,tri.C);
+    const isIso  = (AB2===AC2)||(AB2===BC2)||(AC2===BC2);
+    const isRect = (AB2+AC2===BC2)||(AB2+BC2===AC2)||(AC2+BC2===AB2);
+    if (isIso && !isRect) return tri;
+  }
+  return genIsoOnly(MIN,MAX);
+}
+
+// === 4) Quelconque (scalène non rectangle) ===
+function genScaleneGeneric(MIN,MAX){
+  for(let tries=0; tries<500; tries++){
+    const A={a:rint(MIN,MAX), b:rint(MIN,MAX)};
+    const B={a:rint(MIN,MAX), b:rint(MIN,MAX)};
+    const C={a:rint(MIN,MAX), b:rint(MIN,MAX)};
+    if (collinear(A,B,C)) continue;
+    const AB2=d2(A,B), AC2=d2(A,C), BC2=d2(B,C);
+    const allDiff = (AB2!==AC2 && AB2!==BC2 && AC2!==BC2);
+    const notRight = !((AB2+AC2===BC2)||(AB2+BC2===AC2)||(AC2+BC2===AB2));
+    if (allDiff && notRight) return {A,B,C};
+  }
+  return genScaleneGeneric(MIN,MAX);
+}
+
+
+// NOTE: Équilatéral impossible en Z^2 (coordonnées entières). On réalloue son poids.
+
+
+
+
+/* ====== Générateur d’exos ====== */
+const REGISTRY_MAP = {
+
+   /* e1 — Milieu de [AB] (coordonnées) */
+  e1:{
+    name:"Milieu de [AB]",
+    gen(){
+      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Déterminer les coordonnées du milieu \\(M\\) du segment \\([AB]\\).</p>`);
+    },
+    verify(){
+      const {A,B}=this.state;
+      const expect = {u:(A.a+B.a)/2, v:(A.b+B.b)/2};
+      const ans = parsePairUV($('#ans',HOST).value);
+      const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+      setFB(ok, ok?``:`Attendu : \\(M(${par(expect.u)}\\;;\\;${par(expect.v)})\\).`);
+      return ok;
+    },
+    solution(){
+const {A,B}=this.state;
+
+  // numérateurs
+  const px = A.a + B.a;
+  const py = A.b + B.b;
+
+  // Sommes propres (jamais "+-")
+  const sx1 = plusExpr(A.a, B.a);
+  const sy1 = plusExpr(A.b, B.b);
+
+
+// 1) remplace ta fonction pushM par celle-ci
+let lastX=null, lastY=null;
+const L = [];
+function pushM(x,y){
+  const line = `\\(M\\left(${x}\\;;\\;${y}\\right)\\)`;
+  if (lastX !== null && sameCoordPair(lastX,lastY,x,y)){
+    // 👈 équivalents : on REMPLACE la dernière ligne par la version "préférée"
+    L[L.length - 1] = line;
+  } else {
+    L.push(line);
+  }
+  lastX = x; lastY = y;
+}
+
+
+  // 1) Formule
+  L.push(`\\(M\\left(\\dfrac{x_A+x_B}{2}\\;;\\;\\dfrac{y_A+y_B}{2}\\right)\\)`);
+
+  // 2) Substitution des coordonnées
+  L.push(`\\(M\\left(\\dfrac{${sx1}}{2}\\;;\\;\\dfrac{${sy1}}{2}\\right)\\)`);
+
+  // 3) "+(-n) → - n" si besoin
+  if (B.a<0 || B.b<0){
+    const sx2 = plusExprSimplified(A.a, B.a);
+    const sy2 = plusExprSimplified(A.b, B.b);
+    L.push(`\\(M\\left(\\dfrac{${sx2}}{2}\\;;\\;\\dfrac{${sy2}}{2}\\right)\\)`);
+  }
+
+  // 4) Écriture numérique en fractions non réduites
+  const x0 = `\\dfrac{${px}}{2}`;
+  const y0 = `\\dfrac{${py}}{2}`;
+  pushM(x0, y0);
+
+  // 5) Réduction éventuelle (jamais /1 affiché)
+  const rx = R(px,2), ry = R(py,2);
+  const xRed = rx.q>1 ? `\\dfrac{${rx.p}}{${rx.q}}` : null; // null si /1
+  const yRed = ry.q>1 ? `\\dfrac{${ry.p}}{${ry.q}}` : null;
+
+  if (xRed || yRed){
+    // si une seule coordonnée se réduit, l'autre reste telle quelle
+    pushM(xRed || x0, yRed || y0);
+  }
+
+  // 6) Ligne finale (forme exacte) — latexR supprime /1
+// --- ligne finale : signe devant la fraction
+// 2) pour la toute dernière ligne, force le signe DEVANT la fraction
+const mxR = R(px,2), myR = R(py,2);
+const xF  = latexR_leadingMinus(mxR);  // -\dfrac{|p|}{q} si p<0 ; entier si q=1
+const yF  = latexR_leadingMinus(myR);
+pushM(xF, yF);     // 👈 si l’étape précédente était équivalente, elle sera remplacée
+setSteps(L);
+
+
+    }
+  },
+
+  /* e6 — Symétrique de A par rapport à B */
+  e2:{
+    name:"Symétrique de A par rapport à B",
+    gen(){
+      const A = randPointNum(-8,8), B = randPointNum(-8,8,[A]);
+      this.state={A,B};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Déterminer les coordonnées de \\(S\\), symétrique de \\(A\\) par rapport à \\(B\\).</p>`);
+    },
+verify(){
+  const {A,B}=this.state;
+  const expect = {u: 2*B.a - A.a, v: 2*B.b - A.b};
+  const ans = parsePairUV($('#ans',HOST).value);
+  const ok = ans.ok && Math.abs(ans.u-expect.u)<1e-9 && Math.abs(ans.v-expect.v)<1e-9;
+  setFB(ok, ok ? "" : "");
+  return ok;
+},
+
+	
+solution(){
+  const {A,B}=this.state;
+  const sx = 2*B.a - A.a;
+  const sy = 2*B.b - A.b;
+
+  // Étapes symboliques
+  const sys_mid   = `\\begin{cases}
+      x_B = \\dfrac{x_A + x_S}{2}\\\\[2pt]
+      y_B = \\dfrac{y_A + y_S}{2}
+    \\end{cases}`;
+
+  // On encadre la forme "résolue" avec bbox (bordure rouge)
+const sys_solve = `\\begin{cases}
+  x_S = 2x_B - x_A\\\\[2pt]
+  y_S = 2y_B - y_A
+\\end{cases}`;
+
+
+
+  // Substitutions numériques (avec gestion des signes dans la différence)
+  const xSub = minusExpr(2*B.a, A.a);
+  const ySub = minusExpr(2*B.b, A.b);
+
+  const L = [
+    `\\(S\\) est symétrique de \\(A\\) par rapport à \\(B \\iff B\\) est le milieu de \\([AS]\\)`,
+       `\\(\\iff ${sys_mid}\\)`,
+
+   `\\(\\iff ${sys_solve}\\)`,
+    `\\(\\iff \\begin{cases}
+        x_S = ${xSub}\\\\[2pt]
+        y_S = ${ySub}
+      \\end{cases}\\)`
+  ];
+
+  // Étape “-- → +” si nécessaire (affichage propre des signes)
+  if (A.a<0 || A.b<0){
+    const xFix = minusExprSimplified(2*B.a, A.a);
+    const yFix = minusExprSimplified(2*B.b, A.b);
+    L.push(`\\(\\iff \\begin{cases}
+        x_S = ${xFix}\\\\[2pt]
+        y_S = ${yFix}
+      \\end{cases}\\)`);
+  }
+
+  // Valeurs finales dans le système puis écriture du point S
+  L.push(`\\(\\iff \\begin{cases}
+      x_S = ${nPlain(sx)}\\\\[2pt]
+      y_S = ${nPlain(sy)}
+    \\end{cases}\\)`);
+  L.push(`Ainsi \\(S(${nPlain(sx)}\\;;\\;${nPlain(sy)})\\).`);
+
+  setSteps(L);
+}
+
+
+  },
+
+
+  /* e3 — Nature du quadrilatère ABCD (parallélogramme) */
+e3:{
+  name:"Nature du quadrilatère ABCD",
+  gen(){
+  const A = randPointNum(-6,6);
+  const B = randPointNum(-6,6,[A]);
+  const C = randPointNum(-6,6,[A,B]);
+  const D = {a: A.a + (C.a-B.a), b: A.b + (C.b-B.b)}; // force AB = DC
+  if(!allDistinctPts([A,B,C,D])) return this.gen();
+
+  this.state = {A,B,C,D};
+
+  setEqu(`
+    <p>Dans un repère orthonormé \\((O,\\,I,\\,J)\\), on considère les points
+      \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
+    <p><strong>Montrer, dans chaque cas, <u>de deux façons différentes</u>, que \\(ABCD\\) est un parallélogramme.</strong></p>
+  `);
+
+// e2 : pas de champ "Réponse" ni de feedback
+const ctrl = HOST.querySelector('.controls');
+if (ctrl) ctrl.remove();
+// retire les deux <hr class="sep"> qui entouraient la zone réponse
+HOST.querySelectorAll('hr.sep').forEach(hr => hr.remove());
+
+  retypeset(HOST);
+},
+
+
+
+
+  solution(){
+  const {A,B,C,D}=this.state;
+// === petit croquis SVG "parallélogramme + diagonales" =====================
+
+
+  // === Méthode 1 — Égalité de vecteurs : AB et DC =========================
+  const ABu=B.a-A.a, ABv=B.b-A.b;
+  const DCu=C.a-D.a, DCv=C.b-D.b;
+
+  const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+  const DC_sub = colVecExpr(minusExpr(C.a,D.a), minusExpr(C.b,D.b));
+
+  const AB_lines = [
+    `\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+    `\\(\\overrightarrow{AB}${AB_sub}\\)` +
+      ( (A.a<0||A.b<0) ? `<br>\\(\\overrightarrow{AB}${colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b))}\\)` : `` ),
+    // résultat mis en évidence (fond gris sans dièse → rgb)
+    `\\(\\overrightarrow{AB}${fmtVecLaNum(ABu,ABv)}\\)`
+  ].filter(Boolean);
+
+  const DC_lines = [
+    `\\(\\overrightarrow{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
+    `\\(\\overrightarrow{DC}${DC_sub}\\)` +
+      ( (D.a<0||D.b<0) ? `<br>\\(\\overrightarrow{DC}${colVecExpr(minusExprSimplified(C.a,D.a), minusExprSimplified(C.b,D.b))}\\)` : `` ),
+    `\\(\\overrightarrow{DC}${fmtVecLaNum(DCu,DCv)}\\)`
+  ].filter(Boolean);
+
+  // === Méthode 2 — Milieux des diagonales : M milieu de AC, N milieu de BD ==
+  function midSteps(P,Q,letter){
+    const sx = P.a + Q.a, sy = P.b + Q.b;
+    const fracx0 = `\\dfrac{${sx}}{2}`, fracy0 = `\\dfrac{${sy}}{2}`;
+    const rx = R(sx,2), ry = R(sy,2);
+    const fracx = (rx.q===1) ? String(rx.p) : `\\dfrac{${rx.p}}{${rx.q}}`;
+    const fracy = (ry.q===1) ? String(ry.p) : `\\dfrac{${ry.p}}{${ry.q}}`;
+
+    const L = [];
+    L.push(`\\(\\text{Soit } ${letter} \\text{ le milieu de }[${'A'===letter||'C'===letter?'AC':'BD'}],\\)`);
+    // formule
+    L.push(`\\(${letter}\\Big(\\dfrac{x_{${letter==='M'?'A':'B'}}+x_{${letter==='M'?'C':'D'}}}{2}\\;;\\;\\dfrac{y_{${letter==='M'?'A':'B'}}+y_{${letter==='M'?'C':'D'}}}{2}\\Big)\\)`);
+    // substitution brute a+b sur 2
+    L.push(`\\(${letter}\\Big(\\dfrac{${plusExpr(P.a,Q.a)}}{2}\\;;\\;\\dfrac{${plusExpr(P.b,Q.b)}}{2}\\Big)\\)`);
+    // si besoin, étape "+(-n) → - n"
+    if (Q.a<0 || Q.b<0){
+      L.push(`\\(${letter}\\Big(\\dfrac{${plusExprSimplified(P.a,Q.a)}}{2}\\;;\\;\\dfrac{${plusExprSimplified(P.b,Q.b)}}{2}\\Big)\\)`);
+    }
+    // écriture fractionnaire non réduite
+    L.push(`\\(${letter}\\Big(${fracx0}\\;;\\;${fracy0}\\Big)\\)`);
+    // réduction (ou entiers)
+    if (!(fracx===fracx0 && fracy===fracy0)){
+      L.push(`\\(${letter}\\Big(${fracx}\\;;\\;${fracy}\\Big)\\)`);
+    }
+    return L;
+  }
+
+  const M_lines = midSteps(A,C,'M');  // milieu de AC
+  const N_lines = midSteps(B,D,'N');  // milieu de BD
+
+  // === Assemblage : tableau 2 colonnes avec bordure comme sur le screen =====
+function paras(list){
+  let html = '';
+  for (const s of list) html += `<p>${s}</p>`;
+  return html;
+}
+
+const colLeft = `
+  <div style="font-weight:700;text-decoration:underline;margin-bottom:6px">
+    1<sup>ère</sup> méthode : Égalité de vecteurs
+  </div>
+  <table class="tbl3" style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">
+        ${paras(AB_lines)}
+      </td>
+      <td style="padding-left:10px;vertical-align:top">
+        ${paras(DC_lines)}
+      </td>
+    </tr>
+  </table>
+  <p>\\(\\overrightarrow{AB}=\\overrightarrow{DC}\\) ainsi \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>
+`;
+
+const colRight = `
+  <div style="font-weight:700;text-decoration:underline;margin-bottom:6px">
+    2<sup>ème</sup> méthode : Milieux des diagonales
+  </div>
+  <table class="tbl3" style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">
+        ${paras(M_lines)}
+      </td>
+      <td style="padding-left:10px;vertical-align:top">
+        ${paras(N_lines)}
+      </td>
+    </tr>
+  </table>
+  <p>Les points \\(M\\) et \\(N\\) sont confondus, donc les diagonales du quadrilatère \\(ABCD\\) se coupent en leur milieu, ainsi \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>
+`;
+
+
+ const sketch = makeParallelogramSVG();
+
+setStepsHTML(`
+  <div class="center" >
+    ${sketch}
+  </div>
+  <div style="border:1px solid #000;padding:8px">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="width:50%;border-right:1px solid #000;padding:8px;vertical-align:top">${colLeft}</td>
+        <td style="width:50%;padding:8px;vertical-align:top">${colRight}</td>
+      </tr>
+    </table>
+  </div>
+`);
+retypeset(HOST);
+
+  retypeset(HOST);
+}
+
+},
+
+
+ /* e4 — Distance AB */
+  e4:{
+    name:"Distance AB",
+    lead:"Répondre en entier ou avec une racine.",
+    gen(){
+      let A,B,dx,dy,d2, ok=false;
+      while(!ok){
+        A=randPointNum(-4,4); B=randPointNum(-4,4,[A]);
+        dx=B.a-A.a; dy=B.b-A.b; d2=dx*dx+dy*dy; ok=d2>0;
+      }
+      this.state={A,B,dx,dy,d2};
+      setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+              <p>Calculer la distance \\(AB\\).</p>`);
+    },
+verify(){
+  const {dx,dy}=this.state;
+  const d2 = dx*dx + dy*dy;
+  const expect = Math.sqrt(d2);
+  const raw = ($('#ans',HOST).value||'').trim();
+
+  // normalisation simple
+  const canon = s => String(s).replace(/\u2212/g,'-').replace(/,/g,'.').trim();
+
+  // évalue en autorisant rac(), sqrt(), √() (√n ou √(n))
+  function evalMaybeSqrt(s){
+    let t = canon(s);
+    t = t
+      .replace(/rac\s*\(\s*([^()]+)\s*\)/gi, 'Math.sqrt($1)')
+      .replace(/sqrt\s*\(\s*([^()]+)\s*\)/gi, 'Math.sqrt($1)')
+      .replace(/√\s*\(\s*([^()]+)\s*\)/g,     'Math.sqrt($1)')
+      .replace(/√\s*([0-9]+(?:\.[0-9]+)?)/g,  'Math.sqrt($1)'); // √49 -> Math.sqrt(49)
+    try{ return Number(Function('return ('+t+')')()); }catch{ return NaN; }
+  }
+
+  // détecte explicitement "rac(d2)" / "sqrt(d2)" / "√d2" (exact radicande)
+  function isExactRootOfD2(s){
+    const t = canon(s).replace(/\s+/g,'');
+    const m =
+      t.match(/^rac\(([-+]?\d+(?:\.\d+)?)\)$/i) ||
+      t.match(/^sqrt\(([-+]?\d+(?:\.\d+)?)\)$/i) ||
+      t.match(/^√\(([-+]?\d+(?:\.\d+)?)\)$/)     ||
+      t.match(/^√([-+]?\d+(?:\.\d+)?)$/);
+    return !!(m && Math.abs(Number(m[1]) - d2) < 1e-9);
+  }
+
+  const val = evalMaybeSqrt(raw);
+  const ok  = (isFinite(val) && Math.abs(val - expect) < 1e-6) || isExactRootOfD2(raw);
+
+  if(!ok){
+    if (Number.isInteger(expect)){
+      setFB(false, `Attendu : ${expect} ou \\(\\sqrt{${d2}}\\) (rac(${d2}), sqrt(${d2}) ou √${d2}).`);
+    } else {
+      setFB(false, `Attendu : \\(\\sqrt{${d2}}\\) (rac(${d2}), sqrt(${d2}) ou √${d2}).`);
+    }
+    retypeset(HOST);
+  } else {
+    setFB(true,'');
+  }
+  return ok;
+}
+,
+   solution(){
+  const {A,B,dx,dy,d2}=this.state;
+
+  // Préparations pour la colonne gauche
+  const innerX    = minusExpr(B.a,A.a);
+  const innerY    = minusExpr(B.b,A.b);
+  const innerXFix = minusExprSimplified(B.a,A.a);
+  const innerYFix = minusExprSimplified(B.b,A.b);
+  const needFix   = (A.a<0 || A.b<0);
+  const powSum    = `${dx*dx}+${dy*dy}`;
+  const lastLine  = Number.isInteger(Math.sqrt(d2)) ? `${Math.sqrt(d2)}` : `\\sqrt{${d2}}`;
+  const isPerfect = Number.isInteger(Math.sqrt(d2));     // ⬅️ carré parfait ?
+
+  // ----- Colonne 1 : Formule de la distance (ajout de la ligne (dx)^2+(dy)^2) -----
+  const L = [];
+  L.push(`\\(AB=\\sqrt{(x_B-x_A)^2+(y_B-y_A)^2}\\)`);
+  L.push(`\\(AB=\\sqrt{(${innerX})^2+(${innerY})^2}\\)`);
+  if (needFix){
+    L.push(`\\(AB=\\sqrt{(${innerXFix})^2+(${innerYFix})^2}\\)`);
+  }
+  // ⬇️ NOUVELLE LIGNE demandée : dx, dy numériques au carré
+L.push(`\\(AB=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`);
+  L.push(`\\(AB=\\sqrt{${powSum}}\\)`);
+    if (isPerfect){
+    L.push(`\\(AB=\\sqrt{${d2}}\\)`);
+  }
+  L.push(`\\(AB=${lastLine}\\)`);
+
+  let leftHTML = `
+    <div class="box">
+      <p><strong>Formule de la distance</strong></p>
+  `;
+  for (const s of L){ leftHTML += `<p>${s}</p>`; }
+  leftHTML += `</div>`;
+
+  // ----- Colonne 2 : Norme d’un vecteur (ajout de la même ligne) -----
+  const AB_sub   = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+  const AB_fix   = colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b));
+  const AB_final = fmtVecLaNum(dx,dy);
+
+  let rightHTML = `
+    <div class="box">
+      <p><strong>Norme d’un vecteur</strong></p>
+	       <p>\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\) </p>
+
+      <p>\\(\\overrightarrow{AB}${AB_fix}\\)</p>
+  `;
+  rightHTML += `
+      <p>\\(\\overrightarrow{AB}${AB_final}\\)</p>
+
+  `;
+
+  // ⬇️ NOUVELLE LIGNE demandée : dx, dy numériques au carré
+  rightHTML += `
+  <p>\\(AB=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)</p>
+  <p>\\(AB=\\sqrt{${powSum}}\\)</p>
+ 
+  `;
+  
+
+  // ⬇️ NOUVELLE LIGNE : AB = rac(d2) si carré parfait
+  if (isPerfect){
+    rightHTML += `<p>\\(AB=\\sqrt{${d2}}\\)</p>`;
+  }
+  rightHTML += `
+      <p>\\(AB=${lastLine}\\)</p>
+    </div>
+  `;
+
+  // ----- Tableau 2 colonnes -----
+  const html = `
+    <table class="tbl-invis">
+      <tr>
+        <td>${leftHTML}</td>
+        <td>${rightHTML}</td>
+      </tr>
+    </table>
+  `;
+  setStepsHTML(html);
+  retypeset(HOST);
+}
+
+  },
+/* e5 — Nature d’un triangle (coordonnées) */
+e5:{ name:"Nature d’un triangle",
+  lead:"Répondre : « quelconque », « équilatéral », « isocèle », « rectangle », « isocèle rectangle ». ",
+gen(){
+  const MIN=-6, MAX=6;
+
+  // --- Pondérations demandées ---
+  // 10% quelconques
+  // 25% rectangle uniquement
+  // 25% isocèle uniquement
+  // 15% équilatérale  ⟶ impossible en entiers (réalloué ci-dessous)
+  // 35% isocèle rectangle
+  //
+  // Choix de réallocation : on verse les 15% "équilatérale"
+  // vers "isocèle rectangle" (donc 50% au total).
+  const r = Math.random();
+  let kind;
+  if (r < 0.10)                    kind = 'scalene';          // 10%
+  else if (r < 0.10 + 0.25)        kind = 'right_only';       // 25%
+  else if (r < 0.10 + 0.25 + 0.25) kind = 'iso_only';         // 25%
+  else                             kind = 'iso_right';        // 40% + 10% (=50%)
+
+  let A,B,C;
+  if (kind==='iso_right'){ ({A,B,C}=genIsoRight(MIN,MAX)); }
+  else if (kind==='right_only'){ ({A,B,C}=genRightOnly(MIN,MAX)); }
+  else if (kind==='iso_only'){ ({A,B,C}=genIsoOnly(MIN,MAX)); }
+  else { ({A,B,C}=genScaleneGeneric(MIN,MAX)); }
+
+  // Sûreté de type (pas d’équilatéral en entiers de toute façon)
+  // et absence d’alignement.
+  if ( (B.a-A.a)*(C.b-A.b)-(B.b-A.b)*(C.a-A.a)===0 ){
+    return this.gen(); // régénère si dégénéré
+  }
+
+  this.state={A,B,C};
+  setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\) et \\(C${fmtPtLaNum(C)}\\).</p>
+          <p>Donner la nature du triangle \\(ABC\\).</p>`);
+},
+
+verify(){
+  const raw = ($('#ans',HOST).value||'').toLowerCase()
+               .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const s = raw.replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+
+  // ----- helpers géométrie
+  const {A,B,C}=this.state;
+  const d2 = (P,Q)=>{ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; };
+  const AB2=d2(A,B), AC2=d2(A,C), BC2=d2(B,C);
+
+  // isocèle : quel sommet ?
+  let isoAt = '';
+  if (AB2===AC2) isoAt='A';
+  else if (AC2===BC2) isoAt='C';
+  else if (AB2===BC2) isoAt='B';
+
+  // rectangle : via le plus grand côté
+  const triples=[
+    {name:'AB',val:AB2,sum:AC2+BC2,rectAt:'C'},
+    {name:'AC',val:AC2,sum:AB2+BC2,rectAt:'B'},
+    {name:'BC',val:BC2,sum:AB2+AC2,rectAt:'A'},
+  ];
+  let idx=0; if(triples[1].val>triples[idx].val) idx=1; if(triples[2].val>triples[idx].val) idx=2;
+  const BIG=triples[idx];
+  const isRect = (BIG.val===BIG.sum);
+  const rectAt = isRect ? BIG.rectAt : '';
+
+  // nature attendue
+  let expected;
+  if (isRect && isoAt) expected = 'isocele rectangle';
+  else if (isRect)     expected = 'rectangle';
+  else if (isoAt)      expected = 'isocele';
+  else                 expected = 'quelconque';
+
+  // ----- parsing tolérant de la réponse
+  const hasIso  = /\biso(c|s)?(o|0)?(c|s)?ele?\b/.test(s) || /\biso\b/.test(s);
+  const hasRect = /\brect(ang(le)?)?\b/.test(s) || /\brect\b/.test(s);
+  const hasQuel = /\bquelconque\b/.test(s);
+  const hasEqui = /\bequilater(al)?e?\b/.test(s); // accepté mais jamais la bonne réponse ici
+
+  let answer = '';
+  if (hasIso && hasRect) answer = 'isocele rectangle';
+  else if (hasRect)      answer = 'rectangle';
+  else if (hasIso)       answer = 'isocele';
+  else if (hasQuel)      answer = 'quelconque';
+  else if (hasEqui)      answer = 'equilateral';
+
+  if (!answer){
+    setFB(false, `Tape la nature (ex. « isocèle », « rectangle », « isocèle rectangle », « quelconque »).`);
+    return false;
+  }
+
+  const ok = (answer === expected);
+
+  // ----- feedback explicatif (sommet(s) précisés)
+  if (ok){
+    let extra = '';
+    if (expected === 'rectangle') extra = ` (en \\(${rectAt}\\))`;
+    if (expected === 'isocele')   extra = ` (en \\(${isoAt}\\))`;
+    if (expected === 'isocele rectangle') extra = ` (rectangle en \\(${rectAt}\\), isocèle en \\(${isoAt}\\))`;
+    setFB(true, `C’est bon : ${expected}${extra}.`); retypeset(HOST);
+  }else{
+    let expTxt = expected;
+    if (expected === 'rectangle') expTxt += ` (en \\(${rectAt}\\))`;
+    if (expected === 'isocele')   expTxt += ` (en \\(${isoAt}\\))`;
+    if (expected === 'isocele rectangle') expTxt += ` (rectangle en \\(${rectAt}\\), isocèle en \\(${isoAt}\\))`;
+    setFB(false, `Attendu : ${expTxt}.`); retypeset(HOST);
+  }
+
+  return ok;
+}
+,
+ solution(){
+  const {A,B,C}=this.state;
+
+  function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+  const AB2=d2(A,B), AC2=d2(A,C), BC2=d2(B,C);
+
+  function lineLen(P,Q,name){
+    const sx = minusExpr(Q.a, P.a);
+    const sy = minusExpr(Q.b, P.b);
+    const sxFix = minusExprSimplified(Q.a, P.a);
+    const syFix = minusExprSimplified(Q.b, P.b);
+    const dx=Q.a-P.a, dy=Q.b-P.b, S=dx*dx+dy*dy;
+    const perfect = Number.isInteger(Math.sqrt(S));
+
+    const rows = [
+      `\\(${name}=\\sqrt{(x_${name[1]}-x_${name[0]})^2+(y_${name[1]}-y_${name[0]})^2}\\)`,
+      `\\(${name}=\\sqrt{(${sxFix})^2+(${syFix})^2}\\)`,
+      `\\(${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
+      `\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`
+    ];
+
+    if (perfect){
+      rows.push(`\\(${name}=\\sqrt{${S}}\\)`);      // avant-dernière (ex. √25)
+      rows.push(`\\(${name}=${Math.sqrt(S)}\\)`);   // dernière (ex. 5)
+    } else {
+      rows.push(`\\(${name}=\\sqrt{${S}}\\)`);      // dernière si non parfait
+    }
+
+    return rows.map(L=>`<p>${L}</p>`).join('');
+  }
+
+  const colAB = lineLen(A,B,'AB');
+  const colAC = lineLen(A,C,'AC');
+  const colBC = lineLen(B,C,'BC');
+
+  // 1) Tableau des trois distances
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAB}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAC}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colBC}</td>
+      </tr>
+    </table>`
+  );
+
+  // 2) Test isocèle – exactement comme demandé
+  let isoAt = '';
+  let isoLine = '';
+  if (AB2===AC2){ isoAt='A'; isoLine=`\\(AB=AC\\) : <strong>isocèle en \\(A\\)</strong>.`; }
+  else if (AC2===BC2){ isoAt='C'; isoLine=`\\(AC=BC\\) : <strong>isocèle en \\(C\\)</strong>.`; }
+  else if (AB2===BC2){ isoAt='B'; isoLine=`\\(AB=BC\\) : <strong>isocèle en \\(B\\)</strong>.`; }
+  else { isoLine=`\\(AB \\neq AC \\neq BC\\) : le triangle \\(ABC\\) n’est <strong>ni isocèle, ni équilatéral</strong>.`; }
+  setStepsHTML($('#res',HOST).innerHTML + `<p>${isoLine}</p>`);
+
+  // 3) Pythagore (réciproque/contraposée) en prenant le plus grand carré
+  const triples=[
+    {name:'AB',val:AB2,sum:AC2+BC2,sumNames:'AC^2 + BC^2',rectAt:'C',add1:AC2,add2:BC2},
+    {name:'AC',val:AC2,sum:AB2+BC2,sumNames:'AB^2 + BC^2',rectAt:'B',add1:AB2,add2:BC2},
+    {name:'BC',val:BC2,sum:AB2+AC2,sumNames:'AB^2 + AC^2',rectAt:'A',add1:AB2,add2:AC2},
+  ];
+  let idx=0; if(triples[1].val>triples[idx].val) idx=1; if(triples[2].val>triples[idx].val) idx=2;
+  const BIG=triples[idx];
+
+  const bigLine = `\\(${BIG.name}^2 = ${BIG.val}\\)`;
+  const sumLine = `\\(${BIG.sumNames} = ${BIG.add1} + ${BIG.add2} = ${BIG.sum}\\)`;
+  const eqPyth = (BIG.val===BIG.sum);
+  const pythText = eqPyth
+    ? `On remarque que \\(${BIG.name}^2 = ${BIG.sumNames}\\) donc d’après la <strong>réciproque</strong> du théorème de Pythagore, le triangle \\(ABC\\) est <strong>rectangle en \\(${BIG.rectAt}\\)</strong>.`
+    : `De plus on remarque que \\(${BIG.name}^2 \\ne ${BIG.sumNames}\\) donc d’après la <strong>contraposée</strong> du théorème de Pythagore, le triangle \\(ABC\\) n’est <strong>pas rectangle</strong>.`;
+
+  setStepsHTML($('#res',HOST).innerHTML + `<p>${bigLine}</p><p>${sumLine}</p><p>${pythText}</p>`);
+
+  // 4) Conclusion finale
+  let nature;
+  if (eqPyth && isoAt){ nature = `isocèle et rectangle en \\(${BIG.rectAt}\\)`; }
+  else if (eqPyth){ nature = `rectangle en \\(${BIG.rectAt}\\)`; }
+  else if (isoAt){ nature = `isocèle en \\(${isoAt}\\)`; }
+  else { nature = 'quelconque'; }
+
+  setStepsHTML($('#res',HOST).innerHTML + `<p><strong>Conclusion :</strong> le triangle \\(ABC\\) est <strong>${nature}</strong>.</p>`);
+}
+
+},
+
+/* e6 — Cercle de centre Ω (coordonnées) */
+e6:{ name:"Cercle",
+  lead:"Donner la valeur du rayon dans réponse",
+  gen(){
+    // On positionne Ω, puis A et B à la même distance de Ω
+    const O = randPointNum(-4,4);
+    const base = [[1,0],[0,1],[2,0],[0,2],[3,4],[4,3]][randInt(0,5)];
+    const s1 = Math.random()<.5?-1:1, s2 = Math.random()<.5?-1:1;
+    const A = {a:O.a + s1*base[0], b:O.b + s1*base[1]};
+    const B = {a:O.a + s2*base[1], b:O.b + s2*base[0]};
+    this.state={O,A,B};
+    setEqu(`<p>On considère \\(\\Omega${fmtPtLaNum(O)}\\), \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+            <p>Démontrer que \\(A\\) et \\(B\\) sont sur un même cercle de centre \\(\\Omega\\) et déterminer son rayon.</p>`);
+  },
+  verify(){
+    const {O,A}=this.state;
+    const dx=A.a-O.a, dy=A.b-O.b, r=Math.sqrt(dx*dx+dy*dy);
+    const s = ($('#ans',HOST).value||'').replace(',','.');
+    let v; try{ v=Function('return ('+s.replace(/√\s*\(([^()]+)\)/g,'Math.sqrt($1)').replace(/√\s*([0-9.]+)/g,'Math.sqrt($1)')+')')(); }catch{ v=NaN; }
+    const ok = isFinite(v) && Math.abs(v-r)<1e-6;
+    setFB(ok, ok?``:`Indique juste la valeur du rayon (ex. 5 ou √13).`);
+    return ok;
+  },
+solution(){
+  const {O,A,B}=this.state;
+
+  function bloc(P,name){
+    const sx = minusExpr(P.a, O.a);               // ex: 3-(-2)
+    const sy = minusExpr(P.b, O.b);
+    const sxFix = minusExprSimplified(P.a, O.a);  // ex: 3+2
+    const syFix = minusExprSimplified(P.b, O.b);
+    const dx = P.a - O.a;                         // valeurs numériques
+    const dy = P.b - O.b;
+    const S  = dx*dx + dy*dy;
+    const perfect = Number.isInteger(Math.sqrt(S));
+
+    const lines = [
+      // 1) Coordonnées du vecteur (4 niveaux)      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr('x_'+name+'-x_\\Omega','y_'+name+'-y_\\Omega')}\\)`,      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr(sxFix, syFix)}\\)`,      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr(dx, dy)}\\)`,
+
+      // 2) Norme : toutes les étapes comme e5
+      `\\(\\Omega ${name}=\\sqrt{(x_${name}-x_\\Omega)^2+(y_${name}-y_\\Omega)^2}\\)`,
+	        `\\(\\Omega ${name}=\\sqrt{(${sxFix})^2+(${syFix})^2}\\)`,
+
+      `\\(\\Omega ${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
+      `\\(\\Omega ${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`
+    ];
+
+    // Avant-dernière ligne : √(S), puis l’entier si carré parfait
+    if (perfect){
+      lines.push(`\\(\\Omega ${name}=\\sqrt{${S}}\\)`);
+      lines.push(`\\(\\Omega ${name}=${Math.sqrt(S)}\\)`);
+    } else {
+      lines.push(`\\(\\Omega ${name}=\\sqrt{${S}}\\)`);
+    }
+
+    return lines.map(L=>`<p>${L}</p>`).join('');
+  }
+
+  const left  = bloc(A,'A');
+  const right = bloc(B,'B');
+const dx=A.a-O.a, dy=A.b-O.b, r2=dx*dx+dy*dy;
+const rLine = `\\(r=${Math.sqrt(r2)}\\)`;
+
+
+
+  setStepsHTML(
+    `<table style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="border:none;vertical-align:top;padding:6px;">${left}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right}</td>
+      </tr>
+    </table>
+    <p>On obtient \\(\\Omega A=\\Omega B\\). Donc \\(A\\) et \\(B\\) appartiennent au cercle de centre \\(\\Omega\\). Le rayon vaut ${rLine}.</p>`
+  );
+}
+
+},
+
+
+};
+
+/* === Adapter pour le kit PDF (identique à avant) === */
+const REGISTRY_ARRAY = Object.entries(REGISTRY_MAP).map(([id, cfg]) => ({
+  id,
+  title: (cfg.name || id).replace(/\\\\/g,'\\'),
+  gen(){ return { n: Math.random() }; }
+}));
+if (typeof window !== 'undefined') window.REGISTRY = REGISTRY_ARRAY;
+
+
+// PDF-only — resserre *pmatrix* en array compact
+// PDF-only — compacte les vecteurs-colonne sans toucher l'écran
+function tightenVectorsForPDF(html){
+  if(!html) return html;
+
+  // (a)  \begin{pmatrix} ... \end{pmatrix}  ->  ( array{c} ) + espaces négatifs
+  html = html.replace(
+    /\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g,
+    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+  );
+
+  // (b)  \left( \begin{array}{c} ... \end{array} \right)  -> ajoute \! et réduit arraycolsep
+  html = html.replace(
+    /\\left\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\\right\)/g,
+    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+  );
+
+  // (c)  versions sans \left...\right (rare) : ( array{c} ) → ajoute \!
+  html = html.replace(
+    /\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\)/g,
+    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+  );
+
+  // (d)  \pmatrix{…} macro éventuelle
+  html = html.replace(
+    /\\pmatrix\{([\s\S]*?)\}/g,
+    (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+  );
+
+  return html;
+}
+
+
+
+
+
+/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
+/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
+window.buildOneForPDFSync = function(defId){
+  window.__PDF_BUILDING = true;           // ⬅️ démarre la zone neutre
+
+  try {
+    const cfg = REGISTRY_MAP[defId];
+    if (!cfg) return { statement:'', solution:'' };
+
+    const host   = document.querySelector('#host');
+    const backup = host ? host.innerHTML : '';
+
+    if (host) mountHost();
+    document.querySelector('#lead').innerHTML = cfg.lead || '';
+
+    // ⬇️ on génère l’écran, mais retypeset() s’auto-désactivera grâce au flag
+    cfg.gen.call(cfg);
+
+
+  // --- Restaure pour l’écran ---
+
+
+  
+
+  // ---- 2) Énoncé texte (écran)
+  const equHTML = (document.querySelector('#equ')||{}).innerHTML || '';
+
+  // Énoncé final : grille 2 colonnes si on a un repère, sinon texte seul
+  const statement = equHTML;
+
+  // ---- 3) Correction (écran)
+const _oldRetypeset2 = window.retypeset;
+  const _oldMJ2        = window.MJ;
+  window.retypeset = function(){};
+  window.MJ        = function(){};
+  cfg.solution.call(cfg);
+  
+  // ---- Après cfg.solution.call(cfg); (et avant le restore) ----
+
+
+
+// 2.2) Récupérer le HTML texte de la correction
+const corrigeTexteHTML = (document.querySelector('#res')||{}).innerHTML || '';
+
+// 2.3) Composer la *correction* pour le PDF : repère + texte
+const solution = corrigeTexteHTML;
+
+  
+  
+  window.retypeset = _oldRetypeset2;
+  window.MJ        = _oldMJ2;
+
+  if (host) host.innerHTML = backup;
+
+  // ---- 4) PDF-only : resserrer les pmatrix via TeX (espace interne)
+  function tightenVectorsForPDF(html){
+    if(!html) return html;
+    // pmatrix -> array{c} + espaces négatifs
+    html = html.replace(
+      /\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // \left( \begin{array}{c} ... \end{array} \right) -> ajoute \!
+    html = html.replace(
+      /\\left\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\\right\)/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // versions sans \left...\right
+    html = html.replace(
+      /\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\)/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // \pmatrix{…}
+    html = html.replace(
+      /\\pmatrix\{([\s\S]*?)\}/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    return html;
+  }
+
+  const statementTight = statement;
+  const solutionTight  = solution;
+  
+ function stripCHTML(html){
+  if(!html) return html;
+  return html
+     .replace(/<mjx-container[\s\S]*?<\/mjx-container>/g, (m)=>{
+       // On essaie de récupérer le TeX source si MathJax l’a laissé en data-tex,
+       // sinon on supprime (on n’en veut pas dans le PDF SVG).
+       const tex = m.match(/data-tex="([^"]+)"/);
+       return tex ? `\\(${tex[1]}\\)` : '';
+     });
+ }
+ const statementClean = stripCHTML(statementTight);
+ const solutionClean  = stripCHTML(solutionTight);
+
+  // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
+    return {
+      statement: `<div class="vec-tight">${statementTight||''}</div>`,
+      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
+    };
+  } finally {
+    window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
+  }
+};
+
+
+
+
+/* ======== UI fil rouge ======== */
+(function(){
+  'use strict';
+  function whenReady(cb){ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cb, { once:true }); else cb(); }
+  whenReady(function init(){
+    const sel = document.querySelector('#exo-select');
+    sel.innerHTML = Object.entries(REGISTRY_MAP).map(([k,v]) => `<option value="${k}">${(v.name||'').replace(/\\\\/g,'\\')}</option>`).join('');
+    let ACTIVE = sel.value || Object.keys(REGISTRY_MAP)[0];
+
+    let SCORE_OK = 0, SCORE_TOT = 0;
+    function updateScore(){ document.querySelector('#score').textContent = `${SCORE_OK} / ${SCORE_TOT}`; }
+  
+
+
+
+  function buildOne(){
+
+  mountHost(); // injecte le layout par défaut avec #ans
+  const cfg = REGISTRY_MAP[ACTIVE];
+
+  // lead
+  document.querySelector('#lead').innerHTML = cfg.lead || '';
+
+  // éléments optionnels (#ans existe pour e1/e2, mais pas pour e3/ex4)
+  const ansEl = $('#ans', HOST);
+  const fbEl  = $('#fb', HOST);
+  const resEl = $('#res', HOST);
+
+  if (ansEl){
+    ansEl.value = '';
+    ansEl.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        $('#btn-check')?.click();
+      }
+    });
+  }
+  if (fbEl)  fbEl.textContent = '';
+  if (resEl) resEl.innerHTML  = '';
+
+  // génère l'exo (peut remplacer entièrement le host, ex. e3/ex4)
+  cfg.gen.call(cfg);
+
+
+
+
+  // (re)typeset
+  retypeset();
+
+}
+// 1) Changer de type => on met à jour ACTIVE et on (re)génère
+sel.addEventListener('change', () => { ACTIVE = sel.value; buildOne(); });
+
+// 2) Générer le tout une première fois au chargement
+buildOne();
+
+    document.querySelector('#btn-new').addEventListener('click', buildOne);
+document.querySelector('#btn-reset').addEventListener('click', ()=>{
+  const a=$('#ans',HOST); if(a) a.value='';
+  document.querySelectorAll('.colvec input').forEach(i=> i.value=''); // ⬅️ AJOUT
+  const f=$('#fb',HOST); if(f) f.textContent='';
+  const r=$('#res',HOST); if(r) r.innerHTML='';
+});
+    document.querySelector('#btn-check').addEventListener('click', ()=>{ SCORE_TOT++; const ok = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE])===true; if(ok) SCORE_OK++; updateScore(); });
+    document.querySelector('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
+})
+})();
+
+/* ======== Adaptateur PDF (SVG) — inchangé, conserve exactement #res ======== */
+(function(){
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+    ExoPDF.init({
+      title: document.title,
+      mountAfterSelector: '#host',
+      beforeGen(){ return {}; },
+      beforeRender(def, _st, withSolutions){
+        return (async () => {
+          const defId = def?.id || '';
+          const label = (window.REGISTRY_MAP?.[defId]?.name || defId || '').replace(/\\\\/g,'\\');
+          const fab = (typeof window.buildOneForPDFSync==='function') ? window.buildOneForPDFSync : (_)=>({statement:'',solution:''});
+          const { statement, solution } = fab(defId);
+// --- PDF-only: resserre les parenthèses des vecteurs-colonne ---
+function tightenVectorsForPDF(html){
+  if(!html) return html;
+  // 1) diminue l'espace colonne dans les array (équivalent \arraycolsep)
+  html = html.replace(/\\begin\{array\}\{c\}/g, '{\\arraycolsep=1.5pt\\begin{array}{c}');
+  // 2) colle les grandes parenthèses à la matrice (\left( ... \right))
+  //    (sans toucher le reste du doc)
+  html = html
+    .replace(/\\left\(\s*\\begin\{array\}\{c\}/g, '\\left(\\mkern-6mu\\begin{array}{c}')
+    .replace(/\\end\{array\}\s*\\right\)/g, '\\end{array}\\mkern-6mu\\right)');
+  return html;
+}
+
+const statementTight = tightenVectorsForPDF(statement);
+const solutionTight  = tightenVectorsForPDF(solution);
+
+          const htmlIn =
+  `<div class="exo-block">
+     <span class="exo-title">Exercice</span>
+     <div class="exo-statement">${statementTight||''}</div>
+   </div>` +
+  (withSolutions
+    ? `<div style="margin-top:1rem;">
+         <div class="exo-block"><div class="steps" id="pdf-steps">
+           <span class="exo-title">Correction</span>
+           <!-- ⬇️ Ajout d’un conteneur .steps pour retrouver la zone grise -->
+           <div class="exo-solution">${solutionTight||''}</div></div>
+         </div>
+       </div>`
+    : '');
+
+
+          const iframe = document.createElement('iframe');
+          Object.assign(iframe.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',visibility:'hidden'});
+          document.body.appendChild(iframe);
+
+          const idoc = iframe.contentDocument;
+          idoc.open(); idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="root"></div></body></html>'); idoc.close();
+          const root = idoc.getElementById('root'); root.innerHTML = htmlIn;
+const css = idoc.createElement('style');
+css.textContent = `
+  :root{
+    --ink:#111; --bg:#fafafa; --card:#fff; --line:#e5e7eb; --muted:#666;
+    --steps-bg:#f3f4f6; --steps-border:#e5e7eb; --steps-left:#9aa0a6;
+  }
+  body{font:16px/1.55 system-ui,Segoe UI,Roboto,Arial;color:var(--ink);}
+  .exo-title{display:block;font-weight:700;margin:0 0 6px}
+  /* ⚙️ Zone grise identique à l’écran (#res.steps) */
+  .steps{
+    background:var(--steps-bg);
+    border:1px solid var(--steps-border);
+    border-left:4px solid var(--steps-left);
+    border-radius:8px;
+    padding:10px;
+    margin:.45rem 0 0 .15rem;
+  }
+  .steps p{margin:.25rem 0}
+  /* Table “e5” compacte */
+  .tbl3{border-collapse:collapse}
+  .tbl3 td{padding:2px 6px;vertical-align:top}
+  
+  /* === Tighten parentheses around column vectors (SVG output) === */
+/* CHTML (au cas où), agit sur les delimiters extensibles */
+.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:first-child { margin-right: -0.18em; }
+.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:last-child  { margin-left:  -0.18em; }
+.vec-tight mjx-mtable mjx-mtd { padding-left: .15em; padding-right: .15em; }
+.vec-tight mjx-mtable > mjx-table { margin-left: 0; margin-right: 0; }
+
+/* SVG : décaler légèrement OPEN/CLOSE pour coller les parenthèses au tableau */
+.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="OPEN"]  { transform: translateX(-0.18em); }
+.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="CLOSE"] { transform: translateX( 0.18em); }
+
+/* Ajustement global très léger si besoin (peut être mis à 0 si tu préfères) */
+.vec-tight svg[aria-hidden="true"] { margin-left:-0.10em; margin-right:-0.10em; }
+/* --- Anti "barres noires" MathJax (PDF) --- */
+.exo-statement,
+.exo-solution { color:#111 !important; background:transparent !important; }
+
+/* Cas CHTML (au cas où) */
+mjx-container { color:#111 !important; background:transparent !important; }
+mjx-container svg { overflow:visible !important; }
+mjx-container svg rect,
+mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
+
+/* Cas SVG standalone (ce que tu utilises dans l’iframe) */
+.exo-statement svg path[data-mml-node="mspace"],
+.exo-statement svg path[data-mml-node="mspace"],
+.exo-solution  svg path[data-mml-node="mspace"] { fill: none !important; }
+
+`;
+idoc.head.appendChild(css);
+
+          const cfg = idoc.createElement('script');
+          cfg.text = `
+            window.MathJax = {
+              loader: {load: ['input/tex','output/svg']},
+              tex: { inlineMath: [['\\\\(','\\\\)'], ['$', '$']], displayMath: [['\\\\[','\\\\]'], ['$$','$$']], processEscapes:true, packages:{'[+]':['bbox','ams']} },
+              svg: { fontCache: 'none' },
+              options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+              startup: { typeset: false }
+            };`;
+          idoc.head.appendChild(cfg);
+          const mj = idoc.createElement('script'); mj.src = new URL("../../../../es5/tex-svg.js", window.location.href).href; idoc.head.appendChild(mj);
+          await new Promise(r=>{ mj.onload=r; mj.onerror=r; });
+
+          const iwin = iframe.contentWindow;
+          for (let i=0;i<300 && !(iwin.MathJax && iwin.MathJax.tex2svg); i++) await new Promise(r=>setTimeout(r,10));
+          if (!(iwin.MathJax && iwin.MathJax.tex2svg)){ const out = root.innerHTML; iframe.remove(); return out; }
+
+          const RX_INLINE=/\\\((.+?)\\\)/gs, RX_DISPLAY_BR=/\\\[(.+?)\\\]/gs, RX_DISPLAY_DOLLAR=/\$\$(.+?)\$\$/gs;
+          function texToStandaloneSVG(tex, display){
+            const mjx = iwin.MathJax.tex2svg(tex,{display}); const svg=mjx.querySelector('svg'); if(!svg) return idoc.createTextNode(tex);
+            const out=svg.cloneNode(true); out.setAttribute('xmlns','http://www.w3.org/2000/svg'); out.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink'); out.setAttribute('overflow','visible');
+            out.querySelectorAll('use').forEach(u=>{const h=u.getAttribute('href');const xh=u.getAttribute('xlink:href'); if(h && !xh) u.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href',h); if(xh && !h) u.setAttribute('href',xh);});
+            return out;
+          }
+          function replaceTeXIn(node){
+            const SKIP=new Set(['SCRIPT','STYLE','CODE','PRE']); if(node.nodeType===1 && SKIP.has(node.tagName)) return;
+            const children=[...node.childNodes];
+            for(const ch of children){
+              if(ch.nodeType===Node.TEXT_NODE){
+                const text=ch.nodeValue; if(!text || !/[\\$]/.test(text)) continue;
+                let parts=null;
+                const consume=(re,display)=>{ re.lastIndex=0; let m,last=0,out=[]; while((m=re.exec(text))!==null){ out.push({t:'text',v:text.slice(last,m.index)}); out.push({t:'math',v:m[1],d:display}); last=re.lastIndex; } if(out.length) out.push({t:'text',v:text.slice(last)}); return out.length?out:null; };
+                parts = consume(RX_DISPLAY_DOLLAR,true) || consume(RX_DISPLAY_BR,true) || consume(RX_INLINE,false);
+                if(parts){ for(const p of parts){ if(p.t==='text') ch.parentNode.insertBefore(idoc.createTextNode(p.v),ch); else ch.parentNode.insertBefore(texToStandaloneSVG(p.v,p.d),ch); } ch.parentNode.removeChild(ch); }
+              }else if(ch.nodeType===Node.ELEMENT_NODE){ replaceTeXIn(ch); }
+            }
+          }
+          replaceTeXIn(root);
+          const finalHTML = root.innerHTML; iframe.remove(); return finalHTML;
+        })().catch(err=>{ console.error(err); return htmlIn; });
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>

@@ -894,10 +894,9 @@ mjx-container svg rect,
 mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 
 /* Cas SVG standalone (ce que tu utilises dans l’iframe) */
-.exo-statement svg rect,
 .exo-statement svg path[data-mml-node="mspace"],
-.exo-solution  svg rect,
-.exo-solution  svg path[data-mml-node="mspace"] { fill:none !important; }
+.exo-solution  svg path[data-mml-node="mspace"] { fill: none !important; }
+
 
 </style>
 

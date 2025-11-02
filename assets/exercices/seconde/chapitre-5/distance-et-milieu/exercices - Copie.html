@@ -202,12 +202,6 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
 .pair{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pair .lbl{font-weight:700;min-width:1.6rem}
 
-/* Cacher les sélecteurs et options dans la version PDF */
-@media print {
-  .optionline {
-    display: none !important;
-  }
-}
 
 </style>
 
@@ -595,50 +589,6 @@ function makeParallelogramSVG(){
   </svg>`;
 }
 
-function makeSquareSVG(){
-  // Carré : AB horizontal, AD vertical, mêmes longueurs
-  const A = { x: 40,  y: 160, L: 'A' };
-  const side = 110;
-  const B = { x: A.x + side, y: A.y,         L: 'B' };
-  const D = { x: A.x,         y: A.y - side, L: 'D' };
-  const C = { x: B.x,         y: D.y,        L: 'C' };
-
-  const poly = `${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y} ${D.x},${D.y}`;
-
-  // Étiquettes à l’extérieur
-  const vOut = 12, hOut = 8;
-
-  return `
-  <svg width="320" height="220" viewBox="0 0 320 220"
-       xmlns="http://www.w3.org/2000/svg" aria-label="Carré ABCD">
-    <style>
-      .sq   { fill: none; stroke: #111; stroke-width: 2; }
-      .diag { stroke: #888; stroke-width: 1.5; stroke-dasharray: 5 3; }
-      circle{ fill:#111; }
-      text  { font: 14px/1.4 system-ui,Segoe UI,Roboto,Arial; fill:#111; }
-    </style>
-
-    <!-- Carré ABCD -->
-    <polygon class="sq" points="${poly}"></polygon>
-
-    <!-- Diagonales -->
-    <line class="diag" x1="${A.x}" y1="${A.y}" x2="${C.x}" y2="${C.y}"></line>
-    <line class="diag" x1="${B.x}" y1="${B.y}" x2="${D.x}" y2="${D.y}"></line>
-
-    <!-- Points -->
-    <circle cx="${A.x}" cy="${A.y}" r="3.5"></circle>
-    <circle cx="${B.x}" cy="${B.y}" r="3.5"></circle>
-    <circle cx="${C.x}" cy="${C.y}" r="3.5"></circle>
-    <circle cx="${D.x}" cy="${D.y}" r="3.5"></circle>
-
-    <!-- Étiquettes placées hors de la figure -->
-    <text x="${A.x - hOut}" y="${A.y + vOut}" text-anchor="end"  dominant-baseline="hanging">A</text>
-    <text x="${B.x + hOut}" y="${B.y + vOut}" text-anchor="start" dominant-baseline="hanging">B</text>
-    <text x="${C.x + hOut}" y="${C.y - vOut}" text-anchor="start" dominant-baseline="baseline">C</text>
-    <text x="${D.x - hOut}" y="${D.y - vOut}" text-anchor="end"   dominant-baseline="baseline">D</text>
-  </svg>`;
-}
-
 function powTerm(n){ return (n<0 ? `(${n})` : `${n}`) + `^2`; }
 
 // === Helpers spécifiques pour e5 ==========================================
@@ -1008,7 +958,7 @@ HOST.querySelectorAll('hr.sep').forEach(hr => hr.remove());
     const fracy = (ry.q===1) ? String(ry.p) : `\\dfrac{${ry.p}}{${ry.q}}`;
 
     const L = [];
-L.push(`\\(\\text{Soit } ${letter} \\text{ le milieu de }[${letter==='M'?'AC':'BD'}],\\)`);
+    L.push(`\\(\\text{Soit } ${letter} \\text{ le milieu de }[${'A'===letter||'C'===letter?'AC':'BD'}],\\)`);
     // formule
     L.push(`\\(${letter}\\Big(\\dfrac{x_{${letter==='M'?'A':'B'}}+x_{${letter==='M'?'C':'D'}}}{2}\\;;\\;\\dfrac{y_{${letter==='M'?'A':'B'}}+y_{${letter==='M'?'C':'D'}}}{2}\\Big)\\)`);
     // substitution brute a+b sur 2
@@ -1273,17 +1223,8 @@ gen(){
   }
 
   this.state={A,B,C};
-setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\) et \\(C${fmtPtLaNum(C)}\\).</p>
-        <p>Donner la nature du triangle \\(ABC\\).</p>
-        <div class="optionline" style="margin-top:6px">
-          <label><strong>Calcul des longueurs :</strong></label>
-          <select id="mode-norme">
-            <option value="norme" selected>Avec formule de la norme du vecteur</option>
-            <option value="distance">Avec formule de la distance</option>
-          </select>
-        </div>`);
-
-		  
+  setEqu(`<p>On considère \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\) et \\(C${fmtPtLaNum(C)}\\).</p>
+          <p>Donner la nature du triangle \\(ABC\\).</p>`);
 },
 
 verify(){
@@ -1360,101 +1301,84 @@ verify(){
 ,
  solution(){
   const {A,B,C}=this.state;
-  const modeLen = $('#mode-norme')?.value || 'norme';
 
-  function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; }
-  function powTerm(n){ return (n<0?`(${n})`:`${n}`)+`^2`; }
+  function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; }
+  const AB2=d2(A,B), AC2=d2(A,C), BC2=d2(B,C);
 
-  // Bloc longueur (mêmes détails que e7/e4)
-  function lengthBlock(name, P, Q){
-    const {dx,dy,S} = d2(P,Q);
+  function lineLen(P,Q,name){
+    const sx = minusExpr(Q.a, P.a);
+    const sy = minusExpr(Q.b, P.b);
+    const sxFix = minusExprSimplified(Q.a, P.a);
+    const syFix = minusExprSimplified(Q.b, P.b);
+    const dx=Q.a-P.a, dy=Q.b-P.b, S=dx*dx+dy*dy;
     const perfect = Number.isInteger(Math.sqrt(S));
-    const innerX    = minusExpr(Q.a,P.a);
-    const innerY    = minusExpr(Q.b,P.b);
-    const innerXFix = minusExprSimplified(Q.a,P.a);
-    const innerYFix = minusExprSimplified(Q.b,P.b);
-    const needFix   = (P.a<0 || P.b<0);
 
-    if (modeLen==='distance'){
-      const L = [
-        `\\(${name}=\\sqrt{(x_{${name[1]}}-x_{${name[0]}})^2+(y_{${name[1]}}-y_{${name[0]}})^2}\\)`,
-      ];
-      if (needFix) L.push(`\\(${name}=\\sqrt{(${innerXFix})^2+(${innerYFix})^2}\\)`);
-      L.push(
-        `\\(${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
-        `\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`,
-        `\\(${name}=\\sqrt{${S}}\\)`
-      );
-      if (perfect) L.push(`\\(${name}=${Math.sqrt(S)}\\)`);
-      return L.map(s=>`<p>${s}</p>`).join('');
+    const rows = [
+      `\\(${name}=\\sqrt{(x_${name[1]}-x_${name[0]})^2+(y_${name[1]}-y_${name[0]})^2}\\)`,
+      `\\(${name}=\\sqrt{(${sxFix})^2+(${syFix})^2}\\)`,
+      `\\(${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
+      `\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`
+    ];
+
+    if (perfect){
+      rows.push(`\\(${name}=\\sqrt{${S}}\\)`);      // avant-dernière (ex. √25)
+      rows.push(`\\(${name}=${Math.sqrt(S)}\\)`);   // dernière (ex. 5)
     } else {
-      const Vfix   = colVecExpr(innerXFix, innerYFix);
-      const Vfinal = fmtVecLaNum(dx,dy);
-      const L = [
-        `\\(\\overrightarrow{${name}}${colVecExpr('x_'+name[1]+'-x_'+name[0],'y_'+name[1]+'-y_'+name[0])}\\)`,
-        `\\(\\overrightarrow{${name}}${Vfix}\\)`,
-        `\\(\\overrightarrow{${name}}${Vfinal}\\)`,
-        `\\(${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
-        `\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`,
-        `\\(${name}=\\sqrt{${S}}\\)`
-      ];
-      if (perfect) L.push(`\\(${name}=${Math.sqrt(S)}\\)`);
-      return L.map(s=>`<p>${s}</p>`).join('');
+      rows.push(`\\(${name}=\\sqrt{${S}}\\)`);      // dernière si non parfait
     }
+
+    return rows.map(L=>`<p>${L}</p>`).join('');
   }
 
-  // Tableau 3 colonnes invisible (AB, AC, BC)
-  const colAB = `<div class="box"><p><strong>Calcul de \\(AB\\)</strong></p>${lengthBlock('AB',A,B)}</div>`;
-  const colAC = `<div class="box"><p><strong>Calcul de \\(AC\\)</strong></p>${lengthBlock('AC',A,C)}</div>`;
-  const colBC = `<div class="box"><p><strong>Calcul de \\(BC\\)</strong></p>${lengthBlock('BC',B,C)}</div>`;
+  const colAB = lineLen(A,B,'AB');
+  const colAC = lineLen(A,C,'AC');
+  const colBC = lineLen(B,C,'BC');
 
+  // 1) Tableau des trois distances
   setStepsHTML(
-    `<table style="border-collapse:collapse;width:100%;table-layout:fixed">
+    `<table style="border-collapse:collapse;width:100%;">
       <tr>
-        <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${colAB}</td>
-        <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${colAC}</td>
-        <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${colBC}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAB}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colAC}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${colBC}</td>
       </tr>
     </table>`
   );
 
-  // — Suite inchangée : détermination isocèle / rectangle / etc. —
-  const AB2=d2(A,B).S, AC2=d2(A,C).S, BC2=d2(B,C).S;
-
+  // 2) Test isocèle – exactement comme demandé
   let isoAt = '';
-  if (AB2===AC2) isoAt='A';
-  else if (AC2===BC2) isoAt='C';
-  else if (AB2===BC2) isoAt='B';
-
   let isoLine = '';
-  if (isoAt==='A') isoLine=`\\(AB=AC\\) : <strong>isocèle en \\(A\\)</strong>.`;
-  else if (isoAt==='B') isoLine=`\\(AB=BC\\) : <strong>isocèle en \\(B\\)</strong>.`;
-  else if (isoAt==='C') isoLine=`\\(AC=BC\\) : <strong>isocèle en \\(C\\)</strong>.`;
-  else isoLine=`\\(AB \\neq AC \\neq BC\\) : le triangle \\(ABC\\) n’est <strong>ni isocèle, ni équilatéral</strong>.`;
+  if (AB2===AC2){ isoAt='A'; isoLine=`\\(AB=AC\\) : <strong>isocèle en \\(A\\)</strong>.`; }
+  else if (AC2===BC2){ isoAt='C'; isoLine=`\\(AC=BC\\) : <strong>isocèle en \\(C\\)</strong>.`; }
+  else if (AB2===BC2){ isoAt='B'; isoLine=`\\(AB=BC\\) : <strong>isocèle en \\(B\\)</strong>.`; }
+  else { isoLine=`\\(AB \\neq AC \\neq BC\\) : le triangle \\(ABC\\) n’est <strong>ni isocèle, ni équilatéral</strong>.`; }
   setStepsHTML($('#res',HOST).innerHTML + `<p>${isoLine}</p>`);
 
+  // 3) Pythagore (réciproque/contraposée) en prenant le plus grand carré
   const triples=[
-    {name:'AB',val:AB2,sum:AC2+BC2,sumNames:'AC^2 + BC^2',rectAt:'C'},
-    {name:'AC',val:AC2,sum:AB2+BC2,sumNames:'AB^2 + BC^2',rectAt:'B'},
-    {name:'BC',val:BC2,sum:AB2+AC2,sumNames:'AB^2 + AC^2',rectAt:'A'},
+    {name:'AB',val:AB2,sum:AC2+BC2,sumNames:'AC^2 + BC^2',rectAt:'C',add1:AC2,add2:BC2},
+    {name:'AC',val:AC2,sum:AB2+BC2,sumNames:'AB^2 + BC^2',rectAt:'B',add1:AB2,add2:BC2},
+    {name:'BC',val:BC2,sum:AB2+AC2,sumNames:'AB^2 + AC^2',rectAt:'A',add1:AB2,add2:AC2},
   ];
   let idx=0; if(triples[1].val>triples[idx].val) idx=1; if(triples[2].val>triples[idx].val) idx=2;
   const BIG=triples[idx];
-  const eqPyth = (BIG.val===BIG.sum);
 
   const bigLine = `\\(${BIG.name}^2 = ${BIG.val}\\)`;
-  const sumLine = `\\(${BIG.sumNames} = ${triples[idx===0?1:0].val} + ${triples[idx===2?1:2].val} = ${BIG.sum}\\)`;
+  const sumLine = `\\(${BIG.sumNames} = ${BIG.add1} + ${BIG.add2} = ${BIG.sum}\\)`;
+  const eqPyth = (BIG.val===BIG.sum);
   const pythText = eqPyth
     ? `On remarque que \\(${BIG.name}^2 = ${BIG.sumNames}\\) donc d’après la <strong>réciproque</strong> du théorème de Pythagore, le triangle \\(ABC\\) est <strong>rectangle en \\(${BIG.rectAt}\\)</strong>.`
     : `De plus on remarque que \\(${BIG.name}^2 \\ne ${BIG.sumNames}\\) donc d’après la <strong>contraposée</strong> du théorème de Pythagore, le triangle \\(ABC\\) n’est <strong>pas rectangle</strong>.`;
 
   setStepsHTML($('#res',HOST).innerHTML + `<p>${bigLine}</p><p>${sumLine}</p><p>${pythText}</p>`);
 
+  // 4) Conclusion finale
   let nature;
   if (eqPyth && isoAt){ nature = `isocèle et rectangle en \\(${BIG.rectAt}\\)`; }
   else if (eqPyth){ nature = `rectangle en \\(${BIG.rectAt}\\)`; }
   else if (isoAt){ nature = `isocèle en \\(${isoAt}\\)`; }
   else { nature = 'quelconque'; }
+
   setStepsHTML($('#res',HOST).innerHTML + `<p><strong>Conclusion :</strong> le triangle \\(ABC\\) est <strong>${nature}</strong>.</p>`);
 }
 
@@ -1471,17 +1395,9 @@ e6:{ name:"Cercle",
     const A = {a:O.a + s1*base[0], b:O.b + s1*base[1]};
     const B = {a:O.a + s2*base[1], b:O.b + s2*base[0]};
     this.state={O,A,B};
- setEqu(`<p>On considère \\(\\Omega${fmtPtLaNum(O)}\\), \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
-        <p>Démontrer que \\(A\\) et \\(B\\) sont sur un même cercle de centre \\(\\Omega\\) et déterminer son rayon.</p>
-        <div class="optionline" style="margin-top:6px">
-          <label><strong>Calcul des longueurs :</strong></label>
-          <select id="mode-norme">
-            <option value="norme" selected>Avec formule de la norme du vecteur</option>
-            <option value="distance">Avec formule de la distance</option>
-          </select>
-        </div>`);
-
- },
+    setEqu(`<p>On considère \\(\\Omega${fmtPtLaNum(O)}\\), \\(A${fmtPtLaNum(A)}\\) et \\(B${fmtPtLaNum(B)}\\).</p>
+            <p>Démontrer que \\(A\\) et \\(B\\) sont sur un même cercle de centre \\(\\Omega\\) et déterminer son rayon.</p>`);
+  },
   verify(){
     const {O,A}=this.state;
     const dx=A.a-O.a, dy=A.b-O.b, r=Math.sqrt(dx*dx+dy*dy);
@@ -1493,719 +1409,170 @@ e6:{ name:"Cercle",
   },
 solution(){
   const {O,A,B}=this.state;
-  const modeLen = $('#mode-norme')?.value || 'norme';
 
-  function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; }
-  function powTerm(n){ return (n<0?`(${n})`:`${n}`)+`^2`; }
-
-  function lengthBlockOmega(name, P){ // name = 'A' ou 'B', pour ΩA, ΩB
-    const {dx,dy,S} = d2(O,P);
+  function bloc(P,name){
+    const sx = minusExpr(P.a, O.a);               // ex: 3-(-2)
+    const sy = minusExpr(P.b, O.b);
+    const sxFix = minusExprSimplified(P.a, O.a);  // ex: 3+2
+    const syFix = minusExprSimplified(P.b, O.b);
+    const dx = P.a - O.a;                         // valeurs numériques
+    const dy = P.b - O.b;
+    const S  = dx*dx + dy*dy;
     const perfect = Number.isInteger(Math.sqrt(S));
-    const innerX    = minusExpr(P.a,O.a);
-    const innerY    = minusExpr(P.b,O.b);
-    const innerXFix = minusExprSimplified(P.a,O.a);
-    const innerYFix = minusExprSimplified(P.b,O.b);
 
-    if (modeLen==='distance'){
-      const L = [
-        `\\(\\Omega ${name}=\\sqrt{(x_${name}-x_\\Omega)^2+(y_${name}-y_\\Omega)^2}\\)`,
-      ];
-      // pas besoin de needFix : la forme fixée est toujours correcte et propre
-      L.push(
-        `\\(\\Omega ${name}=\\sqrt{(${innerXFix})^2+(${innerYFix})^2}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${S}}\\)`
-      );
-      if (perfect) L.push(`\\(\\Omega ${name}=${Math.sqrt(S)}\\)`);
-      return L.map(s=>`<p>${s}</p>`).join('');
+    const lines = [
+      // 1) Coordonnées du vecteur (4 niveaux)      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr('x_'+name+'-x_\\Omega','y_'+name+'-y_\\Omega')}\\)`,      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr(sxFix, syFix)}\\)`,      `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr(dx, dy)}\\)`,
+
+      // 2) Norme : toutes les étapes comme e5
+      `\\(\\Omega ${name}=\\sqrt{(x_${name}-x_\\Omega)^2+(y_${name}-y_\\Omega)^2}\\)`,
+	        `\\(\\Omega ${name}=\\sqrt{(${sxFix})^2+(${syFix})^2}\\)`,
+
+      `\\(\\Omega ${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
+      `\\(\\Omega ${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`
+    ];
+
+    // Avant-dernière ligne : √(S), puis l’entier si carré parfait
+    if (perfect){
+      lines.push(`\\(\\Omega ${name}=\\sqrt{${S}}\\)`);
+      lines.push(`\\(\\Omega ${name}=${Math.sqrt(S)}\\)`);
     } else {
-      const Vfix   = colVecExpr(innerXFix, innerYFix);
-      const Vfinal = fmtVecLaNum(dx,dy);
-      const L = [
-        `\\(\\overrightarrow{\\Omega ${name}}${colVecExpr('x_'+name+'-x_\\Omega','y_'+name+'-y_\\Omega')}\\)`,
-        `\\(\\overrightarrow{\\Omega ${name}}${Vfix}\\)`,
-        `\\(\\overrightarrow{\\Omega ${name}}${Vfinal}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`,
-        `\\(\\Omega ${name}=\\sqrt{${S}}\\)`
-      ];
-      if (perfect) L.push(`\\(\\Omega ${name}=${Math.sqrt(S)}\\)`);
-      return L.map(s=>`<p>${s}</p>`).join('');
+      lines.push(`\\(\\Omega ${name}=\\sqrt{${S}}\\)`);
     }
+
+    return lines.map(L=>`<p>${L}</p>`).join('');
   }
 
-  const left  = `<div class="box"><p><strong>Calcul de \\(\\Omega A\\)</strong></p>${lengthBlockOmega('A',A)}</div>`;
-  const right = `<div class="box"><p><strong>Calcul de \\(\\Omega B\\)</strong></p>${lengthBlockOmega('B',B)}</div>`;
+  const left  = bloc(A,'A');
+  const right = bloc(B,'B');
+const dx=A.a-O.a, dy=A.b-O.b, r2=dx*dx+dy*dy;
+const rLine = `\\(r=${Math.sqrt(r2)}\\)`;
 
-  const r2 = d2(O,A).S;
-  const rLine = Number.isInteger(Math.sqrt(r2)) ? `${Math.sqrt(r2)}` : `\\sqrt{${r2}}`;
+
 
   setStepsHTML(
-    `<table style="border-collapse:collapse;width:100%;table-layout:fixed">
+    `<table style="border-collapse:collapse;width:100%;">
       <tr>
-        <td style="width:50%;vertical-align:top;padding:6px;border:none">${left}</td>
-        <td style="width:50%;vertical-align:top;padding:6px;border:none">${right}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${left}</td>
+        <td style="border:none;vertical-align:top;padding:6px;">${right}</td>
       </tr>
     </table>
-    <p>On obtient \\(\\Omega A=\\Omega B\\). Donc \\(A\\) et \\(B\\) appartiennent au cercle de centre \\(\\Omega\\). Le rayon vaut \\(r=${rLine}\\).</p>`
+    <p>On obtient \\(\\Omega A=\\Omega B\\). Donc \\(A\\) et \\(B\\) appartiennent au cercle de centre \\(\\Omega\\). Le rayon vaut ${rLine}.</p>`
   );
-  retypeset(HOST);
 }
-
 
 },
 
 
 /* e7 — Montrer que ABCD est un carré */
-/* e7 — Montrer que ABCD est un carré (sélecteurs + détails niveau ex3/ex4) */
 e7:{
   name:"Montrer que ABCD est un carré",
   gen(){
-    // Génère un carré : u ⟂ v et |u|=|v|
+    // Construction d’un carré : A libre, u=(p,q), v=⊥u et |v|=|u|
     function rint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
     while(true){
       const A = randPointNum(-4,4);
       const p = rint(-3,3), q = rint(-3,3);
       if (p===0 && q===0) continue;
       const u = {x:p,  y:q};
-      const v = {x:-q, y:p};
+      const v = {x:-q, y:p};             // perpendiculaire, même norme
       const B = {a:A.a+u.x, b:A.b+u.y};
       const D = {a:A.a+v.x, b:A.b+v.y};
-      const C = {a:B.a+v.x, b:B.b+v.y};
+      const C = {a:B.a+v.x, b:B.b+v.y};  // A + u + v
       if (!allDistinctPts([A,B,C,D])) continue;
-      this.state = {A,B,C,D};
+      this.state = {A,B,C,D,u,v};
+      setEqu(`
+        <p>Dans un repère orthonormé \\((O,\\,I,\\,J)\\), on considère les points
+          \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
+        <p><strong>Montrer que le quadrilatère \\(ABCD\\) est un carré.</strong></p>
+      `);
+
+      // Exo “rédaction seulement” : on enlève la barre de réponse
+      const ctrl = HOST.querySelector('.controls'); if (ctrl) ctrl.remove();
+      HOST.querySelectorAll('hr.sep').forEach(hr => hr.remove());
       break;
     }
-
-    const {A,B,C,D} = this.state;
-    setEqu(`
-      <p>Dans un repère orthonormé \\((O,\\,I,\\,J)\\), on considère les points
-         \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
-      <p><strong>Montrer que le quadrilatère \\(ABCD\\) est un carré.</strong></p>
-
-      <div class="optionline" style="margin-top:8px">
-        <label><strong>Méthode pour le parallélogramme :</strong></label>
-        <select id="mode-parallelo">
-          <option value="vecteurs" selected>Avec égalité de vecteurs</option>
-          <option value="milieux">Avec milieu des diagonales</option>
-        </select>
-      </div>
-
-      <div class="optionline" style="margin-top:4px">
-        <label><strong>Calcul des longueurs :</strong></label>
-        <select id="mode-norme">
-          <option value="norme" selected>Avec formule de la norme du vecteur</option>
-          <option value="distance">Avec formule de la distance</option>
-        </select>
-      </div>
-    `);
-// aide de saisie
-const ans = $('#ans', HOST);
-if (ans) ans.placeholder = "";
-
-    // exo « rédaction seule »
-    const ctrl = HOST.querySelector('.controls'); if (ctrl) ctrl.remove();
-    HOST.querySelectorAll('hr.sep').forEach(hr => hr.remove());
   },
-
-
-
+  verify(){ setFB(null,''); return true; }, // neutre (pas d’input)
 
   solution(){
-    const {A,B,C,D}=this.state;
-    const modePar = $('#mode-parallelo')?.value || 'vecteurs';
-    const modeLen = $('#mode-norme')?.value || 'norme';
-    /* ---------- Outils détail (mêmes conventions ex3/ex4) ---------- */
+    const {A,B,C,D} = this.state;
+
+    // ===== Étape 1 — Parallélogramme via égalité de vecteurs (modèle e2)
+    const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
+    const DC_sub = colVecExpr(minusExpr(C.a,D.a), minusExpr(C.b,D.b));
+    const AB_fin = fmtVecLaNum(B.a-A.a, B.b-A.b);
+    const DC_fin = fmtVecLaNum(C.a-D.a, C.b-D.b);
+
+    const blocAB = [
+      `\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
+      `\\(\\overrightarrow{AB}${AB_sub}\\)`,
+      `\\(\\overrightarrow{AB}${AB_fin}\\)`
+    ].map(s=>`<p>${s}</p>`).join('');
+
+    const blocDC = [
+      `\\(\\overrightarrow{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
+      `\\(\\overrightarrow{DC}${DC_sub}\\)`,
+      `\\(\\overrightarrow{DC}${DC_fin}\\)`
+    ].map(s=>`<p>${s}</p>`).join('');
+
+    const step1 = `
+      <div style="font-weight:700">1<sup>ère</sup> étape : On montre que \\(ABCD\\) est un parallélogramme</div>
+      <table style="width:100%;border-collapse:collapse;margin:6px 0">
+        <tr>
+          <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">${blocAB}</td>
+          <td style="padding-left:10px;vertical-align:top">${blocDC}</td>
+        </tr>
+      </table>
+      <p>On a \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\) donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>
+    `;
+
+    // ===== Étape 2 — Longueurs AB, AD, BD + conclusions (modèle e5/e4)
     function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; }
-    function powTerm(n){ return (n<0 ? `(${n})` : `${n}`) + `^2`; }
-
-    // Bloc "longueur" — version distance OU norme (trame ex4)
-    function lengthBlock(name,P,Q,opts={}){
-	
-  const showVec = !!opts.showVec;                 // 👈 contrôle d’affichage du bloc coordonnées
-  const {dx,dy,S} = (function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; })(P,Q);
-  const perfect = Number.isInteger(Math.sqrt(S));
-  const innerX=minusExpr(Q.a,P.a), innerY=minusExpr(Q.b,P.b);
-  const innerXFix=minusExprSimplified(Q.a,P.a), innerYFix=minusExprSimplified(Q.b,P.b);
-
-  const rows = [];
-
-  if (showVec){ // 👈 seulement si demandé
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr('x_'+name[1]+'-x_'+name[0],'y_'+name[1]+'-y_'+name[0])}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr(innerX, innerY)}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr(innerXFix, innerYFix)}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${fmtVecLaNum(dx,dy)}\\)`);
-  }
-
-  if (modeLen==='distance'){
-    rows.push(`\\(${name}=\\sqrt{(x_{${name[1]}}-x_{${name[0]}})^2+(y_{${name[1]}}-y_{${name[0]}})^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{(${innerX})^2+(${innerY})^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${(dx<0?`(${dx})`:`${dx}`)}^2+${(dy<0?`(${dy})`:`${dy}`)}^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
-  } else {
-    rows.push(`\\(${name}=\\sqrt{${(dx<0?`(${dx})`:`${dx}`)}^2+${(dy<0?`(${dy})`:`${dy}`)}^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
-  }
-
-  rows.push(`\\(${name}=\\sqrt{${S}}\\)`);
-  if (perfect) rows.push(`\\(${name}=${Math.sqrt(S)}\\)`);
-
-  return rows.map(s=>`<p>${s}</p>`).join('');
-}
-
-
-    // 🧩 Étape 2 : calcul des longueurs
-    const headingStep2 = `<div style="font-weight:700;margin:8px 0 4px">2<sup>ème</sup> étape : On calcule les longueurs \\(AB\\), \\(AD\\) et \\(BD\\)</div>`;
-
-
-
-// RÈGLE D’AFFICHAGE DU BLOC "COORDONNÉES DU VECTEUR"
-const showVecFor = (name) => {
-  if (name === 'AB') return (modePar === 'milieux' && modeLen === 'norme'); // AB : cas spécial
-  return (modeLen === 'norme');                                              // AD, BD : si "Norme"
-};
-
-// 3 colonnes
-const boxAB = `<div class="box"><p><strong>Calcul de \\(AB\\)</strong></p>${
-  lengthBlock('AB', A, B, { showVec: showVecFor('AB') })
-}</div>`;
-
-const boxAD = `<div class="box"><p><strong>Calcul de \\(AD\\)</strong></p>${
-  lengthBlock('AD', A, D, { showVec: showVecFor('AD') })
-}</div>`;
-
-const boxBD = `<div class="box"><p><strong>Calcul de \\(BD\\)</strong></p>${
-  lengthBlock('BD', B, D, { showVec: showVecFor('BD') })
-}</div>`;
-
-    // Parallélogramme (au choix) — trames ex2 & ex3
-    function vecBlock(name,P,Q){
-      const sx = minusExpr(Q.a,P.a), sy = minusExpr(Q.b,P.b);
-      const needFix = (P.a<0 || P.b<0);
-      const sxFix = minusExprSimplified(Q.a,P.a), syFix = minusExprSimplified(Q.b,P.b);
-      const dx=Q.a-P.a, dy=Q.b-P.b;
+    function blocLongueur(P,Q,nom){
+      const {dx,dy,S} = d2(P,Q);
       const L = [
-        `\\(\\overrightarrow{${name}}${colVecExpr('x_'+name[1]+'-x_'+name[0],'y_'+name[1]+'-y_'+name[0])}\\)`,
-        `\\(\\overrightarrow{${name}}${colVecExpr(sx,sy)}\\)`
+        `\\(${nom}=\\sqrt{(x_{${nom[1]}}-x_{${nom[0]}})^2+(y_{${nom[1]}}-y_{${nom[0]}})^2}\\)`,
+        `\\(${nom}=\\sqrt{${powTerm(dx)}+${powTerm(dy)}}\\)`,
+        `\\(${nom}=\\sqrt{${dx*dx}+${dy*dy}}\\)`
       ];
-      if (needFix) L.push(`\\(\\overrightarrow{${name}}${colVecExpr(sxFix,syFix)}\\)`);
-      L.push(`\\(\\overrightarrow{${name}}${fmtVecLaNum(dx,dy)}\\)`);
-      return L.map(s=>`<p>${s}</p>`).join('');
-    }
-    function midBlock(letter,P,Q){
-      const sx1=plusExpr(P.a,Q.a), sy1=plusExpr(P.b,Q.b);
-      const sx2=plusExprSimplified(P.a,Q.a), sy2=plusExprSimplified(P.b,Q.b);
-      const x0=`\\dfrac{${P.a+Q.a}}{2}`, y0=`\\dfrac{${P.b+Q.b}}{2}`;
-      const rx=R(P.a+Q.a,2), ry=R(P.b+Q.b,2);
-      const xR= rx.q===1?String(rx.p):`\\dfrac{${rx.p}}{${rx.q}}`;
-      const yR= ry.q===1?String(ry.p):`\\dfrac{${ry.p}}{${ry.q}}`;
-      const L=[];
-	  L.push(`\\(\\text{Soit } ${letter} \\text{ le milieu de }[${letter==='M'?'AC':'BD'}],\\)`);
-
-      L.push(`\\(${letter}\\Big(\\dfrac{x_{${letter==='M'?'A':'B'}}+x_{${letter==='M'?'C':'D'}}}{2}\\;;\\;\\dfrac{y_{${letter==='M'?'A':'B'}}+y_{${letter==='M'?'C':'D'}}}{2}\\Big)\\)`);
-      L.push(`\\(${letter}\\Big(\\dfrac{${sx1}}{2}\\;;\\;\\dfrac{${sy1}}{2}\\Big)\\)`);
-      if (Q.a<0 || Q.b<0) L.push(`\\(${letter}\\Big(\\dfrac{${sx2}}{2}\\;;\\;\\dfrac{${sy2}}{2}\\Big)\\)`);
-      L.push(`\\(${letter}\\Big(${x0}\\;;\\;${y0}\\Big)\\)`);
-      if (xR!==x0 || yR!==y0) L.push(`\\(${letter}\\Big(${xR}\\;;\\;${yR}\\Big)\\)`);
+      const perfect = Number.isInteger(Math.sqrt(S));
+      if (perfect) L.push(`\\(${nom}=\\sqrt{${S}}\\)`, `\\(${nom}=${Math.sqrt(S)}\\)`);
+      else         L.push(`\\(${nom}=\\sqrt{${S}}\\)`);
       return L.map(s=>`<p>${s}</p>`).join('');
     }
 
-    // --- Étape 1 : Parallélogramme (sélecteur)
-    let blocParallelo = '';
-    if (modePar==='vecteurs'){
-      const left  = vecBlock('AB',A,B);
-      const right = vecBlock('DC',D,C);
-      blocParallelo = `
-        <div style="font-weight:700">1<sup>ère</sup> étape : On montre que \\(ABCD\\) est un parallélogramme</div>
-        <table style="width:100%;border-collapse:collapse;margin:6px 0">
-          <tr>
-            <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">${left}</td>
-            <td style="padding-left:10px;vertical-align:top">${right}</td>
-          </tr>
-        </table>
-        <p>\\(\\overrightarrow{AB}=\\overrightarrow{DC}\\) ainsi \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`;
-    }else{
-      const left  = midBlock('M',A,C);
-      const right = midBlock('N',B,D);
-      blocParallelo = `
-        <div style="font-weight:700">1<sup>ère</sup> étape : On montre que \\(ABCD\\) est un parallélogramme</div>
-        <table style="width:100%;border-collapse:collapse;margin:6px 0">
-          <tr>
-            <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">${left}</td>
-            <td style="padding-left:10px;vertical-align:top">${right}</td>
-          </tr>
-        </table>
-        <p>Les points \\(M\\) et \\(N\\) sont confondus, donc les diagonales du quadrilatère \\(ABCD\\) se coupent en leur milieu, ainsi \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`;
-    }
+    const boxAB = `<div class="box"><p><strong>Calcul de \\(AB\\)</strong></p>${blocLongueur(A,B,'AB')}</div>`;
+    const boxAD = `<div class="box"><p><strong>Calcul de \\(AD\\)</strong></p>${blocLongueur(A,D,'AD')}</div>`;
+    const boxBD = `<div class="box"><p><strong>Calcul de \\(BD\\)</strong></p>${blocLongueur(B,D,'BD')}</div>`;
 
-    // --- Étape 2 : Longueurs (3 boîtes, sans le duo « Vecteur AD/BD » séparé)
-    // --- Étape 2 : Longueurs (tableau 3 colonnes égales, invisible)
-
-
-
-// Tableau 3 colonnes (égales), bordures invisibles
-const table3eq = `
-  <table style="border-collapse:collapse;width:100%;table-layout:fixed">
-    <tr>
-      <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${boxAB}</td>
-      <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${boxAD}</td>
-      <td style="width:33.33%;vertical-align:top;padding:6px;border:none">${boxBD}</td>
-    </tr>
-  </table>`;
-
-    // Données pour la réciproque
     const AB2 = d2(A,B).S, AD2 = d2(A,D).S, BD2 = d2(B,D).S;
 
-    // Rédaction EXACTE façon screen
-    const blocPyth = `
-      <p>\\(AB=AD\\) ainsi le parallélogramme \\(ABCD\\) a deux côtés consécutifs de même longueur donc \\(ABCD\\) est un <strong>losange</strong>.</p>
-      <p>\\(BD^2 = ${BD2}\\)</p>
-      <p>\\(AB^2 + AD^2 = ${AB2} + ${AD2}=${BD2}\\)</p>
-      <p>Donc \\(BD^2 = AB^2 + AD^2\\), d’après la <strong>réciproque du théorème de Pythagore</strong>, le parallélogramme \\(ABCD\\) a un angle droit en \\(A\\) ainsi \\(ABCD\\) est un <strong>rectangle</strong>.</p>
-      <p><strong>Conclusion :</strong> \\(ABCD\\) est un losange et un rectangle c’est donc un <strong>carré</strong>.</p>
+    const step2 = `
+      <div style="font-weight:700;margin-top:8px">2<sup>ème</sup> étape : On calcule les longueurs \\(AB\\) et \\(AD\\) (côtés consécutifs) et \\(BD\\) (diagonale)</div>
+      <div class="grid cols-3" style="margin:6px 0">${boxAB}${boxAD}${boxBD}</div>
+
+      <p>On obtient \\(AB=AD\\) donc le parallélogramme \\(ABCD\\) a deux côtés consécutifs de même longueur :
+         \\(ABCD\\) est un <strong>losange</strong>.</p>
+
+      <p>De plus, \\(BD^2 = AB^2 + AD^2\\) (ici \\(${BD2} = ${AB2} + ${AD2}\\)) ; d’après la <strong>réciproque du théorème de Pythagore</strong>,
+         le parallélogramme \\(ABCD\\) a un angle droit en \\(A\\) : c’est un <strong>rectangle</strong>.</p>
+
+      <p><strong>Conclusion :</strong> \\(ABCD\\) est à la fois un losange et un rectangle, c’est donc un <strong>carré</strong>.</p>
     `;
 
-const sketch = makeSquareSVG();
-   setStepsHTML(`
-  <div class="center" style="margin-bottom:6px">${sketch}</div>
-  <div style="border:1px solid #000;padding:8px">
-    ${blocParallelo}
-    <hr class="sep">
-    ${headingStep2}
-    ${table3eq}
-    ${blocPyth}
-  </div>
-`);
+    // (Optionnel) petit croquis comme dans le screen
+    const sketch = makeParallelogramSVG();
 
-    retypeset(HOST);
-  }
-},
-
-
-e8:{
-  name:"Nature du quadrilatère ABCD",
-  gen(){
-    // ---------- Pondérations ----------
-    const r = Math.random();
-    let type;
-    if (r < 0.35) type = 'losange';
-    else if (r < 0.70) type = 'rectangle';
-    else if (r < 0.90) type = 'carre';
-    else type = 'parallelo';
-
-    // ---------- Helpers géométrie ----------
-    const MIN=-8, MAX=8;
-    const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-    const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){const t=a%b;a=b;b=t;}return a||1;};
-    const d2=(P,Q)=>{ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; };
-    const orth=(u,v)=>u.x*v.x + u.y*v.y === 0;
-    const sameNorm=(u,v)=>u.x*u.x+u.y*u.y === v.x*v.x+v.y*v.y;
-    const isZero=(u)=>u.x===0 && u.y===0;
-
-    // place un parallélogramme à partir d'un point A et de deux vecteurs u (AB) et v (AD)
-    function makeABCD(A,u,v){
-      const B={a:A.a+u.x, b:A.b+u.y};
-      const D={a:A.a+v.x, b:A.b+v.y};
-      const C={a:B.a+v.x, b:B.b+v.y};
-      return {A,B,C,D};
-    }
-    // fenêtre pour éviter que ça sorte du repère
-    function randomA(u,v){
-      const mX=Math.max(Math.abs(u.x)+Math.abs(v.x), Math.abs(u.x), Math.abs(v.x));
-      const mY=Math.max(Math.abs(u.y)+Math.abs(v.y), Math.abs(u.y), Math.abs(v.y));
-      const axMin=MIN+mX, axMax=MAX-mX, ayMin=MIN+mY, ayMax=MAX-mY;
-      if(axMin>axMax || ayMin>ayMax) return null;
-      return {a:rint(axMin,axMax), b:rint(ayMin,ayMax)};
-    }
-    // petite base de directions entières variées
-    const BASE=[[1,0],[0,1],[1,1],[2,1],[1,2],[2,3],[3,2],[2,-1],[1,-2],[-1,2],[-2,1]];
-    function pickVec(scaleBias=[1,2,3]){
-      const [px,py]=BASE[rint(0,BASE.length-1)];
-      const k = scaleBias[rint(0,scaleBias.length-1)] * (Math.random()<.5?1:-1);
-      return {x:k*px, y:k*py};
-    }
-    function norm2(u){ return u.x*u.x+u.y*u.y; }
-    function collinear(u,v){ return u.x*v.y - u.y*v.x === 0; }
-
-    // anti-doublons entre générations (mémorise jusqu’à 8 signatures)
-    if(!window.__E8_RECENTS) window.__E8_RECENTS=[];
-    const sig = (u,v)=>{
-      // clé up to symmetry (u,v) ~ (-u,-v) & swap invariants pour le type
-      const g1=gcd(Math.abs(u.x),Math.abs(u.y))||1, g2=gcd(Math.abs(v.x),Math.abs(v.y))||1;
-      const U=[u.x/g1,u.y/g1].join(','); const V=[v.x/g2,v.y/g2].join(',');
-      return [type,U,V].join('|');
-    };
-
-    // ---------- Construction selon type ----------
-    let A,B,C,D,u,v,tries=0, ok=false, lastSig='';
-    while(!ok && tries++<400){
-      if (type==='carre'){
-        // u ⟂ v et ||u|| = ||v||
-        u = pickVec([1,2,3]);
-        // v = rotation 90° de u (préserve norme)
-        v = {x:-u.y, y:u.x};
-      } else if (type==='rectangle'){
-        // u ⟂ v et ||u|| ≠ ||v||
-        u = pickVec([1,2,3]);
-        const k = [2,3,4][rint(0,2)]; // change la norme
-        v = {x:-k*u.y, y:k*u.x};
-      } else if (type==='losange'){
-        // ||u|| = ||v|| mais ni ⟂ ni colinéaires
-        u = pickVec([1,2,3]);
-        // permute composantes + petite torsion pour garder même norme sans orthogonalité
-        const s = (Math.random()<.5?1:-1);
-        v = {x:s*u.y, y:s*u.x};
-        if (orth(u,v) || collinear(u,v)) { ok=false; continue; }
-      } else { // parallelo
-        u = pickVec([1,2,3,4]);
-        v = pickVec([1,2,3]);
-        if (orth(u,v) || sameNorm(u,v)) { ok=false; continue; }
-      }
-      if (isZero(u) || isZero(v) || collinear(u,v)) continue;
-
-      A = randomA(u,v);
-      if(!A) continue;
-      ({A,B,C,D} = makeABCD(A,u,v));
-
-      // bornes
-      const inBox = [A,B,C,D].every(P=>P.a>=MIN && P.a<=MAX && P.b>=MIN && P.b<=MAX);
-      if(!inBox) continue;
-
-      // signature anti-doublons
-      lastSig = sig(u,v);
-      if (window.__E8_RECENTS.includes(lastSig)) continue;
-      ok=true;
-    }
-    if(!ok){ // secours fixe mais rare
-      A={a:-4,b:2}; B={a:1,b:2}; D={a:-4,b:-1}; C={a:1,b:-1};
-    }
-    // mémorise la signature
-    if (lastSig){
-      window.__E8_RECENTS.push(lastSig);
-      if (window.__E8_RECENTS.length>8) window.__E8_RECENTS.shift();
-    }
-
-    this.state={A,B,C,D,type};
-
-    setEqu(`
-      <p>Dans un repère orthonormé \\((O, I, J)\\), on considère les points
-      \\(A${fmtPtLaNum(A)}\\), \\(B${fmtPtLaNum(B)}\\), \\(C${fmtPtLaNum(C)}\\) et \\(D${fmtPtLaNum(D)}\\).</p>
-      <p><strong>Donner, dans chaque cas, la nature exacte du quadrilatère \\(ABCD\\).</strong></p>
-      <div class="optionline" style="margin-top:6px">
-        <label><strong>Méthode pour le parallélogramme :</strong></label>
-        <select id="mode-parallelo">
-          <option value="vecteurs" selected>Avec égalité de vecteurs</option>
-          <option value="milieux">Avec milieu des diagonales</option>
-        </select>
-      </div>
-      <div class="optionline" style="margin-top:4px">
-        <label><strong>Calcul des longueurs :</strong></label>
-        <select id="mode-norme">
-          <option value="norme" selected>Avec formule de la norme du vecteur</option>
-          <option value="distance">Avec formule de la distance</option>
-        </select>
-      </div>
-    `);
-  },
-
-verify(){
-  const {A,B,C,D} = this.state;
-
-  // helpers
-  const d2 = (P,Q)=>{ const dx=Q.a-P.a, dy=Q.b-P.b; return dx*dx+dy*dy; };
-  const AB2 = d2(A,B), AD2 = d2(A,D), BD2 = d2(B,D);
-
-  // nature attendue
-  let expectedKey;
-  if (AB2===AD2 && BD2===AB2+AD2) expectedKey = 'carre';
-  else if (AB2===AD2)             expectedKey = 'losange';
-  else if (BD2===AB2+AD2)         expectedKey = 'rectangle';
-  else                            expectedKey = 'parallelogramme';
-
-  // lecture & normalisation de la réponse
-  const raw = ($('#ans',HOST).value||'')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')    // enlève accents
-    .replace(/[^a-z ]/g,' ')                            // nettoie
-    .replace(/\s+/g,' ')
-    .trim();
-
-  // mapping tolérant
-  let answerKey = '';
-  if (/\bcarre\b/.test(raw))                  answerKey = 'carre';
-  else if (/\blosange\b/.test(raw))           answerKey = 'losange';
-  else if (/\brectangle\b/.test(raw))         answerKey = 'rectangle';
-  else if (/\bparallelogramme\b/.test(raw) ||
-           /\bparallelo\b/.test(raw) ||
-           /\bseulement\b/.test(raw))         answerKey = 'parallelogramme';
-
-  if (!answerKey){
-    setFB(false, "Écris : « losange », « rectangle », « carré » ou « parallélogramme ».");
-    return false;
-  }
-
-  const ok = (answerKey === expectedKey);
-
-  // feedback explicatif (même esprit que ta rédaction)
-  if (ok){
-    let msg = '';
-    if (expectedKey==='carre'){
-      msg = "C’est bon : carré (AB = AD et BD² = AB² + AD²).";
-    } else if (expectedKey==='losange'){
-      msg = "C’est bon : losange (AB = AD).";
-    } else if (expectedKey==='rectangle'){
-      msg = "C’est bon : rectangle (AB ≠ AD et BD² = AB² + AD²).";
-    } else {
-      msg = "C’est bon : seulement parallélogramme.";
-    }
-    setFB(true, msg); retypeset(HOST);
-  } else {
-    // message d’attendu cohérent avec ta trame
-    const label = {carre:'carré', losange:'losange', rectangle:'rectangle', parallelogramme:'parallélogramme'}[expectedKey];
-    setFB(false, `Attendu : ${label}.`); retypeset(HOST);
-  }
-  return ok;
-},
-
-  solution(){
-    const {A,B,C,D,type}=this.state;
-    const modePara = $('#mode-parallelo')?.value || 'vecteurs';
-    const modeLen  = $('#mode-norme')?.value || 'norme';
-
-// ---- Schéma (réutilise la fonction existante de e7) ----
-const sketch = (typeof makeParallelogramSVG === 'function')
-  ? makeParallelogramSVG() : '';
-
-// ---- 1ère étape — Méthode "Égalité de vecteurs" (AB = DC) ----
-function blockParalleloByVectors(A,B,C,D){
-  const AB_sub = colVecExpr(minusExpr(B.a,A.a), minusExpr(B.b,A.b));
-  const DC_sub = colVecExpr(minusExpr(C.a,D.a), minusExpr(C.b,D.b));
-
-  const AB_fix = colVecExpr(minusExprSimplified(B.a,A.a), minusExprSimplified(B.b,A.b));
-  const DC_fix = colVecExpr(minusExprSimplified(C.a,D.a), minusExprSimplified(C.b,D.b));
-
-  const AB_fin = fmtVecLaNum(B.a-A.a, B.b-A.b);
-  const DC_fin = fmtVecLaNum(C.a-D.a, C.b-D.b);
-
-  const L_AB = [
-    `\\(\\overrightarrow{AB}${colVecExpr('x_B-x_A','y_B-y_A')}\\)`,
-    `\\(\\overrightarrow{AB}${AB_sub}\\)`,
-    (A.a<0||A.b<0)? `\\(\\overrightarrow{AB}${AB_fix}\\)` : '',
-    `\\(\\overrightarrow{AB}${AB_fin}\\)`
-  ].filter(Boolean).map(s=>`<p>${s}</p>`).join('');
-
-  const L_DC = [
-    `\\(\\overrightarrow{DC}${colVecExpr('x_C-x_D','y_C-y_D')}\\)`,
-    `\\(\\overrightarrow{DC}${DC_sub}\\)`,
-    (D.a<0||D.b<0)? `\\(\\overrightarrow{DC}${DC_fix}\\)` : '',
-    `\\(\\overrightarrow{DC}${DC_fin}\\)`
-  ].filter(Boolean).map(s=>`<p>${s}</p>`).join('');
-
-  return `
-  <div style="font-weight:700;margin:6px 0 4px">
-    1<sup>ère</sup> étape : Montrer que \\(ABCD\\) est un parallélogramme
-  </div>
-  <div class="center" style="margin:.25rem 0 .5rem">${sketch}</div>
-  <table class="tbl3" style="width:100%;border-collapse:collapse">
-    <tr>
-      <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">
-        ${L_AB}
-      </td>
-      <td style="padding-left:10px;vertical-align:top">
-        ${L_DC}
-      </td>
-    </tr>
-  </table>
-  <p>On montre que \\(\\overrightarrow{AB}=\\overrightarrow{DC}\\) donc \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`;
-}
-
-// ---- 1ère étape — Méthode "Milieu des diagonales" ----
-function midBlock(P,Q,letterLeft, letter1, letter2){
-  // letterLeft = 'M' pour AC, 'N' pour BD
-  // letter1/letter2 = extrémités correspondantes (ex. A,C) ou (B,D)
-  const sx = P.a + Q.a, sy = P.b + Q.b;
-  const seg = (letterLeft === 'M') ? 'AC' : 'BD';
-
-  const fracx0 = `\\dfrac{${sx}}{2}`, fracy0 = `\\dfrac{${sy}}{2}`;
-  const rx = R(sx,2), ry = R(sy,2);
-  const fx = rx.q===1 ? String(rx.p) : `\\dfrac{${rx.p}}{${rx.q}}`;
-  const fy = ry.q===1 ? String(ry.p) : `\\dfrac{${ry.p}}{${ry.q}}`;
-
-  const lines = [];
-  lines.push(`\\(\\text{Soit } ${letterLeft} \\text{ le milieu de }[${seg}],\\)`);
-
-  lines.push(`\\(${letterLeft}\\Big(\\dfrac{x_{${letter1}}+x_{${letter2}}}{2}\\;;\\;\\dfrac{y_{${letter1}}+y_{${letter2}}}{2}\\Big)\\)`);
-  lines.push(`\\(${letterLeft}\\Big(\\dfrac{${plusExpr(P.a,Q.a)}}{2}\\;;\\;\\dfrac{${plusExpr(P.b,Q.b)}}{2}\\Big)\\)`);
-  if (Q.a<0 || Q.b<0){
-    lines.push(`\\(${letterLeft}\\Big(\\dfrac{${plusExprSimplified(P.a,Q.a)}}{2}\\;;\\;\\dfrac{${plusExprSimplified(P.b,Q.b)}}{2}\\Big)\\)`);
-  }
-  lines.push(`\\(${letterLeft}\\Big(${fracx0}\\;;\\;${fracy0}\\Big)\\)`);
-  if (fx!==fracx0 || fy!==fracy0){
-    lines.push(`\\(${letterLeft}\\Big(${fx}\\;;\\;${fy}\\Big)\\)`);
-  }
-  return lines.map(s=>`<p>${s}</p>`).join('');
-}
-
-function blockParalleloByMidpoints(A,B,C,D){
-  const left  = midBlock(A,C,'M','A','C');   // milieu de AC
-  const right = midBlock(B,D,'N','B','D');   // milieu de BD
-  return `
-  <div style="font-weight:700;margin:6px 0 4px">
-    1<sup>ère</sup> étape : Montrer que \\(ABCD\\) est un parallélogramme
-  </div>
-  <div class="center" style="margin:.25rem 0 .5rem">${sketch}</div>
-  <table class="tbl3" style="width:100%;border-collapse:collapse">
-    <tr>
-      <td style="border-right:1px solid #ccc;padding-right:10px;vertical-align:top">
-        ${left}
-      </td>
-      <td style="padding-left:10px;vertical-align:top">
-        ${right}
-      </td>
-    </tr>
-  </table>
-  <p>Les points \\(M\\) et \\(N\\) sont confondus, donc les diagonales de \\(ABCD\\) se coupent en leur milieu. Ainsi \\(ABCD\\) est un <strong>parallélogramme</strong>.</p>`;
-}
-
-
-
-
-
-    // 🧩 Étape 1 : Parallélogramme (reprend e7)
-const blocPara = (modePara === 'vecteurs')
-  ? blockParalleloByVectors(A,B,C,D)
-  : blockParalleloByMidpoints(A,B,C,D);
-
-    // ⚙️ même fonction de calcul que e7 (norme ou distance)
-    function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; }
-    function powTerm(n){ return (n<0?`(${n})`:`${n}`)+`^2`; }
-
-    function lengthBlock(name,P,Q,opts={}){
-  const showVec = !!opts.showVec;                 // 👈 contrôle d’affichage du bloc coordonnées
-  const {dx,dy,S} = (function d2(P,Q){ const dx=Q.a-P.a, dy=Q.b-P.b; return {dx,dy,S:dx*dx+dy*dy}; })(P,Q);
-  const perfect = Number.isInteger(Math.sqrt(S));
-  const innerX=minusExpr(Q.a,P.a), innerY=minusExpr(Q.b,P.b);
-  const innerXFix=minusExprSimplified(Q.a,P.a), innerYFix=minusExprSimplified(Q.b,P.b);
-
-  const rows = [];
-
-  if (showVec){ // 👈 seulement si demandé
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr('x_'+name[1]+'-x_'+name[0],'y_'+name[1]+'-y_'+name[0])}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr(innerX, innerY)}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${colVecExpr(innerXFix, innerYFix)}\\)`);
-    rows.push(`\\(\\overrightarrow{${name}}${fmtVecLaNum(dx,dy)}\\)`);
-  }
-
-  if (modeLen==='distance'){
-    rows.push(`\\(${name}=\\sqrt{(x_{${name[1]}}-x_{${name[0]}})^2+(y_{${name[1]}}-y_{${name[0]}})^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{(${innerX})^2+(${innerY})^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${(dx<0?`(${dx})`:`${dx}`)}^2+${(dy<0?`(${dy})`:`${dy}`)}^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
-  } else {
-    rows.push(`\\(${name}=\\sqrt{${(dx<0?`(${dx})`:`${dx}`)}^2+${(dy<0?`(${dy})`:`${dy}`)}^2}\\)`);
-    rows.push(`\\(${name}=\\sqrt{${dx*dx}+${dy*dy}}\\)`);
-  }
-
-  rows.push(`\\(${name}=\\sqrt{${S}}\\)`);
-  if (perfect) rows.push(`\\(${name}=${Math.sqrt(S)}\\)`);
-
-  return rows.map(s=>`<p>${s}</p>`).join('');
-}
-
-
-    // 🧩 Étape 2 : calcul des longueurs
-    const headingStep2 = `<div style="font-weight:700;margin:8px 0 4px">2<sup>ème</sup> étape : On calcule les longueurs \\(AB\\), \\(AD\\) et \\(BD\\)</div>`;
-
-
-
-// RÈGLE D’AFFICHAGE DU BLOC "COORDONNÉES DU VECTEUR"
-const showVecFor = (name) => {
-  if (name === 'AB') return (modePara === 'milieux' && modeLen === 'norme'); // AB : cas spécial
-  return (modeLen === 'norme');                                              // AD, BD : si "Norme"
-};
-
-// 3 colonnes
-const boxAB = `<div class="box"><p><strong>Calcul de \\(AB\\)</strong></p>${
-  lengthBlock('AB', A, B, { showVec: showVecFor('AB') })
-}</div>`;
-
-const boxAD = `<div class="box"><p><strong>Calcul de \\(AD\\)</strong></p>${
-  lengthBlock('AD', A, D, { showVec: showVecFor('AD') })
-}</div>`;
-
-const boxBD = `<div class="box"><p><strong>Calcul de \\(BD\\)</strong></p>${
-  lengthBlock('BD', B, D, { showVec: showVecFor('BD') })
-}</div>`;
-
-
-
-    const table3eq = `<table style="border-collapse:collapse;width:100%;table-layout:fixed">
-      <tr>
-        <td style="width:33.3%;padding:6px;vertical-align:top;border:none">${boxAB}</td>
-        <td style="width:33.3%;padding:6px;vertical-align:top;border:none">${boxAD}</td>
-        <td style="width:33.3%;padding:6px;vertical-align:top;border:none">${boxBD}</td>
-      </tr>
-    </table>`;
-
-    // 🧩 Étape 3 : conclusions analytiques
-const AB2=d2(A,B).S, AD2=d2(A,D).S, BD2=d2(B,D).S;
-
-const BD2n=AB2+AD2
-
-
-let concl='';
-if (AB2===AD2 && BD2===AB2+AD2){
-  // Carré
-  concl =`
-      <p>\\(AB=AD\\) ainsi le parallélogramme \\(ABCD\\) a deux côtés consécutifs de même longueur donc \\(ABCD\\) est un <strong>losange</strong>.</p>
-      <p>\\(BD^2 = ${BD2}\\)</p>
-      <p>\\(AB^2 + AD^2 = ${AB2} + ${AD2}=${BD2}\\)</p>
-      <p>Donc \\(BD^2 = AB^2 + AD^2\\), d’après la <strong>réciproque du théorème de Pythagore</strong>, le parallélogramme \\(ABCD\\) a un angle droit en \\(A\\) ainsi \\(ABCD\\) est un <strong>rectangle</strong>.</p>
-      <p><strong>Conclusion :</strong> \\(ABCD\\) est un losange et un rectangle c’est donc un <strong>carré</strong>.</p>
-    `;
-
-}
-else if (AB2===AD2){
-  // Losange (texte de ton screen)
-  concl = `\\(AB=AD\\) ainsi le parallélogramme \\(ABCD\\) a deux côtés consécutifs de même longueur donc \\(ABCD\\) est un <strong>losange</strong>.<br>
-  On remarque rapidement qu’il est impossible d’avoir un angle droit en \\(A\\) puisque \\(BD\\) n’est même pas le plus grand côté.`;
-}
-else if (BD2===AB2+AD2){
-  // Rectangle SEUL — d’abord AB ≠ AD
-  concl = `\\(AB \\ne AD\\) ainsi le parallélogramme \\(ABCD\\) n’est pas un losange.<br>
-  \\(BD^2 = ${BD2}\\)<br>
-  \\(AB^2 + AD^2 = ${AB2} + ${AD2} = ${AB2+AD2}\\)<br>
-  Donc \\(BD^2 = AB^2 + AD^2\\), d’après la réciproque du théorème de Pythagore, le parallélogramme \\(ABCD\\) a un angle droit en \\(A\\) ainsi \\(ABCD\\) est un <strong>rectangle</strong>.`;
-}
-else{
-  // Parallélogramme seulement
-  concl = `
-      <p>\\(AB \\ne AD\\) ainsi le parallélogramme \\(ABCD\\) <strong>n’est pas un losange</strong>.</p>
-      <p>\\(BD^2 = ${BD2}\\)</p>
-      <p>\\(AB^2 + AD^2 = ${AB2} + ${AD2}=${BD2n}\\)</p>
-      <p>Donc \\(BD^2 \\neq AB^2 + AD^2\\), d’après la <strong>contraposée du théorème de Pythagore</strong>, le parallélogramme \\(ABCD\\) n'a pas d'angle droit en \\(A\\) ainsi \\(ABCD\\) <strong>n'est pas un rectangle</strong>.</p>
-      <p><strong>Conclusion :</strong> \\(ABCD\\) est <strong>ni un losange, ni un rectangle</strong>.</p>
-    `;
-   
-}
-
-
-    // 🧩 Assemblage complet
     setStepsHTML(`
+      <div class="center" style="margin-bottom:6px">${sketch}</div>
       <div style="border:1px solid #000;padding:8px">
-        ${blocPara}
-        ${headingStep2}
-        ${table3eq}
+        ${step1}
         <hr class="sep">
-        <p>${concl}</p>
+        ${step2}
       </div>
     `);
-    retypeset(HOST);
   }
 },
-
-
 
 
 };
@@ -2258,65 +1625,108 @@ function tightenVectorsForPDF(html){
 /* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
 /* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
 window.buildOneForPDFSync = function(defId){
-  window.__PDF_BUILDING = true;
+  window.__PDF_BUILDING = true;           // ⬅️ démarre la zone neutre
+
   try {
-    const cfg  = REGISTRY_MAP[defId];
+    const cfg = REGISTRY_MAP[defId];
     if (!cfg) return { statement:'', solution:'' };
 
-    const host = document.querySelector('#host');
-
-    // 1) snapshot AVANT de toucher au host
-    const snap = {
-      norme:     document.getElementById('mode-norme')?.value     || window.LAST_MODE_NORME     || 'norme',
-      parallelo: document.getElementById('mode-parallelo')?.value || window.LAST_MODE_PARALLELO || 'vecteurs',
-    };
-
+    const host   = document.querySelector('#host');
     const backup = host ? host.innerHTML : '';
 
-    // 2) monte un host propre + regénère UNE FOIS
     if (host) mountHost();
     document.querySelector('#lead').innerHTML = cfg.lead || '';
-    cfg.gen.call(cfg); // ← 1ère et unique génération
 
-    // 3) force les valeurs des select pour fabriquer la CORRECTION
-    const sNorme = document.getElementById('mode-norme');
-    const sPara  = document.getElementById('mode-parallelo');
-    if (sNorme) sNorme.value = snap.norme;
-    if (sPara)  sPara.value  = snap.parallelo;
-    window.LAST_MODE_NORME     = snap.norme;
-    window.LAST_MODE_PARALLELO = snap.parallelo;
+    // ⬇️ on génère l’écran, mais retypeset() s’auto-désactivera grâce au flag
+    cfg.gen.call(cfg);
 
-    // 4) récupère l’énoncé & calcule la solution (sans retypeset)
-    const _oldRetypeset = window.retypeset, _oldMJ = window.MJ;
-    window.retypeset = function(){}; window.MJ = function(){};
 
-    const statement = (document.querySelector('#equ')||{}).innerHTML || '';
-    cfg.solution.call(cfg);
-    const solution  = (document.querySelector('#res')||{}).innerHTML || '';
+  // --- Restaure pour l’écran ---
 
-    window.retypeset = _oldRetypeset; window.MJ = _oldMJ;
 
-    // 5) restaure l’écran
-    if (host) host.innerHTML = backup;
+  
 
-    // 6) retourne tel quel (tu as déjà le CSS “tight” côté iframe)
+  // ---- 2) Énoncé texte (écran)
+  const equHTML = (document.querySelector('#equ')||{}).innerHTML || '';
+
+  // Énoncé final : grille 2 colonnes si on a un repère, sinon texte seul
+  const statement = equHTML;
+
+  // ---- 3) Correction (écran)
+const _oldRetypeset2 = window.retypeset;
+  const _oldMJ2        = window.MJ;
+  window.retypeset = function(){};
+  window.MJ        = function(){};
+  cfg.solution.call(cfg);
+  
+  // ---- Après cfg.solution.call(cfg); (et avant le restore) ----
+
+
+
+// 2.2) Récupérer le HTML texte de la correction
+const corrigeTexteHTML = (document.querySelector('#res')||{}).innerHTML || '';
+
+// 2.3) Composer la *correction* pour le PDF : repère + texte
+const solution = corrigeTexteHTML;
+
+  
+  
+  window.retypeset = _oldRetypeset2;
+  window.MJ        = _oldMJ2;
+
+  if (host) host.innerHTML = backup;
+
+  // ---- 4) PDF-only : resserrer les pmatrix via TeX (espace interne)
+  function tightenVectorsForPDF(html){
+    if(!html) return html;
+    // pmatrix -> array{c} + espaces négatifs
+    html = html.replace(
+      /\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // \left( \begin{array}{c} ... \end{array} \right) -> ajoute \!
+    html = html.replace(
+      /\\left\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\\right\)/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // versions sans \left...\right
+    html = html.replace(
+      /\(\s*\\begin\{array\}\{c\}([\s\S]*?)\\end\{array\}\s*\)/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    // \pmatrix{…}
+    html = html.replace(
+      /\\pmatrix\{([\s\S]*?)\}/g,
+      (_m, inside) => `{\\arraycolsep=1.5pt\\left(\\!\\begin{array}{c}${inside}\\end{array}\\!\\right)}`
+    );
+    return html;
+  }
+
+  const statementTight = statement;
+  const solutionTight  = solution;
+  
+ function stripCHTML(html){
+  if(!html) return html;
+  return html
+     .replace(/<mjx-container[\s\S]*?<\/mjx-container>/g, (m)=>{
+       // On essaie de récupérer le TeX source si MathJax l’a laissé en data-tex,
+       // sinon on supprime (on n’en veut pas dans le PDF SVG).
+       const tex = m.match(/data-tex="([^"]+)"/);
+       return tex ? `\\(${tex[1]}\\)` : '';
+     });
+ }
+ const statementClean = stripCHTML(statementTight);
+ const solutionClean  = stripCHTML(solutionTight);
+
+  // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
     return {
-      statement: `<div class="vec-tight">${statement||''}</div>`,
-      solution:  `<div class="vec-tight">${solution||''}</div>`
+      statement: `<div class="vec-tight">${statementTight||''}</div>`,
+      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
     };
   } finally {
-    // réapplique l’état des select à L’ÉCRAN
-    const host = document.querySelector('#host');
-    if (host){
-      const sNorme = document.getElementById('mode-norme');
-      const sPara  = document.getElementById('mode-parallelo');
-      if (sNorme){ sNorme.value = window.LAST_MODE_NORME || sNorme.value; sNorme.dispatchEvent(new Event('change',{bubbles:true})); }
-      if (sPara){  sPara.value  = window.LAST_MODE_PARALLELO || sPara.value; sPara.dispatchEvent(new Event('change',{bubbles:true})); }
-    }
-    window.__PDF_BUILDING = false;
+    window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
   }
 };
-
 
 
 
@@ -2386,20 +1796,6 @@ document.querySelector('#btn-reset').addEventListener('click', ()=>{
 });
     document.querySelector('#btn-check').addEventListener('click', ()=>{ SCORE_TOT++; const ok = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE])===true; if(ok) SCORE_OK++; updateScore(); });
     document.querySelector('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
-// --- Sauvegarde automatique des choix pour le PDF ---
-document.addEventListener('change', e=>{
-  if (e.target.id==='mode-norme'){
-    window.LAST_MODE_NORME = e.target.value;
-    try{ localStorage.setItem('MH_MODE_NORME', e.target.value); }catch(_){}
-  }
-  if (e.target.id==='mode-parallelo'){
-    window.LAST_MODE_PARALLELO = e.target.value;
-    try{ localStorage.setItem('MH_MODE_PARALLELO', e.target.value); }catch(_){}
-  }
-});
-
-
-
 })
 })();
 
@@ -2412,9 +1808,6 @@ document.addEventListener('change', e=>{
       mountAfterSelector: '#host',
       beforeGen(){ return {}; },
       beforeRender(def, _st, withSolutions){
-	      window.LAST_MODE_NORME     = document.getElementById('mode-norme')?.value     || window.LAST_MODE_NORME     || 'norme';
-    window.LAST_MODE_PARALLELO = document.getElementById('mode-parallelo')?.value || window.LAST_MODE_PARALLELO || 'vecteurs';
-
         return (async () => {
           const defId = def?.id || '';
           const label = (window.REGISTRY_MAP?.[defId]?.name || defId || '').replace(/\\\\/g,'\\');

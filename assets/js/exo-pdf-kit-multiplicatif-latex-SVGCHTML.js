@@ -897,7 +897,8 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 .exo-statement svg path[data-mml-node="mspace"],
 .exo-solution  svg path[data-mml-node="mspace"] { fill: none !important; }
 
-
+  .optionline {
+    display: none !important;
 </style>
 
 <style>

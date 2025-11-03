@@ -341,61 +341,121 @@ L.push({
     retypeMath(host); host.__state=s;
   },
 
-  check(host){
-    const s=host.__state;
-    // Q1 : valeurs
-    const ok0 = chkNum('a0', s.U[0], '#t0');
-    const ok1 = chkNum('a1', s.U[1], '#t1');
-    const ok2 = chkNum('a2', s.U[2], '#t2');
-    const ok3 = chkNum('a3', s.U[3], '#t3');
+check(host){
+  const s = host.__state;
 
-    // Q2 : code (accepter deux variantes équivalentes)
-    const c1 = this._normPy(val('c1')), c2 = this._normPy(val('c2')), c3 = this._normPy(val('c3'));
+  // ===== Helpers locaux =====
+  const norm = x => this._normPy(x||'');         // normalisation "python" (espaces, −, etc.)
+  const val  = id => (document.getElementById(id)?.value || '');
+  const tick = (state, sel) => {
+    const el = (host||document).querySelector(sel);
+    if(!el) return;
+    el.classList.remove('ok','ko');
+    if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+    else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+    else el.textContent='';
+  };
+  const chkNum = (id, target, tickSel) => {
+    const v = val(id).trim();
+    const ok = v==='' ? null : near(parseNumber(v), target);
+    tick(ok, tickSel); return ok;
+  };
 
-    const okInit = c1==='' ? null : (c1===String(s.u0));
-    const isRange1 = (c2==='n+1' || c2==='(n+1)');
-    const isRange0 = (c2==='n' || c2==='(n)');
-    const okRange  = c2==='' ? null : (isRange1 || isRange0);
+  // ===== Q1 — valeurs u0..u3 =====
+  const ok0 = chkNum('a0', s.U[0], '#t0');
+  const ok1 = chkNum('a1', s.U[1], '#t1');
+  const ok2 = chkNum('a2', s.U[2], '#t2');
+  const ok3 = chkNum('a3', s.U[3], '#t3');
 
-    let okUpdate = null;
-    if(c3!==''){
-      if(s.mode==='affine'){
-        okUpdate = (c3===`u=${s.a}*u+${s.b}` || c3===`u=${s.b}+${s.a}*u`);
-      }else{
-        okUpdate = ( (isRange1 && c3===`u=${s.kcoef}*u+(k-1)`) ||
-                     (isRange0 && c3===`u=${s.kcoef}*u+k`) );
+  // ===== Q2 — code =====
+  const c1 = norm(val('c1'));
+  const c2 = norm(val('c2'));
+  let   c3 = norm(val('c3')).replace(/^u=/,''); // on tolère que l’élève retape "u="
+
+  // Init : u0 exact (vide ⇒ neutre)
+  const okInit  = (c1==='' ? null : c1 === String(s.u0));
+
+  // Range : on impose n+1 (vide ⇒ neutre)
+  const okRange = (c2==='' ? null : (c2==='n+1' || c2==='(n+1)'));
+
+  // Update (selon le mode)
+  let okUpdate = null;
+  if (c3!=='') {
+    if (s.mode === 'affine') {
+      // a*u + b — accepter :
+      //   a*u + b       (ex: -3*u+-2)
+      //   a*u - |b|
+      //   b + a*u
+      //   (et versions sans "1*" / avec "-u" si a = ±1)
+      const forms = new Set([
+        `${s.a}*u+${s.b}`,
+        `${s.a}*u${s.b<0?'-':'+'}${Math.abs(s.b)}`,
+        `${s.b}+${s.a}*u`,
+      ]);
+      if (s.a === 1) {
+        forms.add(`u+${s.b}`);
+        if (s.b<0) forms.add(`u-${Math.abs(s.b)}`);
+        forms.add(`${s.b}+u`);
+      }
+      if (s.a === -1) {
+        forms.add(`-u+${s.b}`);
+        if (s.b<0) forms.add(`-u-${Math.abs(s.b)}`);
+        forms.add(`${s.b}-u`);
+      }
+      okUpdate = forms.has(c3);
+    } else {
+      // mode "k*u + n" avec range(1,n+1) ⇒ n = k-1
+      // On n'évalue c3 que si okRange est connu : vide ⇒ neutre
+      if (okRange === null) {
+        okUpdate = null;
+      } else if (okRange === false) {
+        okUpdate = false;
+      } else {
+        const base = new Set([
+          `${s.kcoef}*u+(k-1)`,
+          `${s.kcoef}*u+k-1`,
+          `(k-1)+${s.kcoef}*u`,
+          `k-1+${s.kcoef}*u`,
+        ]);
+        if (s.kcoef === 1) {
+          base.add(`u+(k-1)`);
+          base.add(`u+k-1`);
+          base.add(`(k-1)+u`);
+          base.add(`k-1+u`);
+        }
+        if (s.kcoef === -1) {
+          base.add(`-u+(k-1)`);
+          base.add(`-u+k-1`);
+          base.add(`(k-1)-u`);
+          base.add(`k-1-u`);
+        }
+        okUpdate = base.has(c3);
       }
     }
+  }
 
-    // Q3 : somme — S = u (pas 0), et on ajoute u après MAJ
-    const d1 = this._normPy(val('d1'));
-    const d2 = this._normPy(val('d2'));
-    const d3 = this._normPy(val('d3'));
-    const okd1 = d1==='' ? null : (d1==='s=u');
-    const okd2 = d2==='' ? null : (d2==='s=s+u'||d2==='s+=u');
-    const okd3 = d3==='' ? null : (/return.*(u,?s|s,?u)/.test(d3)); // on accepte "return u, s" ou "return s, u"
+  tick(okInit,'#tC1'); tick(okRange,'#tC2'); tick(okUpdate,'#tC3');
 
-    tick(okInit,'#tC1'); tick(okRange,'#tC2'); tick(okUpdate,'#tC3');
-    tick(okd1,'#td1'); tick(okd2,'#td2'); tick(okd3,'#td3');
+  // ===== Q3 — somme S_N =====
+  const d1 = norm(val('d1'));                 // initialisation
+  const d2 = norm(val('d2'));                 // accumulation (après MAJ de u)
+  const d3 = norm(val('d3'));                 // retour
 
-    const list=[ok0,ok1,ok2,ok3,okInit,okRange,okUpdate,okd1,okd2,okd3];
-    const filled=list.every(x=>x!==null);
-    const okAll=list.every(x=>x===true);
-    if(filled){ SCORE[1]++; if(okAll) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); }
-    return filled && okAll;
+  const okd1 = (d1==='' ? null : d1==='s=u');                // on veut S = u (pas 0)
+  const okd2 = (d2==='' ? null : (d2==='s=s+u' || d2==='s+=u'));
+  const okd3 = (d3==='' ? null : (/^return.*(u,?s|s,?u)$/.test(d3))); // "return u, s" ou "return s, u"
 
-    // helpers
-    function val(id){ const e=document.getElementById(id); return e?e.value:'' }
-    function tick(state, sel){ const el=$(sel,host); if(!el) return; el.classList.remove('ok','ko');
-      if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
-      else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
-      else el.textContent=''; }
-    function chkNum(id, target, tickSel){
-      const v = val(id).trim();
-      const ok = v==='' ? null : near(parseNumber(v), target);
-      tick(ok, tickSel); return ok;
-    }
-  },
+  tick(okd1,'#td1'); tick(okd2,'#td2'); tick(okd3,'#td3');
+
+  // ===== Score & résultat =====
+  const list=[ok0,ok1,ok2,ok3, okInit,okRange,okUpdate, okd1,okd2,okd3];
+  const filled = list.every(x=>x!==null);
+  const allOk  = list.every(x=>x===true);
+  if (filled){ SCORE[1]++; if(allOk) SCORE[0]++; scoreSet(SCORE[0],SCORE[1]); }
+
+  return filled && allOk;
+}
+,
 
   solution(host){
     const s=host.__state, W=$('#steps',host);

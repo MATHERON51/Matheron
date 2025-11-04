@@ -898,7 +898,35 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 .exo-solution  svg path[data-mml-node="mspace"] { fill: none !important; }
 
   .optionline {
-    display: none !important;
+  display: none !important;}
+	
+	/* Tableau borduré noir partout */
+.table-black{
+  width:100%;
+  border-collapse:collapse;
+  border:1.2px solid #000;
+}
+.table-black th,
+.table-black td{
+  border:1.2px solid #000;
+  padding:6px 8px;
+  text-align:left;
+}
+.table-black thead th{ background:#fff; }
+
+.table-compare {
+  border-collapse: collapse;
+  width: 100%;
+  margin: .5rem 0 .6rem 0;
+}
+.table-compare td {
+  vertical-align: top;
+  padding: 0 .8rem;
+  border: none;
+}
+.table-compare td:first-child {
+  border-right: 2px solid #000; /* fine barre verticale */
+}
 </style>
 
 <style>

@@ -1941,6 +1941,167 @@ if (Math.abs(m1 - m2) > 1e-12) {
 },
 
 
+e3_twoPts:{
+  name:"Affine – retrouver m et p à partir de deux valeurs",
+  lead:"Déterminer une fonction affine \\(f\\) telle que \\(f(x_1)=y_1\\) et \\(f(x_2)=y_2\\).",
+
+  gen(){
+    mountHost(); removeDefaultAnswerRow(); setFB(null,'');
+
+    // helpers
+    const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+    const pickM=()=>{ let m; do{ m=ri(-5,5);}while(m===0); return m; };   // m ≠ 0 (classique)
+    const pickP=()=>ri(-9,9);
+
+    // assure m,p entiers, puis construit (x1,y1),(x2,y2)
+    const m = pickM(), p = pickP();
+function pickX(){ let v=0; do{ v=ri(-6,6); }while(v===0); return v; }  // interdit 0
+let x1 = pickX();
+let x2 = pickX();
+while (x2 === x1) x2 = pickX();  // distincts ET non nuls
+    const y1 = m*x1 + p, y2 = m*x2 + p;
+
+    // p-ecran: ordre aléatoire  (x1,y1) / (x2,y2)
+    const shuf = Math.random()<0.5;
+    const X1 = shuf?x2:x1, Y1 = shuf?y2:y1;
+    const X2 = shuf?x1:x2, Y2 = shuf?y1:y2;
+
+    // helpers d’affichage
+    const coefX = (k)=> (k===1?'x':k===-1?'-x':`${k}x`);
+
+    // énoncé + inputs
+    let html='';
+    html += '<p><strong>Exercice.</strong> Déterminer une fonction affine \\(f\\) vérifiant&nbsp;:</p>';
+    html += `<p>\\(f(${X1})=${Y1}\\) et \\(f(${X2})=${Y2}\\).</p>`;
+    html += '<div class="vecrow" style="margin-top:.6rem">';
+    html += '<span class="lbl">\\(m =\\) </span><input id="in_m" style="width:90px"> <span class="tick" id="tk_m"></span>';
+    html += '<span class="lbl" style="margin-left:16px">\\(p =\\) </span><input id="in_p" style="width:90px"> <span class="tick" id="tk_p"></span>';
+    html += '</div>';
+    html += '<div class="vecrow"><span class="lbl">\\(f(x) = \\)</span><input id="in_fx" style="width:220px" placeholder=""> <span class="tick" id="tk_fx"></span></div>';
+    setEqu(html); retypeset(HOST);
+
+    this.state = {m,p,X1,Y1,X2,Y2, coefX};
+  },
+
+  verify(){
+    const st=this.state; if(!st) return false;
+
+    // parse nombre (entier/decimal/fraction)
+    const normMinus = s => String(s||'').replace(/\u2212/g,'-').trim();
+    const parseNum   = s => {
+      s = normMinus(s).replace(',','.');
+      if (/^[+-]?\d+\/\d+$/.test(s)){ const [a,b]=s.split('/').map(Number); return a/b; }
+      return Number(s);
+    };
+    const isBlank = s => String(s||'').trim()==='';
+
+    // parse expression affine très tolérante (mx+p ou p+mx, x/2, 2x/3, -x, etc.)
+    function checkAffineExpr(raw, expm, expp){
+      if (isBlank(raw)) return 'neutral';
+      let s = normMinus(raw).toLowerCase().replace(/\s+/g,'').replace(/,/g,'.');
+      if (!/^[0-9x+\-*/().\/]*$/.test(s)) return 'ko';
+      s = s.replace(/(\d)\*x/g,'$1x').replace(/x\*(\d)/g,'x$1');
+      const parts = s.match(/[+\-]?[^+\-]+/g) || [];
+      let M=0, P=0;
+      for (let t of parts){
+        // constants
+        if (/^[+-]?(?:\d+(?:\.\d+)?|\d+\/\d+)$/.test(t)){ P += parseNum(t); continue; }
+        // ±x
+        if (/^[+-]?x$/.test(t)){ M += (t[0]==='-'?-1:1); continue; }
+        // ±x/num
+        if (/^[+-]?x\/(?:\d+(?:\.\d+)?|\d+\/\d+)$/.test(t)){ const sgn=(t[0]==='-'?-1:1); M += sgn*(1/parseNum(t.slice(t.indexOf('/')+1))); continue; }
+        // ±num x
+        if (/^[+-]?(?:\d+(?:\.\d+)?|\d+\/\d+)x$/.test(t)){ M += parseNum(t.replace(/x$/,'')); continue; }
+        // ±(num)x/num2
+        if (/^[+-]?(?:\d+(?:\.\d+)?|\d+\/\d+)x\/(?:\d+(?:\.\d+)?|\d+\/\d+)$/.test(t)){
+          const sgn=(t[0]==='-'?-1:1);
+          const [num,den]=t.replace(/^[+-]?/,'').split('x/'); M += sgn*(parseNum(num)/parseNum(den)); continue;
+        }
+        return 'ko';
+      }
+      return (Math.abs(M-expm)<1e-9 && Math.abs(P-expp)<1e-9) ? 'ok' : 'ko';
+    }
+
+    // ticks util
+    const set = (id,st)=> setTick(id, st==='ok'?'ok':st==='ko'?'ko':'');
+    let ok=0, tot=0; const count = s=>{ if(s!=='neutral'){ tot++; if(s==='ok') ok++; } };
+
+    // m, p numériques
+    const vm = $('#in_m')?.value ?? '', vp = $('#in_p')?.value ?? '';
+    const sm = isBlank(vm) ? 'neutral' : (Math.abs(parseNum(vm)-st.m)<1e-9 ? 'ok' : 'ko');
+    const sp = isBlank(vp) ? 'neutral' : (Math.abs(parseNum(vp)-st.p)<1e-9 ? 'ok' : 'ko');
+    set('tk_m', sm); count(sm);
+    set('tk_p', sp); count(sp);
+
+    // f(x)= …
+    const sfx = checkAffineExpr($('#in_fx')?.value||'', st.m, st.p);
+    set('tk_fx', sfx); count(sfx);
+
+    if (tot===0){ setFB(null,''); return false; }
+    const all = ok===tot; setFB(all, `${ok} / ${tot}`); return all;
+  },
+
+solution(){
+  const st=this.state; if(!st) return;
+  const {X1,Y1,X2,Y2,m,p} = st;
+
+  // — helpers affichage (NE PAS montrer 1m / -1m, ni 1x / -1x) —
+  const coefX = k => (k===1?'x':k===-1?'-x':`${k}x`);
+  const coefM = a => (a===1?'m':a===-1?'-m':`${a}m`);     // <-- évite 1m et -1m
+  const magm  = a => (a===1 ? 'm' : `${a}m`);
+  const pmSign = t => (t<0 ? ' + ' : ' - ');
+  const pLine = (Y1,X1) => `${Y1}${pmSign(X1)}${magm(Math.abs(X1))}`;
+
+  const den = X2 - X1;          // (x2 - x1)
+  const num = Y2 - Y1;          // (y2 - y1)
+
+  // ligne 2 du système déjà simplifiée; éviter 1m / -1m
+  const sys2 =
+    (den=== 1) ? `m = ${num}` :
+    (den===-1) ? `-m = ${num}` :
+                 `${den}m = ${num}`;
+
+  let html = '<div class="sec"><div class="title">Correction</div><div class="steps">';
+
+  // (1) Affine
+  html += '<p>\\(f\\) est une fonction affine, donc \\(f(x)=mx+p\\).</p>';
+
+  // (2) Système sur f(x1), f(x2) puis équations —> SANS 1m/-1m
+  html += `\\(\\begin{cases} f(${X1})=${Y1} \\\\ f(${X2})=${Y2} \\end{cases}`
+       + `\\Longleftrightarrow\\begin{cases} ${coefM(X1)}+p=${Y1} \\\\ ${coefM(X2)}+p=${Y2} \\end{cases}\\)`;
+
+  // (3) Système demandé : p=... et équation de substitution SANS "+-"
+// signe propre pour Y1 et pour le terme |x1|·m
+const y1Signed  = (Y1 >= 0 ? ` + ${Y1}` : ` - ${Math.abs(Y1)}`);
+const x1mSigned = (X1 < 0 ? ' + ' : ' - ') + magm(Math.abs(X1));
+
+html += `\\(\\Longleftrightarrow\\begin{cases}\\; p = ${pLine(Y1,X1)} \\\\ \\; ${coefM(X2)}${y1Signed}${x1mSigned} = ${Y2} \\end{cases}\\)`;
+  html += `\\(\\Longleftrightarrow\\begin{cases}\\; p = ${pLine(Y1,X1)} \\\\ \\; ${sys2} \\end{cases}\\)`;
+
+  // (4) m : fraction puis entier (signe propre si den<0)
+  const frac = (den<0) ? `\\dfrac{${num}}{-${Math.abs(den)}}` : `\\dfrac{${num}}{${den}}`;
+  html += `\\(\\Longleftrightarrow\\begin{cases}\\;  p = ${pLine(Y1,X1)} \\\\ \\; m = ${frac} \\end{cases}\\)`;
+
+  // (5) Substitution : parenthèses si m<0 après "×" (et jamais 1m)
+  const s = pmSign(X1);                             // " + " si X1<0, sinon " - "
+  const partM = (Math.abs(X1)===1 ? 'm' : `${Math.abs(X1)}m`);
+  const mMul = (m<0 ? `(${m})` : `${m}`);           // <-- parenthèses si m négatif
+  html += `\\(\\Longleftrightarrow\\begin{cases}\\;  p = ${Y1}${s}${Math.abs(X1)===1?`m`:`${Math.abs(X1)}m`} \\\\ \\; m = ${m} \\end{cases}\\)`;
+  html += `\\(\\Longleftrightarrow\\begin{cases}\\;  p = ${Y1}${s}${Math.abs(X1)===1?` ${m}`:` ${Math.abs(X1)}\\times ${mMul}`} \\\\ \\; m = ${m} \\end{cases}\\)`;
+  html += `\\(\\Longleftrightarrow\\begin{cases}\\;  p = ${p} \\\\ \\; m = ${m} \\end{cases}\\)`;
+
+  // (6) f(x) finale sans 1x/−1x
+  const fx = p===0 ? `${coefX(m)}` : `${coefX(m)} ${p<0?'−':'+'} ${Math.abs(p)}`;
+  html += `<p>Ainsi \\(f(x)= ${fx}.\\)</p>`;
+
+  html += '</div></div>';
+  setStepsHTML(html); retypeset(HOST);
+}
+
+
+
+},
+
 
 
 };

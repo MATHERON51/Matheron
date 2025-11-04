@@ -927,8 +927,17 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 .table-compare td:first-child {
   border-right: 2px solid #000; /* fine barre verticale */
 }
-</style>
 
+.grid{display:grid;gap:10px;align-items:start}
+.cols-3{grid-template-columns:auto auto 1fr}
+.cols-2{grid-template-columns:1fr 1fr}
+.box{border:1px dashed #bbb;border-radius:8px;padding:8px 10px}
+
+/* Masques spécifiques au rendu PDF */
+.pdf-hide{ display:none !important; }
+
+
+</style>
 <style>
   /* Un socle stable pour la mesure */
   html, body { font-size: 16px; }

@@ -53,7 +53,7 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
 .indline .tick{min-width:1.4rem; font-weight:900}
 .indline .tick.ok{color:var(--tick-ok)}
 .indline .tick.ko{color:var(--tick-ko)}
-@media print{ .controls,.header,.kbd-host,.hide-print{display:none!important} .card{box-shadow:none} }
+@media print{ .controls,.header,.kbd-HOST,.hide-print{display:none!important} .card{box-shadow:none} }
 .table-black{width:100%;border-collapse:collapse;border:1.2px solid #000}
 .table-black th,.table-black td{border:1.2px solid #000;padding:6px 8px;text-align:left}
 .table-black thead th{background:#fff}
@@ -66,10 +66,6 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
 }
 .chip:focus{outline:2px solid #777; outline-offset:2px}
 .chip.active{background:#111;color:#fff;border-color:#111}
-
-
-
-
 </style>
 
 <!-- MathJax CHTML écran -->
@@ -110,19 +106,7 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
       <span class="score" style="margin-left:auto;font-weight:700">Score : <span id="score">0 / 0</span></span>
     </div>
 
-<div class="controls card" id="ampbar">
-      <strong>Amplitude du repère (max ±12) :</strong>
-      <span>x ∈ [</span><input id="xmin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
-      <input id="xmax" type="number" value="6"  min="-12" max="12" step="1"><span>],</span>
-      <span>y ∈ [</span><input id="ymin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
-      <input id="ymax" type="number" value="6"  min="-12" max="12" step="1"><span>]</span>
-      
-      <strong style="margin-left:16px">Nombre d’objets :</strong>
-      <input id="nbPts" type="number" value="3" min="3" max="10" step="1" style="width:80px">
-      <label class="small"><input id="nbPts-random" type="checkbox"> Nombre aléatoire (par énoncé)</label>
-    </div>
-
-    <div class="card" id="host"></div>
+    <div class="card" id="HOST"></div>
 
     <div class="card small" id="info-saisie">
       <strong>Saisie &amp; réponses acceptées :</strong>
@@ -156,9 +140,9 @@ function dot(c){ return `<span style="display:inline-block;width:.7rem;height:.7
 const PALETTE = ['#0ea5e9','#22c55e','#ef4444','#a855f7','#f59e0b','#10b981'];
 
 /* ====== Host UI scaffold ====== */
-const host = $('#host');
+const HOST = $('#HOST');
 function mountHost(){
-  host.innerHTML = `
+  HOST.innerHTML = `
     <div id="lead" class="small"></div>
     <div class="row">
       <div id="rep-wrap"></div>
@@ -169,8 +153,8 @@ function mountHost(){
     </div>
   `;
 }
-function setEqu(html){ $('#equ',host).innerHTML = html; retypeset(host); }
-function setResHTML(html){ const r=$('#res',host); r.classList.add('steps'); r.innerHTML=html; retypeset(host); }
+function setEqu(html){ $('#equ',HOST).innerHTML = html; retypeset(HOST); }
+function setResHTML(html){ const r=$('#res',HOST); r.classList.add('steps'); r.innerHTML=html; retypeset(HOST); }
 function setResP(lines){ setResHTML(lines.map(s=>`<p>${s}</p>`).join('')); }
 
 /* ======================= Repère minimal ======================= */
@@ -363,22 +347,15 @@ function parseFrac(s){
 }
 function parseStudentEquation(text){
   if(!text) return null;
+  let t = String(text).replace(/\s+/g,'').replace(/\u2212/g,'-').replace(',','.');
 
-  // normalisation
-  let t = String(text).replace(/\s+/g,'')
-                      .replace(/\u2212/g,'-')
-                      .replace(',', '.');
+  // tolérance : f(x)= … ; f3(x)= … ; f_3(x)= …
+  t = t.replace(/^f(?:_?\d+)?\(x\)=/i,'y=');
 
-  // tolère f(x)=..., f3(x)=..., f_3(x)=...
-  t = t.replace(/^f(?:_?\d+)?\(x\)=/i, 'y=');
+  if(!/^y=/.test(t)) return null;
+  const rhs = t.slice(2);
 
-  // ⬇️ NOUVEAU : accepte la forme nue (pas de "y=")
-  const rhs = /^y=/.test(t) ? t.slice(2) : t;
-
-  if(!/x/.test(rhs)){                          // constante
-    const fb = parseFrac(rhs);
-    return fb ? { type:'aff', m:0, b:fb.p/fb.q } : null;
-  }
+  if(!/x/.test(rhs)){ const fb=parseFrac(rhs); return fb ? {type:'aff', m:0, b:fb.p/fb.q} : null; }
 
   function parseMXStart(s){
     if(/^\+?x/.test(s))  return { m:1,  rest:s.replace(/^\+?x/,'') };
@@ -395,19 +372,18 @@ function parseStudentEquation(text){
     return { b:B.p/B.q, rest:m[2]||'' };
   }
 
-  const r1 = parseMXStart(rhs);
+  const r1=parseMXStart(rhs);
   if(r1){
     if(r1.rest==='') return {type:'aff', m:r1.m, b:0};
     const fb=parseFrac(r1.rest); return fb? {type:'aff', m:r1.m, b:fb.p/fb.q}:null;
   }
-  const r2 = parseBStart(rhs);
+  const r2=parseBStart(rhs);
   if(r2){
     const mx=parseMXStart(r2.rest);
     if(mx && mx.rest==='') return {type:'aff', m:mx.m, b:r2.b};
   }
   return null;
 }
-
 
 function setTick(el, val){
   if(!el) return;
@@ -420,33 +396,12 @@ function renderWithRepere(host,opts){
   const row=document.createElement('div'); row.className='row';
   const left=document.createElement('div'); const right=document.createElement('div');
   row.appendChild(left); row.appendChild(right); host.appendChild(row);
-
   const rep=new Repere(opts.R||AMP,{}); left.appendChild(rep.el);
-
-  const equ=document.createElement('div');
-  equ.id = 'equ';              // ✅ ajoute l’id attendu par le PDF
-  equ.className = 'eq';        // ✅ même classe que partout ailleurs
-  right.appendChild(equ);
-
+  const equ=document.createElement('div'); equ.className='equ'; right.appendChild(equ);
   const actions=document.createElement('div'); actions.className='optionline'; right.appendChild(actions);
   const res=document.createElement('div'); res.id='res'; right.appendChild(res);
   return {rep,left,right,equ,actions,res};
 }
-
-
-function applyAMPInputs(){
-  let xi=+$('#xmin').value, xa=+$('#xmax').value, yi=+$('#ymin').value, ya=+$('#ymax').value;
-  xi=clamp(isNaN(xi)?-6:xi,-12,12); xa=clamp(isNaN(xa)?6:xa,-12,12);
-  yi=clamp(isNaN(yi)?-6:yi,-12,12); ya=clamp(isNaN(ya)?6:ya,-12,12);
-  if(xi===xa) xa=clamp(xi+1,-12,12); if(yi===ya) ya=clamp(yi+1,-12,12);
-  if(xi>xa) [xi,xa]=[xa,xi]; if(yi>ya) [yi,ya]=[ya,yi];
-  Object.assign(AMP,{xmin:xi,xmax:xa,ymin:yi,ymax:ya});
-  ['xmin','xmax','ymin','ymax'].forEach(id=>$('#'+id).value=AMP[id]);
-}
-
-
-
-
 
 /* ======================= REGISTRY ======================= */
 const REGISTRY_MAP = {
@@ -468,8 +423,8 @@ const REGISTRY_MAP = {
   return {R,lines};
 },
 
-    render(host,s){
-      const ui=renderWithRepere(host,{R:s.R}); host._ui=ui;
+    render(HOST,s){
+      const ui=renderWithRepere(HOST,{R:s.R}); HOST._ui=ui;
       ui.rep.clickable=true;
 
       const labelPairs = [['A','B'],['C','D'],['E','F'],['G','H'],['I','J'],['K','L']];
@@ -477,7 +432,7 @@ const REGISTRY_MAP = {
 
       const state = { clicks: {}, byLabel:{}, done: {}, focus: s.lines[0].name, awaitLabel:null };
       s.lines.forEach((L)=>{ state.clicks[L.name]=[]; state.byLabel[L.name]={}; state.done[L.name]=false; });
-      host._perline = state;
+      HOST._perline = state;
 
 const eqLatex = (L)=>{
   const idx = L.fIndex || 1;
@@ -522,6 +477,7 @@ const eqLatex = (L)=>{
       }).join('');
       ui.equ.innerHTML = `
         <div><b>Consigne :</b> Clique une <b>expression</b> pour la sélectionner, choisis <b>la lettre</b> du point à placer, puis clique dans le repère pour le poser. Place deux points puis “Valider”.</div>
+        <p class="hint">Rappel : \\( f_i(x)=k \\) horizontale ; \\( f_i(x)=mx+p \\) : place \\( (0;p) \\), puis applique \\( m=\\dfrac{V}{H} \\).</p>
         <div style="margin-top:8px;display:grid;gap:6px">${list}</div>
       `;
       retypeset(ui.right);
@@ -539,7 +495,7 @@ const eqLatex = (L)=>{
         const i = s.lines.findIndex(x=>x.name===name);
         const [L1,L2] = s.lines[i].labels;
         const pts = state.byLabel[name] || {};
-        picker.innerHTML = `<div class="pdf-hide">
+        picker.innerHTML = `
           <div><b>${name}</b> — Choisir le point à placer :</div>
           <div class="chips" role="group" aria-label="Points à placer">
             <span class="chip" tabindex="0" role="button" data-pick="${L1}" aria-pressed="${state.awaitLabel===L1}">${L1}</span>
@@ -547,7 +503,7 @@ const eqLatex = (L)=>{
           </div>
           <div>${L1} : ${pts[L1]?`(${Math.round(pts[L1].x)};${Math.round(pts[L1].y)})`:'—'} ·
                ${L2} : ${pts[L2]?`(${Math.round(pts[L2].x)};${Math.round(pts[L2].y)})`:'—'}</div>
-          <div class="hint">Clique d’abord la lettre, puis clique dans le repère.</div></div>
+          <div class="hint">Clique d’abord la lettre, puis clique dans le repère.</div>
         `;
       };
       const highlightSelectedPoint = ()=>{
@@ -640,21 +596,21 @@ const eqLatex = (L)=>{
           state.done[name]=ok;
           setTick($('#tick_'+name, ui.equ), ok);
           const all = Object.values(state.done).every(Boolean);
-          const res = $('#res', host);
+          const res = $('#res', HOST);
           res.classList.remove('steps');
           res.className = all? 'res-ok':'';
           res.textContent = all? '✔ Toutes les droites validées' : '';
         }
       });
 
-      host.dataset.state=JSON.stringify(s);
+      HOST.dataset.state=JSON.stringify(s);
       this._state = { lines: s.lines };
     },
     verify(){
-      const st = host._perline;
-      if(!st){ const res=host._ui?.res; if(res){res.classList.remove('steps'); res.textContent='';} return {ok:false,total:1}; }
+      const st = HOST._perline;
+      if(!st){ const res=HOST._ui?.res; if(res){res.classList.remove('steps'); res.textContent='';} return {ok:false,total:1}; }
       const all = Object.values(st.done).length && Object.values(st.done).every(v=>v);
-      const res = $('#res', host);
+      const res = $('#res', HOST);
       res.classList.remove('steps');
       res.className = all? 'res-ok' : '';
       res.textContent = all? '✔ Toutes les droites validées' : '';
@@ -753,9 +709,9 @@ solution(){
     setResHTML(html);
   },
     reset(){
-      if(host._ui) host._ui.rep.clearUser();
-      if(host._ui){ $$('.tick', host._ui.equ).forEach(t=>setTick(t,null)); }
-      const res = $('#res',host); res.classList.remove('steps'); res.textContent='';
+      if(HOST._ui) HOST._ui.rep.clearUser();
+      if(HOST._ui){ $$('.tick', HOST._ui.equ).forEach(t=>setTick(t,null)); }
+      const res = $('#res',HOST); res.classList.remove('steps'); res.textContent='';
     }
   },
 
@@ -766,7 +722,7 @@ solution(){
     gen(){
       const R={...AMP};
       const rep = new Repere(R);
-      $('#rep-wrap',host).innerHTML=''; $('#rep-wrap',host).appendChild(rep.el);
+      $('#rep-wrap',HOST).innerHTML=''; $('#rep-wrap',HOST).appendChild(rep.el);
 
 const lines = mkPresetLines(R);
       lines.forEach((L,i)=>{
@@ -801,16 +757,15 @@ const lines = mkPresetLines(R);
         rep.el.appendChild(t);
       });
 
-const list = lines.map((L,i)=>`
-  <div style="display:flex;align-items:center;gap:10px;margin:4px 0">
-    ${dot(PALETTE[i%PALETTE.length])}
-    <b style="min-width:2.2rem">${L.name}</b>
-    <span class="small eqonly" aria-hidden="false">\\(f_{${L.fIndex}}(x)=\\)</span>
-    <input id="ans_${L.name}" placeholder="" style="width:260px" aria-label="Équation de ${L.name}">
-    <span class="tick" id="tick_${L.name}"></span>
-  </div>`).join('');
-setEqu(`<div>${list}</div>`);
-
+      const list = lines.map((L,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;margin:4px 0">
+          ${dot(PALETTE[i%PALETTE.length])}
+          <b style="min-width:2.2rem">${L.name}</b>
+          <span class="small">\\(f_{${L.fIndex}}(x)=\\)</span>
+          <input id="ans_${L.name}" placeholder="mx+p" style="width:220px">
+          <span class="tick" id="tick_${L.name}"></span>
+        </div>`).join('');
+      setEqu(`<div>${list}</div>`);
 
       this._state = { R, rep, lines };
     },
@@ -819,18 +774,18 @@ setEqu(`<div>${list}</div>`);
       let okAll=true, tot=0;
       for(const L of st.lines){
         tot++;
-        const txt = $('#ans_'+L.name,host)?.value||'';
+        const txt = $('#ans_'+L.name,HOST)?.value||'';
         if(!txt){ okAll=false; continue; }
         const p = parseStudentEquation(txt);
         let good=false;
         if(L.type==='h'){ good = p && p.type==='aff' && Math.abs(p.m)<1e-9 && Math.abs(p.b-L.k)<1e-9; }
         else if(L.type==='aff'){ good = p && p.type==='aff' && Math.abs(p.m-L.m)<1e-9 && Math.abs(p.b-L.b)<1e-9; }
         else { good = p && p.type==='aff' && Math.abs(p.m-(L.p/L.q))<1e-9 && Math.abs(p.b-L.b)<1e-9; }
-        const ti = $('#tick_'+L.name,host);
+        const ti = $('#tick_'+L.name,HOST);
         if(ti){ ti.className='tick '+(good?'ok':(txt?'ko':'')); ti.textContent = good?'✓':(txt?'✗':''); }
         okAll = okAll && !!good;
       }
-      const res=$('#res',host); res.className = okAll?'res-ok':''; res.textContent = okAll ? '✔' : '';
+      const res=$('#res',HOST); res.className = okAll?'res-ok':''; res.textContent = okAll ? '✔' : '';
       return {ok:okAll,total:tot};
     },
     solution(){
@@ -846,397 +801,83 @@ setEqu(`<div>${list}</div>`);
   }
 };
 
-/* === Adapter pour le kit PDF (identique à avant) === */
-const REGISTRY_ARRAY = Object.entries(REGISTRY_MAP).map(([id, cfg]) => ({
+/* Expose REGISTRY (sélecteur + PDF kit) */
+/* Expose REGISTRY (sélecteur + PDF kit) — pont vers REGISTRY_MAP */
+const REGISTRY = Object.entries(REGISTRY_MAP).map(([id, def]) => ({
   id,
-  title: (cfg.name || id).replace(/\\\\/g,'\\'),
-  gen(){ return { n: Math.random() }; }
+  title: def.name || id,
+  lead: def.lead || '',
+  gen(hostEl){ return def.gen ? def.gen.call(def, hostEl) : undefined; },
+  render(hostEl, state){ return def.render ? def.render.call(def, hostEl, state) : undefined; },
+  verify(){ return def.verify ? def.verify.call(def) : {ok:false,total:0}; },
+  solution(){ return def.solution ? def.solution.call(def) : undefined; },
+  reset(){ return def.reset ? def.reset.call(def) : undefined; }
 }));
-if (typeof window !== 'undefined') window.REGISTRY = REGISTRY_ARRAY;
+window.REGISTRY = REGISTRY;
 
 
-
-
-
-
-
-
-/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
-/* Fabrique synchrone pour PDF : récupère l’écran et convertit en SVG dans beforeRender (inchangé) */
-window.buildOneForPDFSync = function(defId){
-  window.__PDF_BUILDING = true;           // ⬅️ démarre la zone neutre
-
-  try {
-    const cfg = REGISTRY_MAP[defId];
-    if (!cfg) return { statement:'', solution:'' };
-
-    const host   = document.querySelector('#host');
-    const backup = host ? host.innerHTML : '';
-
-    if (host) mountHost();
-    document.querySelector('#lead').innerHTML = cfg.lead || '';
-
-    // ⬇️ on génère l’écran, mais retypeset() s’auto-désactivera grâce au flag
-// ⬇️ on génère l’écran, mais retypeset() s’auto-désactivera grâce au flag
-const st = cfg.gen.call(cfg);
-if (typeof cfg.render === 'function') {
-  // on rend l’écran pour que this._state soit posé (e1 en a besoin)
-  cfg.render.call(cfg, document.querySelector('#host') || document.body, st);
-}
-
-
-  // --- Restaure pour l’écran ---
-
-
-  // ---- 1) Récupérer le repère s’il existe
-  const svgEl =
-    document.querySelector('.row svg.svgbox') ||
-    document.querySelector('svg.svgbox');
-
-  let repereHTML = '';
-  if (svgEl){
-    const clone = svgEl.cloneNode(true);
-    // taille fixe (PDF)
-    clone.removeAttribute('style');
-    clone.setAttribute('width','300');
-    clone.setAttribute('height','300');
-    // sécurité namespaces + viewBox
-    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-    if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox','0 0 420 420');
-    repereHTML = clone.outerHTML;
-  }
-
-  // ---- 2) Énoncé texte (écran)
-  const equHTML = (document.querySelector('#equ')||{}).innerHTML || '';
-
-  // Énoncé final : grille 2 colonnes si on a un repère, sinon texte seul
-  const statement = repereHTML
-    ? `<div style="display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start">
-         <div>${repereHTML}</div>
-         <div>${equHTML}</div>
-       </div>`
-    : equHTML;
-
-  // ---- 3) Correction (écran)
-const _oldRetypeset2 = window.retypeset;
-  const _oldMJ2        = window.MJ;
-  window.retypeset = function(){};
-  window.MJ        = function(){};
-  cfg.solution.call(cfg);
-  
-  // ---- Après cfg.solution.call(cfg); (et avant le restore) ----
-
-// 2.1) Récupérer le SVG *corrigé*
-let corrigeRepereHTML = '';
-{
-  const svgSol = document.querySelector('.row svg.svgbox') || document.querySelector('svg.svgbox');
-  if (svgSol){
-    const clone = svgSol.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.setAttribute('width','300');      // taille PDF
-    clone.setAttribute('height','300');
-    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-    if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox','0 0 420 420');
-    corrigeRepereHTML = clone.outerHTML;
-  }
-}
-
-// 2.2) Récupérer le HTML texte de la correction
-const corrigeTexteHTML = (document.querySelector('#res')||{}).innerHTML || '';
-
-// 2.3) Composer la *correction* pour le PDF : repère + texte
-const solution =
-  corrigeRepereHTML
-    ? `<div style="display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start">
-         <div>${corrigeRepereHTML}</div>
-         <div>${corrigeTexteHTML}</div>
-       </div>`
-    : corrigeTexteHTML;
-
-  
-  
-  window.retypeset = _oldRetypeset2;
-  window.MJ        = _oldMJ2;
-
-  if (host) host.innerHTML = backup;
-
-  
-
-  const statementTight = statement;
-  const solutionTight  = solution;
-  
- function stripCHTML(html){
-  if(!html) return html;
-  return html
-     .replace(/<mjx-container[\s\S]*?<\/mjx-container>/g, (m)=>{
-       // On essaie de récupérer le TeX source si MathJax l’a laissé en data-tex,
-       // sinon on supprime (on n’en veut pas dans le PDF SVG).
-       const tex = m.match(/data-tex="([^"]+)"/);
-       return tex ? `\\(${tex[1]}\\)` : '';
-     });
- }
- const statementClean = stripCHTML(statementTight);
- const solutionClean  = stripCHTML(solutionTight);
-
-  // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
-    return {
-      statement: `<div class="vec-tight">${statementTight||''}</div>`,
-      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
-    };
-  } finally {
-    window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
-  }
-};
-
-
-function toggleAmpbar(activeId){
-  const bar = document.getElementById('ampbar');
-  if (!bar) return;
-  const hide = (activeId === 'e1' || activeId === 'e2'|| activeId === 'e7'|| activeId === 'e8');
-  bar.style.display = hide ? 'none' : '';
-}
-
-/* ======== UI fil rouge ======== */
+/* ======================= Fils de l’UI ======================= */
 (function(){
-  'use strict';
-  function whenReady(cb){ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cb, { once:true }); else cb(); }
-  whenReady(function init(){
-    const sel = document.querySelector('#exo-select');
-    sel.innerHTML = Object.entries(REGISTRY_MAP).map(([k,v]) => `<option value="${k}">${(v.name||'').replace(/\\\\/g,'\\')}</option>`).join('');
-    let ACTIVE = sel.value || Object.keys(REGISTRY_MAP)[0];
-	toggleAmpbar(ACTIVE);
+  let ACTIVE = 'e1'; let SCORE_OK=0, SCORE_TOT=0;
+  const sel = $('#exo-select');
+  sel.innerHTML = REGISTRY.map(d=>`<option value="${d.id}">${(REGISTRY_MAP[d.id].name||d.id)}</option>`).join('');
+  ACTIVE = sel.value;
 
-    let SCORE_OK = 0, SCORE_TOT = 0;
-    function updateScore(){ document.querySelector('#score').textContent = `${SCORE_OK} / ${SCORE_TOT}`; }
-  
-
-
+  function updateScore(){ $('#score').textContent = `${SCORE_OK} / ${SCORE_TOT}`; }
 
   function buildOne(){
-     applyAMPInputs();          
-
-  mountHost(); // injecte le layout par défaut avec #ans
-  const cfg = REGISTRY_MAP[ACTIVE];
-
-  // lead
-  document.querySelector('#lead').innerHTML = cfg.lead || '';
-
-  // éléments optionnels (#ans existe pour e1/e2, mais pas pour e3/ex4)
-  const ansEl = $('#ans', host);
-  const fbEl  = $('#fb', host);
-  const resEl = $('#res', host);
-
-  if (ansEl){
-    ansEl.value = '';
-    ansEl.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter'){
-        e.preventDefault();
-        $('#btn-check')?.click();
-      }
-    });
+    mountHost();
+    const cfg = REGISTRY_MAP[ACTIVE];
+    $('#lead',HOST).textContent = cfg.lead || '';
+    const state = cfg.gen ? cfg.gen.call(cfg) : undefined;
+    if (cfg.render) cfg.render.call(cfg, HOST, state);
+    retypeset(HOST);
   }
-  if (fbEl)  fbEl.textContent = '';
-  if (resEl) resEl.innerHTML  = '';
 
-// génère l'exo (peut remplacer entièrement le host, ex. e3/ex4)
-const state = cfg.gen.call(cfg);
-if (typeof cfg.render === 'function') {
-  cfg.render.call(cfg, host, state);
-}
-
-
-
-
-
-  // (re)typeset
-  retypeset();
-  toggleAmpbar(ACTIVE);
-
-}
-
-    document.querySelector('#btn-new').addEventListener('click', buildOne);
-document.querySelector('#btn-reset').addEventListener('click', ()=>{
-  const a=$('#ans',host); if(a) a.value='';
-  document.querySelectorAll('.colvec input').forEach(i=> i.value=''); // ⬅️ AJOUT
-  const f=$('#fb',host); if(f) f.textContent='';
-  const r=$('#res',host); if(r) r.innerHTML='';
-});
-    document.querySelector('#btn-check').addEventListener('click', ()=>{ SCORE_TOT++; const ok = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE])===true; if(ok) SCORE_OK++; updateScore(); });
-    document.querySelector('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
-
-
-function adjustLive(kind){
-  const id = ACTIVE;
-  if (id === 'e3'   && REGISTRY_MAP.e3.adjustLive)   REGISTRY_MAP.e3.adjustLive(kind);
-  else if (id === 'ex4' && REGISTRY_MAP.ex4.adjustLive) REGISTRY_MAP.ex4.adjustLive(kind);
-  else if (id === 'e5'  && REGISTRY_MAP.e5.adjustLive)  REGISTRY_MAP.e5.adjustLive(kind);
-  else { applyAMPInputs(); }
-}
-
-
-['xmin','xmax','ymin','ymax'].forEach(id=>{
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('input', ()=>{ applyAMPInputs(); adjustLive('amp'); });
-  el.addEventListener('change',()=>{ applyAMPInputs(); adjustLive('amp'); });
-});
-
-const nbEl   = document.getElementById('nbPts');
-if (nbEl){
-  nbEl.addEventListener('input',  ()=> adjustLive('n'));
-  nbEl.addEventListener('change', ()=> adjustLive('n'));
-}
-
-
-
-
-   sel.addEventListener('change', ()=>{ ACTIVE = sel.value;   toggleAmpbar(ACTIVE);  buildOne(); });
-    buildOne(); updateScore();
+  $('#btn-new').addEventListener('click', buildOne);
+  $('#btn-reset').addEventListener('click', ()=>{
+    $$('#equ input',HOST).forEach(i=>i.value='');
+    $('#res',HOST).innerHTML=''; $('#res',HOST).className='steps';
+    $$('.tick',HOST).forEach(t=>{ t.className='tick'; t.textContent=''; });
   });
+  $('#btn-check').addEventListener('click', ()=>{
+    SCORE_TOT++; const ret = REGISTRY_MAP[ACTIVE].verify.call(REGISTRY_MAP[ACTIVE]);
+    if(ret && (ret.ok===true || ret===true)) SCORE_OK++;
+    updateScore();
+  });
+  $('#btn-solution').addEventListener('click', ()=>{ REGISTRY_MAP[ACTIVE].solution.call(REGISTRY_MAP[ACTIVE]); });
+
+  sel.addEventListener('change', ()=>{ ACTIVE = sel.value; buildOne(); });
+
+  buildOne(); updateScore();
 })();
 
-/* ======== Adaptateur PDF (SVG) — inchangé, conserve exactement #res ======== */
-(function(){
-  document.addEventListener('DOMContentLoaded', function () {
-    if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
-    ExoPDF.init({
-      title: document.title,
-      mountAfterSelector: '#host',
-      beforeGen(){ return {}; },
-      beforeRender(def, _st, withSolutions){
-        return (async () => {
-          const defId = def?.id || '';
-          const label = (window.REGISTRY_MAP?.[defId]?.name || defId || '').replace(/\\\\/g,'\\');
-          const fab = (typeof window.buildOneForPDFSync==='function') ? window.buildOneForPDFSync : (_)=>({statement:'',solution:''});
-          const { statement, solution } = fab(defId);
-
-
-const statementTight = statement;
-const solutionTight  = solution;
-
-          const htmlIn =
-  `<div class="exo-block">
-     <span class="exo-title">Exercice</span>
-     <div class="exo-statement">${statementTight||''}</div>
-   </div>` +
-  (withSolutions
-    ? `<div style="margin-top:1rem;">
-         <div class="exo-block"><div class="steps" id="pdf-steps">
-           <span class="exo-title">Correction</span>
-           <!-- ⬇️ Ajout d’un conteneur .steps pour retrouver la zone grise -->
-           <div class="exo-solution">${solutionTight||''}</div></div>
-         </div>
-       </div>`
-    : '');
-
-
-          const iframe = document.createElement('iframe');
-          Object.assign(iframe.style,{position:'fixed',left:'-10000px',top:'-10000px',width:'0',height:'0',visibility:'hidden'});
-          document.body.appendChild(iframe);
-
-          const idoc = iframe.contentDocument;
-          idoc.open(); idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="root"></div></body></html>'); idoc.close();
-          const root = idoc.getElementById('root'); root.innerHTML = htmlIn;
-const css = idoc.createElement('style');
-css.textContent = `
-  :root{
-    --ink:#111; --bg:#fafafa; --card:#fff; --line:#e5e7eb; --muted:#666;
-    --steps-bg:#f3f4f6; --steps-border:#e5e7eb; --steps-left:#9aa0a6;
-  }
-  body{font:16px/1.55 system-ui,Segoe UI,Roboto,Arial;color:var(--ink);}
-  .exo-title{display:block;font-weight:700;margin:0 0 6px}
-  /* ⚙️ Zone grise identique à l’écran (#res.steps) */
-  .steps{
-    background:var(--steps-bg);
-    border:1px solid var(--steps-border);
-    border-left:4px solid var(--steps-left);
-    border-radius:8px;
-    padding:10px;
-    margin:.45rem 0 0 .15rem;
-  }
-  .steps p{margin:.25rem 0}
-  /* Table “e5” compacte */
-  .tbl3{border-collapse:collapse}
-  .tbl3 td{padding:2px 6px;vertical-align:top}
-  
-  /* === Tighten parentheses around column vectors (SVG output) === */
-/* CHTML (au cas où), agit sur les delimiters extensibles */
-.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:first-child { margin-right: -0.18em; }
-.vec-tight mjx-mrow > mjx-mo[stretchy="true"]:last-child  { margin-left:  -0.18em; }
-.vec-tight mjx-mtable mjx-mtd { padding-left: .15em; padding-right: .15em; }
-.vec-tight mjx-mtable > mjx-table { margin-left: 0; margin-right: 0; }
-
-/* SVG : décaler légèrement OPEN/CLOSE pour coller les parenthèses au tableau */
-.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="OPEN"]  { transform: translateX(-0.18em); }
-.vec-tight svg[aria-hidden="true"] g[data-mjx-texclass="CLOSE"] { transform: translateX( 0.18em); }
-
-/* Ajustement global très léger si besoin (peut être mis à 0 si tu préfères) */
-.vec-tight svg[aria-hidden="true"] { margin-left:-0.10em; margin-right:-0.10em; }
-/* --- Anti "barres noires" MathJax (PDF) --- */
-.exo-statement,
-.exo-solution { color:#111 !important; background:transparent !important; }
-
-/* Cas CHTML (au cas où) */
-mjx-container { color:#111 !important; background:transparent !important; }
-mjx-container svg { overflow:visible !important; }
-mjx-container svg rect,
-mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
-
-/* Cas SVG standalone (ce que tu utilises dans l’iframe) */
-.exo-statement svg rect,
-.exo-statement svg path[data-mml-node="mspace"],
-.exo-solution  svg rect,
-.exo-solution  svg path[data-mml-node="mspace"] { fill:none !important; }
-
-`;
-idoc.head.appendChild(css);
-
-          const cfg = idoc.createElement('script');
-          cfg.text = `
-            window.MathJax = {
-              loader: {load: ['input/tex','output/svg']},
-              tex: { inlineMath: [['\\\\(','\\\\)'], ['$', '$']], displayMath: [['\\\\[','\\\\]'], ['$$','$$']], processEscapes:true, packages:{'[+]':['bbox','ams']} },
-              svg: { fontCache: 'none' },
-              options: { skipHtmlTags: ['script','noscript','style','textarea'] },
-              startup: { typeset: false }
-            };`;
-          idoc.head.appendChild(cfg);
-          const mj = idoc.createElement('script'); mj.src = new URL("../../../../es5/tex-svg.js", window.location.href).href; idoc.head.appendChild(mj);
-          await new Promise(r=>{ mj.onload=r; mj.onerror=r; });
-
-          const iwin = iframe.contentWindow;
-          for (let i=0;i<300 && !(iwin.MathJax && iwin.MathJax.tex2svg); i++) await new Promise(r=>setTimeout(r,10));
-          if (!(iwin.MathJax && iwin.MathJax.tex2svg)){ const out = root.innerHTML; iframe.remove(); return out; }
-
-          const RX_INLINE=/\\\((.+?)\\\)/gs, RX_DISPLAY_BR=/\\\[(.+?)\\\]/gs, RX_DISPLAY_DOLLAR=/\$\$(.+?)\$\$/gs;
-          function texToStandaloneSVG(tex, display){
-            const mjx = iwin.MathJax.tex2svg(tex,{display}); const svg=mjx.querySelector('svg'); if(!svg) return idoc.createTextNode(tex);
-            const out=svg.cloneNode(true); out.setAttribute('xmlns','http://www.w3.org/2000/svg'); out.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink'); out.setAttribute('overflow','visible');
-            out.querySelectorAll('use').forEach(u=>{const h=u.getAttribute('href');const xh=u.getAttribute('xlink:href'); if(h && !xh) u.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href',h); if(xh && !h) u.setAttribute('href',xh);});
-            return out;
-          }
-          function replaceTeXIn(node){
-            const SKIP=new Set(['SCRIPT','STYLE','CODE','PRE']); if(node.nodeType===1 && SKIP.has(node.tagName)) return;
-            const children=[...node.childNodes];
-            for(const ch of children){
-              if(ch.nodeType===Node.TEXT_NODE){
-                const text=ch.nodeValue; if(!text || !/[\\$]/.test(text)) continue;
-                let parts=null;
-                const consume=(re,display)=>{ re.lastIndex=0; let m,last=0,out=[]; while((m=re.exec(text))!==null){ out.push({t:'text',v:text.slice(last,m.index)}); out.push({t:'math',v:m[1],d:display}); last=re.lastIndex; } if(out.length) out.push({t:'text',v:text.slice(last)}); return out.length?out:null; };
-                parts = consume(RX_DISPLAY_DOLLAR,true) || consume(RX_DISPLAY_BR,true) || consume(RX_INLINE,false);
-                if(parts){ for(const p of parts){ if(p.t==='text') ch.parentNode.insertBefore(idoc.createTextNode(p.v),ch); else ch.parentNode.insertBefore(texToStandaloneSVG(p.v,p.d),ch); } ch.parentNode.removeChild(ch); }
-              }else if(ch.nodeType===Node.ELEMENT_NODE){ replaceTeXIn(ch); }
-            }
-          }
-          replaceTeXIn(root);
-          const finalHTML = root.innerHTML; iframe.remove(); return finalHTML;
-        })().catch(err=>{ console.error(err); return htmlIn; });
+/* ======================= PDF ======================= */
+document.addEventListener('DOMContentLoaded', function () {
+  if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+  ExoPDF.init({
+    title: document.title,
+    mountAfterSelector: '#HOST',
+    beforeGen(){ return {}; },
+    beforeRender(def){ 
+      const equ = $('#equ',HOST)?.innerHTML||'';
+      const res = $('#res',HOST)?.innerHTML||'';
+      const svg = $('#rep-wrap svg')?.cloneNode(true);
+      let repereHTML = '';
+      if(svg){
+        svg.removeAttribute('style'); svg.setAttribute('width','300'); svg.setAttribute('height','300');
+        svg.setAttribute('xmlns','http://www.w3.org/2000/svg'); svg.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+        if(!svg.getAttribute('viewBox')) svg.setAttribute('viewBox','0 0 420 420');
+        repereHTML = svg.outerHTML;
       }
-    });
+      const statement = repereHTML
+        ? `<div style="display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start"><div>${repereHTML}</div><div>${equ}</div></div>`
+        : equ;
+      const solution  = res;
+      return Promise.resolve(`<div class="exo-block"><div class="exo-statement">${statement}</div><div style="margin-top:.8rem" class="exo-solution steps">${solution}</div></div>`);
+    }
   });
-})();
+});
 </script>
 </body>
 </html>

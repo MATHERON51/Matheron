@@ -1,0 +1,1377 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde – Étude de fonctions • Tableau de variations,extremums et tableau de signe</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* mini tableaux “PDF-like” (cadre extérieur) */
+  table.pdf-tbl{
+    border-collapse: separate; border-spacing: 0; border: none; margin:.4rem 0;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border: none; padding: 4px 6px; text-align: center; vertical-align: middle;
+  }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* variation table (interactive) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.grid{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  .g-ax{stroke:#000;stroke-width:1.4}
+  .g-grid{stroke:#a78bfa22}
+  .g-curve{stroke:#111;stroke-width:2.2;fill:none}
+  .g-pt{fill:#111}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  
+  /* Tableau de variations : uniquement le cadre + séparations x/f et labels */
+table.var.frame-only{
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table.var.frame-only th,
+table.var.frame-only td{
+  border: none;                 /* pas de bordures intérieures */
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cadre extérieur */
+table.var.frame-only tr:first-child > * { border-top:    1.5px solid #000; }
+table.var.frame-only tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var.frame-only tr > *:first-child { border-left:   1.5px solid #000; }
+table.var.frame-only tr > *:last-child  { border-right:  1.5px solid #000; }
+
+/* Séparation verticale après la 1re colonne (labels x / f) */
+table.var.frame-only tbody tr > *:first-child { border-right: 1.5px solid #000; }
+
+/* Séparation horizontale entre la ligne x et la ligne f */
+table.var.frame-only tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+
+/* cellule flèche pleine hauteur */
+table.var.frame-only td.bigsel{ padding:0 }
+
+/* le select occupe 100% et centre la flèche */
+table.var.frame-only td.bigsel select{
+  display:block;
+  width:100%;
+  height:100%;
+  border:1;
+  background:transparent;
+  padding:0;
+  margin:0;
+  text-align:center;         /* Chrome/Edge */
+  text-align-last:center;    /* Firefox */
+  appearance:none;           /* enlève le chevron natif */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+}
+table.var.frame-only td.bigsel option{ font-size:inherit; line-height:inherit; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde — Étude de fonctions • Tableau de variations,extremums et tableau de signe</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Extremums (tableau) : remplisser dans la saisie du haut si maximum et dans la saisie du bas si minimum.</li>
+        <li>Flèches : choisissez ↘ ou ↗.</li>
+		        <li>Extremums (phrase) : Si l'extremum est atteint plusieurs fois, écrire une liste. Exemple : -3;2</li>
+
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- même emplacement que dans ton modèle -->
+
+<script>
+(function(){
+'use strict';
+
+/* ————— Utils ————— */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+const UMIN='−';
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+s+' \\)';}
+function ensureTickAfter(el){
+  if(!el) return null;
+
+  // 1) voisin immédiat
+  let s = el.nextElementSibling;
+  if (s && s.classList && s.classList.contains('tick')) return s;
+
+  // 2) chercher un tick déjà présent dans le même <li>
+  const li = el.closest('li');
+  if (li) {
+    const found = li.querySelector(':scope > .tick');
+    if (found) return found;
+  }
+
+  // 3) créer un tick et l’ajouter en fin de <li> (ou juste après el en secours)
+  s = document.createElement('span');
+  s.className = 'tick nu';
+  if (li) li.appendChild(s);
+  else el.insertAdjacentElement('afterend', s);
+  return s;
+}
+function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+function buildRepereSVG(opts){
+  // Zone "utile" max (hors marges)
+  const Wmax=520, Hmax=300, mL=28, mT=8, mR=8, mB=28;
+  const {xmin,xmax,ymin,ymax} = opts;
+
+const AR = Math.max(3.5, Math.min(8, opts.arrowSize || 7)); // 4.5px par défaut
+
+  // 1) Échelle commune (orthonormée)
+  const Rx = xmax - xmin;
+  const Ry = ymax - ymin;
+  const s  = Math.min(Wmax / Rx, Hmax / Ry);      // même "px par unité" pour x et y
+  const w  = s * Rx;
+  const h  = s * Ry;
+
+  // 2) Centrage de la fenêtre de tracé (letterbox si besoin)
+  const x0 = mL + (Wmax - w)/2;
+  const y0 = mT + (Hmax - h)/2;
+
+  // 3) Dimensions totales du SVG
+  const W = mL + Wmax + mR;
+  const H = mT + Hmax + mB;
+
+  // Création SVG
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('class','repere');
+
+  const defs = document.createElementNS(svg.namespaceURI,'defs');
+ // ——— PATCH FLECHES ———
+
+const mark = document.createElementNS(svg.namespaceURI,'marker');
+mark.setAttribute('id','arrow');
+mark.setAttribute('markerUnits','userSpaceOnUse');   // taille indépendante du stroke
+mark.setAttribute('markerWidth', AR);
+mark.setAttribute('markerHeight', AR);
+mark.setAttribute('viewBox', `0 0 ${AR} ${AR}`);
+mark.setAttribute('refX', AR);                       // ← la pointe (x=AR) tombe pile sur la fin de la ligne
+mark.setAttribute('refY', AR/2);
+mark.setAttribute('orient','auto');
+
+const tri = document.createElementNS(svg.namespaceURI,'path');
+// triangle : pointe à (AR, AR/2)
+tri.setAttribute('d', `M0 0 L${AR} ${AR/2} L0 ${AR} Z`);
+tri.setAttribute('fill','#111');
+mark.appendChild(tri);
+defs.appendChild(mark);
+
+  const clip=document.createElementNS(svg.namespaceURI,'clipPath');
+  clip.setAttribute('id','clip-v1');
+  const crect=document.createElementNS(svg.namespaceURI,'rect');
+  crect.setAttribute('x',x0); crect.setAttribute('y',y0);
+  crect.setAttribute('width',w); crect.setAttribute('height',h);
+  clip.appendChild(crect);
+  defs.appendChild(clip);
+  svg.appendChild(defs);
+
+  const axes=document.createElementNS(svg.namespaceURI,'g');
+  const plot=document.createElementNS(svg.namespaceURI,'g');
+  plot.classList.add('plot');
+  plot.setAttribute('clip-path','url(#clip-v1)');
+  svg.appendChild(axes); svg.appendChild(plot);
+
+  // Fonctions de transformation : même échelle s pour x et y
+  const X = x => x0 + (x - xmin) * s;
+  const Y = y => y0 + h - (y - ymin) * s;
+
+  // Cadre (zone orthonormée centrée)
+  const frame=document.createElementNS(svg.namespaceURI,'rect');
+  frame.setAttribute('x',x0); frame.setAttribute('y',y0);
+  frame.setAttribute('width',w); frame.setAttribute('height',h);
+  frame.setAttribute('fill','none'); frame.setAttribute('stroke','#111');
+  frame.setAttribute('class','frame');
+  axes.appendChild(frame);
+
+  // Axes (bornés au cadre)
+  const yAxisY = Math.max(y0+10, Math.min(y0+h-10, Y(0)));
+  const xAxisX = Math.max(x0+10, Math.min(x0+w-10, X(0)));
+
+  if(opts.grid){
+    const g=document.createElementNS(svg.namespaceURI,'g');
+    g.setAttribute('stroke','#000'); g.setAttribute('stroke-width','0.7');
+    g.setAttribute('class','thin-grid');
+
+    const tx=document.createElementNS(svg.namespaceURI,'g');
+    const ty=document.createElementNS(svg.namespaceURI,'g');
+
+    const fmt=n=>String(n).replace('-', '−');
+
+    // verticales entières
+    for(let xv=Math.ceil(xmin); xv<=xmax+1e-9; xv+=1){
+      const xx=X(xv);
+      const l=document.createElementNS(svg.namespaceURI,'line');
+      l.setAttribute('x1',xx); l.setAttribute('y1',y0);
+      l.setAttribute('x2',xx); l.setAttribute('y2',y0+h);
+      g.appendChild(l);
+
+      const t=document.createElementNS(svg.namespaceURI,'text');
+      t.textContent=fmt(xv);
+      t.setAttribute('x', Math.max(x0+5, Math.min(x0+w-5, xx)));
+      t.setAttribute('y', Math.max(y0+2, Math.min(y0+h+12, yAxisY+14)));
+      t.setAttribute('font-size','12'); t.setAttribute('text-anchor','middle');
+      tx.appendChild(t);
+    }
+    // horizontales entières
+    for(let yv=Math.ceil(ymin); yv<=ymax+1e-9; yv+=1){
+      const yy=Y(yv);
+      const l=document.createElementNS(svg.namespaceURI,'line');
+      l.setAttribute('x1',x0); l.setAttribute('y1',yy);
+      l.setAttribute('x2',x0+w); l.setAttribute('y2',yy);
+      g.appendChild(l);
+
+      const t=document.createElementNS(svg.namespaceURI,'text');
+      t.textContent=fmt(yv);
+      t.setAttribute('x', Math.max(x0+6, Math.min(x0+w-8, xAxisX-6)));
+      t.setAttribute('y', Math.max(y0+10, Math.min(y0+h-6, yy+4)));
+      t.setAttribute('font-size','12'); t.setAttribute('text-anchor','end');
+      ty.appendChild(t);
+    }
+    axes.appendChild(g); axes.appendChild(tx); axes.appendChild(ty);
+  }
+
+
+ // Axes fléchés jusqu'au bord du cadre
+const axX = document.createElementNS(svg.namespaceURI,'line');
+axX.setAttribute('x1', x0);
+axX.setAttribute('x2', x0 + w);        // ← jusqu'au bord
+axX.setAttribute('y1', yAxisY);
+axX.setAttribute('y2', yAxisY);
+axX.setAttribute('stroke', '#111');
+axX.setAttribute('stroke-width', '2.2');
+axX.setAttribute('stroke-linecap', 'butt'); // ← pas d’arrondi qui dépasse
+if (opts.arrows) axX.setAttribute('marker-end','url(#arrow)');
+axes.appendChild(axX);
+
+const axY = document.createElementNS(svg.namespaceURI,'line');
+axY.setAttribute('x1', xAxisX);
+axY.setAttribute('x2', xAxisX);
+axY.setAttribute('y1', y0 + h);
+axY.setAttribute('y2', y0);            // ← jusqu'au bord
+axY.setAttribute('stroke', '#111');
+axY.setAttribute('stroke-width', '2.2');
+axY.setAttribute('stroke-linecap', 'butt'); // ← idem
+if (opts.arrows) axY.setAttribute('marker-end','url(#arrow)');
+axes.appendChild(axY);
+
+
+  // inverses (px -> unités)
+  const Xi = px => xmin + (px - x0) / s;
+  const Yi = py => ymin + (y0 + h - py) / s;
+
+  // grande zone "hit" cliquable exactement sur le cadre
+  const hit = document.createElementNS(svg.namespaceURI,'rect');
+  hit.setAttribute('x', x0); hit.setAttribute('y', y0);
+  hit.setAttribute('width', w); hit.setAttribute('height', h);
+  hit.setAttribute('fill', 'transparent');
+  hit.style.pointerEvents = 'all';
+  plot.appendChild(hit);
+
+  return { svg, plot, axes, X, Y, Xi, Yi, hit, xmin, xmax, ymin, ymax };
+
+}
+
+// utilitaires tracé
+function addPath(g,d,st){ const p=document.createElementNS(g.namespaceURI,'path'); p.setAttribute('d',d);
+  p.setAttribute('fill','none'); p.setAttribute('stroke',st?.stroke||'#111'); p.setAttribute('stroke-width',st?.['stroke-width']||2.4);
+  p.setAttribute('stroke-linejoin','round'); p.setAttribute('stroke-linecap','round'); g.appendChild(p); return p; }
+// lissage type Hermite monotone (comme dans le fichier RG)
+function pathFromGridSmooth(rep, grid){
+  const X=rep.X,Y=rep.Y,Xs=grid.Xs,Ys=grid.Ys,n=Xs.length; if(n<2) return '';
+  const s=new Array(n-1); for(let i=0;i<n-1;i++) s[i]=Ys[i+1]-Ys[i];
+  const d=new Array(n); d[0]=s[0]; d[n-1]=s[n-2];
+  for(let i=1;i<n-1;i++){ const s0=s[i-1],s1=s[i];
+    if(s0*s1<=0) d[i]=0; else{ const a=Math.abs(s0),b=Math.abs(s1); d[i]=(Math.sign(s0)+Math.sign(s1))*Math.min(a,b,0.5*(a+b)); }
+  }
+  let D=`M ${X(Xs[0])} ${Y(Ys[0])}`;
+  for(let i=0;i<n-1;i++){ const x0=Xs[i],x1=Xs[i+1],y0=Ys[i],y1=Ys[i+1],h=x1-x0;
+    const c1x=X(x0+h/3), c1y=Y(y0 + d[i]*h/3), c2x=X(x1-h/3), c2y=Y(y1 - d[i+1]*h/3);
+    D+=` C ${c1x} ${c1y} ${c2x} ${c2y} ${X(x1)} ${Y(y1)}`;
+  }
+  return D;
+}
+
+/* ————— Petits rendus de tableaux ————— */
+
+
+function pickExtremaCountWeighted(){
+  const r = Math.random()*100;
+  if (r < 15) return 1;
+  if (r < 55) return 2;
+  if (r < 90) return 3;
+  return 4;
+}
+
+// Cubique de Hermite -> points de contrôle Bézier (pour <path d="C ...">)
+function hermiteToBezier(P0, P1, m0, m1){
+  const [x0,y0]=P0, [x1,y1]=P1, h=x1-x0;
+  return {
+    C1:[x0 + h/3, y0 + m0*h/3],
+    C2:[x1 - h/3, y1 - m1*h/3],
+  };
+}
+
+// Durcit les segments qui croisent y=0 : croisement net (pas de "kiss"), pas d'ondulation
+function hardenZeroCrossings(K){
+  // K : [{x,y,m}] triés
+  // 1) Écarter les voisins d'un zéro et imposer une pente minimale au zéro
+  const MIN_SLOPE = 0.35;  // pente minimale au zéro (croisement visible)
+  const MIN_AWAY  = 1;     // écart minimal |y| des voisins
+
+  for(let i=1;i<K.length-1;i++){
+    if(K[i].y===0){
+      // voisins de signes opposés et "éloignés" de 0
+      if(Math.abs(K[i-1].y) < MIN_AWAY) K[i-1].y = (K[i-1].y<=0 ? -MIN_AWAY : +MIN_AWAY);
+      if(Math.abs(K[i+1].y) < MIN_AWAY) K[i+1].y = (K[i+1].y<=0 ? -MIN_AWAY : +MIN_AWAY);
+
+      const dir = Math.sign(K[i+1].y - K[i-1].y) || 1;
+      K[i].m = dir * MIN_SLOPE; // croisement assuré (pente non nulle)
+    }
+  }
+
+  // 2) Pour chaque segment qui change de signe, on "dé-ondulationne"
+  //    en bornant les pentes à proximité de la sécante (évite les bosses parasites).
+  for(let i=0;i<K.length-1;i++){
+    const P0=K[i], P1=K[i+1];
+    const dx = (P1.x - P0.x) || 1;
+    const dy = P1.y - P0.y;
+    if(P0.y === 0 || P1.y === 0 || (P0.y*P1.y < 0)){
+      const target = 0.8 * (dy/dx);    // pentes calées sur ~80% de la sécante
+      P0.m = (P0.m===0 ? 0 : target);
+      P1.m = (P1.m===0 ? 0 : target);
+    }
+  }
+}
+
+function pathFromKnots(rep, K){
+  const X=rep.X, Y=rep.Y;
+  let d = '';
+  for (let i=0; i<K.length-1; i++){
+    const A=K[i], B=K[i+1];
+    if (!Number.isFinite(A.x) || !Number.isFinite(A.y) ||
+        !Number.isFinite(B.x) || !Number.isFinite(B.y)) continue;
+    if (d==='') d = `M ${X(A.x)} ${Y(A.y)}`;
+    const {C1,C2}=hermiteToBezier([A.x,A.y],[B.x,B.y],A.m,B.m);
+    d += ` C ${X(C1[0])} ${Y(C1[1])} ${X(C2[0])} ${Y(C2[1])} ${X(B.x)} ${Y(B.y)}`;
+  }
+  return d;
+}
+
+
+// Trouve les indices des "ancres de variation" dans K : [borne gauche], extrémums, [borne droite]
+function getAnchorIdx(K, extremaXs){
+  const set = new Set([K[0].x, ...extremaXs, K[K.length-1].x]);
+  const idx = [];
+  for (let i=0;i<K.length;i++) if (set.has(K[i].x)) idx.push(i);
+  return idx;
+}
+
+// Oriente les pentes des racines selon le sens du segment (borne/extrémum à extrémum/borne)
+function alignRootSlopes(K, anchorIdx, minSlope=0.35){
+  const idxOf = new Map(K.map((p,i)=>[p.x,i]));
+  for (let s=0; s<anchorIdx.length-1; s++){
+    const i0 = anchorIdx[s], i1 = anchorIdx[s+1];
+    const P0 = K[i0], P1 = K[i1];
+    const dx = (P1.x - P0.x) || 1;
+    const dy = P1.y - P0.y;
+    const trend = Math.sign(dy) || 1;          // sens de variation sur ce segment
+    const target = (dy/dx) * 0.9;              // pente "douce" de référence
+
+    for (let i=i0+1; i<i1; i++){
+      if (K[i].y === 0 && K[i].m !== 0){       // racine (non extrémum)
+        let m = target;
+        if (Math.abs(m) < minSlope) m = trend * minSlope; // croisement visible
+        K[i].m = m;
+      }
+    }
+  }
+}
+
+// Clamp monotone de Fritsch–Carlson pour chaque segment (évite les ondulations)
+function clampMonotone(K){
+  // 1) construire deltas
+  const n = K.length-1, dx=[], dy=[], delta=[];
+  for (let i=0;i<n;i++){
+    dx[i] = (K[i+1].x - K[i].x) || 1;
+    dy[i] =  K[i+1].y - K[i].y;
+    delta[i] = dy[i]/dx[i];
+  }
+  // 2) si m non défini (undefined), initialiser par moyenne des deltas voisines
+  for (let i=0;i<=n;i++){
+    if (K[i].m === undefined){
+      if (i===0) K[i].m = delta[0];
+      else if (i===n) K[i].m = delta[n-1];
+      else {
+        // moyenne pondérée classique
+        const w1 = 2*dx[i-1] + dx[i];
+        const w2 = dx[i-1] + 2*dx[i];
+        K[i].m = (w1 + w2) ? ( (w1 + w2) / (w1/delta[i-1] + w2/delta[i]) ) : 0;
+      }
+    }
+  }
+  // 3) Fritsch–Carlson : imposer monotonicité par segment
+  for (let i=0;i<n;i++){
+    if (Math.abs(dy[i]) < 1e-12){
+      // segment plat → pentes nulles
+      K[i].m = 0; K[i+1].m = 0; continue;
+    }
+    // si changement de signe, on met m_i=0
+    if (i>0 && delta[i-1]*delta[i] <= 0){ K[i].m = 0; }
+
+    const a = K[i].m / delta[i];
+    const b = K[i+1].m / delta[i];
+    if (a < 0) K[i].m = 0;
+    if (b < 0) K[i+1].m = 0;
+
+    const S = a*a + b*b;
+    if (S > 9){ // norme > 3 → on scale
+      const t = 3 / Math.sqrt(S);
+      K[i].m     = t * a * delta[i];
+      K[i+1].m   = t * b * delta[i];
+    }
+  }
+}
+
+// Fabrique d’une courbe lisse avec n extrémums (entiers), sans plateau, + padding vertical
+// ——— remplace entièrement la fonction ———
+// --- Fabrique au propre : courbe lisse + racines entières (zéros sur des entiers) ---
+// --- Courbe lisse : extrémums entiers (comme avant), + racines SIMPLES à x entiers (≠ extrémums) ---
+function makeSmoothCurveKnots(nExt){
+  const halfX = choice([5,6,7]);
+  const xmin = -halfX, xmax = +halfX;
+
+  // candidats entiers internes
+  const Xcand=[]; for(let x=xmin+1; x<=xmax-1; x++) Xcand.push(x);
+
+  // échantillonnage avec écart ≥ 2 entre extrémums et ≥ 2 des bornes
+  function sampleExtPositions(n){
+    const pick=[];
+    const pool=[...Xcand];
+    const ok = x => Math.abs(x-xmin)>=2 && Math.abs(x-xmax)>=2 && pick.every(u=>Math.abs(u-x)>=2);
+    let guard=1000;
+    while(pick.length<n && pool.length && guard--){
+      const i=Math.floor(Math.random()*pool.length), x=pool.splice(i,1)[0];
+      if(ok(x)) pick.push(x);
+    }
+    pick.sort((a,b)=>a-b);
+    if(pick.length<n){ // secours : relâche à écart ≥1 si trop serré
+      const need=n-pick.length;
+      const rest=Xcand.filter(x=>!pick.includes(x));
+      rest.sort(()=>Math.random()-0.5);
+      for(const x of rest){ if(!pick.includes(x)){ pick.push(x); if(pick.length===n) break; } }
+      pick.sort((a,b)=>a-b);
+    }
+    return pick;
+  }
+
+  const n = Math.min(Math.max(1,nExt|0),4);
+  const Xext = sampleExtPositions(n);
+
+  const startIsMin = Math.random()<0.5;
+  const levels=[];
+  if(startIsMin){
+    const baseMin = rint(-2, 1);
+    const baseMax = rint(baseMin+2, 5);
+    for(let i=0;i<n;i++) levels.push(i%2===0 ? baseMin+Math.floor(i/2) : baseMax+Math.floor(i/2));
+  }else{
+    const baseMax = rint(1, 5);
+    const baseMin = rint(-2, baseMax-2);
+    for(let i=0;i<n;i++) levels.push(i%2===0 ? baseMax+Math.floor(i/2) : baseMin+Math.floor(i/2));
+  }
+
+  // bornes (pas d’extremum)
+  const yFirst=levels[0], yLast=levels[n-1];
+  const yL = startIsMin ? rint(yFirst+1, yFirst+3) : rint(yFirst-3, yFirst-1);
+  const yR = ((startIsMin && (n%2===1)) || (!startIsMin && (n%2===0)))
+            ? rint(yLast+1, yLast+3) : rint(yLast-3, yLast-1);
+
+  // nœuds initiaux : borne, extrémums, borne
+  const K=[{x:xmin,y:yL,m:undefined}];
+  for(let i=0;i<n;i++) K.push({x:Xext[i], y:levels[i], m:0});
+  K.push({x:xmax,y:yR,m:undefined});
+
+// ——— INSÉRER DES RACINES UNIQUEMENT À DES ENTIERS ———
+const roots = [];
+for (let i = 0; i < K.length - 1; i++) {
+  const a = K[i], b = K[i+1];
+  if (a.y === 0 || b.y === 0) continue;
+  if (a.y * b.y < 0) {
+    const ints = [];
+    for (let x = a.x + 1; x <= b.x - 1; x++) ints.push(x);
+    if (ints.length) {
+      const r = choice(ints);
+      K.splice(i + 1, 0, { x: r, y: 0, m: undefined }); // zéro interne à entier
+      i++;
+    } else {
+      // largeur 1 : placer le zéro sur une ancre, en évitant un extrémum si possible
+      const prefer = [a, b].filter(pt => pt.m !== 0);       // m=0 ⇒ extrémum
+      const end = (prefer.length ? prefer : [a, b])
+                  .reduce((best, pt) => Math.abs(pt.y) < Math.abs(best.y) ? pt : best);
+      end.y = 0; // zéro sur l’ancre
+    }
+  }
+}
+// Nettoyage de sécurité : retirer tout nœud non fini (ne devrait plus arriver)
+for (let i = K.length - 1; i >= 0; i--) {
+  if (!Number.isFinite(K[i].x) || !Number.isFinite(K[i].y)) K.splice(i, 1);
+}
+
+
+  // pentes aux bornes
+  const leftNext = K[1], rightPrev = K[K.length-2];
+  const sL = 0.6 * (leftNext.y - yL) / (leftNext.x - xmin);
+  const sR = 0.6 * (yR - rightPrev.y) / (xmax - rightPrev.x);
+  K[0].m = sL; K[K.length-1].m = sR;
+
+  // initialisation douce des autres pentes (sauf extrémums m=0)
+  for(let i=1;i<K.length-1;i++){
+    if(K[i].m===0) continue;
+    if(K[i].m!==undefined) continue;
+    const prev=K[i-1], next=K[i+1];
+    const dx=(next.x - prev.x)||1;
+    K[i].m = (next.y - prev.y)/dx * 0.9;
+  }
+
+  // ——— ORIENTER les pentes des racines et CLAMP monotone (helpers déjà fournis) ———
+  const extremaXs = Xext.slice();
+  const anchors   = getAnchorIdx(K, extremaXs);
+  alignRootSlopes(K, anchors, 0.35);
+  clampMonotone(K);
+
+  // repère symétrique + marge
+  const PAD=2;
+  const yMinData = Math.min(...K.map(p=>p.y));
+  const yMaxData = Math.max(...K.map(p=>p.y));
+  const halfY = Math.ceil(Math.max(Math.abs(yMinData - PAD), Math.abs(yMaxData + PAD))) + 1;
+  const R = { xmin: xmin - 1, xmax: xmax + 1, ymin: -halfY, ymax: +halfY };
+
+  const extrema = Xext.map((x,i)=>({x, y:levels[i], type: ((startIsMin ? i%2===0 : i%2===1) ? 'min':'max')}));
+
+// Racines pour le tableau : tous les x internes où y=0 (uniques, triés)
+const rootsForTable = Array.from(
+  new Set(K.filter(p => p.y === 0 && p.x > xmin && p.x < xmax).map(p => p.x))
+).sort((u,v)=>u-v);
+
+// Xs/Ys pour les signes (inchangé)
+const Ymap = new Map(K.map(p=>[p.x, p.y]));
+const inner = Array.from(new Set([...Xext, ...rootsForTable])).sort((a,b)=>a-b);
+const Xs = [R.xmin+1, ...inner, R.xmax-1];
+const Ys = Xs.map(x => (Ymap.has(x)? Ymap.get(x) : 0)); Ys[0]=K[0].y; Ys[Ys.length-1]=K[K.length-1].y;
+
+return {
+  knots: K,
+  extrema,
+  R,
+  roots: rootsForTable,   // ← désormais toujours complet (inclut le 2 dans ton exemple)
+  Xs, Ys
+};
+
+}
+
+
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+// map + concat sans .join
+function mapHTML(arr, render, sep=''){
+  let out = '';
+  for (let i = 0; i < arr.length; i++){
+    out += render(arr[i], i);
+    if (sep && i < arr.length - 1) out += sep;
+  }
+  return out;
+}
+
+
+
+const toTeX = s => s.replace(/</g, '\\lt ').replace(/>/g, '\\gt ');
+const escHTML = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+
+
+// ———————————————————————————————————————————————————————————————
+// EXERCICE 3 — Lire un tableau de variations (domaine, extrémums, QCM)
+// ———————————————————————————————————————————————————————————————
+const ex1 = {
+  id:'var_table_read_qcm',
+  title:'Lire un tableau de variations (domaine, extrémums, QCM)',
+  gen(){
+    // on fabrique 5 bornes entières espacées (comme l’exemple : −4, −2, 0, 4, 6)
+// --- Domaine large NON SYMÉTRIQUE avec entiers intérieurs garantis ---
+function makeNonSymmetricX(){
+  // Écarts (≥3) pour assurer des entiers strictement intérieurs
+  const steps = Array.from({length:4}, ()=> rint(3,7));     // tailles 3..7 (modifiable)
+  const span  = steps.reduce((a,b)=>a+b,0);
+
+  // Choix d’une borne gauche large et non symétrique
+  // -> Ajuste ces bornes si tu veux "voir plus si nécessaire"
+  const LMIN = -20, RMAX_TARGET = 20;                       // fenêtre globale désirée
+  const LMAX = Math.max(LMIN, RMAX_TARGET - span);          // borne droite ≲ RMAX_TARGET
+  const L    = rint(LMIN, LMAX);                            // borne gauche aléatoire
+
+  // Construit X = [x0, ..., x4] strictement croissant
+  const X = [L];
+  for (const s of steps) X.push(X[X.length-1] + s);
+  return X;
+}
+const X = makeNonSymmetricX();
+
+
+    // valeurs aux noeuds, en alternant ↗↘↗↘ avec amplitudes entières lisibles
+// — sens de variation : on NE commence pas toujours par croissant
+const startDir = choice(['↗','↘']);
+const DIR = Array.from({length:4}, (_,i)=> (i%2===0 ? startDir : (startDir==='↗'?'↘':'↗')));
+
+// — amplitudes lisibles
+const ups = [2,3,4], downs = [2,3];
+
+// — valeurs aux noeuds, cohérentes avec DIR
+let y0 = rint(-3, 2);
+const Y = [y0];
+for (let i=0; i<DIR.length; i++){
+  if (DIR[i] === '↗'){
+    Y.push(Y[i] + choice(ups));             // strictement ↑
+  } else {
+    Y.push(Y[i] - (choice(downs) + 1));     // strictement ↓
+  }
+}
+        // sens imposé
+
+    // intervalle de la question 3 (max/min) : on prend [X[1];X[4]] pour forcer un extrémum interne
+    const Iq = [X[1], X[4]];
+
+
+// Helpers d’entiers dépendants de X (portée locale à gen)
+function intsIn(i){
+  const a = X[i], b = X[i+1], L = [];
+  for(let t=a; t<=b; t++) L.push(t);
+  return L;
+}
+function intsOpen(i){           // entiers strictement à l’intérieur
+  const L = [];
+  for(let t=X[i]+1; t<=X[i+1]-1; t++) L.push(t);
+  return L;
+}
+function intsLeft(i){           // intérieur sinon borne gauche
+  const L = intsOpen(i);
+  return L.length ? L : [X[i]];
+}
+function intsRight(i){          // intérieur sinon borne droite
+  const L = intsOpen(i);
+  return L.length ? L : [X[i+1]];
+}
+
+
+
+
+
+    // Fabrique quelques énoncés QCM (certains conclusifs, d’autres « ? »)
+    function S(f){ return String(f).replace('-','−'); }
+    const pickInside = i => (X[i] + X[i+1]) / 2;       // point intérieur au segment i
+// ————— QCM (question 4) —————
+// ————— QCM (question 4) —————
+
+const incIdx = [...DIR.keys()].filter(i => DIR[i] === '↗');
+const decIdx = [...DIR.keys()].filter(i => DIR[i] === '↘');
+
+
+function pickPairInInterval(i){
+  const pool = (intsOpen(i).length ? intsOpen(i) : intsIn(i));
+  const P = [];
+  for(let p=0; p<pool.length; p++){
+    for(let q=p+1; q<pool.length; q++){
+      P.push([pool[p], pool[q]]);
+    }
+  }
+  return P.length ? P[Math.floor(Math.random()*P.length)] : [X[i], X[i+1]];
+}
+
+
+function pickTwoDistinct(idxs){
+  if(idxs.length >= 2){
+    const sh = [...idxs].sort(() => Math.random()-0.5);
+    return [sh[0], sh[1]];
+  }
+  return [idxs[0], idxs[0]]; // fallback (ne devrait pas arriver ici)
+}
+
+// A) CROISSANTE : 1 vraie + 1 fausse, sur deux intervalles ↗ distincts
+let [iInc1, iInc2] = pickTwoDistinct(incIdx);
+let [a1, a2] = pickPairInInterval(iInc1);
+let [a3, a4] = pickPairInInterval(iInc2);
+const partA = [
+  { id: 'inc_v',  want:'v', type:'inc', i:iInc1, x1:a1, x2:a2, txt:`f(${S(a1)}) < f(${S(a2)})` },
+  { id: 'inc_f',  want:'f', type:'inc', i:iInc2, x1:a3, x2:a4, txt:`f(${S(a3)}) > f(${S(a4)})` },
+];
+
+// B) DÉCROISSANTE : 1 vraie + 1 fausse, sur deux intervalles ↘ distincts
+let [iDec1, iDec2] = pickTwoDistinct(decIdx);
+let [b1, b2] = pickPairInInterval(iDec1);
+let [b3, b4] = pickPairInInterval(iDec2);
+const partB = [
+  { id: 'dec_v',  want:'v', type:'dec', i:iDec1, x1:b1, x2:b2, txt:`f(${S(b1)}) > f(${S(b2)})` },
+  { id: 'dec_f',  want:'f', type:'dec', i:iDec2, x1:b3, x2:b4, txt:`f(${S(b3)}) < f(${S(b4)})` },
+];
+
+// C) Comparaison à un max et à un min : 1 vraie + 1 fausse
+// — C) Comparaison à un max ET à un min — chacune peut être VRAIE ou FAUSSE
+const yMax = Math.max(...Y);
+const yMin = Math.min(...Y);
+
+// x entiers non extrémaux (pour assurer les strictes inégalités)
+const extXs = new Set(X.filter((_, i) => Y[i] === yMax || Y[i] === yMin));
+function intsIn(i){ const L=[]; for(let t=X[i]; t<=X[i+1]; t++) L.push(t); return L; }
+function pickXnotExt(){
+  const pool = [...DIR.keys()].flatMap(i=>intsIn(i));
+  const cand = pool.filter(x=>!extXs.has(x));
+  return choice(cand.length ? cand : pool);
+}
+
+const idxForMax = choice([...DIR.keys()]);          // on choisit un intervalle
+const Lmax = intsOpen(idxForMax);
+const xMax = (Lmax.length ? choice(Lmax) : choice(intsIn(idxForMax)));
+
+const xMin = pickXnotExt();   // point pour la comparaison au min
+
+// Aléa : chacune peut être vraie (V) ou fausse (F)
+const makeTrueMax = Math.random() < 0.5;   // si vrai → f(x) < yMax ; sinon → f(x) > yMax
+const makeTrueMin = Math.random() < 0.5;   // si vrai → f(x) > yMin ; sinon → f(x) < yMin
+let partC = [];
+partC = [
+  { id:'cmp_max', type:'toMax', want: makeTrueMax?'v':'f', x:xMax, k:yMax, sign: makeTrueMax?'<':'>',
+    txt:`f(${S(xMax)}) ${makeTrueMax?'<':'>'} ${S(yMax)}`
+  },
+  { id:'cmp_min', type:'toMin', want: makeTrueMin?'v':'f', x:xMin, k:yMin, sign: makeTrueMin?'>':'<',
+    txt:`f(${S(xMin)}) ${makeTrueMin?'>':'<'} ${S(yMin)}`
+  }
+];
+
+
+// D) Intervalles consécutifs de sens opposés → Impossible
+function findTurn(){
+  for(let i=0; i<DIR.length-1; i++){
+    if ((DIR[i]==='↗' && DIR[i+1]==='↘') || (DIR[i]==='↘' && DIR[i+1]==='↗')) return i;
+  }
+  return -1;
+}
+// AVANT
+// const t = findTurn();
+
+// APRÈS — liste de TOUS les changements de sens, on en choisit un
+const turns = [];
+for (let i=0; i<DIR.length-1; i++){
+  if ((DIR[i]==='↗' && DIR[i+1]==='↘') || (DIR[i]==='↘' && DIR[i+1]==='↗')) turns.push(i);
+}
+const t = choice(turns.length ? turns : [0]); // fallback au 1er segment si pas de turn
+let partD = [];
+let partE = [];
+if(t !== -1){
+const xL = intsLeft(t)[Math.floor(Math.random()*intsLeft(t).length)];
+const xR = intsRight(t+1)[Math.floor(Math.random()*intsRight(t+1).length)];
+  const sym = Math.random()<0.5 ? '<' : '>';
+partD = [{ id:'nc_turn', want:'nc', type:'nc_turn', i:t, x1:xL, x2:xR, sym,
+           txt:`f(${S(xL)}) ${sym} f(${S(xR)})`}];
+// E) Comparaison avec l’extrémum au changement de sens — non adjacent
+// E) Comparaison avec l’extrémum choisi (non adjacent)
+// ==== Candidats extrémums globaux ====
+const yGlobMax = Math.max(...Y);
+const yGlobMin = Math.min(...Y);
+const XglobMax = X.filter((_,i)=>Y[i]===yGlobMax);
+const XglobMin = X.filter((_,i)=>Y[i]===yGlobMin);
+
+// ==== Construit l'item E avec un extrémum GLOBAL ====
+(function buildPartEGlobal(){
+  const useMax = Math.random() < 0.5;               // au hasard: max ou min global
+  const xExt = choice(useMax ? XglobMax : XglobMin);
+  const kVal = useMax ? yGlobMax : yGlobMin;
+
+  // Liste d'abscisses entières du domaine (y compris bornes)
+  const allInts = [];
+  for(let t=X[0]; t<=X[X.length-1]; t++) allInts.push(t);
+
+  // On évite de prendre une autre abscisse qui atteint le même extrémum
+  const badSet = new Set(useMax ? XglobMax : XglobMin);
+
+  // Pour rendre VRAI, on veut f(xExt) > f(xO) si max global, f(xExt) < f(xO) si min global.
+  // Comme on ne calcule pas f(xO), on s'appuie sur la propriété globale :
+  //   max global : pour tout x, f(x) ≤ f(xExt), et strict < si x n'est pas aussi un argmax.
+  //   min global : pour tout x, f(x) ≥ f(xExt), et strict > si x n'est pas aussi un argmin.
+  // Donc il suffit de choisir xO ∉ (argmax/argmin).
+  const poolO = allInts.filter(x => x !== xExt && !badSet.has(x));
+  const xO = choice(poolO.length ? poolO : allInts.filter(x=>x!==xExt));
+
+  const makeTrue = Math.random() < 0.5;
+  const sign = useMax
+    ? (makeTrue ? '>' : '<')   // max global -> vrai si '>'
+    : (makeTrue ? '<' : '>');  // min global -> vrai si '<'
+
+  // Remplace l'ancien partE :
+partE = [{
+  id: makeTrue ? 'ext_v' : 'ext_f',
+  want: makeTrue ? 'v' : 'f',
+  type:'ext', ext: useMax?'max':'min',
+  xExt, xO, kVal,
+  txt: `f(${S(xExt)}) ${sign} f(${S(xO)})`
+}];
+})();
+
+
+
+
+
+}else{
+  // Secours : au pire, on place un "nc" arbitraire et un énoncé avec l’extrémum global
+  const ia = incIdx.concat(decIdx)[0];
+  const ib = incIdx.concat(decIdx).find(j => j!==ia) ?? ia;
+  partD = [{
+    k:'nc_any', want:'nc', type:'nc_any', ia, ib,
+    x1: intsIn(ia)[0], x2: intsIn(ib)[0], sym:'<',
+    txt:`f(${S(intsIn(ia)[0])}) < f(${S(intsIn(ib)[0])})`
+  }];
+  partE = [{
+    k:'ext_glob', want:'v', type:'ext_glob',
+    xExt: X[Y.indexOf(yMax)], xO: intsIn(ia)[0],
+    txt:`f(${S(X[Y.indexOf(yMax)])}) ≥ f(${S(intsIn(ia)[0])})`
+  }];
+}
+
+// Pas de dédoublonnage qui supprime tout : on prend nos 8 items puis on mélange
+let stmts = [...partA, ...partB, ...partC, ...partD, ...partE];
+
+// anti-doublon (même libellé s.txt)
+const seen = new Set();
+stmts = stmts.filter(s => {
+  if (seen.has(s.txt)) return false;
+  seen.add(s.txt);
+  return true;
+});
+stmts.sort(() => Math.random() - 0.5);
+
+return { X, Y, DIR, Iq, stmts };
+
+
+
+
+
+
+
+
+  },
+
+  render(host, st){
+    const {X,Y,DIR,Iq,stmts} = st;
+
+    // variation table en “lecture” (affiché, non éditable)
+    function rowX(){
+      let r = '<tr><th>\\(x\\)</th>';
+      X.forEach((x,i)=>{ r += `<td>\\(${String(x).replace('-','−')}\\)</td>`; if(i<X.length-1) r+='<td></td>'; });
+      r += '</tr>'; return r;
+    }
+function rowF(){
+  let r = '<tr><th>\\(f\\)</th>';
+
+  // --- cellule de départ (x0) : haut si max, bas si min ---
+  const isMax0 = (DIR[0] === '↘');      // si ça descend, y0 est un max
+  const up0 = isMax0 ? `\\(${Y[0]}\\)` : '&nbsp;';
+  const dn0 = isMax0 ? '&nbsp;' : `\\(${Y[0]}\\)`;
+  r += `<td style="text-align:center"><div>${up0}</div><div style="height:6px"></div><div>${dn0}</div></td>`;
+
+  // --- cellules internes (inchangé sauf qu’on a déjà traité y0) ---
+  for(let i=0;i<DIR.length;i++){
+    r += `<td style="text-align:center">${DIR[i]}</td>`;
+    const isMax = (DIR[i]==='↗' && DIR[i+1]==='↘') || (i===DIR.length-1 && DIR[i]==='↗');
+    const up = isMax ? `\\(${Y[i+1]}\\)` : '&nbsp;';
+    const dn = isMax ? '&nbsp;' : `\\(${Y[i+1]}\\)`;
+    r += `<td style="text-align:center"><div>${up}</div><div style="height:6px"></div><div>${dn}</div></td>`;
+  }
+  r += '</tr>';
+  return r;
+}
+
+
+    host.innerHTML = `
+      <div>On donne le tableau de variation d’une fonction \\(f\\) :</div>
+      <div class="var-wrap">
+        <table class="pdf-tbl">
+          <thead>${rowX()}</thead>
+          <tbody>${rowF()}</tbody>
+        </table>
+      </div>
+
+      <ol style="margin:.4rem 0 0 1.2rem">
+        <li style="margin:.25rem 0">
+          Déterminer l’<b>ensemble de définition</b> de \\(f\\).
+          <div style="display:inline-flex;gap:8px;align-items:center;margin-left:8px">
+            <input class="q-dom" type="text" placeholder="" style="width:120px;text-align:center">
+            <span class="tick nu"></span>
+          </div>
+        </li>
+
+
+
+        <li style="margin:.25rem 0">
+          Quel est le <b>maximum</b> de \\(f\\) sur
+          \\([${String(Iq[0]).replace('-','−')} ; ${String(Iq[1]).replace('-','−')}]\\) ?
+          En quelle(s) valeur(s) est-il atteint ?
+          <div class ="pdf-hide" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:.3rem 0 0 .2rem">
+        <label>Le maximum de la fonction \\(f\\) sur \\([${String(Iq[0]).replace('-','−')} ; ${String(Iq[1]).replace('-','−')}]\\) est :</label>
+          <input class="qmaxy" type="text" style="width:110px;text-align:center">
+          <span class="tick nu"></span>
+          <label>atteint en \\(x=\\)</label>
+          <input class="qmaxx" type="text" style="width:110px;text-align:center">
+          <span class="tick nu"></span>    
+						
+
+          </div>
+        </li>
+
+        <li style="margin:.25rem 0">
+          En justifiant ces réponses, indiquer si chaque affirmation est <b>Vraie</b>, <b>Fausse</b> ou « <b>Impossible de conclure</b> ».
+          <div style="margin:.35rem 0 0 .2rem">
+            <ol type="a" style="margin:0 0 0 1.2rem">
+${mapHTML(stmts, function(s){
+  const txtTeX = toTeX(s.txt); // <- convertit < et > en \lt \gt
+  return '<li style="margin:.2rem 0">' +
+           '\\(' + txtTeX + '\\)' +
+           // rendu des <select>
+'<select class="q-qcm" data-id="' + s.id + '">' +
+             '<option value=""></option>' +
+             '<option value="v">Vrai</option>' +
+             '<option value="f">Faux</option>' +
+             '<option value="nc">Impossible</option>' +
+           '</select>' +
+           '<span class="tick nu"></span>' +
+         '</li>';
+})}
+
+
+
+            </ol>
+          </div>
+        </li>
+      </ol>
+      <div class="steps small" id="res" style="margin-top:.5rem"></div>
+    `;
+
+    host.dataset.state_extra = JSON.stringify({}); // placeholder
+    host.querySelectorAll('input,select').forEach(ensureTickAfter);
+	// Assure le tick dès qu'on change une réponse QCM
+host.querySelectorAll('select.q-qcm, .q-qcm').forEach(sel=>{
+  sel.addEventListener('change', ()=> ensureTickAfter(sel));
+});
+
+    typesetAll(host);
+  },
+
+  correct(host, st){
+    const {X,Y,DIR,Iq,stmts} = st;
+    let ok=0, tot=0;
+    const norm = s => (s||'').trim().replace(/\u2212/g,'-').replace(/\s/g,'').replace(',', '.');
+// à placer au début de correct() après les const
+const setNuIfEmpty = (el) => {
+  if (!el) return true;                       // rien à faire
+  const isEmpty = String(el.value ?? '').trim() === '';
+  if (isEmpty) setTick(el, 'nu');
+  return isEmpty;
+};
+
+    // (1) Domaine
+   const dom = host.querySelector('.q-dom');
+if (dom) {
+  if (setNuIfEmpty(dom) === false) {          // non vide → on évalue
+    tot++;
+    const v = norm(dom.value);
+    const good = v === `[${X[0]};${X[X.length-1]}]`;
+    setTick(dom, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
+
+
+
+
+    // (3) Maximum sur [Iq]
+    // on regarde les nœuds inclus dans l’intervalle
+    const idxL = X.findIndex(v=>v===Iq[0]);
+    const idxR = X.findIndex(v=>v===Iq[1]);
+    const subY = Y.slice(idxL, idxR+1);
+    const subX = X.slice(idxL, idxR+1);
+    const ymax = Math.max(...subY);
+    const Xmax = subX.filter((_,i)=>subY[i]===ymax);
+
+// ymax/Xmax déjà calculés plus haut
+
+const inMaxY = host.querySelector('.qmaxy');  // <-- sans tiret !
+if (inMaxY) {
+  if (setNuIfEmpty(inMaxY) === false) {
+    tot++;
+    const good = (norm(inMaxY.value) === String(ymax));
+    setTick(inMaxY, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
+
+const inMaxX = host.querySelector('.qmaxx');  // <-- sans tiret !
+if (inMaxX) {
+  if (setNuIfEmpty(inMaxX) === false) {
+    tot++;
+    const Ans = norm(inMaxX.value).split(';').filter(Boolean);
+    const A = [...new Set(Ans)].sort();
+    const R = [...new Set(Xmax.map(String))].sort();
+    const good = (A.length === R.length) && A.every((v,i)=>v===R[i]);
+    setTick(inMaxX, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
+
+
+    // (4) QCM
+ function evalStmt(s){ return s.want; }   // 'v' | 'f' | 'nc'
+
+host.querySelectorAll('.q-qcm').forEach(sel=>{
+  const val = String(sel.value || '').trim();
+  if (!val){ setTick(sel,'nu'); return; }
+
+  const sid = sel.dataset.id;           // ← récupère l’identifiant texte
+  const s   = stmts.find(t => t.id === sid);
+
+  if (!s){ setTick(sel,'nu'); return; } // sécurité
+
+  tot++;
+  const good = (val === s.want);        // 'v' | 'f' | 'nc'
+  setTick(sel, good ? 'ok' : 'ko');
+  if (good) ok++;
+});
+
+
+
+
+    const res=$('#res',host);
+    res.textContent = '';
+    ensureTickAfter(res).className = 'tick ' + (ok===tot && tot>0 ? 'ok' : 'nu');
+    return {ok, total: tot};
+  },
+
+  solution(host, st){
+    const {X,Y,DIR,Iq,stmts} = st;
+    const idxL = X.findIndex(v=>v===Iq[0]);
+    const idxR = X.findIndex(v=>v===Iq[1]);
+    const subY = Y.slice(idxL, idxR+1);
+    const subX = X.slice(idxL, idxR+1);
+    const ymax = Math.max(...subY);
+    const Xmax = subX.filter((_,i)=>subY[i]===ymax);
+
+    const fmt = s=>String(s).replace('-','−');
+    const box = $('#res',host);
+	const gMax = Math.max(...Y);
+const gMin = Math.min(...Y);
+
+	
+	const word = w => w==='v' ? 'Vrai' : w==='f' ? 'Faux' : 'Impossible';
+	
+    box.innerHTML = `
+      <div class="step"><b>1.</b> Domaine : \\([${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]\\).</div>
+
+      <div class="step"><b>2.</b> Le maximum de la fonction \\(f\\) sur \\([${fmt(Iq[0])}\\,;\\,${fmt(Iq[1])}]\\) vaut \\(${ymax}\\) atteint en ${mapHTML(Xmax, x=>`\\(x=${fmt(x)}\\)`, ' et ')}.</div>
+
+    `;
+  // 👉 Ajouter ce helper ici (visible par explain)
+  const S = n => String(n).replace('-', '−');	
+const explain = (s) => {
+  const I1 = (i)=>`[${S(X[i])} ; ${S(X[i+1])}]`;
+    const I = (i)=>`[${S(s.x1)} ; ${S(s.x2)}]`;
+
+  const segMin = (i)=>Math.min(Y[i],Y[i+1]);
+  const segMax = (i)=>Math.max(Y[i],Y[i+1]);
+
+// ===== helper robuste : rend l’index du segment contenant x =====
+function segIndexOfX(x){
+  // à l’intérieur strict
+  for(let j=0; j<DIR.length; j++){
+    const L = X[j], R = X[j+1];
+    if (x > L && x < R) return j;
+    // gérer proprement les cas aux bornes
+    if (x === L) return j;
+    if (x === R && j === DIR.length-1) return j; // dernière borne
+  }
+  // secours : on accroche au segment le plus proche
+  let j = 0;
+  while (j < DIR.length-1 && X[j+1] < x) j++;
+  return Math.max(0, Math.min(DIR.length-1, j));
+}
+
+
+
+  switch(s.type){
+    case 'inc': {
+      const a = S(s.x1), b = S(s.x2), Iab = I(s.i);
+      const core = `la fonction \\(f\\) est <b>strictement croissante</b> sur \\(${Iab}\\) ainsi : \\(f(${a}) \\lt f(${b})\\).`;
+      return s.want==='v'
+        ? `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or ${core} <b>VRAIE</b>.`
+        : `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or \\(f\\) est <b>strictement croissante</b> sur \\(${Iab}\\), on devrait avoir \\(f(${a}) \\lt f(${b})\\). <b>FAUSSE</b>.`;
+    }
+    case 'dec': {
+      const a = S(s.x1), b = S(s.x2), Iab = I(s.i);
+      const core = `la fonction \\(f\\) est <b>strictement décroissante</b> sur \\(${Iab}\\) ainsi : \\(f(${a}) \\gt f(${b})\\).`;
+      return s.want==='v'
+        ? `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or ${core} <b>VRAIE</b>.`
+        : `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or \\(f\\) est <b>strictement décroissante</b>  sur \\(${Iab}\\), on devrait avoir \\(f(${a}) \\gt f(${b})\\). <b>FAUSSE</b>.`;
+    }
+case 'toMax': {
+  const Idef = `[${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]`;
+  if (s.sign === '<') {
+    // VRAIE : pour tout x, f(x) ≤ gMax ⇒ f(x) < gMax si x n’est pas un argmax
+    return `Sur \\(${Idef}\\), le <b>maximum (global)</b>  de \\(f\\) vaut \\(${gMax}\\), donc pour tout \\(x\\in${Idef}\\),
+            \\(f(x)\\le ${gMax}\\).
+            <br>Comme \\(${s.x}\\) n’est pas une abscisse de maximum : on obtient \\(f(${S(s.x)}) \\lt ${gMax}\\). <b>VRAIE</b>.`;
+  } else {
+    // FAUSSE : impossible d’avoir f(x) > gMax
+    return `Sur \\(${Idef}\\), le <b>maximum (global)</b>  est \\(${gMax}\\), donc pour tout \\(x\\), \\(f(x)\\le ${gMax}\\).
+            <br>L’assertion \\(f(${S(s.x)}) \\gt ${gMax}\\) est impossible. <b>FAUSSE</b>.`;
+  }
+}
+
+case 'toMin': {
+  const Idef = `[${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]`;
+  if (s.sign === '>') {
+    // VRAIE : pour tout x, f(x) ≥ gMin ⇒ strict si x n’est pas un argmin
+    return `Sur \\(${Idef}\\), le <b>minimum (global)</b>  de \\(f\\) vaut \\(${gMin}\\), donc pour tout \\(x\\in${Idef}\\),
+            \\(f(x)\\ge ${gMin}\\).
+            <br>Comme \\(${S(s.x)}\\) n’est pas une abscisse de minimum :  on obtient  \\(f(${S(s.x)})\\gt ${gMin}\\). <b>VRAIE</b>.`;
+  } else {
+    // FAUSSE : impossible d’avoir f(x) < gMin
+    return `Sur \\(${Idef}\\), le <b>minimum (global)</b>  est \\(${gMin}\\), donc pour tout \\(x\\), \\(f(x)\\ge ${gMin}\\).
+           <br> L’assertion \\(f(${S(s.x)}) \\lt ${gMin}\\) est impossible. <b>FAUSSE</b>.`;
+  }
+}
+
+
+    case 'nc_turn': {
+      // deux intervalles consécutifs de sens opposés : encadrement seulement
+      const a = s.i, Ibig = `[${S(X[a])} ; ${S(X[a+2])}]`;
+      const m = Math.min(Y[a],Y[a+1],Y[a+2]);
+      const M = Math.max(Y[a],Y[a+1],Y[a+2]);
+      return `Le tableau présente un changement de variations aux abords de \\(x=${S(X[a+1])}\\). On sait seulement que, pour tout \\(x\\in${Ibig}\\), \\(${m}\\le f(x)\\le ${M}\\). Impossible de comparer \\(f(${S(s.x1)})\\) et \\(f(${S(s.x2)})\\). <b>Impossible de conclure</b>.`;
+    }
+    case 'ext': {
+  // intervalle uniquement entre xO et xExt (ordre automatique)
+  const Iother = `[${S(Math.min(s.xO, s.xExt))} ; ${S(Math.max(s.xO, s.xExt))}]`;
+
+  if (s.ext === 'max') {
+    return s.want === 'v'
+      ? `\\(f(${S(s.xExt)})\\) est le <b>maximum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), on a \\(f(x)\\le f(${S(s.xExt)})\\).
+         <br>En particulier, comme \\(${S(s.xO)}\\in${Iother}\\), \\(f(${S(s.xExt)}) \\gt f(${S(s.xO)})\\). <b>VRAIE</b>.`
+      : `\\(f(${S(s.xExt)})\\) est le <b>maximum</b> sur \\(${Iother}\\)  ainsi pour tout \\(x\\in${Iother}\\), \\(f(x)\\le f(${S(s.xExt)})\\).
+         <br>Or \\(${S(s.xO)}\\in${Iother}\\) donc \\(f(${S(s.xExt)})\\ge f(${S(s.xO)})\\). <b>FAUSSE</b>.`;
+  } else {
+    return s.want === 'v'
+      ? `\\(f(${S(s.xExt)})\\) est le <b>minimum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), on a \\(f(x)\\ge f(${S(s.xExt)})\\).
+         <br>En particulier, comme \\(${S(s.xO)}\\in${Iother}\\), \\(f(${S(s.xExt)}) \\lt f(${S(s.xO)})\\). <b>VRAIE</b>.`
+      : `\\(f(${S(s.xExt)})\\) est le <b>minimum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), \\(f(x)\\ge f(${S(s.xExt)})\\).
+         <br>Or \\(${S(s.xO)}\\in${Iother}\\) donc \\(f(${S(s.xExt)})\\le f(${S(s.xO)})\\).<b>FAUSSE</b>.`;
+  }
+}
+
+    case 'nc_any': {
+      const I1=`[${S(X[s.ia])} ; ${S(X[s.ia+1])}]`, I2=`[${S(X[s.ib])} ; ${S(X[s.ib+1])}]`;
+      return `Les points appartiennent à deux intervalles distincts (${I1} et ${I2}) sans information de liaison. On peut seulement encadrer les valeurs par les bornes locales : le tableau <b>ne permet pas de conclure</b>.`;
+    }
+    case 'ext_glob': {
+      return `On compare une abscisse d’extrémum global avec un point d’un autre intervalle : on sait que \\(f(${S(s.xExt)})\\) est une borne dans la zone considérée, d’où l’inégalité annoncée. <b>VRAIE</b>.`;
+    }
+    default: return '';
+  }
+};
+
+const qcmHTML = `
+  <div class="step"><b>3.</b> QCM :</div>
+  <ol type="a" style="margin:.2rem 0 0 1.1rem">
+${mapHTML(stmts, function(s){
+  const verdict = (s.want === 'v' ? 'VRAIE' :
+                   s.want === 'f' ? 'FAUSSE' :
+                   'Impossible de conclure');
+  return '<li>\\(' + s.txt + '\\) : ' + explain(s) + '</li>';
+})}
+  </ol>
+`;
+
+box.innerHTML += qcmHTML;
+typesetAll(box);
+
+	
+	
+
+  },
+
+  reset(host){ $('#res',host).textContent=''; }
+};
+
+
+
+
+
+
+/* ————— Registre & UI ————— */
+const REGISTRY=[ex1];
+window.REGISTRY = REGISTRY; // pour le kit PDF
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: 'Seconde – Étude de fonctions • Sens de variations',
+      mountAfterSelector: '.card.small',
+    });
+  } else {
+    setTimeout(waitExoPDF, 50);
+  }
+})();
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st)||{ok:0,total:0};
+  scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+
+(function init(){
+  const sel=$("#exo-select");
+sel.innerHTML = mapHTML(REGISTRY, (ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`);
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+})();
+</script>
+</body>
+</html>

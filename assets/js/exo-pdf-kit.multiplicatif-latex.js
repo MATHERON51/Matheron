@@ -875,7 +875,8 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 .twocol-solution .line mjx-container{
   padding-bottom:.08em;
 }
-
+/* Masques spécifiques au rendu PDF */
+.pdf-hide{ display:none !important; }
 
 </style>
 

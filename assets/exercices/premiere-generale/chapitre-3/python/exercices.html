@@ -85,10 +85,12 @@ window.MathJax = {
     <!-- Saisie & réponses acceptées -->
     <div class="card small" id="info-saisie">
       <strong>Saisie & réponses acceptées :</strong>
+	   <br> Ecritures <em>toutes</em> acceptées :
       <ul>
-  <li>Ecritures <em>toutes</em> acceptées
-      <code>u(n+1)=...</code>, <code>u_(n+1)=...</code>, <code>u_{n+1)=...</code>
-      (espaces, parenthèses/accolades, soulignés, <code>*</code> ou <code>×</code> sont normalisés).</li>
+
+      <li><code>u(n+1)=...</code>, <code>u_(n+1)=...</code>, <code>u_{n+1)=...</code></li>
+	       <li> <code>u(n)=...</code>, <code>u_(n)=...</code>, <code>u_{n)=...</code></li>
+
       </ul>
     </div>
   </div>
@@ -135,6 +137,15 @@ function normRelation(str){
   s=s.replace(/u_\{([a-z])\}/g,'u_$1').replace(/\{(\d+)\}/g,'$1');
   return s;
 }
+
+
+// juste au-dessus de render/check/solution de Ex.1
+function coefU(a){
+  if (a === 1)  return '';
+  if (a === -1) return '−';
+  return (a < 0 ? '−' : '') + '{' + Math.abs(a) + '}';
+}
+
 
 /* ====== REGISTRY ====== */
 function makeExos(){
@@ -202,7 +213,9 @@ function makeExos(){
         if(ok===null) allFilled=false;
         if(ok===false) allOk=false;
       }
-      const target = `u_{n+1}=${s.a===1?'':(s.a===-1?'−':'{'+Math.abs(s.a)+'}') }u_n${s.b? (s.b<0?'−'+Math.abs(s.b):'+'+s.b):''}`.replace(/\s+/g,'');
+const target = `u_{n+1}=${coefU(s.a)}u_n${
+  s.b ? (s.b<0 ? '−'+Math.abs(s.b) : '+'+s.b) : ''
+}`;
       const okRel = (val('rel').trim()==='') ? null : (normRelation(val('rel'))===normRelation(target));
       tickTri($('#trel',host), okRel);
       if(okRel===null) allFilled=false;
@@ -219,7 +232,9 @@ function makeExos(){
       for(let k=1;k<=s.N;k++){
         html += `<div class="step">\\(u_{${k}} = ${s.a}\\times u_{${k-1}} ${s.b<0?'−':' + '} ${Math.abs(s.b)} = ${s.U[k]}\\)</div>`;
       }
-      const rel = `u_{n+1} = ${s.a===1?'':(s.a===-1?'−':'{'+Math.abs(s.a)+'}') }u_n${s.b? (s.b<0?' − '+Math.abs(s.b):' + '+s.b):''}`.replace(/\s+\+/g,' + ').replace(/\s+−/g,' − ');
+const rel = `u_{n+1} = ${coefU(s.a)}u_n${
+  s.b ? (s.b<0 ? ' − ' + Math.abs(s.b) : ' + ' + s.b) : ''
+}`;
       html += `<div class="step" style="margin-top:.4rem">\\(\\boxed{${rel}}\\)</div>`;
       html += '</div>';
       W.innerHTML = html; retypeMath(W);
@@ -909,18 +924,51 @@ function placePanel(){
 }
 
   // === 2) Charger Pyodide (une seule fois)
-  let pyodide=null;
-  async function ensurePy(){
-    if(pyodide) return pyodide;
-    if(!window.loadPyodide){
-      const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
-      await new Promise(r=>{ s.onload=r; document.head.appendChild(s); });
-    }
-    pyodide=await loadPyodide({});
-    $('#py-status').textContent='Pyodide : prêt';
-    return pyodide;
+// -- en haut du fichier, près des utilitaires :
+const PYODIDE_BASES = [
+  'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+  'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full/'
+];
+
+// -- remplace ta fonction ensurePy par :
+let pyodide = null;
+async function ensurePy(){
+  if (pyodide) return pyodide;
+
+  // charge le loader avec cache-busting
+  async function loadFrom(base){
+    // injecte le script pyodide.js avec ?v=timestamp pour éviter un cache foireux
+    await new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = base + 'pyodide.js?v=' + Date.now();
+      s.crossOrigin = 'anonymous';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    // puis charge Pyodide en forçant l’indexURL
+    return await loadPyodide({ indexURL: base });
   }
+
+  const status = document.getElementById('py-status');
+  let lastErr = null;
+
+  for (const base of PYODIDE_BASES){
+    try{
+      if (status) status.textContent = 'Pyodide : chargement… (' + new URL(base).host + ')';
+      pyodide = await loadFrom(base);
+      if (status) status.textContent = 'Pyodide : prêt';
+      return pyodide;
+    }catch(e){
+      lastErr = e;
+      if (status) status.textContent = 'Échec chargement Pyodide (' + (e?.message||'') + ')';
+      // on tente le miroir suivant
+    }
+  }
+  // tous les miroirs ont échoué
+  throw lastErr || new Error('Impossible de charger Pyodide depuis les CDNs');
+}
+
   $('#py-open')?.addEventListener('click', async ()=>{
   const btn = document.getElementById('py-open');
   const isShown = panel.style.display === 'flex';

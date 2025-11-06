@@ -117,10 +117,7 @@ hr.sep{border:none;border-top:1px dashed #ddd;margin:10px 0}
       <span>y ∈ [</span><input id="ymin" type="number" value="-6" min="-12" max="12" step="1"><span>;</span>
       <input id="ymax" type="number" value="6"  min="-12" max="12" step="1"><span>]</span>
       
-      <strong style="margin-left:16px">Nombre d’objets :</strong>
-      <input id="nbPts" type="number" value="3" min="3" max="10" step="1" style="width:80px">
-      <label class="small"><input id="nbPts-random" type="checkbox"> Nombre aléatoire (par énoncé)</label>
-    </div>
+  </div>
 
     <div class="card" id="host"></div>
 
@@ -153,7 +150,12 @@ function latexSignNum(n){ return n<0?` - ${latexNum(Math.abs(n))}`:` + ${latexNu
 function latexMonomeX(m){ if(m===1) return 'x'; if(m===-1) return '−x'; return `${latexNum(m)}x`; }
 function latexFrac(p,q){ const S=simp(p,q); return (S.q===1? latexNum(S.p) : `\\dfrac{${S.p}}{${S.q}}`); }
 function dot(c){ return `<span style="display:inline-block;width:.7rem;height:.7rem;border-radius:50%;background:${c};vertical-align:-1px;margin-right:.35rem"></span>`; }
-const PALETTE = ['#0ea5e9','#22c55e','#ef4444','#a855f7','#f59e0b','#10b981'];
+const PALETTE = ['#007aff', // bleu
+                 '#ff3b30', // rouge
+                 '#34c759', // vert
+                 '#af52de', // violet
+                 '#ff9500', // orange
+                 '#5ac8fa']; // turquoise
 
 /* ====== Host UI scaffold ====== */
 const host = $('#host');
@@ -213,6 +215,16 @@ class Repere{
   clearUser(){ this.g.user.innerHTML = ''; }
   coordToScreen(x,y){ const {xmin,xmax,ymin,ymax} = this.R; const X = (x-xmin)/(xmax-xmin)*420; const Y = 420 - (y-ymin)/(ymax-ymin)*420; return {x:X,y:Y}; }
   screenToCoord(X,Y){ const {xmin,xmax,ymin,ymax} = this.R; const x = xmin + X/420*(xmax-xmin); const y = ymin + (420-Y)/420*(ymax-ymin); return {x,y}; }
+  
+  setRange(Rnew){
+  // met à jour la fenêtre puis refait la grille/axes (calques "given" et "user" seront vidés)
+  this.R = {...Rnew};
+  this.redraw();
+}
+
+  
+  
+  
   _line(x1,y1,x2,y2,thick=false){ const L=document.createElementNS(this.el.namespaceURI,'line'); L.setAttribute('x1',x1); L.setAttribute('y1',y1); L.setAttribute('x2',x2); L.setAttribute('y2',y2); L.setAttribute('stroke','#000'); L.setAttribute('stroke-width',thick?2.5:1); return L; }
   redraw(){
     const g=this.g; g.grid.innerHTML=''; g.axes.innerHTML=''; g.given.innerHTML=''; g.user.innerHTML='';
@@ -468,9 +480,17 @@ const REGISTRY_MAP = {
   return {R,lines};
 },
 
-    render(host,s){
-      const ui=renderWithRepere(host,{R:s.R}); host._ui=ui;
-      ui.rep.clickable=true;
+render(host, s){
+  const ui = renderWithRepere(host,{R:s.R}); 
+  host._ui = ui;
+  // ⬇️ e1 seulement : #res en pleine largeur sous la grille/question
+  const row = host.querySelector('.row');
+  if (row && ui.res && ui.res.parentNode === ui.right) {
+    ui.right.removeChild(ui.res);
+    row.insertAdjacentElement('afterend', ui.res);
+  }
+
+  ui.rep.clickable = true;
 
       const labelPairs = [['A','B'],['C','D'],['E','F'],['G','H'],['I','J'],['K','L']];
       s.lines.forEach((L,i)=>{ L.labels = labelPairs[i]; });
@@ -515,9 +535,9 @@ const eqLatex = (L)=>{
       const list = s.lines.map((L,i)=>{
         const c = PALETTE[i%PALETTE.length];
         return `<div class="perline" data-line="${L.name}">
-          <div class="expr code" data-focus="${L.name}">${dot(c)} <b>${L.name}</b> : <span>${eqLatex(L)}</span></div>
+          <div class="expr code" data-focus="${L.name}">${dot(c)} <b>${L.name}</b> : <span>${eqLatex(L)}</span>
           <button class="btn" data-validate="${L.name}">Valider</button>
-          <span class="tick" id="tick_${L.name}">—</span>
+          <span class="tick" id="tick_${L.name}"></span></div>
         </div>`;
       }).join('');
       ui.equ.innerHTML = `
@@ -650,6 +670,78 @@ const eqLatex = (L)=>{
       host.dataset.state=JSON.stringify(s);
       this._state = { lines: s.lines };
     },
+	
+	
+	adjustLive(kind){
+  if(kind!=='amp') return;
+  const ui  = host._ui;
+  const rep = ui?.rep;
+  const st  = this._state;                // { lines: [...] }
+  const per = host._perline;              // clicks & labels de l’élève
+
+  if(!rep || !st || !per) return;
+
+  // 1) changer la fenêtre du repère
+  rep.setRange(AMP);
+
+  // 2) Si la solution a déjà tracé les droites (flag posé par solution()), on les re-trace + étiquettes
+  if(host._e1_solution_drawn){
+    // nettoie données + anciennes étiquettes solution
+    if (rep.g?.given) rep.g.given.innerHTML = '';
+    rep.el.querySelectorAll('text[data-sol-label="true"]').forEach(n=>n.remove());
+
+    st.lines.forEach((L,i)=>{
+      const color = PALETTE[i%PALETTE.length];
+      const seg   = clipLineOnBox(rep.R || AMP, L);
+      rep.drawGivenLine(L.name, color, seg);
+
+      // étiquette Dk
+      if (!seg || seg.length < 2) return;
+      const [P0,P1] = seg;
+      const minX=Math.min(P0.x,P1.x), maxX=Math.max(P0.x,P1.x);
+      const minY=Math.min(P0.y,P1.y), maxY=Math.max(P0.y,P1.y);
+      let xlab, ylab;
+      if (L.type === 'h'){ xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3); ylab = L.k; }
+      else{
+        const m=(L.type==='aff')?L.m:(L.p/L.q), b=L.b;
+        xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3);
+        ylab = clamp(m*xlab + b,  minY + .3, maxY - .3);
+      }
+      const S = rep.coordToScreen(xlab, ylab);
+      const t = document.createElementNS(rep.el.namespaceURI,'text');
+      t.setAttribute('x',S.x); t.setAttribute('y',S.y);
+      t.setAttribute('font-size','13'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill', PALETTE[i%PALETTE.length]);
+      t.setAttribute('text-anchor','end'); t.setAttribute('dominant-baseline','central');
+      t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width','3');
+      t.setAttribute('data-sol-label','true'); t.style.pointerEvents='none';
+      t.textContent = L.name;
+      rep.el.appendChild(t);
+    });
+  }
+
+  // 3) Re-placer les points de l’élève (stockés en coords) et redessiner la ligne utilisateur
+  rep.g.user.innerHTML = '';
+  st.lines.forEach((L,i)=>{
+    const color   = PALETTE[i%PALETTE.length];
+    const labels  = L.labels || [];
+    const name    = L.name;
+    const store   = per.byLabel?.[name] || {};
+    const A       = labels[0], B = labels[1];
+
+    if(store[A]) rep.placeUser(A, store[A].x, store[A].y, color);
+    if(store[B]) rep.placeUser(B, store[B].x, store[B].y, color);
+
+    if(store[A] && store[B]){
+      rep.drawUserInfiniteLine('ul_'+name, color, store[A], store[B]);
+    }
+  });
+},
+
+	
+	
+	
+	
     verify(){
       const st = host._perline;
       if(!st){ const res=host._ui?.res; if(res){res.classList.remove('steps'); res.textContent='';} return {ok:false,total:1}; }
@@ -661,97 +753,147 @@ const eqLatex = (L)=>{
       return {ok:all,total:1};
     },
 solution(){
-    const st = this._state; if(!st) return;
+  const st = this._state; if(!st) return;
 
-    // petits helpers latex
-    const Lnum = n => (Number.isInteger(n)? String(n) : String(n).replace('.',','));
-    const monoX = m => (m===1?'x':m===-1?'−x':`${Lnum(m)}x`);
-    const frac  = (p,q)=> `\\dfrac{${Math.abs(p)}}{${Math.abs(q)}}`; // signe géré à part
+  // 1) — Tracer les droites en couleurs dans le repère de gauche
+// 1) — Tracer les droites en couleurs + étiquettes Dk dans le repère de gauche
+const ui = host._ui;
+const rep = ui?.rep;
+if (rep && st.lines?.length){
+  // nettoie le calque des données et les éventuelles anciennes étiquettes solution
+  if (rep.g?.given) rep.g.given.innerHTML = '';
+  rep.el.querySelectorAll('text[data-sol-label="true"]').forEach(n=>n.remove());
 
-    // choix “pas trop gros” :
-    const pickSmall = () => [2,3,4,5][Math.floor(Math.random()*4)];
-    const pickK123  = () => [1,2,3][Math.floor(Math.random()*3)]; // pour kq (pas toujours 1)
+  const R = rep.R || AMP;
 
-    function blockForLine(L){
-      const i   = L.fIndex || 1;
-      const name= L.name || ('D'+i);
-      const letters = L.labels || ['A','B'];
-      const A = letters[0], B = letters[1];
+  st.lines.forEach((L,i)=>{
+    const color = PALETTE[i % PALETTE.length];
 
-      // en-tête : f_i(x) = ...
-      let head='';
-      if(L.type==='h'){
-        head = `\\( f_${i}(x) = ${Lnum(L.k)} \\)`;
-      }else if(L.type==='aff'){
-        head = `\\( f_${i}(x) = ${monoX(L.m)}${L.b===0?'':(L.b>0?' + '+Lnum(L.b):' - '+Lnum(Math.abs(L.b)))} \\)`;
-      }else{ // frac
-        const s = (L.p<0?'-':'');
-        head = `\\( f_${i}(x) = ${s}${frac(L.p,L.q)}x${L.b===0?'':(L.b>0?' + '+Lnum(L.b):' - '+Lnum(Math.abs(L.b)))} \\)`;
-      }
+    // segment de la droite dans le cadre
+    const seg = clipLineOnBox(R, L);
+    rep.drawGivenLine(L.name, color, seg);
 
-      // corps selon nature
-      let body = '';
+    // — Étiquette Dk (même logique que e2/e3)
+    if (!seg || seg.length < 2) return;
+    const [P0, P1] = seg;
+    const minX = Math.min(P0.x, P1.x), maxX = Math.max(P0.x, P1.x);
+    const minY = Math.min(P0.y, P1.y), maxY = Math.max(P0.y, P1.y);
 
-      if(L.kind==='aff_int'){ // m entier, p entier (≠0)
-        const y0 = L.b;
-        const x2 = pickSmall();                 // pas toujours 1
-        const y2 = L.m*x2 + L.b;
-        body += `<p>• \\( f_${i}(0) = ${Lnum(L.m)}\\times 0 ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y0)} \\)</p>`;
-        body += `<p>\\(${A}(0\\,;\\,${Lnum(y0)})\\) \\(\\in ${name}\\)</p>`;
-        body += `<p>• \\( f_${i}(${Lnum(x2)}) = ${Lnum(L.m)}\\times ${Lnum(x2)} ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y2)} \\)</p>`;
-        body += `<p>\\(${B}(${Lnum(x2)}\\,;\\,${Lnum(y2)})\\) \\(\\in ${name}\\)</p>`;
-      }
-      else if(L.kind==='aff_frac'){ // m = p/q, p entier, q entier, p≠0, p et q réduits ; p entier b entier ≠0
-        const y0 = L.b;
-        const k  = pickK123();      // 1,2,3 (souvent 2 ou 3)
-        const x2 = k*Math.abs(L.q);
-        const y2 = (L.p/L.q)*x2 + L.b;  // = p*k + b
-        const s  = (L.p<0?'-':'');
-        body += `<p>• \\( f_${i}(0) = ${s}${frac(L.p,L.q)}\\times 0 ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y0)} \\)</p>`;
-        body += `<p>\\(${A}(0\\,;\\,${Lnum(y0)})\\) \\(\\in ${name}\\)</p>`;
-        body += `<p>• \\( f_${i}(${Lnum(x2)}) = ${s}${frac(L.p,L.q)}\\times ${Lnum(x2)} ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y2)} \\)</p>`;
-        body += `<p>\\(${B}(${Lnum(x2)}\\,;\\,${Lnum(y2)})\\) \\(\\in ${name}\\)</p>`;
-      }
-      else if(L.kind==='lin_int'){ // p=0, m entier ≠0
-        const x1 = pickSmall();      // non nul
-        const y1 = L.m*x1;
-        body += `<p>\\( f_${i}(${Lnum(x1)}) = ${Lnum(L.m)}\\times ${Lnum(x1)} = ${Lnum(y1)} \\)</p>`;
-        body += `<p>\\(${A}(${Lnum(x1)}\\,;\\,${Lnum(y1)})\\) \\(\\in ${name}\\)</p>`;
-        body += `<p>\\(O(0\\,;\\,0)\\) \\(\\in ${name}\\)</p>`;
-      }
-      else if(L.kind==='lin_frac'){ // p=0, m = p/q
-        const k  = pickK123();
-        const x1 = k*Math.abs(L.q);  // kq
-        const y1 = (L.p/L.q)*x1;     // = p*k
-        const s  = (L.p<0?'-':'');
-        body += `<p>\\( f_${i}(${Lnum(x1)}) = ${s}${frac(L.p,L.q)}\\times ${Lnum(x1)} = ${Lnum(y1)} \\)</p>`;
-        body += `<p>\\(${A}(${Lnum(x1)}\\,;\\,${Lnum(y1)})\\) \\(\\in ${name}\\)</p>`;
-        body += `<p>\\(O(0\\,;\\,0)\\) \\(\\in ${name}\\)</p>`;
-      }
-      else if(L.kind==='const'){ // y = k
-        body += `<p>Droite horizontale passant par \\(${Lnum(L.k)}\\) sur l’axe des ordonnées.</p>`;
-      }
-
-      return `<div class="box">
-        <p><b>${i}.&nbsp; ${head}</b></p>
-        ${body}
-      </div>`;
+    let xlab, ylab;
+    if (L.type === 'h'){
+      xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3);
+      ylab = L.k;
+    }else{
+      const m = (L.type === 'aff') ? L.m : (L.p / L.q);
+      const b = L.b;
+      xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3);
+      ylab = clamp(m * xlab + b, minY + 0.3, maxY - 0.3);
     }
 
-    const html = `
-	  <p>Règles :</p>
+    const S = rep.coordToScreen(xlab, ylab);
+    const t = document.createElementNS(rep.el.namespaceURI, 'text');
+    t.setAttribute('x', S.x);
+    t.setAttribute('y', S.y);
+    t.setAttribute('font-size', '13');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', color);
+    t.setAttribute('text-anchor', 'end');
+    t.setAttribute('dominant-baseline', 'central');
+    t.setAttribute('paint-order', 'stroke');
+    t.setAttribute('stroke', '#fff');
+    t.setAttribute('stroke-width', '3');
+    t.setAttribute('data-sol-label', 'true'); // pour pouvoir les supprimer au prochain click "Solution"
+    t.style.pointerEvents = 'none';
+    t.textContent = L.name; // "D1"… "D6"
+    rep.el.appendChild(t);
+  });
+}
+
+  host._e1_solution_drawn = true; // ✅ flag pour adjustLive
+
+  // 2) — Correction texte (inchangé : mêmes helpers + blocs par type)
+  const Lnum = n => (Number.isInteger(n)? String(n) : String(n).replace('.',','));
+  const monoX = m => (m===1?'x':m===-1?'−x':`${Lnum(m)}x`);
+  const frac  = (p,q)=> `\\dfrac{${Math.abs(p)}}{${Math.abs(q)}}`; // signe à part
+  const pickSmall = () => [2,3,4,5][Math.floor(Math.random()*4)];
+  const pickK123  = () => [1,2,3][Math.floor(Math.random()*3)];
+
+  function blockForLine(L){
+    const i   = L.fIndex || 1;
+    const name= L.name || ('D'+i);
+    const letters = L.labels || ['A','B'];
+    const A = letters[0], B = letters[1];
+
+    let head='';
+    if(L.type==='h'){
+      head = `\\( f_${i}(x) = ${Lnum(L.k)} \\)`;
+    }else if(L.type==='aff'){
+      head = `\\( f_${i}(x) = ${monoX(L.m)}${L.b===0?'':(L.b>0?' + '+Lnum(L.b):' - '+Lnum(Math.abs(L.b)))} \\)`;
+    }else{
+      const s = (L.p<0?'-':'');
+      head = `\\( f_${i}(x) = ${s}${frac(L.p,L.q)}x${L.b===0?'':(L.b>0?' + '+Lnum(L.b):' - '+Lnum(Math.abs(L.b)))} \\)`;
+    }
+
+    let body='';
+    if(L.kind==='aff_int'){
+      const y0 = L.b;
+      const x2 = pickSmall();
+      const y2 = L.m*x2 + L.b;
+      body += `<p>• \\( f_${i}(0) = ${Lnum(L.m)}\\times 0 ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y0)} \\)</p>`;
+      body += `<p>\\(${A}(0\\,;\\,${Lnum(y0)})\\in ${name}\\)</p>`;
+      body += `<p>• \\( f_${i}(${Lnum(x2)}) = ${Lnum(L.m)}\\times ${Lnum(x2)} ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y2)} \\)</p>`;
+      body += `<p>\\(${B}(${Lnum(x2)}\\,;\\,${Lnum(y2)})\\in ${name}\\)</p>`;
+    }
+    else if(L.kind==='aff_frac'){
+      const y0 = L.b;
+      const k  = pickK123();
+      const x2 = k*Math.abs(L.q);
+      const y2 = (L.p/L.q)*x2 + L.b;
+      const s  = (L.p<0?'-':'');
+      body += `<p>• \\( f_${i}(0) = ${s}${frac(L.p,L.q)}\\times 0 ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y0)} \\)</p>`;
+      body += `<p>\\(${A}(0\\,;\\,${Lnum(y0)})\\in ${name}\\)</p>`;
+      body += `<p>• \\( f_${i}(${Lnum(x2)}) = ${s}${frac(L.p,L.q)}\\times ${Lnum(x2)} ${L.b>=0?'+':'−'} ${Lnum(Math.abs(L.b))} = ${Lnum(y2)} \\)</p>`;
+      body += `<p>\\(${B}(${Lnum(x2)}\\,;\\,${Lnum(y2)})\\in ${name}\\)</p>`;
+    }
+    else if(L.kind==='lin_int'){
+      const x1 = pickSmall();
+      const y1 = L.m*x1;
+      body += `<p>\\( f_${i}(${Lnum(x1)}) = ${Lnum(L.m)}\\times ${Lnum(x1)} = ${Lnum(y1)} \\)</p>`;
+      body += `<p>\\(${A}(${Lnum(x1)}\\,;\\,${Lnum(y1)})\\in ${name}\\)</p>`;
+      body += `<p>\\(O(0\\,;\\,0)\\in ${name}\\)</p>`;
+    }
+    else if(L.kind==='lin_frac'){
+      const k  = pickK123();
+      const x1 = k*Math.abs(L.q);
+      const y1 = (L.p/L.q)*x1;
+      const s  = (L.p<0?'-':'');
+      body += `<p>\\( f_${i}(${Lnum(x1)}) = ${s}${frac(L.p,L.q)}\\times ${Lnum(x1)} = ${Lnum(y1)} \\)</p>`;
+      body += `<p>\\(${A}(${Lnum(x1)}\\,;\\,${Lnum(y1)})\\in ${name}\\)</p>`;
+      body += `<p>\\(O(0\\,;\\,0)\\in ${name}\\)</p>`;
+    }
+    else if(L.kind==='const'){
+      body += `<p>Droite horizontale passant par \\(${Lnum(L.k)}\\) sur l’axe des ordonnées.</p>`;
+    }
+
+    return `<div class="box">
+      <p><b>${i}.&nbsp; ${head}</b></p>
+      ${body}
+    </div>`;
+  }
+
+  const html = `
+ 	  <p>Méthode (sans utiliser le coefficient directeur et l'ordonnée à l'origine ):</p>
 	  <p>• Pour une fonction affine avec \\(m\\) entier : On calcule l'image de deux nombres quelconques (souvent 0 et un autre "pas trop grand"). <br> On obtient ensuite deux points que l'on rejoint pour tracer la droite.</p>
       	  <p>• Pour une fonction affine avec \\(m\\) en fraction : On calcule l'image de deux nombres quelconques (souvent 0 et un autre : multiple du dénominateur).</p>
       	  <p>• Pour une fonction linéaire : On calcule l'image d'un nombre différent de 0 avec les mêmes règles précédentes. <br> On obtient ensuite un point que l'on rejoint avec l'origine \\(O\\) du repère pour tracer la droite.</p>
       	  <p>• Pour une fonction constante du type \\(f(x)=p\\) : On trace une droite horizontale passant par \\(p\\) sur l'axe des ordonnées.</p>
+ <div class="grid cols-3" style="gap:12px">
+      ${st.lines.map(blockForLine).join('')}
+    </div>
+  `;
+  setResHTML(html);
+},
 
-      <div class="grid cols-3" style="gap:12px">
-	
-	  ${st.lines.map(blockForLine).join('')}
-      </div>
-    `;
-    setResHTML(html);
-  },
     reset(){
       if(host._ui) host._ui.rep.clearUser();
       if(host._ui){ $$('.tick', host._ui.equ).forEach(t=>setTick(t,null)); }
@@ -759,10 +901,233 @@ solution(){
     }
   },
 
-  /* ---- Exercice 2 : Écrire l’équation des 6 droites ---- */
-  e2:{
+
+  /* ---- Exercice 2 : Associer les expressions aux droites ---- */
+e2:{
+  name:"Associer droites ↔ expressions",
+  lead:"Les droites \\(D_1\\) à \\(D_6\\) sont tracées. Pour chaque expression \\(f_i(x)\\), <b>saisir</b> le nom de la droite (ex. <code>D3</code> ou <code>3</code>) <b>ou</b> la <b>choisir</b> dans la liste.",
+
+gen(){
+  const R={...AMP};
+  const rep = new Repere(R);
+  $('#rep-wrap',host).innerHTML=''; $('#rep-wrap',host).appendChild(rep.el);
+
+  // 1) reprendre exactement les droites de e2 si elles existent, sinon générer
+  let lines;
+  if (window.__E2_LINES__ && Array.isArray(window.__E2_LINES__) && window.__E2_LINES__.length===6){
+    lines = window.__E2_LINES__.map(L=>({...L})); // clone léger
+  }else{
+    lines = mkPresetLines(R);
+    // si e2 n’a pas tourné avant, on applique aussi une permutation locale des Dk
+    (function permuteDNames(){
+      const names = ['D1','D2','D3','D4','D5','D6'];
+      for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
+      lines.forEach((L,i)=>{ L.name = names[i]; });
+    })();
+  }
+
+  // 2) tracer les droites et poser les étiquettes Dk (déjà permutées)
+  lines.forEach((L,i)=>{
+    const seg=clipLineOnBox(R,L);
+    rep.drawGivenLine(L.name, PALETTE[i%PALETTE.length], seg);
+    if (!seg || seg.length < 2) return;
+    const [P0, P1] = seg;
+    const minX = Math.min(P0.x, P1.x), maxX = Math.max(P0.x, P1.x);
+    const minY = Math.min(P0.y, P1.y), maxY = Math.max(P0.y, P1.y);
+    let xlab, ylab;
+    if (L.type === 'h') { xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3); ylab = L.k; }
+    else { const m=(L.type==='aff')?L.m:(L.p/L.q), b=L.b;
+      xlab = clamp(R.xmax - 1, minX + 0.3, maxX - 0.3);
+      ylab = clamp(m*xlab + b, minY + 0.3, maxY - 0.3);
+    }
+    const S = rep.coordToScreen(xlab, ylab);
+    const t = document.createElementNS(rep.el.namespaceURI,'text');
+    t.setAttribute('x',S.x); t.setAttribute('y',S.y);
+    t.setAttribute('font-size','13'); t.setAttribute('font-weight','700');
+    t.setAttribute('fill', PALETTE[i%PALETTE.length]);
+    t.setAttribute('text-anchor','end'); t.setAttribute('dominant-baseline','central');
+    t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width','3');
+    t.style.pointerEvents='none'; t.textContent=L.name;
+    rep.el.appendChild(t);
+  });
+
+  // 3) fabrique de l’expression latex pour f_i (pas de 1x, pas de "+-")
+  const Lnum = n => (Number.isInteger(n)? String(n) : String(n).replace('.',','));
+  const monoX = m => (m===1?'x': m===-1?'−x': `${Lnum(m)}x`);
+  const frac  = (p,q)=> `\\dfrac{${Math.abs(p)}}{${Math.abs(q)}}`;
+  function exprLatex(L){
+    const i=L.fIndex||1;
+    if(L.type==='h')  return `\\( f_{${i}}(x) = ${Lnum(L.k)} \\)`;
+    if(L.type==='aff'){
+      const btxt=(L.b===0?'':(L.b>0?` + ${Lnum(L.b)}`:` - ${Lnum(Math.abs(L.b))}`));
+      return `\\( f_{${i}}(x) = ${monoX(L.m)}${btxt} \\)`;
+    }
+    const s=(L.p<0?'-':'');
+    const btxt=(L.b===0?'':(L.b>0?` + ${Lnum(L.b)}`:` - ${Lnum(Math.abs(L.b))}`));
+    return `\\( f_{${i}}(x) = ${s}${frac(L.p,L.q)}x${btxt} \\)`;
+  }
+
+  // 4) expressions triées par fIndex croissant => f1, f2, ..., f6
+  const exprs = lines
+    .slice()
+    .sort((a,b)=>(a.fIndex||0)-(b.fIndex||0))
+    .map(L=>({ fid:L.fIndex, text:exprLatex(L), lineName:L.name }));
+
+  const state = { R, rep, lines, exprs };
+  this._state = state;
+  return state;
+},
+
+
+  render(host, st){
+    const list = st.exprs.map((E,idx)=>{
+const count = st.lines.length; // 6
+const names = Array.from({length: count}, (_,i) => `D${i+1}`);
+const opts  = names.map(n => `<option value="${n}">${n}</option>`).join('');
+      return `
+        <div class="indline" data-row="${idx}">
+          <span>${E.text}</span>
+
+          
+
+          <select id="pick_${idx}" aria-label="Choisir la droite pour f${E.fid}">
+            <option value="">— choisir —</option>
+            ${opts}
+          </select>
+
+          <span class="tick" id="tick_${idx}"></span>
+        </div>`;
+    }).join('');
+
+    setEqu(`
+      <div><b>Consigne :</b> Associer chaque expression \\(f_i(x)\\) à la bonne droite \\(D_k\\) (vue dans le repère). Vous pouvez <b>taper</b> <code>Dk</code> (ou juste le chiffre) <b>ou</b> utiliser le <b>sélecteur</b>.</div>
+      <div style="margin-top:8px">${list}</div>
+    `);
+
+    // Entrée: touche Enter déclenche "Vérifier"
+    st.exprs.forEach((_,idx)=>{
+      const inp = document.getElementById('inp_'+idx);
+      if(inp){
+        inp.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter'){ e.preventDefault(); document.getElementById('btn-check')?.click(); }
+        });
+      }
+    });
+
+    retypeset(host);
+  },
+  
+  
+  adjustLive(kind){
+  if(kind!=='amp') return;
+  const st  = this._state; if(!st) return;
+  const rep = st.rep;       if(!rep) return;
+
+  rep.setRange(AMP);
+  if (rep.g?.given) rep.g.given.innerHTML = '';
+  rep.el.querySelectorAll('text[data-e3-label="true"]').forEach(n=>n.remove());
+
+  st.lines.forEach((L,i)=>{
+    const seg = clipLineOnBox(rep.R || AMP, L);
+    rep.drawGivenLine(L.name, PALETTE[i%PALETTE.length], seg);
+
+    if (!seg || seg.length < 2) return;
+    const [P0,P1] = seg;
+    const minX=Math.min(P0.x,P1.x), maxX=Math.max(P0.x,P1.x);
+    const minY=Math.min(P0.y,P1.y), maxY=Math.max(P0.y,P1.y);
+    let xlab, ylab;
+    if (L.type === 'h'){ xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3); ylab = L.k; }
+    else{
+      const m=(L.type==='aff')?L.m:(L.p/L.q), b=L.b;
+      xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3);
+      ylab = clamp(m*xlab + b,  minY + .3, maxY - .3);
+    }
+    const S = rep.coordToScreen(xlab, ylab);
+    const t = document.createElementNS(rep.el.namespaceURI,'text');
+    t.setAttribute('x',S.x); t.setAttribute('y',S.y);
+    t.setAttribute('font-size','13'); t.setAttribute('font-weight','700');
+    t.setAttribute('fill', PALETTE[i%PALETTE.length]);
+    t.setAttribute('text-anchor','end'); t.setAttribute('dominant-baseline','central');
+    t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width','3');
+    t.setAttribute('data-e3-label','true'); t.style.pointerEvents='none';
+    t.textContent = L.name;
+    rep.el.appendChild(t);
+  });
+},
+
+  
+  
+
+  verify(){
+    const st=this._state; if(!st) return false;
+
+    const norm = (raw)=>{
+      if(!raw) return '';
+      let t = String(raw).trim().toUpperCase().replace(/\s+/g,'');
+      // accept "3" → "D3", "D3" → "D3"
+      const m = t.match(/^D?([1-6])$/);
+      return m ? ('D'+m[1]) : '';
+    };
+
+    let okAll=true;
+    st.exprs.forEach((E,idx)=>{
+      const sel = document.getElementById('pick_'+idx);
+      const inp = document.getElementById('inp_'+idx);
+
+      const fromSel = sel?.value || '';
+      const fromInp = norm(inp?.value||'');
+
+      // priorité à la sélection si présente, sinon l’input
+      const choice = fromSel || fromInp;
+
+      const good = (choice === E.lineName);
+      setTick(document.getElementById('tick_'+idx), choice ? !!good : null);
+      okAll = okAll && !!good;
+    });
+
+    const res=$('#res',host);
+    res.classList.remove('steps');
+    res.className = okAll?'res-ok':'';
+    res.textContent = okAll ? '✔' : '';
+    return okAll;
+  },
+
+  solution(){
+  const st = this._state; if(!st) return;
+
+  const intro = `
+    <p><strong>Méthode</strong> (sans utiliser le coefficient directeur et l’ordonnée à l’origine) :</p>
+    <p>On calcule l’image de deux réels ; cela donne deux points à identifier dans le repère&nbsp;: on trouve ainsi la droite correspondante.</p>
+    <hr class="sep">
+  `;
+
+  const rows = st.exprs.map((E)=>{
+    const i = st.lines.findIndex(L => L.name === E.lineName);
+    const c = PALETTE[i % PALETTE.length];
+    return `<p>${E.text} ⟶ ${dot(c)} <b>${E.lineName}</b></p>`;
+  }).join('');
+
+  setResHTML(intro + rows);
+}
+,
+
+  reset(){
+    (this._state?.exprs||[]).forEach((_,idx)=>{
+      const sel = document.getElementById('pick_'+idx); if(sel) sel.value='';
+      const inp = document.getElementById('inp_'+idx);  if(inp) inp.value='';
+      const t   = document.getElementById('tick_'+idx); if(t)  setTick(t,null);
+    });
+    const r=$('#res',host); if(r){ r.classList.remove('steps'); r.textContent=''; }
+  }
+},
+
+
+
+
+  /* ---- Exercice 3 : Écrire l’équation des 6 droites ---- */
+  e3:{
     name:"Déterminer l’équation des droites",
-    lead:"Donner une équation pour chaque droite tracée (formes acceptées : \\(f(x)=mx+p\\) ou \\(f_i(x)=mx+p\\)).",
+    lead:"Donner une équation pour chaque droite tracée .",
     gen(){
       const R={...AMP};
       const rep = new Repere(R);
@@ -814,6 +1179,48 @@ setEqu(`<div>${list}</div>`);
 
       this._state = { R, rep, lines };
     },
+	
+	
+	adjustLive(kind){
+  if(kind!=='amp') return;
+  const st  = this._state; if(!st) return;
+  const rep = st.rep;       if(!rep) return;
+
+  rep.setRange(AMP);
+  // efface calque "given" + labels existants
+  if (rep.g?.given) rep.g.given.innerHTML = '';
+  rep.el.querySelectorAll('text[data-e2-label="true"]').forEach(n=>n.remove());
+
+  st.lines.forEach((L,i)=>{
+    const seg = clipLineOnBox(rep.R || AMP, L);
+    rep.drawGivenLine(L.name, PALETTE[i%PALETTE.length], seg);
+
+    if (!seg || seg.length < 2) return;
+    const [P0,P1] = seg;
+    const minX=Math.min(P0.x,P1.x), maxX=Math.max(P0.x,P1.x);
+    const minY=Math.min(P0.y,P1.y), maxY=Math.max(P0.y,P1.y);
+    let xlab, ylab;
+    if (L.type === 'h'){ xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3); ylab = L.k; }
+    else{
+      const m=(L.type==='aff')?L.m:(L.p/L.q), b=L.b;
+      xlab = clamp(rep.R.xmax - 1, minX + .3, maxX - .3);
+      ylab = clamp(m*xlab + b,  minY + .3, maxY - .3);
+    }
+    const S = rep.coordToScreen(xlab, ylab);
+    const t = document.createElementNS(rep.el.namespaceURI,'text');
+    t.setAttribute('x',S.x); t.setAttribute('y',S.y);
+    t.setAttribute('font-size','13'); t.setAttribute('font-weight','700');
+    t.setAttribute('fill', PALETTE[i%PALETTE.length]);
+    t.setAttribute('text-anchor','end'); t.setAttribute('dominant-baseline','central');
+    t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','#fff'); t.setAttribute('stroke-width','3');
+    t.setAttribute('data-e2-label','true'); t.style.pointerEvents='none';
+    t.textContent = L.name;
+    rep.el.appendChild(t);
+  });
+},
+
+	
+	
     verify(){
       const st=this._state; if(!st) return {ok:false,total:0};
       let okAll=true, tot=0;
@@ -994,7 +1401,7 @@ const solution =
 function toggleAmpbar(activeId){
   const bar = document.getElementById('ampbar');
   if (!bar) return;
-  const hide = (activeId === 'e1' || activeId === 'e2'|| activeId === 'e7'|| activeId === 'e8');
+  const hide = (activeId === '' );
   bar.style.display = hide ? 'none' : '';
 }
 
@@ -1068,12 +1475,16 @@ document.querySelector('#btn-reset').addEventListener('click', ()=>{
 
 
 function adjustLive(kind){
-  const id = ACTIVE;
-  if (id === 'e3'   && REGISTRY_MAP.e3.adjustLive)   REGISTRY_MAP.e3.adjustLive(kind);
-  else if (id === 'ex4' && REGISTRY_MAP.ex4.adjustLive) REGISTRY_MAP.ex4.adjustLive(kind);
-  else if (id === 'e5'  && REGISTRY_MAP.e5.adjustLive)  REGISTRY_MAP.e5.adjustLive(kind);
-  else { applyAMPInputs(); }
+  // Route vers l’exo actif si un adjustLive est défini,
+  // sinon on se contente d’actualiser les bornes AMP.
+  const cfg = REGISTRY_MAP[ACTIVE];
+  if (cfg && typeof cfg.adjustLive === 'function') {
+    cfg.adjustLive(kind);
+  } else {
+    applyAMPInputs();
+  }
 }
+
 
 
 ['xmin','xmax','ymin','ymax'].forEach(id=>{

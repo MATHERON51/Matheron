@@ -942,6 +942,121 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 .pdf-tbl.sign4 td.C { text-align: center; position: relative; }
 .pdf-tbl.sign4 td.R { text-align: right; }
 
+/* ===== Tableau de signes — version ÉCRAN (live) ===== */
+table.pdf-tbl.sign-live td,
+table.pdf-tbl.sign-live th{
+  padding: 6px 10px;       /* remet de l'air */
+  line-height: 1.2;
+}
+
+/* live : on annule le centrage absolu… */
+table.pdf-tbl.sign-live td.mid {
+  position: static;
+  height: 44px;
+}
+/* …sauf pour les cellules qui dessinent une barre */
+table.pdf-tbl.sign-live td.zbar,
+table.pdf-tbl.sign-live td.sbar,
+table.pdf-tbl.sign-live td.dbar {
+  position: relative; /* indispensable pour confiner ::before */
+}
+
+table.pdf-tbl.sign-live td.mid .midv{
+  position: static;
+  transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+}
+
+/* entrées confortables et non écrasées */
+table.pdf-tbl.sign-live select,
+table.pdf-tbl.sign-live input{
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+/* des colonnes “0” un peu plus larges pour les barres zbar */
+table.pdf-tbl.sign-live col.col-zero { width: 58px; }
+table.pdf-tbl.sign-live col.col-int  { width: 140px; }
+table.pdf-tbl.sign-live col.col-lbl  { width: 70px; }
+
+/* ===== LIGNES HORIZONTALES — TABLEAUX ÉCRAN ===== */
+
+/* 1) Tableaux de signes/variations en version écran (.pdf-tbl.sign-live) */
+table.pdf-tbl.sign-live thead tr > *{
+  border-bottom: 1.5px solid #000;     /* trait sous la ligne x */
+}
+table.pdf-tbl.sign-live tbody tr + tr > *{
+  border-top: 1px solid #000;          /* trait fin entre lignes */
+}
+
+/* 2) Tableaux interactifs type .var (si utilisés à l’écran) */
+table.var thead tr > *{
+  border-bottom: 1.5px solid #000;     /* trait sous la ligne x */
+}
+table.var tbody tr + tr > *{
+  border-top: 1px solid #000;          /* trait fin entre lignes */
+}
+
+/* 3) Les lignes “spéciales” doivent rester plus épaisses */
+#sf-wrap table.var tbody tr.sf-row-a > *,
+#sf-wrap table.var tbody tr.sf-row-factor + tr.sf-row-factor > *,
+#sf-wrap table.var tbody tr.sf-row-fx > *,
+#sf-out  table.pdf-tbl tbody tr.sf-pdf-row-a > *,
+#sf-out  table.pdf-tbl tbody tr.sf-pdf-row-factor + tr.sf-pdf-row-factor > *,
+#sf-out  table.pdf-tbl tbody tr.sf-pdf-row-fx > *{
+  border-top: 1.5px solid #000 !important;   /* prime sur la règle “1px” */
+}
+
+/* (Si tu utilises un tableau « dérivée/variations » similaire) */
+#dv-wrap table.var tbody tr:nth-child(2) > *,
+#dv-out  table.pdf-tbl tbody tr:nth-child(2) > *{
+  border-bottom: 1.5px solid #000;          /* trait entre f'(x) et f */
+}
+/* 1) LIGNES HORIZONTALES — solution (.pdf-tbl) */
+table.pdf-tbl thead tr > *{
+  border-bottom: 1.5px solid #000;      /* trait sous la ligne x */
+}
+table.pdf-tbl tbody tr + tr > *{
+  border-top: 1px solid #000;           /* séparateur fin entre lignes du corps */
+}
+
+/* 2) BARRES VERTICALES UNIQUEMENT DANS <tbody> (pas sur la ligne des x) */
+table.pdf-tbl tbody td.zbar,
+table.pdf-tbl tbody td.sbar,
+table.pdf-tbl tbody td.dbar{ position: relative; }  /* confinement du ::before */
+
+table.pdf-tbl tbody td.zbar::before,
+table.pdf-tbl tbody td.sbar::before,
+table.pdf-tbl tbody td.dbar::before,
+table.pdf-tbl tbody td.dbar::after{
+  content:'';
+  position:absolute;
+  top:-1.5px; bottom:-1.5px;            /* colle aux traits horizontaux du corps */
+  left:50%; transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+table.pdf-tbl tbody td.dbar::before{ left: calc(50% - 2px); }
+table.pdf-tbl tbody td.dbar::after { left: calc(50% + 2px); }
+
+/* Désactive explicitement toute barre dans THEAD (sécurité) */
+table.pdf-tbl thead td.zbar::before,
+table.pdf-tbl thead td.sbar::before,
+table.pdf-tbl thead td.dbar::before,
+table.pdf-tbl thead td.dbar::after{ content:none !important; }
+
+/* Même règle pour la version écran si tu utilises .sign-live */
+table.pdf-tbl.sign-live tbody td.zbar,
+table.pdf-tbl.sign-live tbody td.sbar,
+table.pdf-tbl.sign-live tbody td.dbar{ position: relative; }
+table.pdf-tbl.sign-live thead td.zbar::before,
+table.pdf-tbl.sign-live thead td.sbar::before,
+table.pdf-tbl.sign-live thead td.dbar::before,
+table.pdf-tbl.sign-live thead td.dbar::after{ content:none !important; }
 
 </style>
 <style>

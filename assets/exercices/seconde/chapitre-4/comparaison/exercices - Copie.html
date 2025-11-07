@@ -192,7 +192,27 @@ let scoreOK=0, scoreTot=0;
 const UMIN='−';
 function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
 function L(s){return '\\( '+s+' \\)';}
-function ensureTickAfter(el){ let s=el?.nextElementSibling; if(!s||!s.classList?.contains('tick')){ s=document.createElement('span'); s.className='tick nu'; el.insertAdjacentElement('afterend',s);} return s; }
+function ensureTickAfter(el){
+  if(!el) return null;
+
+  // 1) voisin immédiat
+  let s = el.nextElementSibling;
+  if (s && s.classList && s.classList.contains('tick')) return s;
+
+  // 2) chercher un tick déjà présent dans le même <li>
+  const li = el.closest('li');
+  if (li) {
+    const found = li.querySelector(':scope > .tick');
+    if (found) return found;
+  }
+
+  // 3) créer un tick et l’ajouter en fin de <li> (ou juste après el en secours)
+  s = document.createElement('span');
+  s.className = 'tick nu';
+  if (li) li.appendChild(s);
+  else el.insertAdjacentElement('afterend', s);
+  return s;
+}
 function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
 function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
 const choice=a=>a[Math.floor(Math.random()*a.length)];
@@ -660,7 +680,20 @@ return {
 
 const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 
+// map + concat sans .join
+function mapHTML(arr, render, sep=''){
+  let out = '';
+  for (let i = 0; i < arr.length; i++){
+    out += render(arr[i], i);
+    if (sep && i < arr.length - 1) out += sep;
+  }
+  return out;
+}
 
+
+
+const toTeX = s => s.replace(/</g, '\\lt ').replace(/>/g, '\\gt ');
+const escHTML = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 
 
@@ -672,143 +705,261 @@ const ex1 = {
   title:'Lire un tableau de variations (domaine, extrémums, QCM)',
   gen(){
     // on fabrique 5 bornes entières espacées (comme l’exemple : −4, −2, 0, 4, 6)
-    const X = (()=> {
-      const a = [-6,-5,-4][-~(Math.random()*3|0)%3];
-      const steps = [2,2,4,2];                 // espacements lisibles
-      const x0=a, x1=x0+steps[0], x2=x1+steps[1], x3=x2+steps[2], x4=x3+steps[3];
-      return [x0,x1,x2,x3,x4];
-    })();
+// --- Domaine large NON SYMÉTRIQUE avec entiers intérieurs garantis ---
+function makeNonSymmetricX(){
+  // Écarts (≥3) pour assurer des entiers strictement intérieurs
+  const steps = Array.from({length:4}, ()=> rint(3,7));     // tailles 3..7 (modifiable)
+  const span  = steps.reduce((a,b)=>a+b,0);
+
+  // Choix d’une borne gauche large et non symétrique
+  // -> Ajuste ces bornes si tu veux "voir plus si nécessaire"
+  const LMIN = -20, RMAX_TARGET = 20;                       // fenêtre globale désirée
+  const LMAX = Math.max(LMIN, RMAX_TARGET - span);          // borne droite ≲ RMAX_TARGET
+  const L    = rint(LMIN, LMAX);                            // borne gauche aléatoire
+
+  // Construit X = [x0, ..., x4] strictement croissant
+  const X = [L];
+  for (const s of steps) X.push(X[X.length-1] + s);
+  return X;
+}
+const X = makeNonSymmetricX();
+
 
     // valeurs aux noeuds, en alternant ↗↘↗↘ avec amplitudes entières lisibles
-    const start = [-3,-2,-1][Math.floor(Math.random()*3)];
-    const ups   = [2,3,4], downs = [2,3];
-    const y0 = start;
-    const y1 = y0 + ups[Math.floor(Math.random()*ups.length)];
-    const y2 = y1 - (downs[Math.floor(Math.random()*downs.length)] + 1); // stricte
-    const y3 = y2 + ups[Math.floor(Math.random()*ups.length)];
-    const y4 = y3 - (downs[Math.floor(Math.random()*downs.length)] + 1);
+// — sens de variation : on NE commence pas toujours par croissant
+const startDir = choice(['↗','↘']);
+const DIR = Array.from({length:4}, (_,i)=> (i%2===0 ? startDir : (startDir==='↗'?'↘':'↗')));
 
-    const Y = [y0,y1,y2,y3,y4];                // images connues aux bornes
-    const DIR = ['↗','↘','↗','↘'];            // sens imposé
+// — amplitudes lisibles
+const ups = [2,3,4], downs = [2,3];
+
+// — valeurs aux noeuds, cohérentes avec DIR
+let y0 = rint(-3, 2);
+const Y = [y0];
+for (let i=0; i<DIR.length; i++){
+  if (DIR[i] === '↗'){
+    Y.push(Y[i] + choice(ups));             // strictement ↑
+  } else {
+    Y.push(Y[i] - (choice(downs) + 1));     // strictement ↓
+  }
+}
+        // sens imposé
 
     // intervalle de la question 3 (max/min) : on prend [X[1];X[4]] pour forcer un extrémum interne
     const Iq = [X[1], X[4]];
 
+
+// Helpers d’entiers dépendants de X (portée locale à gen)
+function intsIn(i){
+  const a = X[i], b = X[i+1], L = [];
+  for(let t=a; t<=b; t++) L.push(t);
+  return L;
+}
+function intsOpen(i){           // entiers strictement à l’intérieur
+  const L = [];
+  for(let t=X[i]+1; t<=X[i+1]-1; t++) L.push(t);
+  return L;
+}
+function intsLeft(i){           // intérieur sinon borne gauche
+  const L = intsOpen(i);
+  return L.length ? L : [X[i]];
+}
+function intsRight(i){          // intérieur sinon borne droite
+  const L = intsOpen(i);
+  return L.length ? L : [X[i+1]];
+}
+
+
+
+
+
     // Fabrique quelques énoncés QCM (certains conclusifs, d’autres « ? »)
     function S(f){ return String(f).replace('-','−'); }
     const pickInside = i => (X[i] + X[i+1]) / 2;       // point intérieur au segment i
-// ================== QCM (question 4) ==================
-function S(n){ return String(n).replace('-', '−'); }
-const incIdx = [...DIR.keys()].filter(i=>DIR[i]==='↗');
-const decIdx = [...DIR.keys()].filter(i=>DIR[i]==='↘');
-const usedPairs = new Set();
-const keyPair = (x1,x2)=>`${x1}|${x2}`;
+// ————— QCM (question 4) —————
+// ————— QCM (question 4) —————
 
-function intsIn(i){
-  const A=[], a=X[i], b=X[i+1];
-  for(let t=a; t<=b; t++) A.push(t);
-  return A;
-}
-function pickPair(i){
-  const L=intsIn(i); const P=[];
-  for(let p=0;p<L.length;p++) for(let q=p+1;q<L.length;q++) P.push([L[p],L[q]]);
-  // éviter les répétitions globales
-  const cand = P.filter(([u,v])=>!usedPairs.has(keyPair(u,v)));
-  const [x1,x2] = (cand.length? choice(cand) : choice(P));
-  usedPairs.add(keyPair(x1,x2));
-  return [x1,x2];
-}
-function pickTwoDistinct(idxs){
-  if(idxs.length>=2){
-    const shuffled=[...idxs].sort(()=>Math.random()-0.5);
-    return [shuffled[0], shuffled[1]];
+const incIdx = [...DIR.keys()].filter(i => DIR[i] === '↗');
+const decIdx = [...DIR.keys()].filter(i => DIR[i] === '↘');
+
+
+function pickPairInInterval(i){
+  const pool = (intsOpen(i).length ? intsOpen(i) : intsIn(i));
+  const P = [];
+  for(let p=0; p<pool.length; p++){
+    for(let q=p+1; q<pool.length; q++){
+      P.push([pool[p], pool[q]]);
+    }
   }
-  // secours : duplique et prendra des paires différentes
-  return [idxxs[0], idxxs[0]];
+  return P.length ? P[Math.floor(Math.random()*P.length)] : [X[i], X[i+1]];
 }
 
-// — A. CROISSANTE : vraie et fausse depuis DEUX intervalles croissants DISTINCTS
+
+function pickTwoDistinct(idxs){
+  if(idxs.length >= 2){
+    const sh = [...idxs].sort(() => Math.random()-0.5);
+    return [sh[0], sh[1]];
+  }
+  return [idxs[0], idxs[0]]; // fallback (ne devrait pas arriver ici)
+}
+
+// A) CROISSANTE : 1 vraie + 1 fausse, sur deux intervalles ↗ distincts
 let [iInc1, iInc2] = pickTwoDistinct(incIdx);
-let [a1,a2] = pickPair(iInc1);
-let [a3,a4] = pickPair(iInc2);
-const stmts_inc = [
-  { k:'a1', txt:`f(${S(a1)}) < f(${S(a2)})`, want:'v' },  // vrai sur iInc1
-  { k:'a2', txt:`f(${S(a3)}) > f(${S(a4)})`, want:'f' },  // faux sur iInc2
+let [a1, a2] = pickPairInInterval(iInc1);
+let [a3, a4] = pickPairInInterval(iInc2);
+const partA = [
+  { id: 'inc_v',  want:'v', type:'inc', i:iInc1, x1:a1, x2:a2, txt:`f(${S(a1)}) < f(${S(a2)})` },
+  { id: 'inc_f',  want:'f', type:'inc', i:iInc2, x1:a3, x2:a4, txt:`f(${S(a3)}) > f(${S(a4)})` },
 ];
 
-// — B. DÉCROISSANTE : vraie et fausse depuis DEUX intervalles décroissants DISTINCTS
+// B) DÉCROISSANTE : 1 vraie + 1 fausse, sur deux intervalles ↘ distincts
 let [iDec1, iDec2] = pickTwoDistinct(decIdx);
-let [b1,b2] = pickPair(iDec1);
-let [b3,b4] = pickPair(iDec2);
-const stmts_dec = [
-  { k:'b1', txt:`f(${S(b1)}) > f(${S(b2)})`, want:'v' },  // vrai sur iDec1
-  { k:'b2', txt:`f(${S(b3)}) < f(${S(b4)})`, want:'f' },  // faux sur iDec2
+let [b1, b2] = pickPairInInterval(iDec1);
+let [b3, b4] = pickPairInInterval(iDec2);
+const partB = [
+  { id: 'dec_v',  want:'v', type:'dec', i:iDec1, x1:b1, x2:b2, txt:`f(${S(b1)}) > f(${S(b2)})` },
+  { id: 'dec_f',  want:'f', type:'dec', i:iDec2, x1:b3, x2:b4, txt:`f(${S(b3)}) < f(${S(b4)})` },
 ];
 
-// — C. comparaison à un max/min : 1 vraie + 1 fausse (x entier non extrémal)
-const yMax = Math.max(...Y), yMin = Math.min(...Y);
-const extXs = new Set(X.filter((_,i)=>Y[i]===yMax || Y[i]===yMin));
+// C) Comparaison à un max et à un min : 1 vraie + 1 fausse
+// — C) Comparaison à un max ET à un min — chacune peut être VRAIE ou FAUSSE
+const yMax = Math.max(...Y);
+const yMin = Math.min(...Y);
+
+// x entiers non extrémaux (pour assurer les strictes inégalités)
+const extXs = new Set(X.filter((_, i) => Y[i] === yMax || Y[i] === yMin));
+function intsIn(i){ const L=[]; for(let t=X[i]; t<=X[i+1]; t++) L.push(t); return L; }
 function pickXnotExt(){
-  const pool = [...incIdx, ...decIdx].flatMap(i=>intsIn(i));
+  const pool = [...DIR.keys()].flatMap(i=>intsIn(i));
   const cand = pool.filter(x=>!extXs.has(x));
-  return choice(cand.length?cand:pool);
+  return choice(cand.length ? cand : pool);
 }
-const xc = pickXnotExt();
-const stmts_k = [
-  { k:'c1', txt:`f(${S(xc)}) < ${S(yMax)}`, want:'v' },
-  { k:'c2', txt:`f(${S(xc)}) > ${S(yMin)}`, want:'f' },
+
+const idxForMax = choice([...DIR.keys()]);          // on choisit un intervalle
+const Lmax = intsOpen(idxForMax);
+const xMax = (Lmax.length ? choice(Lmax) : choice(intsIn(idxForMax)));
+
+const xMin = pickXnotExt();   // point pour la comparaison au min
+
+// Aléa : chacune peut être vraie (V) ou fausse (F)
+const makeTrueMax = Math.random() < 0.5;   // si vrai → f(x) < yMax ; sinon → f(x) > yMax
+const makeTrueMin = Math.random() < 0.5;   // si vrai → f(x) > yMin ; sinon → f(x) < yMin
+let partC = [];
+partC = [
+  { id:'cmp_max', type:'toMax', want: makeTrueMax?'v':'f', x:xMax, k:yMax, sign: makeTrueMax?'<':'>',
+    txt:`f(${S(xMax)}) ${makeTrueMax?'<':'>'} ${S(yMax)}`
+  },
+  { id:'cmp_min', type:'toMin', want: makeTrueMin?'v':'f', x:xMin, k:yMin, sign: makeTrueMin?'>':'<',
+    txt:`f(${S(xMin)}) ${makeTrueMin?'>':'<'} ${S(yMin)}`
+  }
 ];
 
-// — D. & E. cas “nc” (intervalles consécutifs de sens opposés) et cas “extrémum concluant”
+
+// D) Intervalles consécutifs de sens opposés → Impossible
 function findTurn(){
-  for(let i=0;i<DIR.length-1;i++){
+  for(let i=0; i<DIR.length-1; i++){
     if ((DIR[i]==='↗' && DIR[i+1]==='↘') || (DIR[i]==='↘' && DIR[i+1]==='↗')) return i;
   }
   return -1;
 }
-let stmt_nc, stmt_ext;
-const t = findTurn();
-if (t !== -1){
-  const xL = choice(intsIn(t)), xR = choice(intsIn(t+1));
-  const sym = choice(['<','>']);
-  stmt_nc = { k:'d1', txt:`f(${S(xL)}) ${sym} f(${S(xR)})`, want:'nc' };
+// AVANT
+// const t = findTurn();
 
-  // extrémum au nœud X[t+1], comparer avec un entier de l’autre intervalle
-  const isMax = (DIR[t]==='↗' && DIR[t+1]==='↘');
-  const isMin = (DIR[t]==='↘' && DIR[t+1]==='↗');
-  const xExt = X[t+1];
-  const otherI = isMax ? (t+1) : t;
-  const xO = choice(intsIn(otherI));
-  const makeTrue = choice([true,false]);
-  stmt_ext = isMax
-    ? (makeTrue ? {k:'e1', txt:`f(${S(xExt)}) > f(${S(xO)})`, want:'v'}
-                 : {k:'e1', txt:`f(${S(xExt)}) < f(${S(xO)})`, want:'f'})
-    : (makeTrue ? {k:'e1', txt:`f(${S(xExt)}) < f(${S(xO)})`, want:'v'}
-                 : {k:'e1', txt:`f(${S(xExt)}) > f(${S(xO)})`, want:'f'});
-} else {
-  // secours : deux intervalles quelconques (nc) + comparaison avec un max global (concluant)
-  const ia = choice([...incIdx, ...decIdx]);
-  const ib = choice([...incIdx, ...decIdx].filter(j=>j!==ia));
-  stmt_nc = { k:'d1', txt:`f(${S(choice(intsIn(ia)))}) < f(${S(choice(intsIn(ib)))})`, want:'nc' };
-  const xO = choice(intsIn(ia));
-  stmt_ext = { k:'e1', txt:`f(${S(choice(X.filter((_,i)=>Y[i]===yMax)))}) ≥ f(${S(xO)})`, want:'v' };
+// APRÈS — liste de TOUS les changements de sens, on en choisit un
+const turns = [];
+for (let i=0; i<DIR.length-1; i++){
+  if ((DIR[i]==='↗' && DIR[i+1]==='↘') || (DIR[i]==='↘' && DIR[i+1]==='↗')) turns.push(i);
+}
+const t = choice(turns.length ? turns : [0]); // fallback au 1er segment si pas de turn
+let partD = [];
+let partE = [];
+if(t !== -1){
+const xL = intsLeft(t)[Math.floor(Math.random()*intsLeft(t).length)];
+const xR = intsRight(t+1)[Math.floor(Math.random()*intsRight(t+1).length)];
+  const sym = Math.random()<0.5 ? '<' : '>';
+partD = [{ id:'nc_turn', want:'nc', type:'nc_turn', i:t, x1:xL, x2:xR, sym,
+           txt:`f(${S(xL)}) ${sym} f(${S(xR)})`}];
+// E) Comparaison avec l’extrémum au changement de sens — non adjacent
+// E) Comparaison avec l’extrémum choisi (non adjacent)
+// ==== Candidats extrémums globaux ====
+const yGlobMax = Math.max(...Y);
+const yGlobMin = Math.min(...Y);
+const XglobMax = X.filter((_,i)=>Y[i]===yGlobMax);
+const XglobMin = X.filter((_,i)=>Y[i]===yGlobMin);
+
+// ==== Construit l'item E avec un extrémum GLOBAL ====
+(function buildPartEGlobal(){
+  const useMax = Math.random() < 0.5;               // au hasard: max ou min global
+  const xExt = choice(useMax ? XglobMax : XglobMin);
+  const kVal = useMax ? yGlobMax : yGlobMin;
+
+  // Liste d'abscisses entières du domaine (y compris bornes)
+  const allInts = [];
+  for(let t=X[0]; t<=X[X.length-1]; t++) allInts.push(t);
+
+  // On évite de prendre une autre abscisse qui atteint le même extrémum
+  const badSet = new Set(useMax ? XglobMax : XglobMin);
+
+  // Pour rendre VRAI, on veut f(xExt) > f(xO) si max global, f(xExt) < f(xO) si min global.
+  // Comme on ne calcule pas f(xO), on s'appuie sur la propriété globale :
+  //   max global : pour tout x, f(x) ≤ f(xExt), et strict < si x n'est pas aussi un argmax.
+  //   min global : pour tout x, f(x) ≥ f(xExt), et strict > si x n'est pas aussi un argmin.
+  // Donc il suffit de choisir xO ∉ (argmax/argmin).
+  const poolO = allInts.filter(x => x !== xExt && !badSet.has(x));
+  const xO = choice(poolO.length ? poolO : allInts.filter(x=>x!==xExt));
+
+  const makeTrue = Math.random() < 0.5;
+  const sign = useMax
+    ? (makeTrue ? '>' : '<')   // max global -> vrai si '>'
+    : (makeTrue ? '<' : '>');  // min global -> vrai si '<'
+
+  // Remplace l'ancien partE :
+partE = [{
+  id: makeTrue ? 'ext_v' : 'ext_f',
+  want: makeTrue ? 'v' : 'f',
+  type:'ext', ext: useMax?'max':'min',
+  xExt, xO, kVal,
+  txt: `f(${S(xExt)}) ${sign} f(${S(xO)})`
+}];
+})();
+
+
+
+
+
+}else{
+  // Secours : au pire, on place un "nc" arbitraire et un énoncé avec l’extrémum global
+  const ia = incIdx.concat(decIdx)[0];
+  const ib = incIdx.concat(decIdx).find(j => j!==ia) ?? ia;
+  partD = [{
+    k:'nc_any', want:'nc', type:'nc_any', ia, ib,
+    x1: intsIn(ia)[0], x2: intsIn(ib)[0], sym:'<',
+    txt:`f(${S(intsIn(ia)[0])}) < f(${S(intsIn(ib)[0])})`
+  }];
+  partE = [{
+    k:'ext_glob', want:'v', type:'ext_glob',
+    xExt: X[Y.indexOf(yMax)], xO: intsIn(ia)[0],
+    txt:`f(${S(X[Y.indexOf(yMax)])}) ≥ f(${S(intsIn(ia)[0])})`
+  }];
 }
 
-// — Mélange aléatoire de l’ordre des deux dernières questions (d / e)
-const tail = Math.random()<0.5 ? [stmt_nc, stmt_ext] : [stmt_ext, stmt_nc];
+// Pas de dédoublonnage qui supprime tout : on prend nos 8 items puis on mélange
+let stmts = [...partA, ...partB, ...partC, ...partD, ...partE];
 
-// — Assemblage final
-// Assemblage + mélange COMPLET de l'ordre des questions
-const stmts = [
-  ...stmts_inc,   // croissante : V/F (intervalle A ≠ intervalle B)
-  ...stmts_dec,   // décroissante : V/F (intervalle C ≠ intervalle D)
-  ...stmts_k,     // max/min : V/F
-  stmt_nc,        // impossible de conclure
-  stmt_ext        // concluable avec extrémum (V ou F)
-];
-shuffle(stmts);   // ← ordre aléatoire à chaque génération
+// anti-doublon (même libellé s.txt)
+const seen = new Set();
+stmts = stmts.filter(s => {
+  if (seen.has(s.txt)) return false;
+  seen.add(s.txt);
+  return true;
+});
+stmts.sort(() => Math.random() - 0.5);
 
 return { X, Y, DIR, Iq, stmts };
+
+
+
+
 
 
 
@@ -859,34 +1010,26 @@ function rowF(){
         <li style="margin:.25rem 0">
           Déterminer l’<b>ensemble de définition</b> de \\(f\\).
           <div style="display:inline-flex;gap:8px;align-items:center;margin-left:8px">
-            <input class="q-dom" type="text" placeholder="[a; b]" style="width:120px;text-align:center">
+            <input class="q-dom" type="text" placeholder="" style="width:120px;text-align:center">
             <span class="tick nu"></span>
           </div>
         </li>
 
-        <li style="margin:.25rem 0">
-          Décrire les <b>variations</b> (choisir ↗ ou ↘ pour chaque intervalle).
-          <div class="var-wrap" style="margin-top:.3rem">
-            ${X.slice(0,-1).map((x,i)=>`
-              <div style="display:inline-flex;gap:6px;align-items:center;margin:2px 8px">
-                <span>[${String(X[i]).replace('-','−')} ; ${String(X[i+1]).replace('-','−')}] :</span>
-                <select class="q-dir" data-i="${i}">
-                  <option value=""></option><option>↘</option><option>↗</option>
-                </select>
-                <span class="tick nu"></span>
-              </div>`).join('')}
-          </div>
-        </li>
+
 
         <li style="margin:.25rem 0">
           Quel est le <b>maximum</b> de \\(f\\) sur
           \\([${String(Iq[0]).replace('-','−')} ; ${String(Iq[1]).replace('-','−')}]\\) ?
           En quelle(s) valeur(s) est-il atteint ?
-          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:.3rem 0 0 .2rem">
-            <label>Valeur :</label>
-            <input class="q-maxy" type="text" style="width:90px;text-align:center"><span class="tick nu"></span>
-            <label>En \\(x=\\)</label>
-            <input class="q-maxx" type="text" placeholder="liste ex. 0;4" style="width:130px;text-align:center"><span class="tick nu"></span>
+          <div class ="pdf-hide" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:.3rem 0 0 .2rem">
+        <label>Le maximum de la fonction \\(f\\) sur \\([${String(Iq[0]).replace('-','−')} ; ${String(Iq[1]).replace('-','−')}]\\) est :</label>
+          <input class="qmaxy" type="text" style="width:110px;text-align:center">
+          <span class="tick nu"></span>
+          <label>atteint en \\(x=\\)</label>
+          <input class="qmaxx" type="text" style="width:110px;text-align:center">
+          <span class="tick nu"></span>    
+						
+
           </div>
         </li>
 
@@ -894,14 +1037,23 @@ function rowF(){
           En justifiant ces réponses, indiquer si chaque affirmation est <b>Vraie</b>, <b>Fausse</b> ou « <b>Impossible de conclure</b> ».
           <div style="margin:.35rem 0 0 .2rem">
             <ol type="a" style="margin:0 0 0 1.2rem">
-              ${stmts.map(s=>`
-                <li style="margin:.2rem 0">
-                  \\(${s.txt}\\)
-                  <select class="q-qcm" data-k="${s.k}">
-                    <option value=""></option><option value="v">Vrai</option><option value="f">Faux</option><option value="nc">Impossible</option>
-                  </select>
-                  <span class="tick nu"></span>
-                </li>`).join('')}
+${mapHTML(stmts, function(s){
+  const txtTeX = toTeX(s.txt); // <- convertit < et > en \lt \gt
+  return '<li style="margin:.2rem 0">' +
+           '\\(' + txtTeX + '\\)' +
+           // rendu des <select>
+'<select class="q-qcm" data-id="' + s.id + '">' +
+             '<option value=""></option>' +
+             '<option value="v">Vrai</option>' +
+             '<option value="f">Faux</option>' +
+             '<option value="nc">Impossible</option>' +
+           '</select>' +
+           '<span class="tick nu"></span>' +
+         '</li>';
+})}
+
+
+
             </ol>
           </div>
         </li>
@@ -911,6 +1063,11 @@ function rowF(){
 
     host.dataset.state_extra = JSON.stringify({}); // placeholder
     host.querySelectorAll('input,select').forEach(ensureTickAfter);
+	// Assure le tick dès qu'on change une réponse QCM
+host.querySelectorAll('select.q-qcm, .q-qcm').forEach(sel=>{
+  sel.addEventListener('change', ()=> ensureTickAfter(sel));
+});
+
     typesetAll(host);
   },
 
@@ -918,23 +1075,28 @@ function rowF(){
     const {X,Y,DIR,Iq,stmts} = st;
     let ok=0, tot=0;
     const norm = s => (s||'').trim().replace(/\u2212/g,'-').replace(/\s/g,'').replace(',', '.');
+// à placer au début de correct() après les const
+const setNuIfEmpty = (el) => {
+  if (!el) return true;                       // rien à faire
+  const isEmpty = String(el.value ?? '').trim() === '';
+  if (isEmpty) setTick(el, 'nu');
+  return isEmpty;
+};
 
     // (1) Domaine
-    const dom = host.querySelector('.q-dom');
-    const wantDom = `[${X[0]};${X[X.length-1]}]`;
-    if(dom && norm(dom.value)!==''){
-      tot++;
-      const v = norm(dom.value).replace(/;/g,';').replace(/\s/g,'');
-      const good = v === `[${X[0]};${X[X.length-1]}]`;
-      setTick(dom, good?'ok':'ko'); if(good) ok++;
-    }
+   const dom = host.querySelector('.q-dom');
+if (dom) {
+  if (setNuIfEmpty(dom) === false) {          // non vide → on évalue
+    tot++;
+    const v = norm(dom.value);
+    const good = v === `[${X[0]};${X[X.length-1]}]`;
+    setTick(dom, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
 
-    // (2) Variations
-    host.querySelectorAll('.q-dir').forEach((sel,i)=>{
-      if(!sel.value) return;
-      tot++; const good = sel.value===DIR[i];
-      setTick(sel, good?'ok':'ko'); if(good) ok++;
-    });
+
+
 
     // (3) Maximum sur [Iq]
     // on regarde les nœuds inclus dans l’intervalle
@@ -945,28 +1107,52 @@ function rowF(){
     const ymax = Math.max(...subY);
     const Xmax = subX.filter((_,i)=>subY[i]===ymax);
 
-    const inMaxY = host.querySelector('.q-maxy');
-    if(inMaxY && norm(inMaxY.value)!==''){ tot++; const good=(norm(inMaxY.value)===String(ymax)); setTick(inMaxY, good?'ok':'ko'); if(good) ok++; }
+// ymax/Xmax déjà calculés plus haut
 
-    const inMaxX = host.querySelector('.q-maxx');
-    if(inMaxX && norm(inMaxX.value)!==''){
-      tot++;
-      const Ans = norm(inMaxX.value).split(';').filter(Boolean).map(s=>s.replace(',', '.'));
-      const A=[...new Set(Ans)].sort(); const R=[...new Set(Xmax.map(String))].sort();
-      const good = (A.length===R.length) && A.every((v,i)=>v===R[i]);
-      setTick(inMaxX, good?'ok':'ko'); if(good) ok++;
-    }
+const inMaxY = host.querySelector('.qmaxy');  // <-- sans tiret !
+if (inMaxY) {
+  if (setNuIfEmpty(inMaxY) === false) {
+    tot++;
+    const good = (norm(inMaxY.value) === String(ymax));
+    setTick(inMaxY, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
+
+const inMaxX = host.querySelector('.qmaxx');  // <-- sans tiret !
+if (inMaxX) {
+  if (setNuIfEmpty(inMaxX) === false) {
+    tot++;
+    const Ans = norm(inMaxX.value).split(';').filter(Boolean);
+    const A = [...new Set(Ans)].sort();
+    const R = [...new Set(Xmax.map(String))].sort();
+    const good = (A.length === R.length) && A.every((v,i)=>v===R[i]);
+    setTick(inMaxX, good ? 'ok' : 'ko');
+    if (good) ok++;
+  }
+}
+
 
     // (4) QCM
  function evalStmt(s){ return s.want; }   // 'v' | 'f' | 'nc'
 
-    host.querySelectorAll('.q-qcm').forEach(sel=>{
-      if(!sel.value) return;
-      tot++; const s = stmts.find(t=>t.k===sel.dataset.k);
-      const want = evalStmt(s);
-      const good = (sel.value===want);
-      setTick(sel, good?'ok':'ko'); if(good) ok++;
-    });
+host.querySelectorAll('.q-qcm').forEach(sel=>{
+  const val = String(sel.value || '').trim();
+  if (!val){ setTick(sel,'nu'); return; }
+
+  const sid = sel.dataset.id;           // ← récupère l’identifiant texte
+  const s   = stmts.find(t => t.id === sid);
+
+  if (!s){ setTick(sel,'nu'); return; } // sécurité
+
+  tot++;
+  const good = (val === s.want);        // 'v' | 'f' | 'nc'
+  setTick(sel, good ? 'ok' : 'ko');
+  if (good) ok++;
+});
+
+
+
 
     const res=$('#res',host);
     res.textContent = '';
@@ -985,23 +1171,144 @@ function rowF(){
 
     const fmt = s=>String(s).replace('-','−');
     const box = $('#res',host);
-	
+	const gMax = Math.max(...Y);
+const gMin = Math.min(...Y);
+
 	
 	const word = w => w==='v' ? 'Vrai' : w==='f' ? 'Faux' : 'Impossible';
 	
     box.innerHTML = `
       <div class="step"><b>1.</b> Domaine : \\([${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]\\).</div>
-      <div class="step"><b>2.</b> Variations :
-        ${X.slice(0,-1).map((_,i)=>`[${fmt(X[i])} ; ${fmt(X[i+1])}] : ${DIR[i]}`).join(' \\;\\; ')}
-      </div>
-      <div class="step"><b>3.</b> Sur \\([${fmt(Iq[0])}\\,;\\,${fmt(Iq[1])}]\\), le maximum vaut \\(${ymax}\\) atteint en ${Xmax.map(x=>`\\(x=${fmt(x)}\\)`).join(' et ')}.</div>
-      <div class="step"><b>4.</b> QCM :</div>
-      <ul style="margin:.2rem 0 0 1.1rem">
-      ${stmts.map(s=>`<li>\\(${s.txt}\\) : <b>${word(s.want)}</b></li>`).join('')}
 
-      </ul>
+      <div class="step"><b>2.</b> Le maximum de la fonction \\(f\\) sur \\([${fmt(Iq[0])}\\,;\\,${fmt(Iq[1])}]\\) vaut \\(${ymax}\\) atteint en ${mapHTML(Xmax, x=>`\\(x=${fmt(x)}\\)`, ' et ')}.</div>
+
     `;
-    typesetAll(box);
+  // 👉 Ajouter ce helper ici (visible par explain)
+  const S = n => String(n).replace('-', '−');	
+const explain = (s) => {
+  const I1 = (i)=>`[${S(X[i])} ; ${S(X[i+1])}]`;
+    const I = (i)=>`[${S(s.x1)} ; ${S(s.x2)}]`;
+
+  const segMin = (i)=>Math.min(Y[i],Y[i+1]);
+  const segMax = (i)=>Math.max(Y[i],Y[i+1]);
+
+// ===== helper robuste : rend l’index du segment contenant x =====
+function segIndexOfX(x){
+  // à l’intérieur strict
+  for(let j=0; j<DIR.length; j++){
+    const L = X[j], R = X[j+1];
+    if (x > L && x < R) return j;
+    // gérer proprement les cas aux bornes
+    if (x === L) return j;
+    if (x === R && j === DIR.length-1) return j; // dernière borne
+  }
+  // secours : on accroche au segment le plus proche
+  let j = 0;
+  while (j < DIR.length-1 && X[j+1] < x) j++;
+  return Math.max(0, Math.min(DIR.length-1, j));
+}
+
+
+
+  switch(s.type){
+    case 'inc': {
+      const a = S(s.x1), b = S(s.x2), Iab = I(s.i);
+      const core = `la fonction \\(f\\) est <b>strictement croissante</b> sur \\(${Iab}\\) ainsi : \\(f(${a}) \\lt f(${b})\\).`;
+      return s.want==='v'
+        ? `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or ${core} <b>VRAIE</b>.`
+        : `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or \\(f\\) est <b>strictement croissante</b> sur \\(${Iab}\\), on devrait avoir \\(f(${a}) \\lt f(${b})\\). <b>FAUSSE</b>.`;
+    }
+    case 'dec': {
+      const a = S(s.x1), b = S(s.x2), Iab = I(s.i);
+      const core = `la fonction \\(f\\) est <b>strictement décroissante</b> sur \\(${Iab}\\) ainsi : \\(f(${a}) \\gt f(${b})\\).`;
+      return s.want==='v'
+        ? `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or ${core} <b>VRAIE</b>.`
+        : `\\(${S(s.x1)} \\lt ${S(s.x2)}\\), or \\(f\\) est <b>strictement décroissante</b>  sur \\(${Iab}\\), on devrait avoir \\(f(${a}) \\gt f(${b})\\). <b>FAUSSE</b>.`;
+    }
+case 'toMax': {
+  const Idef = `[${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]`;
+  if (s.sign === '<') {
+    // VRAIE : pour tout x, f(x) ≤ gMax ⇒ f(x) < gMax si x n’est pas un argmax
+    return `Sur \\(${Idef}\\), le <b>maximum (global)</b>  de \\(f\\) vaut \\(${gMax}\\), donc pour tout \\(x\\in${Idef}\\),
+            \\(f(x)\\le ${gMax}\\).
+            <br>Comme \\(${s.x}\\) n’est pas une abscisse de maximum : on obtient \\(f(${S(s.x)}) \\lt ${gMax}\\). <b>VRAIE</b>.`;
+  } else {
+    // FAUSSE : impossible d’avoir f(x) > gMax
+    return `Sur \\(${Idef}\\), le <b>maximum (global)</b>  est \\(${gMax}\\), donc pour tout \\(x\\), \\(f(x)\\le ${gMax}\\).
+            <br>L’assertion \\(f(${S(s.x)}) \\gt ${gMax}\\) est impossible. <b>FAUSSE</b>.`;
+  }
+}
+
+case 'toMin': {
+  const Idef = `[${fmt(X[0])}\\,;\\,${fmt(X[X.length-1])}]`;
+  if (s.sign === '>') {
+    // VRAIE : pour tout x, f(x) ≥ gMin ⇒ strict si x n’est pas un argmin
+    return `Sur \\(${Idef}\\), le <b>minimum (global)</b>  de \\(f\\) vaut \\(${gMin}\\), donc pour tout \\(x\\in${Idef}\\),
+            \\(f(x)\\ge ${gMin}\\).
+            <br>Comme \\(${S(s.x)}\\) n’est pas une abscisse de minimum :  on obtient  \\(f(${S(s.x)})\\gt ${gMin}\\). <b>VRAIE</b>.`;
+  } else {
+    // FAUSSE : impossible d’avoir f(x) < gMin
+    return `Sur \\(${Idef}\\), le <b>minimum (global)</b>  est \\(${gMin}\\), donc pour tout \\(x\\), \\(f(x)\\ge ${gMin}\\).
+           <br> L’assertion \\(f(${S(s.x)}) \\lt ${gMin}\\) est impossible. <b>FAUSSE</b>.`;
+  }
+}
+
+
+    case 'nc_turn': {
+      // deux intervalles consécutifs de sens opposés : encadrement seulement
+      const a = s.i, Ibig = `[${S(X[a])} ; ${S(X[a+2])}]`;
+      const m = Math.min(Y[a],Y[a+1],Y[a+2]);
+      const M = Math.max(Y[a],Y[a+1],Y[a+2]);
+      return `Le tableau présente un changement de variations aux abords de \\(x=${S(X[a+1])}\\). On sait seulement que, pour tout \\(x\\in${Ibig}\\), \\(${m}\\le f(x)\\le ${M}\\). Impossible de comparer \\(f(${S(s.x1)})\\) et \\(f(${S(s.x2)})\\). <b>Impossible de conclure</b>.`;
+    }
+    case 'ext': {
+  // intervalle uniquement entre xO et xExt (ordre automatique)
+  const Iother = `[${S(Math.min(s.xO, s.xExt))} ; ${S(Math.max(s.xO, s.xExt))}]`;
+
+  if (s.ext === 'max') {
+    return s.want === 'v'
+      ? `\\(f(${S(s.xExt)})\\) est le <b>maximum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), on a \\(f(x)\\le f(${S(s.xExt)})\\).
+         <br>En particulier, comme \\(${S(s.xO)}\\in${Iother}\\), \\(f(${S(s.xExt)}) \\gt f(${S(s.xO)})\\). <b>VRAIE</b>.`
+      : `\\(f(${S(s.xExt)})\\) est le <b>maximum</b> sur \\(${Iother}\\)  ainsi pour tout \\(x\\in${Iother}\\), \\(f(x)\\le f(${S(s.xExt)})\\).
+         <br>Or \\(${S(s.xO)}\\in${Iother}\\) donc \\(f(${S(s.xExt)})\\ge f(${S(s.xO)})\\). <b>FAUSSE</b>.`;
+  } else {
+    return s.want === 'v'
+      ? `\\(f(${S(s.xExt)})\\) est le <b>minimum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), on a \\(f(x)\\ge f(${S(s.xExt)})\\).
+         <br>En particulier, comme \\(${S(s.xO)}\\in${Iother}\\), \\(f(${S(s.xExt)}) \\lt f(${S(s.xO)})\\). <b>VRAIE</b>.`
+      : `\\(f(${S(s.xExt)})\\) est le <b>minimum</b> sur \\(${Iother}\\) ainsi pour tout \\(x\\in${Iother}\\), \\(f(x)\\ge f(${S(s.xExt)})\\).
+         <br>Or \\(${S(s.xO)}\\in${Iother}\\) donc \\(f(${S(s.xExt)})\\le f(${S(s.xO)})\\).<b>FAUSSE</b>.`;
+  }
+}
+
+    case 'nc_any': {
+      const I1=`[${S(X[s.ia])} ; ${S(X[s.ia+1])}]`, I2=`[${S(X[s.ib])} ; ${S(X[s.ib+1])}]`;
+      return `Les points appartiennent à deux intervalles distincts (${I1} et ${I2}) sans information de liaison. On peut seulement encadrer les valeurs par les bornes locales : le tableau <b>ne permet pas de conclure</b>.`;
+    }
+    case 'ext_glob': {
+      return `On compare une abscisse d’extrémum global avec un point d’un autre intervalle : on sait que \\(f(${S(s.xExt)})\\) est une borne dans la zone considérée, d’où l’inégalité annoncée. <b>VRAIE</b>.`;
+    }
+    default: return '';
+  }
+};
+
+const qcmHTML = `
+  <div class="step"><b>3.</b> QCM :</div>
+  <ol type="a" style="margin:.2rem 0 0 1.1rem">
+${mapHTML(stmts, function(s){
+  const verdict = (s.want === 'v' ? 'VRAIE' :
+                   s.want === 'f' ? 'FAUSSE' :
+                   'Impossible de conclure');
+  return '<li>\\(' + s.txt + '\\) : ' + explain(s) + '</li>';
+})}
+  </ol>
+`;
+
+box.innerHTML += qcmHTML;
+typesetAll(box);
+
+	
+	
+
   },
 
   reset(host){ $('#res',host).textContent=''; }
@@ -1054,7 +1361,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault()
 
 (function init(){
   const sel=$("#exo-select");
-  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+sel.innerHTML = mapHTML(REGISTRY, (ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`);
   sel.onchange = buildOne;
   $("#btn-new").onclick=buildOne;
   $("#btn-check").onclick=checkAll;

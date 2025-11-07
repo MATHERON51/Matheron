@@ -137,6 +137,27 @@ table.var td.zbar {
 /* écrase le gras inline sur les zéros */
 table.pdf-tbl td.zbar { font-weight:400 !important; }
 
+/* Affichage conditionnel */
+@media screen { .screen-only{display:block!important} .print-only{display:none!important} }
+@media print  { .screen-only{display:none!important} .print-only{display:block!important} }
+
+/* Tableau QCM (écran) */
+.table-qcm-screen{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:12px 8px;
+}
+.table-qcm-screen td{ width:50%; vertical-align:top }
+.table-qcm-screen .cell{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 12px;
+  background:#fff;
+}
+.table-qcm-screen .num{ font-weight:700; margin-right:6px }
+.table-qcm-screen select{ margin-left:8px }
+
+
 </style>
 
 <!-- MathJax -->
@@ -955,7 +976,77 @@ stmts = stmts.filter(s => {
 });
 stmts.sort(() => Math.random() - 0.5);
 
-return { X, Y, DIR, Iq, stmts };
+// ——— Q4/Q5 : encadrement d'une image sur un intervalle monotone ———
+function pickMonotoneIdx(weightInc=0.4){
+  const wantInc = Math.random() < weightInc;
+  let pool = wantInc ? incIdx : decIdx;
+  if (!pool.length) pool = wantInc ? decIdx : incIdx; // secours
+  return choice(pool);
+}
+function insideInts(i){
+  const L=[]; for(let t=X[i]; t<=X[i+1]; t++) L.push(t); return L;
+}
+function insideOpenInts(i){
+  const L=[]; for(let t=X[i]+1; t<=X[i+1]-1; t++) L.push(t); return L;
+}
+function preferIfPossible(val,i){
+  const S = new Set(insideOpenInts(i).length? insideOpenInts(i) : insideInts(i));
+  return S.has(val) ? val : choice([...S]);
+}
+function encadrementForK(i, k){
+  const yA = Y[i], yB = Y[i+1];
+  const lo = Math.min(yA,yB), hi = Math.max(yA,yB);
+  return {k, i, lo, hi, dir: DIR[i]}; // ↗ / ↘
+}
+
+// ——— Q4/Q5 : encadrements monotones opposés ———
+
+// Q4 : intervalle choisi avec pondération 40 % croissant / 60 % décroissant
+const i4 = pickMonotoneIdx(0.40);
+const k4 = preferIfPossible(2, i4);
+const q4 = encadrementForK(i4, k4);
+
+// Q5 : on impose le sens inverse de la question 4
+const wantIncFor5 = q4.dir === '↘'; // inverse
+const pool5 = wantIncFor5 ? incIdx : decIdx;
+let i5 = choice(pool5.length ? pool5 : [...DIR.keys()]);
+if (i5 === i4 && pool5.length > 1) {
+  // éviter même intervalle que Q4
+  const others = pool5.filter(j => j !== i4);
+  i5 = choice(others);
+}
+const k5 = preferIfPossible(4, i5);
+const q5 = encadrementForK(i5, k5);
+
+
+// ——— Q6 : antécédent d'un extremum (max OU min global) ———
+const gMax = Math.max(...Y), gMin = Math.min(...Y);
+const useMax = Math.random() < 0.5;
+const yExt  = useMax ? gMax : gMin;
+const Xexts = X.filter((_,i)=>Y[i]===yExt);
+const q6 = { kind: useMax?'max':'min', y: yExt, X: Xexts };
+
+// ——— Q7 : nombre d'antécédents de 0 (peut être 0, 1 ou plusieurs) ———
+// 1) zéros "lisibles" (nœuds où f=0)
+const Znodes = X.filter((_, i) => Y[i] === 0);
+
+// 2) zéros "non lisibles" : un par intervalle [X[i],X[i+1]] où le signe change
+// (monotone sur chaque intervalle, donc exactement une racine ouverte ]a;b[)
+const Zintervals = [];
+for (let i = 0; i < Y.length - 1; i++) {
+  const a = Y[i], b = Y[i+1];
+  if (a === 0 && b === 0) continue;            // ne devrait pas arriver (variations strictes)
+  if (a * b < 0) Zintervals.push([X[i], X[i+1]]);
+}
+const q7 = {
+  zeros: Znodes.length + Zintervals.length,
+  Znodes: Znodes.slice(),          // abscisses exactes visibles
+  Zintervals: Zintervals.slice()   // intervalles où se trouve une racine (cachée)
+};
+
+
+return { X, Y, DIR, Iq, stmts, q4, q5, q6, q7 };
+
 
 
 
@@ -1036,8 +1127,7 @@ function rowF(){
         <li style="margin:.25rem 0">
           En justifiant ces réponses, indiquer si chaque affirmation est <b>Vraie</b>, <b>Fausse</b> ou « <b>Impossible de conclure</b> ».
           <div style="margin:.35rem 0 0 .2rem">
-            <ol type="a" style="margin:0 0 0 1.2rem">
-${mapHTML(stmts, function(s){
+<ol type="a" class="qcm-list print-only" style="margin:0 0 0 1.2rem">${mapHTML(stmts, function(s){
   const txtTeX = toTeX(s.txt); // <- convertit < et > en \lt \gt
   return '<li style="margin:.2rem 0">' +
            '\\(' + txtTeX + '\\)' +
@@ -1061,6 +1151,83 @@ ${mapHTML(stmts, function(s){
       <div class="steps small" id="res" style="margin-top:.5rem"></div>
     `;
 
+// 4) Encadrer une image
+const q4 = st.q4;
+const q4html = `
+  <li style="margin:.25rem 0">
+    Compléter le plus précisément possible :
+    &nbsp; … ≤ \\(f(${String(q4.k).replace('-','−')})\\) ≤ …
+	<br>
+    <div class="pdf-hide" style="display:inline-flex;gap:6px;align-items:center;margin-left:8px">
+      <input class="q4a" type="text" style="width:90px;text-align:center" placeholder="">
+      <span style="opacity:.6">≤</span>
+      <span style="min-width:90px;text-align:center;display:inline-block">\\(f(${String(q4.k).replace('-','−')})\\)</span>
+      <span style="opacity:.6">≤</span>
+      <input class="q4b" type="text" style="width:90px;text-align:center" placeholder="">
+      <span class="tick nu"></span>
+    </div>
+
+  </li>`;
+
+// 5) Encadrement le plus petit possible
+const q5 = st.q5;
+const q5html = `
+  <li style="margin:.25rem 0">
+    Donner l’encadrement <b>le plus petit possible</b> de \\(f(${String(q5.k).replace('-','−')})\\).
+	<br>
+    <div class="pdf-hide" style="display:inline-flex;gap:6px;align-items:center;margin-left:8px">
+      <input class="q5a" type="text" style="width:90px;text-align:center" placeholder="">
+      <span style="opacity:.6">≤</span>
+      <span style="min-width:90px;text-align:center;display:inline-block">\\(f(${String(q5.k).replace('-','−')})\\)</span>
+      <span style="opacity:.6">≤</span>
+      <input class="q5b" type="text" style="width:90px;text-align:center" placeholder="">
+      <span class="tick nu"></span>
+    </div>
+
+  </li>`;
+
+// 6) Antécédent d’un extremum (réponse oui/non)
+const q6 = st.q6;
+const q6html = `
+  <li style="margin:.25rem 0">
+    Donner un antécédent de \\(${q6.y}\\).
+    En possède-t-il d’autre(s)&nbsp;?
+    <div class="pdf-hide" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:.25rem 0 0 .2rem">
+      <label>Un antécédent possible :</label>
+      <input class="q6one" type="text" style="width:90px;text-align:center">
+      <span class="tick nu"></span>
+      <label>Autre(s)&nbsp;?</label>
+      <select class="q6yn" style="width:90px;text-align:center">
+        <option value=""></option>
+        <option value="oui">oui</option>
+        <option value="non">non</option>
+      </select>
+      <span class="tick nu"></span>
+    </div>
+  </li>`;
+
+
+// 7) Nombre d’antécédents de 0
+const q7 = st.q7;
+const q7html = `
+  <li style="margin:.25rem 0">
+    Combien \\(0\\) a-t-il d’antécédent ?
+    <div style="display:inline-flex;gap:8px;align-items:center;margin-left:8px">
+      <input class="q7n" type="text" style="width:70px;text-align:center" placeholder="">
+      <span class="tick nu"></span>
+    </div>
+  </li>`;
+
+// …puis INSÉRER les trois blocs dans l’<ol> existant (après le QCM) :
+const ol = host.querySelector('ol');
+ol.insertAdjacentHTML('beforeend', q4html + q5html + q6html + q7html);
+
+
+
+
+
+
+
     host.dataset.state_extra = JSON.stringify({}); // placeholder
     host.querySelectorAll('input,select').forEach(ensureTickAfter);
 	// Assure le tick dès qu'on change une réponse QCM
@@ -1068,7 +1235,67 @@ host.querySelectorAll('select.q-qcm, .q-qcm').forEach(sel=>{
   sel.addEventListener('change', ()=> ensureTickAfter(sel));
 });
 
+
+
+
+
     typesetAll(host);
+	
+	
+	// --- QCM écran : tableau 2 colonnes, l'impression garde la liste ---
+(function twoColQcmScreen(){
+  const list = host.querySelector('.qcm-list');
+  if (!list) return;
+
+  // Empêche le double comptage : on retire la classe 'q-qcm' des selects de la liste (version print)
+  list.querySelectorAll('select.q-qcm').forEach(sel => sel.classList.remove('q-qcm'));
+
+  // Construit le tableau 2 colonnes pour l'écran
+  const wrap = document.createElement('div');
+  wrap.className = 'screen-only'; // visible écran seulement
+
+  const rows = [];
+  for (let i = 0; i < stmts.length; i += 2) {
+    const a = stmts[i], b = stmts[i+1];
+
+    const cell = s => `
+      <div class="cell">
+        <span class="num">${String.fromCharCode(97 + i + (s===b?1:0))}.</span>
+        \\(${toTeX(s.txt)}\\)
+        <select class="q-qcm" data-id="${s.id}">
+          <option value=""></option>
+          <option value="v">Vrai</option>
+          <option value="f">Faux</option>
+          <option value="nc">Impossible</option>
+        </select>
+        <span class="tick nu"></span>
+      </div>`;
+
+    rows.push(`<tr>
+      <td>${cell(a)}</td>
+      <td>${b ? cell(b) : ''}</td>
+    </tr>`);
+  }
+
+  wrap.innerHTML = `
+    <table class="table-qcm-screen" aria-hidden="true">
+      <tbody>${rows.join('')}</tbody>
+    </table>
+  `;
+
+  // On place la version écran juste APRÈS la liste (qui reste visible en PDF)
+  list.insertAdjacentElement('afterend', wrap);
+
+  // Ticks + events sur les nouveaux <select>
+  wrap.querySelectorAll('select.q-qcm').forEach(sel=>{
+    ensureTickAfter(sel);
+    sel.addEventListener('change', ()=> ensureTickAfter(sel));
+  });
+
+  // Typeset des formules de la version écran
+  typesetAll(wrap);
+})();
+
   },
 
   correct(host, st){
@@ -1151,6 +1378,99 @@ host.querySelectorAll('.q-qcm').forEach(sel=>{
   if (good) ok++;
 });
 
+const N = s => String(s||'').trim().replace(/\u2212/g,'-').replace(',', '.');
+
+// Q4
+if (st.q4){
+  const a = host.querySelector('.q4a'), b = host.querySelector('.q4b');
+  if (a && b){
+    const va = N(a.value), vb = N(b.value);
+    if (va==='' && vb===''){ setTick(a,'nu'); setTick(b,'nu'); }
+    else{
+      scoreTot+=2;
+      const okA = (+va===st.q4.lo), okB = (+vb===st.q4.hi);
+      setTick(a, okA?'ok':'ko'); setTick(b, okB?'ok':'ko');
+      if (okA) scoreOK++; if (okB) scoreOK++;
+    }
+  }
+}
+
+// Q5 (même attente : bornes exactes et ordonnées)
+if (st.q5){
+  const a = host.querySelector('.q5a'), b = host.querySelector('.q5b');
+  if (a && b){
+    const va = N(a.value), vb = N(b.value);
+    if (va==='' && vb===''){ setTick(a,'nu'); setTick(b,'nu'); }
+    else{
+      scoreTot+=2;
+      const okA = (+va===st.q5.lo), okB = (+vb===st.q5.hi);
+      setTick(a, okA?'ok':'ko'); setTick(b, okB?'ok':'ko');
+      if (okA) scoreOK++; if (okB) scoreOK++;
+    }
+  }
+}
+
+// Q6 : un antécédent + autres (ou « non »)
+// Q6 : un antécédent + oui/non
+// Q6 : un antécédent + oui/non
+if (st.q6){
+  const one = host.querySelector('.q6one');
+  const yn  = host.querySelector('.q6yn');
+  const N = s => String(s||'').trim().toLowerCase().replace(/\u2212/g,'-');
+
+  // Champ "un antécédent"
+  if (one){
+    const v = N(one.value);
+    if (!v){ setTick(one,'nu'); }
+    else{
+      scoreTot++;
+      const ok1 = st.q6.X.map(String).includes(v);
+      setTick(one, ok1?'ok':'ko');
+      if (ok1) scoreOK++;
+    }
+  }
+
+  // Champ "oui/non" — accepte aussi les antécédents NON LISIBLE (plateau)
+  if (yn){
+    const v = N(yn.value);
+    if (!v){ setTick(yn,'nu'); }
+    else{
+      scoreTot++;
+
+      // plusieurs abscisses visibles
+      let multiple = st.q6.X.length > 1;
+
+      // ou plateau : deux bornes consécutives portent la valeur d’extremum (infinité d’antécédents non lisibles)
+      if (!multiple){
+        for (let i=0; i<st.Y.length-1; i++){
+          if (st.Y[i] === st.q6.y && st.Y[i+1] === st.q6.y){
+            multiple = true; break;
+          }
+        }
+      }
+
+      const ok2 = (multiple && v==='oui') || (!multiple && v==='non');
+      setTick(yn, ok2?'ok':'ko');
+      if (ok2) scoreOK++;
+    }
+  }
+}
+
+
+
+// Q7 : nombre d’antécédents de 0
+if (st.q7){
+  const n = host.querySelector('.q7n');
+  if (n){
+    const v = N(n.value);
+    if (!v){ setTick(n,'nu'); }
+    else{
+      scoreTot++;
+      const okn = (+v===st.q7.zeros);
+      setTick(n, okn?'ok':'ko'); if (okn) scoreOK++;
+    }
+  }
+}
 
 
 
@@ -1304,6 +1624,91 @@ ${mapHTML(stmts, function(s){
 `;
 
 box.innerHTML += qcmHTML;
+
+// Q4
+if (st.q4){
+  box.innerHTML += `
+    <div class="step"><b>4.</b> Sur \\([${fmt(X[st.q4.i])}\\,;\\,${fmt(X[st.q4.i+1])}]\\),
+    \\(f\\) est ${st.q4.dir==='↗'?'croissante':'décroissante'}, donc :
+    \\(${st.q4.lo} \\le f(${fmt(st.q4.k)}) \\le ${st.q4.hi}\\).</div>`;
+}
+// Q5
+if (st.q5){
+  box.innerHTML += `
+    <div class="step"><b>5.</b> Sur \\([${fmt(X[st.q5.i])}\\,;\\,${fmt(X[st.q5.i+1])}]\\),
+    \\(f\\) est ${st.q5.dir==='↗'?'croissante':'décroissante'}, donc :
+    \\(${st.q5.lo} \\le f(${fmt(st.q5.k)}) \\le ${st.q5.hi}\\).</div>`;
+}
+
+
+// Q6 — lister tous les antécédents : points lisibles + intervalles non lisibles (plateaux)
+if (st.q6){
+  const fmt = s => String(s).replace('-','−');
+  const yE  = st.q6.y;
+
+  // 1) Antécédents lisibles : nœuds du tableau où f = yE
+  const nodes = [];
+  for (let i = 0; i < Y.length; i++) if (Y[i] === yE) nodes.push(X[i]);
+
+  // 2) Antécédents non lisibles : plateaux [X[i]; X[i+1]] où f = yE aux deux bornes
+  const segs = [];
+  for (let i = 0; i < Y.length - 1; i++){
+    if (Y[i] === yE && Y[i+1] === yE) segs.push([X[i], X[i+1]]);
+  }
+
+  // Mise en forme
+  const nodesStr = nodes.map(x => `\\(x=${fmt(x)}\\)`);
+  const segsStr  = segs.map(([a,b]) => `\\([${fmt(a)}\\,;\\,${fmt(b)}]\\)`);
+
+  // Compte / phrasé
+  const hasPlateau = segs.length > 0;
+  const countMsg = hasPlateau
+    ? `\\( ${yE}\\) possède une <b>infinité</b> d’antécédents`
+    : `\\( ${yE}\\) possède ${nodes.length} antécédent(s)`;
+
+  const parts = [];
+  if (nodes.length === 1)      parts.push(` en ${nodesStr[0]}`);
+  else if (nodes.length > 1)   parts.push(` en ${nodesStr.join(' et ')}`);
+
+  if (segs.length === 1)       parts.push(`et pour tout \\(x\\) dans ${segsStr[0]}`);
+  else if (segs.length > 1)    parts.push(`et pour tout \\(x\\) dans ${segsStr.join(' et ')}`);
+
+  const detail = parts.length ? ` : ${parts.join(' ')}` : '';
+
+  box.innerHTML += `
+    <div class="step"><b>6.</b> 
+      ${countMsg}${detail}.
+    </div>`;
+}
+
+
+
+// Q7
+// Q7 — phrasing robuste (singulier/pluriel, nœuds vs intervalles)
+if (st.q7){
+  const fmt = s => String(s).replace('-', '−');
+  const nodes = st.q7.Znodes.map(x => `\\(x=${fmt(x)}\\)`);
+  const segs  = st.q7.Zintervals.map(([a,b]) => `\\(]${fmt(a)}\\,;\\,${fmt(b)}[\\)`);
+
+  const nN = nodes.length, nS = segs.length;
+
+  const parts = [];
+  if (nN === 1)        parts.push(` en ${nodes[0]}`);
+  else if (nN > 1)     parts.push(` en ${nodes.join(' ; ')}`);
+
+  if (nS === 1)        parts.push(` dans l’intervalle ${segs[0]}`);
+  else if (nS > 1)     parts.push(` dans les intervalles ${segs.join(' et ')}`);
+
+  const detail = parts.length ? ` : ${parts.join(' et ')}` : '';
+
+  box.innerHTML += `<div class="step"><b>7.</b> Il y a \\(${st.q7.zeros}\\) antécédent(s) de \\(0\\)${detail}.
+    </div>`;
+}
+
+
+
+
+
 typesetAll(box);
 
 	

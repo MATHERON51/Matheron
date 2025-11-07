@@ -878,6 +878,11 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 /* Masques spécifiques au rendu PDF */
 .pdf-hide{ display:none !important; }
 
+
+ .screen-only{display:none!important} .print-only{display:block!important} 
+
+
+
 </style>
 
 <style>

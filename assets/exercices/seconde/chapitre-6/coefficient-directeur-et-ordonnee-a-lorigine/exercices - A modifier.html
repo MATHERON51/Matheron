@@ -172,18 +172,55 @@ function mountHost(){
   `;
 }
 function setEqu(html){ $('#equ',host).innerHTML = html; retypeset(host); }
-function setResHTML(html){ const r=$('#res',host); r.classList.add('steps'); r.innerHTML=html; retypeset(host); }
+function setResHTML(html){
+  // Cherche #res dans le host
+  let r = $('#res', host);
+
+  // S'il n'existe pas (ex. exo 4), on le crée et on le place
+  if(!r){
+    r = document.createElement('div');
+    r.id = 'res';
+    r.className = 'steps';
+
+    // emplacement par défaut : juste après #equ s'il existe, sinon à la fin de #host
+    const eq = $('#equ', host);
+    if(eq && eq.parentNode){
+      eq.parentNode.appendChild(r);
+    }else{
+      host.appendChild(r);
+    }
+  }else{
+    // s'il existe déjà, on s'assure d'avoir le style steps
+    r.classList.add('steps');
+  }
+
+  r.innerHTML = html;
+  retypeset(host);
+}
 function setResP(lines){ setResHTML(lines.map(s=>`<p>${s}</p>`).join('')); }
 
 /* ======================= Repère minimal ======================= */
 const AMP = { xmin:-6, xmax:6, ymin:-6, ymax:6 };
 
 class Repere{
-  constructor(R={xmin:-6,xmax:6,ymin:-6,ymax:6}){
-    this.R={...R}; this.g={};
-    this.el = this._init();
-    this.redraw();
-  }
+constructor(R={xmin:-6,xmax:6,ymin:-6,ymax:6}, ticks){
+  this.R={...R};
+  this.ticks = Object.assign({ xMajor:1, xMinor:1, yMajor:1, yMinor:1 }, ticks||{});
+  this.showIJ = true;          // ⬅️ nouveau flag
+  this.g={};
+  this.el = this._init();
+  this.redraw();
+}
+
+
+  setRange(Rnew){ this.R={...Rnew}; this.redraw(); }
+
+  // ⬇️ permet de changer dynamiquement le pas des graduations
+  setTicks(t){ this.ticks = Object.assign(this.ticks, t||{}); this.redraw(); }
+
+
+
+  
   _init(){
     const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
     s.setAttribute('class','svgbox'); s.setAttribute('viewBox','0 0 420 420');
@@ -229,18 +266,90 @@ class Repere{
   redraw(){
     const g=this.g; g.grid.innerHTML=''; g.axes.innerHTML=''; g.given.innerHTML=''; g.user.innerHTML='';
     const R=this.R;
-    for(let x=R.xmin; x<=R.xmax; x++){ const a=this.coordToScreen(x,R.ymin), b=this.coordToScreen(x,R.ymax); g.grid.appendChild(this._line(a.x,a.y,b.x,b.y)); }
-    for(let y=R.ymin; y<=R.ymax; y++){ const a=this.coordToScreen(R.xmin,y), b=this.coordToScreen(R.xmax,y); g.grid.appendChild(this._line(a.x,a.y,b.x,b.y)); }
+    const { xMajor, xMinor, yMajor, yMinor } = this.ticks;
+
+    // === Grille verticale (x)
+    const xMin = R.xmin, xMax = R.xmax;
+    const yMin = R.ymin, yMax = R.ymax;
+
+    // lignes mineures (très fines)
+    if (xMinor > 0){
+      for(let x = Math.ceil(xMin/xMinor)*xMinor; x <= xMax + 1e-9; x += xMinor){
+        const a=this.coordToScreen(x,yMin), b=this.coordToScreen(x,yMax);
+        const L=this._line(a.x,a.y,b.x,b.y,false);
+        L.setAttribute('stroke','#ddd');     // mineures plus claires
+        g.grid.appendChild(L);
+      }
+    }
+    // lignes majeures (plus marquées)
+    if (xMajor > 0){
+      for(let x = Math.ceil(xMin/xMajor)*xMajor; x <= xMax + 1e-9; x += xMajor){
+        const a=this.coordToScreen(x,yMin), b=this.coordToScreen(x,yMax);
+        const L=this._line(a.x,a.y,b.x,b.y,false);
+        L.setAttribute('stroke','#bbb');
+        L.setAttribute('stroke-width','1.2');
+        g.grid.appendChild(L);
+      }
+    }
+
+    // === Grille horizontale (y)
+    if (yMinor > 0){
+      for(let y = Math.ceil(yMin/yMinor)*yMinor; y <= yMax + 1e-9; y += yMinor){
+        const a=this.coordToScreen(xMin,y), b=this.coordToScreen(xMax,y);
+        const L=this._line(a.x,a.y,b.x,b.y,false);
+        L.setAttribute('stroke','#eee');
+        g.grid.appendChild(L);
+      }
+    }
+    if (yMajor > 0){
+      for(let y = Math.ceil(yMin/yMajor)*yMajor; y <= yMax + 1e-9; y += yMajor){
+        const a=this.coordToScreen(xMin,y), b=this.coordToScreen(xMax,y);
+        const L=this._line(a.x,a.y,b.x,b.y,false);
+        L.setAttribute('stroke','#bbb');
+        L.setAttribute('stroke-width','1.2');
+        g.grid.appendChild(L);
+      }
+    }
+
+    // Axes
     const axX=this._line(this.coordToScreen(R.xmin,0).x,this.coordToScreen(R.xmin,0).y,this.coordToScreen(R.xmax,0).x,this.coordToScreen(R.xmax,0).y,true);
     const axY=this._line(this.coordToScreen(0,R.ymin).x,this.coordToScreen(0,R.ymin).y,this.coordToScreen(0,R.ymax).x,this.coordToScreen(0,R.ymax).y,true);
     g.axes.append(axX,axY);
-    for(let x=R.xmin; x<=R.xmax; x++){ if(x===0) continue; const p=this.coordToScreen(x,0); const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',p.x+2); t.setAttribute('y',p.y-2); t.setAttribute('font-size','11'); t.textContent=String(x); g.axes.appendChild(t); }
-    for(let y=R.ymin; y<=R.ymax; y++){ if(y===0) continue; const p=this.coordToScreen(0,y); const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',p.x+4); t.setAttribute('y',p.y-2); t.setAttribute('font-size','11'); t.textContent=String(y); g.axes.appendChild(t); }
-    const O=this.coordToScreen(0,0), I=this.coordToScreen(1,0), J=this.coordToScreen(0,1);
-    const mkPt = (pt)=>{ const c=document.createElementNS(this.el.namespaceURI,'circle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r','3.5'); c.setAttribute('fill','#000'); return c; };
-    const mkTx = (pt,lab)=>{ const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',pt.x+4); t.setAttribute('y',pt.y-4); t.setAttribute('font-size','12'); t.textContent=lab; return t; };
-    g.axes.append(mkPt(O), mkTx(O,'O'), mkPt(I), mkTx(I,'I'), mkPt(J), mkTx(J,'J'));
-  }
+
+    // Libellés uniquement sur MAJEURES (sauf 0 géré juste après)
+    for(let x = Math.ceil(xMin/xMajor)*xMajor; x <= xMax + 1e-9; x += xMajor){
+      if(Math.abs(x) < 1e-9) continue;
+      const p=this.coordToScreen(x,0);
+      const t=document.createElementNS(this.el.namespaceURI,'text');
+      t.setAttribute('x',p.x+2); t.setAttribute('y',p.y-2);
+      t.setAttribute('font-size','11'); t.textContent=String(x);
+      g.axes.appendChild(t);
+    }
+    for(let y = Math.ceil(yMin/yMajor)*yMajor; y <= yMax + 1e-9; y += yMajor){
+      if(Math.abs(y) < 1e-9) continue;
+      const p=this.coordToScreen(0,y);
+      const t=document.createElementNS(this.el.namespaceURI,'text');
+      t.setAttribute('x',p.x+4); t.setAttribute('y',p.y-2);
+      t.setAttribute('font-size','11'); t.textContent=String(y);
+      g.axes.appendChild(t);
+    }
+
+// O, I, J
+const O = this.coordToScreen(0,0);
+const I = this.coordToScreen(xMajor,0);
+const J = this.coordToScreen(0,yMajor);
+const mkPt = (pt)=>{ const c=document.createElementNS(this.el.namespaceURI,'circle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r','3.5'); c.setAttribute('fill','#000'); return c; };
+const mkTx = (pt,lab)=>{ const t=document.createElementNS(this.el.namespaceURI,'text'); t.setAttribute('x',pt.x+4); t.setAttribute('y',pt.y-4); t.setAttribute('font-size','12'); t.textContent=lab; return t; };
+
+// toujours O
+g.axes.append(mkPt(O), mkTx(O,'O'));
+
+// I et J seulement si demandé
+if (this.showIJ){
+  g.axes.append(mkPt(I), mkTx(I,'I'), mkPt(J), mkTx(J,'J'));
+}
+}
+
   drawGivenLine(id,color,pts){
     let L=this.g.given.querySelector(`line[data-id="${id}"]`);
     if(!L){ L=document.createElementNS(this.el.namespaceURI,'line'); L.dataset.id=id; this.g.given.appendChild(L); }
@@ -456,6 +565,193 @@ function applyAMPInputs(){
   ['xmin','xmax','ymin','ymax'].forEach(id=>$('#'+id).value=AMP[id]);
 }
 
+
+// === Choix "réaliste" des 3 tarifs (linéaire, mixte, illimité) ===
+// stepY : pas monétaire (0.5 → multiples de 0,5 € ; 0.1 pour 0,10 €, etc.)
+function pickTarifsRealistes({ 
+  X = [0,5,10,15,20,25],
+  stepY = 1,
+  m1Range = [2,10],      // €/unité (formule à la séance)
+  m2Factor = [0.4, 0.8], // m2 = m1 * facteur (strictement < m1)
+  b2Range = [6, 30],     // € d'adhésion (mixte)
+  forfaitFactor = [0.80, 0.95], // illimité = [80%..95%] du MIN(coûts à XH)
+  XM = 10,               // usage "moyen" (pour non-rentabilité de l'illimité)
+  XH = 25,               // usage "haut" (où l'illimité doit devenir intéressant)
+}) {
+  const rstep = v => Math.round(v/stepY)*stepY;
+
+  // 1) m1 (séance libre)
+  let m1 = rstep( Math.random() * (m1Range[1]-m1Range[0]) + m1Range[0] );
+  if (m1 <= 0) m1 = stepY;
+
+  // 2) m2 (après adhésion) strictement plus petit
+  let tries = 200, m2;
+  while (tries--) {
+    const f = Math.random()*(m2Factor[1]-m2Factor[0]) + m2Factor[0];
+    m2 = rstep(m1 * f);
+    if (m2 > 0 && m2 < m1) break;
+  }
+  if (!(m2 > 0 && m2 < m1)) m2 = rstep(Math.max(stepY, m1*0.6));
+
+  // 3) b2 (adhésion) tel que croisement libre/mixte tombe dans [3..20]
+  tries = 200;
+  let b2;
+  while (tries--){
+    b2 = rstep( Math.random()*(b2Range[1]-b2Range[0]) + b2Range[0] );
+    const xstar = b2 / (m1 - m2);
+    if (xstar >= 3 && xstar <= 20) break;
+  }
+  if (b2 <= 0) b2 = rstep((m1 - m2) * 10); // fallback propre
+
+  // 4) Forfait illimité : pas rentable à XM, rentable à XH
+  const C_lin_XM  = m1*XM;
+  const C_mix_XM  = b2 + m2*XM;
+  const C_lin_XH  = m1*XH;
+  const C_mix_XH  = b2 + m2*XH;
+  const minH      = Math.min(C_lin_XH, C_mix_XH);
+  const minM      = Math.min(C_lin_XM, C_mix_XM);
+
+  // Forfait ciblé entre 80%..95% du minH, mais > minM (pour ne pas être rentable trop tôt)
+  let forfaitLow  = rstep(minH * forfaitFactor[0]);
+  let forfaitHigh = rstep(minH * forfaitFactor[1]);
+  if (forfaitLow > forfaitHigh) [forfaitLow, forfaitHigh] = [forfaitHigh, forfaitLow];
+
+  // pousse vers au-dessus de minM (non-rentable à XM)
+  const floor = rstep(minM + stepY);
+  let forfait = Math.max(floor, forfaitLow);
+  forfait = Math.min(forfait, forfaitHigh);
+  if (forfait <= 0) forfait = rstep(minH * 0.9);
+
+  return { m1, m2, b2, forfait };
+}
+
+
+/* ===== Pretty numbers (jamais de 3.40000000004) ===== */
+function roundToStep(n, step){ return Math.round(n/step)*step; }
+function stripZerosDot(s){
+  // "12.50" -> "12,5" ; "3.00" -> "3" ; "4.10" -> "4,1"
+  s = s.replace('.', ',');
+  s = s.replace(/,0+$/,'');         // supprime ",00"
+  s = s.replace(/(\,\d*[1-9])0+$/,'$1'); // supprime zéros finaux inutiles
+  return s;
+}
+// formateur avec pas configurable (0.05 pour les minutes, 0.5 pour € à la pièce, etc.)
+function fmtStep(n, step){
+  const v = roundToStep(n, step);
+  // 2 décimales suffisent pour tous nos pas (0.05 & 0.5)
+  return stripZerosDot((Math.round(v*100)/100).toString());
+}
+
+// Arrondis "ronds" globaux pour toute la banque
+const BANK_STEP = 1;          // (déjà présent) — plus de 0,5
+const BANK_ROUND_UNIT   = 1;  // pas pour les pentes (unitaires)  → entiers
+const BANK_ROUND_OFFSET = 10; // pas pour les offsets/forfaits    → multiples de 10
+
+const qUnit   = (v)=> roundToStep(Math.max(BANK_STEP, v), BANK_ROUND_UNIT);
+const qOffset = (v)=> roundToStep(Math.max(BANK_STEP, v), BANK_ROUND_OFFSET);
+const ensureOffset = (v)=> Math.max(BANK_ROUND_OFFSET, qOffset(Math.abs(v)));
+
+/* ===== Choix des 6 abscisses =====
+   0, 1 puis 4 valeurs à pas constant S ∈ {2,5,10}.
+   On fixe S au départ et on renvoie [0,1, S,2S,3S,4S].
+*/
+function buildXset(S){ return [0, 1, S, 2*S, 3*S, 4*S]; }
+
+
+
+function ensure3IntersectionsInRange(S, stepY, m1, m2, b2, forfait){
+  const q  = v => Math.round(v/stepY)*stepY;
+  const a  = 2*S, b = 4*S;                 // fenêtre cible [2S..4S]
+  const xLC = Math.floor(a + Math.random()*(b-a+1));          // linéaire ↔ constante
+  const xLA = Math.floor(a + Math.random()*(b-a+1));          // linéaire ↔ affine
+  let    xAC = Math.floor(a + Math.random()*(b-a+1));         // affine ↔ constante
+
+  // impose b2 pour que xLA soit dans [2S..4S]
+const b2_new = Math.max(BANK_ROUND_OFFSET, qOffset((m1 - m2) * xLA));
+
+  // impose forfait pour que xLC & xAC soient dans [2S..4S]
+const forfait_new = qOffset(m1 * xLC);
+  const forfait_adj = q(b2_new + m2 * xAC);                    // y = b2 + m2 x (aff↔const)
+
+  // on choisit un xAC aléatoire dans la fenêtre, puis on aligne le forfait dessus
+  const forfait_final = forfait_adj;
+
+  return {
+    m1, m2,
+    b2: b2_new,
+    forfait: forfait_final,
+    xLC, xLA, xAC
+  };
+}
+
+
+/* ===== Tirage réaliste avec intersections entières =====
+   stepY  = pas monétaire à afficher (0.5 €, 0.05 €, etc.)
+   S      = pas d’abscisse (2, 5 ou 10)
+   m1Range en unités €/unité (film, min, km, …), valeurs *réelles* (on arrondit à stepY)
+   ATTENTION : on renvoie aussi xLC, xLA (abscisses d’intersections)
+*/
+function pickTarifsInt({
+  S, stepY,
+  m1Range,
+  m2Factor=[0.5,0.9],
+}){
+  // 1) pente "à l’unité" : entier
+  let m1 = qUnit( m1Range[0] + Math.random()*(m1Range[1]-m1Range[0]) );
+  if (m1 <= 0) m1 = BANK_STEP;
+
+  // 2) seconde pente : entier, strictement < m1
+  let m2;
+  for(let t=0;t<200;t++){
+    const f = m2Factor[0] + Math.random()*(m2Factor[1]-m2Factor[0]);
+    m2 = qUnit(m1 * f);
+    if (m2 > 0 && m2 < m1) break;
+  }
+  if (!(m2>0 && m2<m1)) m2 = Math.max(BANK_STEP, qUnit(m1 - 1));
+
+// pente m2 strictement plus petite
+if (m2 >= m1) m2 = Math.max(BANK_STEP, m1 - BANK_ROUND_UNIT);
+	  
+	        const X = buildXset(S);
+
+	  const Xpen = X[X.length - 2]; // ex. [0,1,S,2S,3S,4S] → 3S
+
+// intersections choisies…
+// Intersections à placer AVANT l’avant-dernier x du tableau
+const randInt = (a,b)=> Math.floor(a + Math.random()*(b-a+1));
+const inRange = (a,b)=> Math.max(a, Math.min(b, Xpen));
+
+// 1) choisir xLA dans [S..Xpen] puis imposer b2 = (m1 - m2) * xLA
+let xLA = randInt(S, Xpen);
+let b2  = Math.max(stepY, roundToStep((m1 - m2) * xLA, stepY)); // p ≠ 0 assuré
+
+// 2) choisir xAC dans [S..Xpen] MAIS en bornant pour que k ≤ m1*Xpen
+let xACmax = Math.floor((m1 * Xpen - b2) / m2);        // garantit xLC = k/m1 ≤ Xpen
+let xAC     = randInt(S, Math.max(S, Math.min(Xpen, xACmax)));
+
+// 3) k (constante) alignée sur l’affine pour xAC
+let k = roundToStep(b2 + m2 * xAC, stepY);
+
+// 4) Les “intersections théoriques” (toutes ≤ Xpen par construction)
+const xLC = Math.round(k / m1);
+xLA = Math.round(b2 / (m1 - m2));   // (déjà choisi)
+xAC = Math.round((k - b2) / m2);
+
+
+
+
+
+// forfait tardif (s’il y en a un), multiple de 10 et >0
+const costLin_2S = m1 * (2*S),  costAff_2S = b2 + m2 * (2*S);
+const costLin_4S = m1 * (4*S),  costAff_4S = b2 + m2 * (4*S);
+const min2S = Math.min(costLin_2S, costAff_2S);
+const min4S = Math.min(costLin_4S, costAff_4S);
+let forfait = ensureOffset(0.85 * min4S);
+if (forfait <= min2S) forfait = ensureOffset(min2S + BANK_ROUND_OFFSET);
+
+return { m1, m2, b2, forfait, xLC, xLA, xAC };
+
+}
 
 
 
@@ -1251,7 +1547,859 @@ setResHTML(intro + out.join(''));
 
 
 
+e4 : {
+  name:"Modélisations (banque 20)",
+  lead:"Dans chaque situation, trois grandeurs évoluent différemment. On modélise par trois fonctions \\(f\\), \\(g\\), \\(h\\) (linéaire / constante / affine, dans un ordre quelconque).",
+
+  gen(){
+
+
+    // helpers d’expressions
+    const L  = (m,b)=>({type:'aff', m, b});   // y=mx+b
+    const Lin= (m)=>({type:'lin', m});        // y=mx
+    const Cst= (k)=>({type:'cst', k});        // y=k
+    const fmt= (n)=> (Number.isInteger(n)? String(n) : String(n).replace('.',','));
+    const monoX = (m)=> m===1?'x': m===-1?'−x': `${fmt(m)}x`;
+    const btxt  = (b)=> b===0?'': (b>0?` + ${fmt(b)}`:` - ${fmt(Math.abs(b))}`);
+
+    // arrondis et pas “entier ou .5”
+    const is05 = (v)=> Math.abs(v*2 - Math.round(v*2)) < 1e-9;
+
+    // nombres aléatoires bornés
+    const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+
+    // === BANQUE 20 scénarios (titres + textes conservés)
  
+// 🔢 Tout en ENTIER
+// Arrondis "ronds" globaux pour toute la banque
+const BANK_STEP = 1;          // (déjà présent) — plus de 0,5
+const BANK_ROUND_UNIT   = 1;  // pas pour les pentes (unitaires)  → entiers
+const BANK_ROUND_OFFSET = 10; // pas pour les offsets/forfaits    → multiples de 10
+
+
+ const BANK = [
+  {
+    title:"Abonnement internet — coût selon la consommation",
+    intro:"Lina compare trois offres pour se connecter à Internet. Le prix dépend du volume de données x (en Go).",
+    gen(){
+      const S = [2,5,10][Math.floor(Math.random()*3)];
+      const X = buildXset(S);
+	  const Xpen = X[X.length - 2]; // ex. [0,1,S,2S,3S,4S] → 3S
+
+      const stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({
+        S, stepY, m1Range:[1,4], m2Factor:[0.5,0.9]
+      });
+      return {
+        unitY:"(€)", unitX:"(Go)",
+        X,
+        intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Offre A", text:`Forfait illimité : ${fmtStep(forfait,stepY)} € par mois.`, f:Cst(forfait) },
+          { name:"Offre B", text:`Sans abonnement : ${fmtStep(m1,stepY)} € par Go.`,        g:Lin(m1) },
+          { name:"Offre C", text:`Abo ${fmtStep(b2,stepY)} € puis ${fmtStep(m2,stepY)} € / Go.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Forfait mobile — coût selon la durée d’appel",
+    intro:"Adam souhaite choisir un forfait téléphonique. Le coût dépend du nombre de minutes d’appel x effectuées dans le mois.",
+    gen(){
+      const S = [2,5,10][Math.floor(Math.random()*3)];
+      const X = buildXset(S);
+      const stepY = BANK_STEP; // affichage en pas de 0,5 €
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({
+        S, stepY, m1Range:[0.5, 2.5], m2Factor:[0.5,0.9]
+      });
+      return {
+        unitY:"(€)", unitX:"(minutes)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Formule A", text:`Abonnement fixe : ${fmtStep(forfait,stepY)} € / mois.`, f:Cst(forfait) },
+          { name:"Formule B", text:`Sans abo : ${fmtStep(m1,stepY)} € / minute.`,          g:Lin(m1) },
+          { name:"Formule C", text:`Abo ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / minute.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Salle de sport — coût selon le nombre de séances",
+    intro:"Camille souhaite s’inscrire dans une salle de sport. Le prix dépend du nombre de séances x effectuées dans le mois.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY, m1Range:[3,8], m2Factor:[0.5,0.9] });
+      return {
+        unitY:"(€)", unitX:"(séances)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Formule A", text:`Abonnement illimité : ${fmtStep(forfait,stepY)} € / mois.`, f:Cst(forfait) },
+          { name:"Formule B", text:`À la séance : ${fmtStep(m1,stepY)} € par visite.`,         g:Lin(m1) },
+          { name:"Formule C", text:`Adhésion ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / séance.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Jeu vidéo — évolution du score",
+    intro:"Dans un jeu d’aventure, on suit l’évolution du score d’un joueur en fonction du niveau x atteint.",
+   gen(){
+  // pas d’abscisse propre et table X
+  const S = [2,5,10][Math.floor(Math.random()*3)];
+  const X = buildXset(S);
+
+  // pentes bien rondes (multiples de 10)
+  const m1 = 10 * (3 + Math.floor(Math.random()*4));   // 30..60
+  let   m2 = 10 * (2 + Math.floor(Math.random()*3));   // 20..40
+  if (m2 >= m1) m2 = m1 - 10;                           // garantit m2 < m1
+
+  // force les 3 intersections xLC, xLA, xAC dans [2S..4S]
+  // et ajuste automatiquement b2 (offset de l’affine) + base (constante)
+  const enforced = ensure3IntersectionsInRange(S, 1, m1, m2, /*b2*/0, /*forfait/base*/0);
+  const base = enforced.forfait; // constante (score plat)
+  const b2   = enforced.b2;      // départ de l’affine
+
+  return {
+    unitY:"(points)", unitX:"(niveaux)",
+    X,
+    intersections:{
+      x_lin_const: enforced.xLC,
+      x_lin_aff:   enforced.xLA,
+      x_aff_const: enforced.xAC
+    },
+    cards:[
+      { name:"Profil A", text:`Score constant : ${base} points.`,             f:Cst(base) },
+      { name:"Profil B", text:`Gain de ${m1} points par niveau.`,             g:Lin(m1) },
+      { name:"Profil C", text:`Départ ${b2} points puis +${m2} / niveau.`,    h:L(m2,b2) },
+    ]
+  };
+}
+
+
+  },
+
+  {
+    title:"Plateforme de streaming — coût selon le nombre de films",
+    intro:"Zoé regarde des films sur une plateforme payante. Le prix dépend du nombre de films x visionnés par mois.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[2,6], m2Factor:[0.4,0.8] });
+      return {
+        unitY:"(€)", unitX:"(films)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Offre A", text:`Forfait illimité : ${fmtStep(forfait,stepY)} € / mois.`, f:Cst(forfait) },
+          { name:"Offre B", text:`À la séance : ${fmtStep(m1,stepY)} € / film.`,          g:Lin(m1) },
+          { name:"Offre C", text:`Abo ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / film.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Location de trottinette — coût selon le temps d’utilisation",
+    intro:"Lucas utilise une trottinette électrique en libre-service. Le prix dépend du temps d’utilisation x (en minutes).",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP; // affichage 0,5 €
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,3], m2Factor:[0.5,0.9] });
+      return {
+        unitY:"(€)", unitX:"(minutes)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Formule A", text:`Pass illimité : ${fmtStep(forfait,stepY)} € la journée.`, f:Cst(forfait) },
+          { name:"Formule B", text:`À la minute : ${fmtStep(m1,stepY)} € / min.`,            g:Lin(m1) },
+          { name:"Formule C", text:`Départ ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / min.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Trajet en VTC — coût selon la distance",
+    intro:"Sofia compare trois compagnies de VTC. Le prix dépend de la distance parcourue x (en km).",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,2.5], m2Factor:[0.5,0.9] });
+      return {
+        unitY:"(€)", unitX:"(km)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Compagnie A", text:`Plafond jour : ${fmtStep(forfait,stepY)} €.`,        f:Cst(forfait) },
+          { name:"Compagnie B", text:`Proportionnel : ${fmtStep(m1,stepY)} € / km.`,       g:Lin(m1) },
+          { name:"Compagnie C", text:`Prise en charge ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / km.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Cantine — coût selon le nombre de repas",
+    intro:"Dans un lycée, le prix dépend du nombre de repas x pris dans le mois.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[3,8], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(repas)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Formule A", text:`Abonnement : ${fmtStep(forfait,stepY)} € / mois.`,      f:Cst(forfait) },
+          { name:"Formule B", text:`À l’unité : ${fmtStep(m1,stepY)} € par repas.`,         g:Lin(m1) },
+          { name:"Formule C", text:`Adhésion ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / repas.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Jeux en ligne — coût selon le nombre d’heures",
+    intro:"Un site de jeux vidéo propose trois formules. Le prix dépend du nombre d’heures x jouées dans le mois.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,3], m2Factor:[0.5,0.9] });
+      return {
+        unitY:"(€)", unitX:"(heures)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Forfait A", text:`Illimité : ${fmtStep(forfait,stepY)} € / mois.`,     f:Cst(forfait) },
+          { name:"Forfait B", text:`À l’heure : ${fmtStep(m1,stepY)} € / h.`,           g:Lin(m1) },
+          { name:"Forfait C", text:`Abo ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / h.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Cours particuliers — coût selon la durée",
+    intro:"Maëlle donne des cours à domicile. Le prix dépend du nombre d’heures x.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[20,40], m2Factor:[0.7,0.95] });
+      return {
+        unitY:"(€)", unitX:"(heures)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Formule A", text:`Stage / forfait : ${fmtStep(forfait,stepY)} €.`,       f:Cst(forfait) },
+          { name:"Formule B", text:`À l’heure : ${fmtStep(m1,stepY)} € / h.`,              g:Lin(m1) },
+          { name:"Formule C", text:`Inscription ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / h.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Impressions — coût selon le nombre de pages",
+    intro:"Au foyer du lycée, Inès fait des photocopies. Le prix dépend du nombre de pages x imprimées.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,1], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(pages)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Carte A", text:`Prix fixe : ${fmtStep(forfait,stepY)} € (quota).`,       f:Cst(forfait) },
+          { name:"À la page", text:`${fmtStep(m1,stepY)} € par page.`,                    g:Lin(m1) },
+          { name:"Forfait + page", text:`Base ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / page.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Studio photo — coût selon le nombre de tirages",
+    intro:"Pour l’album de fin d’année, Yanis commande des tirages photo.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,2], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(photos)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Séance A", text:`Forfait : ${fmtStep(forfait,stepY)} € (prise incluse).`, f:Cst(forfait) },
+          { name:"À la photo", text:`${fmtStep(m1,stepY)} € par tirage.`,                   g:Lin(m1) },
+          { name:"Séance + tirage", text:`Atelier ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / tirage.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Livraison — coût selon la masse du colis",
+    intro:"Élise expédie un colis. Le prix dépend de la masse x (kg).",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,3], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(kg)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Point fixe", text:`Frais fixes : ${fmtStep(forfait,stepY)} €.`,          f:Cst(forfait) },
+          { name:"Au kilo", text:`${fmtStep(m1,stepY)} € / kg.`,                            g:Lin(m1) },
+          { name:"Fixe + kilo", text:`Base ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / kg.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Parking — coût selon la durée",
+    intro:"Noam gare sa voiture au parking. Le prix dépend de la durée x (heures).",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[0.5,3], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(heures)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Forfait jour", text:`Tarif unique : ${fmtStep(forfait,stepY)} €.`,       f:Cst(forfait) },
+          { name:"À l’heure", text:`${fmtStep(m1,stepY)} € / h.`,                          g:Lin(m1) },
+          { name:"Base + heure", text:`Entrée ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / h.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Café — coût selon le nombre de boissons",
+    intro:"Avec sa classe, Louna organise une vente de boissons.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[1,3], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(boissons)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Carte A", text:`Formule : ${fmtStep(forfait,stepY)} € (à volonté).`,     f:Cst(forfait) },
+          { name:"À l’unité", text:`${fmtStep(m1,stepY)} € par boisson.`,                  g:Lin(m1) },
+          { name:"Entrée + unité", text:`Entrée ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / boisson.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Bowling — coût selon le nombre de parties",
+    intro:"Un vendredi soir, trois formules sont proposées au bowling.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[3,7], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(parties)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Soirée illimitée", text:`Accès illimité : ${fmtStep(forfait,stepY)} €.`, f:Cst(forfait) },
+          { name:"À la partie", text:`${fmtStep(m1,stepY)} € par partie.`,               g:Lin(m1) },
+          { name:"Entrée + partie", text:`Entrée ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / partie.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Piscine — coût selon la fréquentation",
+    intro:"Le club nautique propose plusieurs tarifs. Le prix dépend du nombre d’entrées x dans le mois.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[2,6], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(entrées)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Abonnement", text:`Illimité : ${fmtStep(forfait,stepY)} € / mois.`,       f:Cst(forfait) },
+          { name:"À l’entrée", text:`${fmtStep(m1,stepY)} € par entrée.`,                   g:Lin(m1) },
+          { name:"Base + entrée", text:`Adhésion ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / entrée.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Espace de co-working — coût selon le nombre de jours",
+    intro:"Pour réviser ensemble, Sara et Mehdi louent des postes dans un espace partagé.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[8,20], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(jours)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Pass mensuel", text:`Illimité : ${fmtStep(forfait,stepY)} € / mois.`,     f:Cst(forfait) },
+          { name:"À la journée", text:`${fmtStep(m1,stepY)} € par jour.`,                   g:Lin(m1) },
+          { name:"Base + jour", text:`Inscription ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / jour.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Ski — coût selon le nombre de jours",
+    intro:"Pendant les vacances, Émile hésite entre plusieurs formules de ski.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[20,40], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(jours)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Forfait jour", text:`Tarif unique : ${fmtStep(forfait,stepY)} €.`,        f:Cst(forfait) },
+          { name:"Tickets", text:`${fmtStep(m1,stepY)} € par jour.`,                        g:Lin(m1) },
+          { name:"Base + jour", text:`Départ ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / jour.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  },
+
+  {
+    title:"Parc d’attractions — coût selon le nombre d’attractions",
+    intro:"Lors d’une sortie, un parc propose trois tarifs.",
+    gen(){
+      const S=[2,5,10][Math.floor(Math.random()*3)];
+      const X=buildXset(S), stepY = BANK_STEP;
+      const { m1, m2, b2, forfait, xLC, xLA, xAC } = pickTarifsInt({ S, stepY: BANK_STEP, m1Range:[2,6], m2Factor:[0.6,0.9] });
+      return {
+        unitY:"(€)", unitX:"(attractions)",
+        X, intersections:{ x_lin_const:xLC, x_lin_aff:xLA, x_aff_const:xAC },
+
+        cards:[
+          { name:"Bracelet", text:`Illimité : ${fmtStep(forfait,stepY)} €.`,                f:Cst(forfait) },
+          { name:"Ticket", text:`${fmtStep(m1,stepY)} € par attraction.`,                   g:Lin(m1) },
+          { name:"Entrée + ticket", text:`Entrée ${fmtStep(b2,stepY)} € + ${fmtStep(m2,stepY)} € / attraction.`, h:L(m2,b2) },
+        ]
+      };
+    }
+  }
+];
+
+
+
+    // tirer un scénario
+    const raw  = BANK[Math.floor(Math.random()*BANK.length)];
+ const scen = (typeof raw.gen === 'function')
+  ? (()=>{ 
+      const o = raw.gen();
+      return {
+        title: raw.title,
+        intro: raw.intro,
+        unitX: o.unitX,
+        unitY: o.unitY,
+        cards: o.cards,
+        X: o.X,                              // ✅ on conserve X
+        intersections: o.intersections || {} // ✅ et les intersections
+      };
+    })()
+  : raw;
+
+
+    // — permutation des 3 cartes et re-étiquetage A/B/C -> f/g/h (on garde name+text)
+    const src = scen.cards.map(c => ({ def:c.f||c.g||c.h, name:c.name, text:c.text }));
+    const renameABC=(title,label)=>{
+      const L = ({f:'A', g:'B', h:'C'})[label]||'A';
+      return String(title||'').replace(/\b[ABC]\b/g, L);
+    };
+    const idx=[0,1,2]; for(let i=2;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+    const cards = [
+      { label:'f', def:src[idx[0]].def, name:renameABC(src[idx[0]].name,'f'), text:src[idx[0]].text },
+      { label:'g', def:src[idx[1]].def, name:renameABC(src[idx[1]].name,'g'), text:src[idx[1]].text },
+      { label:'h', def:src[idx[2]].def, name:renameABC(src[idx[2]].name,'h'), text:src[idx[2]].text },
+    ];
+
+    // stock
+this._state = { scen, cards, fmt, monoX, btxt, is05 };
+    return this._state;
+  },
+
+  render(host, st){
+    // conteneur 2 colonnes : repère à GAUCHE
+    host.innerHTML = `
+      <div class="grid" style="grid-template-columns:420px 1fr;gap:12px;align-items:start">
+        <div>
+          <div class="small" style="margin:0 0 .3rem"><b>Repère (à compléter)</b></div>
+          <div id="rep-wrap-e4"></div>
+          <div class="chips" id="pick-func" role="group" aria-label="Choisir la fonction" style="margin-top:.5rem">
+            <span class="chip active" data-f="f">f</span>
+            <span class="chip" data-f="g">g</span>
+            <span class="chip" data-f="h">h</span>
+          </div>
+          <div class="chips" id="pick-point" role="group" aria-label="Choisir le point">
+            <span class="chip" data-p="A">A</span>
+            <span class="chip" data-p="B">B</span>
+          </div>
+          <p class="small" id="hint-e4" style="margin:.2rem 0 0">Choisis la <b>fonction</b>, puis le <b>point</b> (A/B), puis clique dans le repère. Deux points tracent la droite.</p>
+        </div>
+        <div id="right-e4"></div>
+      </div>
+    `;
+
+    // header + cartes + tableau + consignes (à droite)
+    const header = `
+      <div style="border-left:4px solid #9aa0a6;background:#f6f7f9;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:.4rem">
+        <div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap">
+          <h3 style="margin:0">${st.scen.title}</h3>
+          <div>
+            <span class="small" style="display:inline-block;border:1px solid #ddd;border-radius:999px;padding:.12rem .6rem;margin-right:.3rem">Axe des abscisses ${st.scen.unitX||''}</span>
+            <span class="small" style="display:inline-block;border:1px solid #ddd;border-radius:999px;padding:.12rem .6rem">Axe des ordonnées ${st.scen.unitY||''}</span>
+          </div>
+        </div>
+        <p class="small" style="margin:.3rem 0 0">${st.scen.intro}</p>
+      </div>`;
+
+    const cardHTML = st.cards.map(c=>{
+      const col = (c.label==='f'? PALETTE[0] : c.label==='g'? PALETTE[1] : PALETTE[2]);
+      return `
+        <div class="box" style="display:grid;grid-template-columns:auto 1fr;gap:.6rem;align-items:start">
+          <div style="display:flex;align-items:center;gap:.4rem;white-space:nowrap">
+            ${dot(col)}
+            <span class="small" style="border:1px solid #ddd;border-radius:999px;padding:.12rem .6rem;font-weight:700">${c.label}</span>
+          </div>
+          <div>
+            <p style="margin:0"><b>${c.name}</b></p>
+            <p class="small" style="margin:.15rem 0 0">${c.text}</p>
+          </div>
+        </div>`;
+    }).join('');
+
+  // APRÈS
+const X = st.scen.X || [0,5,10,15,20,25];
+const head = X.map(x => `<th>${st.fmt(x)}</th>`).join('');
+const rowInputs = (who) =>
+  X.map((x,i) => `<td><input class="tbl-inp" data-w="${who}" data-i="${i}" style="width:70px" placeholder=""></td>`).join('');
+
+  const table = `
+      <figure style="margin:.5rem 0 0">
+        <figcaption class="small" style="margin:0 0 .3rem"><b>Tableau de valeurs</b> — saisir des <b>entiers</b> ou des <b>multiples de 0,5</b></figcaption>
+        <table class="table-black" style="margin:0">
+          <thead><tr><th>Niveau ${st.scen.unitX||''}</th>${head}</tr></thead>
+          <tbody>
+            <tr><td>Valeurs de \\(f\\) ${st.scen.unitY||''}</td>${rowInputs('f')}</tr>
+            <tr><td>Valeurs de \\(g\\) ${st.scen.unitY||''}</td>${rowInputs('g')}</tr>
+            <tr><td>Valeurs de \\(h\\) ${st.scen.unitY||''}</td>${rowInputs('h')}</tr>
+          </tbody>
+        </table>
+      </figure>`;
+
+    const consigne = `
+      <div class="box" style="border-style:solid;border-color:#e5e7eb">
+        <p style="margin:0"><b>Consignes</b></p>
+        <ol style="margin:.35rem 0 0 1.2rem">
+          <li>Compléter le <b>tableau</b> (entiers ou multiples de <b>0,5</b>).</li>
+          <li>Dire si la grandeur est <b>proportionnelle</b>. Si oui, donner le <b>coefficient</b>.</li>
+          <li>Exprimer \\(f\\), \\(g\\), \\(h\\) en fonction de \\(x\\).</li>
+          <li>a) Tracer dans le <b>même repère</b> les représentations de \\(f\\), \\(g\\), \\(h\\) en plaçant deux points chacun.<br>
+              b) Comparer les droites (ce qu’on pouvait prévoir ?).</li>
+          <li>a) Déterminer graphiquement à partir de quel niveau l’une dépasse les autres.<br>
+              b) Retrouver par le <b>calcul</b>.</li>
+        </ol>
+      </div>`;
+
+    $('#right-e4',host).innerHTML = header + cardHTML + table + consigne;
+	// juste après avoir rempli #right-e4 :
+const right = $('#right-e4', host);
+const resDiv = document.createElement('div');
+resDiv.id = 'res';
+resDiv.className = 'steps';
+right.appendChild(resDiv);
+
+    retypeset(host);
+
+ 
+
+// ==== REPÈRE à gauche (auto 0→max) ====
+function val(def,x){ return def.type==='cst'? def.k : def.type==='lin'? def.m*x : def.m*x + def.b; }
+const niceCeil = (n)=>{ if(n<=0) return 1; const e=Math.pow(10,Math.floor(Math.log10(n))); const m=n/e; const k=(m<=1?1:m<=2?2:m<=5?5:10); return k*e; };
+
+// Définitions des trois fonctions, maintenant disponibles
+const F = st.cards[0].def, G = st.cards[1].def, H = st.cards[2].def;
+
+
+
+// On tient compte d’éventuelles intersections “guides”
+const xmax = Math.max(
+  ...X,
+  st.scen.intersections?.x_lin_const || 0,
+  st.scen.intersections?.x_lin_aff   || 0,
+  st.scen.intersections?.x_aff_const || 0
+);
+
+
+// Y max lisible
+const ys   = X.flatMap(x => [ val(F,x), val(G,x), val(H,x) ]);
+const ymax = Math.max(0, ...ys);
+
+// Fenêtre du repère
+const R = { xmin:0, xmax: xmax, ymin:0, ymax: niceCeil(ymax*1.05) };
+const rep = new Repere(R);
+rep.showIJ = false;   // ⬅️ cache I et J pour l'exercice 4
+rep.redraw();         // force le rafraîchissement
+
+// Ticks lisibles : abscisses majeures à 5 (par construction de X),
+// ordonnées 1–2–5 “auto”
+function pickYMajor(ymin, ymax){
+  const span = Math.max(1, (ymax - ymin));
+  const target = 8;
+  const raw = span / target;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / pow;
+  let step = norm <= 1 ? 1*pow : norm <= 2 ? 2*pow : norm <= 5 ? 5*pow : 10*pow;
+  return Math.max(1, step);
+}
+const yMaj = pickYMajor(R.ymin, R.ymax), yMin = Math.max(1, yMaj/5);
+rep.setTicks({ xMajor:5, xMinor:1, yMajor:yMaj, yMinor:yMin });
+
+// ⬇️ append une seule fois (tu avais deux append successifs)
+document.getElementById('rep-wrap-e4').appendChild(rep.el);
+
+
+
+
+    
+
+    // === Placement des points par l’élève (comme e1)
+    rep.clickable = true;
+
+    const COLORS = { f:PALETTE[0], g:PALETTE[1], h:PALETTE[2] };
+    const state = {
+      activeF:'f',
+      activeP:null,  // 'A' ou 'B'
+      placed:{ f:{}, g:{}, h:{} } // p.ex. placed.f.A = {x,y}
+    };
+
+    function syncChips(){
+      $$('#pick-func .chip',host).forEach(ch=>{
+        ch.classList.toggle('active', ch.dataset.f===state.activeF);
+      });
+      $$('#pick-point .chip',host).forEach(ch=>{
+        ch.classList.toggle('active', ch.dataset.p===state.activeP);
+      });
+    }
+    syncChips();
+
+    $('#pick-func',host).addEventListener('click', (e)=>{
+      const c=e.target.closest('.chip[data-f]'); if(!c) return;
+      state.activeF=c.dataset.f; syncChips();
+    });
+    $('#pick-point',host).addEventListener('click', (e)=>{
+      const c=e.target.closest('.chip[data-p]'); if(!c) return;
+      state.activeP=c.dataset.p; syncChips();
+    });
+
+    function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+    function snap(P,R){
+      // on “colle” aux intersections entières (grille du Repere)
+      const x = clamp(Math.round(P.x), R.xmin, R.xmax);
+      const y = clamp(Math.round(P.y), R.ymin, R.ymax);
+      return {x,y};
+    }
+
+    function redrawUserLines(){
+      // effacer calque user et re-poser les points + la droite infinie si A & B
+      rep.g.user.innerHTML = '';
+      ['f','g','h'].forEach((lab,idx)=>{
+        const col = COLORS[lab];
+        const A = state.placed[lab].A;
+        const B = state.placed[lab].B;
+        if(A) rep.placeUser(`${lab}-A`, A.x, A.y, col);
+        if(B) rep.placeUser(`${lab}-B`, B.x, B.y, col);
+        if(A && B) rep.drawUserInfiniteLine(`U_${lab}`, col, A, B);
+      });
+    }
+
+    rep.onClick = (P)=>{
+      if(!state.activeF || !state.activeP) return;
+      const S = snap(P, rep.R);
+      state.placed[state.activeF][state.activeP] = S;
+      redrawUserLines();
+    };
+
+    // === Tableau : vérification “entier ou 0,5”
+    const defOf = { f: st.cards[0].def, g:st.cards[1].def, h:st.cards[2].def };
+    function expected(w,i){
+const x = (st.scen.X || [0,5,10,15,20,25])[i];
+const d = defOf[w];
+      return (d.type==='cst')? d.k : (d.type==='lin')? d.m*x : d.m*x + d.b;
+    }
+
+    function checkCell(inp){
+      const w = inp.dataset.w, i = +inp.dataset.i;
+      const raw = (inp.value||'').replace(',','.');
+      const val = Number(raw);
+      if(!isFinite(val)){ inp.classList.remove('ok','ko'); return; }
+      // règle de saisie : entier ou multiple de 0,5
+      const okForm = (Math.abs(val - Math.round(val))<1e-9) || (Math.abs(val*2 - Math.round(val*2))<1e-9);
+      if(!okForm){ inp.classList.add('ko'); inp.classList.remove('ok'); return; }
+
+      // comparaison à la valeur attendue (tolérance 1e-9)
+      const exp = expected(w,i);
+      const ok = Math.abs(val - exp) < 1e-9;
+      inp.classList.toggle('ok', ok);
+      inp.classList.toggle('ko', !ok);
+    }
+
+    $$('.tbl-inp',host).forEach(inp=>{
+      inp.addEventListener('input', ()=>checkCell(inp));
+      inp.addEventListener('change', ()=>checkCell(inp));
+    });
+
+    // garder références pour adjustLive / verify / solution
+    this._state.rep = rep;
+    this._state._placed = state.placed;
+    this._state._defOf  = defOf;
+  },
+
+  adjustLive(kind){
+    if(kind!=='amp') return;
+    // e4 masque la barre d’amplitude ; on ne fait rien ici.
+  },
+
+  verify(){
+    const st=this._state; if(!st) return false;
+
+    // 1) tableau : toutes les cellules marquées ok
+    const inputs = $$('.tbl-inp', document);
+    let okTab = true, anyFilled=false;
+    inputs.forEach(inp=>{
+      const v = (inp.value||'').trim();
+      if(v) anyFilled=true;
+      if(!inp.classList.contains('ok')) okTab=false;
+    });
+
+    // 2) traçage : pour f,g,h — points A & B posés
+    const placed = st._placed;
+    const okDraw = ['f','g','h'].every(k => placed[k].A && placed[k].B);
+
+    const res=$('#res',document.querySelector('#host')) || $('#res',document);
+    if(res){ res.classList.remove('steps'); res.className=(okTab && okDraw)?'res-ok':''; res.textContent=(okTab && okDraw)?'✔':'';
+    }
+    return (okTab && okDraw);
+  },
+
+  solution(){
+  const st=this._state; if(!st) return;
+// APRÈS
+const { fmt, monoX, btxt } = st;
+const X = st.scen.X || [0,5,10,15,20,25];
+
+
+  function val(def,x){ return def.type==='cst'? def.k : def.type==='lin'? def.m*x : def.m*x + def.b; }
+  function latex(def, letter){
+    if(def.type==='cst') return `\\( ${letter}(x) = ${fmt(def.k)} \\)`;
+    if(def.type==='lin') return `\\( ${letter}(x) = ${monoX(def.m)} \\)`;
+    return `\\( ${letter}(x) = ${monoX(def.m)}${btxt(def.b)} \\)`;
+  }
+
+  const F=st.cards[0].def, G=st.cards[1].def, H=st.cards[2].def;
+
+  // ---- Construire l'entête du tableau sans .join
+  let theadCells = '';
+  for (let i=0;i<X.length;i++){
+    theadCells += `<th>${fmt(X[i])}</th>`;
+  }
+
+  // ---- Construire chaque ligne sans .join
+  function rowFor(def){
+    let cells = '';
+    for (let i=0;i<X.length;i++){
+      cells += `<td>${fmt(val(def,X[i]))}</td>`;
+    }
+    return cells;
+  }
+
+  const tableSol =
+    '<table class="table-black" style="margin-top:6px">' +
+      '<thead><tr><th>Niveau ' + (st.scen.unitX||'') + '</th>' + theadCells + '</tr></thead>' +
+      '<tbody>' +
+        '<tr><td>\\(f\\) ' + (st.scen.unitY||'') + '</td>' + rowFor(F) + '</tr>' +
+        '<tr><td>\\(g\\) ' + (st.scen.unitY||'') + '</td>' + rowFor(G) + '</tr>' +
+        '<tr><td>\\(h\\) ' + (st.scen.unitY||'') + '</td>' + rowFor(H) + '</tr>' +
+      '</tbody>' +
+    '</table>';
+
+  // ---- Proportionnalité (sans .join)
+  function prop(def){
+    if(def.type==='cst') return "Non proportionnelle (valeur fixe).";
+    if(def.type==='lin') return `Proportionnelle, coefficient ${fmt(def.m)}.`;
+    return "Non proportionnelle (ordonnée à l’origine non nulle).";
+  }
+
+  const intro =
+    '<p><b>Expressions :</b></p>' +
+    '<p>' + latex(F,'f') + ' &nbsp; ; &nbsp; ' + latex(G,'g') + ' &nbsp; ; &nbsp; ' + latex(H,'h') + '</p>' +
+    '<hr class="sep">' +
+    '<p><b>Proportionnalité :</b></p>' +
+    '<ul style="margin:.25rem 0 0 1rem">' +
+      '<li>\\(f\\) : ' + prop(F) + '</li>' +
+      '<li>\\(g\\) : ' + prop(G) + '</li>' +
+      '<li>\\(h\\) : ' + prop(H) + '</li>' +
+    '</ul>' +
+    '<hr class="sep">' +
+    '<p><b>Tableau complété :</b></p>';
+
+  setResHTML(intro + tableSol);
+
+  // ---- (option) Tracé en correction dans le repère de gauche
+  const rep = st.rep;
+  if(rep){
+    if(rep.g?.given) rep.g.given.innerHTML='';
+    function defToLine(def, id){
+      if(def.type==='cst') return {type:'h',k:def.k,name:id};
+      if(def.type==='lin') return {type:'aff',m:def.m,b:0,name:id};
+      return {type:'aff',m:def.m,b:def.b,name:id};
+    }
+    const Lf=defToLine(F,'f'), Lg=defToLine(G,'g'), Lh=defToLine(H,'h');
+    const arr = [Lf,Lg,Lh];
+    for(let i=0;i<arr.length;i++){
+      const seg = clipLineOnBox(rep.R, arr[i]);
+      rep.drawGivenLine(arr[i].name, PALETTE[i%PALETTE.length], seg);
+    }
+  }
+}
+,
+
+  reset(){
+    // nettoie entrées et points
+    $$('.tbl-inp',document).forEach(i=>{ i.value=''; i.classList.remove('ok','ko'); });
+    const st=this._state;
+    if(st?.rep){ st.rep.clearUser(); }
+    if(st){ st._placed = { f:{}, g:{}, h:{} }; }
+    const r=$('#res',document.querySelector('#host')); if(r){ r.classList.remove('steps'); r.textContent=''; }
+  }
+},
+
 
 };
 
@@ -1401,12 +2549,13 @@ const solution =
 };
 
 
+// au changement d’exo
 function toggleAmpbar(activeId){
   const bar = document.getElementById('ampbar');
   if (!bar) return;
-  const hide = (activeId === '' );
-  bar.style.display = hide ? 'none' : '';
+  bar.style.display = (activeId === 'e4') ? 'none' : '';
 }
+
 
 /* ======== UI fil rouge ======== */
 (function(){

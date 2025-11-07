@@ -390,10 +390,9 @@ table.pdf-tbl td.mid .midv, table.var td.mid .midv{
     <div class="card small" id="info-saisie">
       <strong>Saisie &amp; réponses acceptées :</strong>
       <ul style="margin:.5rem 0 0 18px">
-<li>Pour la question <strong>1)</strong> : saisir la solution sous la forme <code>{réponse}</code> (ex. <code>{3/2}</code>). Ne pas taper <code>S=</code> dans le champ.</li>
-<li>Pour plus de détails dans les résolutions d'équations ou d'inéquations : voir chapitre 1.</li>
-<li>Rappel : Multiplier par un nombre négatif change l'ordre de l'inégalité.</li>
-
+        <li>Coordonnées au format <code>u;v</code> (ex. <code>6;1</code> ou <code>3/2; -5</code>). Virgule décimale « , » ou point « . » acceptés.</li>
+        <li>Jamais de parenthèses : on tape <code>6;1</code> (les parenthèses sont affichées automatiquement).</li>
+        <li>Fractions conservées dans les corrections.</li>
       </ul>
     </div>
 
@@ -718,12 +717,10 @@ function dedupLines(lines){
 // normalisation très agressive pour comparer 2 lignes de TeX
 function _normLine(s){
   return String(s)
-    .replace(/\u2212/g,'-')             // − → -
-    .replace(/\s+/g,' ')                // espaces multiples
-    .replace(/\s*([=<>])\s*/g,' $1 ')   // espaces autour de = < >
-    .replace(/\\ge/g,'>=')              // \ge → >= (clé unique)
-    .replace(/\\le/g,'<=')              // \le → <=
-    .replace(/^\s+|\s+$/g,'')           // trim
+    .replace(/\u2212/g,'-')      // − → -
+    .replace(/\s+/g,' ')         // espaces multiples
+    .replace(/\s*([=<>])\s*/g,' $1 ')  // espaces autour comparateurs
+    .trim();
 }
 
 // pousse la ligne uniquement si elle est différente de la précédente
@@ -734,7 +731,6 @@ function _pushStep(arr, line){
   if (cur !== prev) arr.push(line);
 }
 
-
 // rend des <p>…</p> sans .join()
 function _renderParas(lines){
   let html = '';
@@ -742,16 +738,77 @@ function _renderParas(lines){
   return html;
 }
 
-function parseSingletonSet(s, parseNum){
-  s = normalizeMinus(String(s||'')).trim();
-  const m = s.match(/^\{\s*([^}]+)\s*\}$/);  // exige { … }
-  if(!m) return {ok:false};
-  const n = parseNum(m[1]);
-  return (isFinite(n)) ? {ok:true, value:n} : {ok:false};
+
+
+// ===== Helpers inspirés du fichier "Inéquations (1er degré)" =====
+function absR(r){ return R(Math.abs(r.p), r.q); }
+function isZero(r){ return r.p===0; }
+function needsSimplify(fr){ return gcd(Math.abs(fr.p), Math.abs(fr.q)) > 1; }
+
+// affiche a/b en TeX, signe global devant la fraction
+function fracLatex(p,q){
+  if(q===1) return String(p);
+  if(p===0) return `\\dfrac{0}{${q}}`;         // garde le signe éventuel de q dans l’étape "brute"
+  const neg = (p<0)!==(q<0);
+  const P=Math.abs(p), Q=Math.abs(q);
+  return (neg?'−':'') + `\\dfrac{${P}}{${Q}}`;
+}
+function fmtConstLatex(Rx){ return fracLatex(Rx.p, Rx.q); }
+function isOne(r){ return r.p===1 && r.q===1; }
+function isNegOne(r){ return r.p===-1 && r.q===1; }
+function fmtCoeffXLatex(A){
+  if(isOne(A)) return 'x';
+  if(isNegOne(A)) return '−x';
+  return `${fracLatex(A.p, A.q)}x`;
+}
+function fmtSignedConstLatex(B){
+  if(isZero(B)) return '';
+  const core = fmtConstLatex(absR(B));
+  return (B.p>0 ? ' + ' : ' − ') + core.replace(/^−/,'');
 }
 
+// Quotient "non réduit" voulu pour l’étape intermédiaire (x ≥ -14/-3, 0/(-8), …)
+function quotientRaw(N, D){
+  let num = N.p * D.q;
+  let den = N.q * D.p;
+  if (num === 0) return { p: 0, q: den }; // 0/(-8) gardé
+  if (den < 0){ num = -num; den = -den; } // dénominateur > 0 sauf si num=0 ci-dessus
+  return { p:num, q:den };
+}
 
+// 💡 Étape “multiplier par l’inverse”
+function stepMulInverse(op, rightR, coefR){
+  // si membre droit = 0 → inutile d’imprimer "× ..."
+  if (rightR.p === 0) return `\\(x ${op} 0\\)`;
+  const inv = fracLatex(coefR.q, coefR.p);           // q/p (signe global)
+  const invPrint = (coefR.p<0 ? `\\left(${inv}\\right)` : inv);
+  return `\\(x ${op} ${fmtConstLatex(rightR)} \\times ${invPrint}\\)`;
+}
 
+// 💡 Étape “division brute” — on ne l’affiche que si a est ENTIER pour éviter 4/(1/6)
+function stepDivideRaw(op, rightR, coefR){
+  if (coefR.q !== 1) return null;                    // ⬅️ évite 4/(1/6)
+  return `\\(x ${op} \\dfrac{${fmtConstLatex(rightR)}}{${fmtConstLatex(coefR)}}\\)`;
+}
+
+// dédoublonnage strict (pas de .join côté construction, ici ok pour la clé)
+function _normLine(s){
+  return String(s).replace(/<[^>]*>/g,'').replace(/\\\(|\\\)/g,'').replace(/\s+/g,' ').trim();
+}
+function dedupSteps(arr){
+  const out=[]; let prev='';
+  for(const L of arr){ if(!L) continue; const k=_normLine(L); if(k!==prev){ out.push(L); prev=k; } }
+  return out;
+}
+
+// petit rendu sans .join pour coller à ta préférence
+function renderSteps(lines){
+  const ded = dedupSteps(lines);
+  let html = '<div class="steps">';
+  for(const L of ded) html += `<p class="step">${L}</p>`;
+  html += '</div>';
+  return html;
+}
 
 
 
@@ -834,36 +891,33 @@ function __mkEqIneqAffineExo(opts){
 
       // UI
       let html = '';
-      html += `<p><strong>Exercice.</strong> Soit la fonction \\(f\\) définie sur \\(\\mathbf{R}\\) par \\(${fx}\\). <br>Résoudre :</p>`;
-     
-	 html += `<ol style="margin:.35rem 0 0 0rem">
+      html += `<p><strong>Exercice.</strong> Soit la fonction \\(f\\) définie sur \\(\\mathbf{R}\\) par \\(${fx}\\). Résoudre :</p>`;
+      html += `<ol style="margin:.35rem 0 0 1.2rem">
                  <li>\\(f(x)=0\\)</li>
                </ol>
                <div class="vecrow pdf-hide" style="margin:.35rem 0 .6rem 1.2rem">
-                 <span>\\(S=\\)</span>
-                 <input id="eq_x" style="width:120px" placeholder="">
+                 <span class="lbl ">Solution</span>
+                 <span>\\(x=\\)</span>
+                 <input id="eq_x" style="width:120px" placeholder="ex. 4/7">
                  <span class="tick" id="tk_eq"></span>
                </div>`;
-html += `<ol start="2" style="margin:.35rem 0 0 0rem">
-  <li>\\(f(x) ${latexCmp} 0\\)</li>
-</ol>
-<div class="vecrow pdf-hide" style="margin:.35rem 0 0 1.2rem">
-  <span>\\(x\\)</span>
-  <select id="ineq_cmp">
-    <option value=""></option>
-    <option value="<">&lt;</option>
-    <option value="<=">≤</option>
-    <option value=">">&gt;</option>
-    <option value=">=">≥</option>
-  </select>
-  <span>&nbsp;</span>
-  <input id="ineq_v" style="width:120px" placeholder="">
-  <span class="tick" id="tk_ineq_cmp"></span>
-</div>`;
-
-			  
-			   
-		
+      html += `<ol start="2" style="margin:.35rem 0 0 1.2rem">
+                 <li>\\(f(x) ${latexCmp} 0\\)</li>
+               </ol>
+               <div class="vecrow pdf-hide" style="margin:.35rem 0 0 1.2rem">
+                 <span class="lbl">Réponse</span>
+                 <span>\\(x\\)</span>
+                 <select id="ineq_cmp">
+                   <option value=""></option>
+                   <option value="<">&lt;</option>
+                   <option value="<=">≤</option>
+                   <option value=">">&gt;</option>
+                   <option value=">=">≥</option>
+                 </select>
+                 <span>&nbsp;</span>
+                 <input id="ineq_v" style="width:120px" placeholder="seuil (ex. 4/7)">
+                 <span class="tick" id="tk_ineq"></span>
+               </div>`;
 			   
 			   
 			// … après l’énoncé de a) et b)
@@ -871,13 +925,7 @@ html += `<ol start="2" style="margin:.35rem 0 0 0rem">
 // NOTE : on n'utilise PAS this.state ici, il n'est pas encore défini.
 const x0Latex = latexR_leadMinus(x0simp);
 html += `<p style="margin:.6rem 0 .25rem 0"><strong>Complète le tableau de signes de \\(f(x)\\)</strong></p>`;
-html += affineSignTableInteractiveHTML();
-html += `<div class="vecrow pdf-hide" style="margin:.35rem 0 .6rem 1.2rem">
-  <span>\\(S=\\)</span>
-  <input id="ineq_S" style="width:180px" placeholder="">
-  <span class="tick" id="tk_ineq_S"></span>
-</div>`;
-
+html += affineSignTableInteractiveHTML(x0Latex);
 
 
 setEqu(html); retypeset(HOST);
@@ -889,113 +937,71 @@ setEqu(html); retypeset(HOST);
     },
 
     verify(){
-  const st=this.state; if(!st) return false;
-  const {m,x0,parseNum} = st;
-  const root = x0.p/x0.q;
+      const st=this.state; if(!st) return false;
+      const {m,p,x0,want,parseNum} = st;
+      const root = x0.p/x0.q;
 
-// (a) équation — tick tk_eq — saisie OBLIGATOIREMENT {…}
-const vx = ($('#eq_x')?.value||'').trim();
-let aState='neutral';
-if (vx!==''){
-  const ps = parseSingletonSet(vx, parseNum);   // attend {réponse}
-  if (ps.ok){
-    aState = (Math.abs(ps.value - (x0.p/x0.q)) < 1e-9) ? 'ok' : 'ko';
-  }else{
-    aState = 'ko'; // mal formé (pas d'accolades, ou valeur non numérique)
-  }
-}
-setTick('tk_eq', aState==='ok'?'ok':aState==='ko'?'ko':'');
+      // (a) équation
+      const vx = ($('#eq_x')?.value||'').trim();
+      let aState='neutral';
+      if (vx!==''){
+        const n = parseNum(vx);
+        aState = (isFinite(n) && Math.abs(n-root)<1e-9) ? 'ok' : 'ko';
+      }
+      setTick('tk_eq', aState==='ok'?'ok':aState==='ko'?'ko':'');
 
+      // (b) inéquation
+      const c  = ($('#ineq_cmp')?.value||'').trim();
+      const sv = ($('#ineq_v')?.value||'').trim();
+      let bState='neutral';
+      if (c!=='' || sv!==''){
+        if (c==='' || sv==='') bState='ko';
+        else{
+          const t = parseNum(sv);
+          if (!isFinite(t)) bState='ko';
+          else{
+            // règle : u(x) ∘ 0 <=> x ∘ x0 si m>0 ; renverser si m<0
+            const swap = s=>({'>':'<','<':'>','>=':'<=','<=':'>='}[s]);
+            const expCmp = (m.p>0? want : swap(want));
+            const okCmp = (c===expCmp);
+            const okVal = Math.abs(t-root)<1e-9;
+            bState = (okCmp && okVal) ? 'ok' : 'ko';
+          }
+        }
+      }
+      setTick('tk_ineq', bState==='ok'?'ok':bState==='ko'?'ko':'');
 
- // (b) inéquation "x ? valeur" — NEUTRE si vide/partiel
-const c  = ($('#ineq_cmp')?.value||'').trim();
-const sv = ($('#ineq_v')?.value||'').trim();
-let bState='neutral';
-if (c!=='' && sv!==''){                 // ⬅️ on n'évalue que si les DEUX sont saisis
-  const t = parseNum(sv);
-  if (isFinite(t)){
-    const swap = s=>({'>':'<','<':'>','>=':'<=','<=':'>='}[s]);
-    const want = st.want;
-    const expCmp = (m.p>0? want : swap(want));
-    const okCmp = (c===expCmp);
-    const okVal = Math.abs(t - (x0.p/x0.q)) < 1e-9;
-    bState = (okCmp && okVal) ? 'ok' : 'ko';
-  }else{
-    bState = 'ko';
-  }
-}
-setTick('tk_ineq_cmp', bState==='ok'?'ok':bState==='ko'?'ko':'');
-
-
-// (c) tableau de signes — on n'évalue QUE si les 3 champs sont remplis
+// … après aState / bState …
 const leftSel  = ($('#tab_left')?.value || '').trim();
 const rightSel = ($('#tab_right')?.value || '').trim();
 const x0In     = ($('#tab_x0')?.value || '').trim();
 
 let tState = 'neutral';
-if (leftSel!=='' && rightSel!=='' && x0In!=='') {
-  const expL = (m.p > 0) ? '−' : '+';   // m>0 : négatif avant x0 ; m<0 : positif
+if (leftSel !== '' || rightSel !== '' || x0In !== ''){
+  const expL = (m.p > 0) ? '−' : '+';   // m>0 : négatif avant x0 ; m<0 : positif avant x0
   const expR = (m.p > 0) ? '+' : '−';
-  const t = parseNum(x0In);
-  const okX0 = isFinite(t) && Math.abs(t - (x0.p/x0.q)) < 1e-9;
   const okSigns = (leftSel === expL && rightSel === expR);
-  tState = (okX0 && okSigns) ? 'ok' : 'ko';
+
+  let okX0 = false;
+  if (x0In !== ''){
+    const t = parseNum(x0In);
+    okX0 = isFinite(t) && Math.abs(t - (x0.p/x0.q)) < 1e-9;
+  }
+  tState = (okSigns && okX0) ? 'ok' : 'ko';
 }
-// tick neutre si au moins un champ vide
 setTick('tk_tab', tState==='ok' ? 'ok' : tState==='ko' ? 'ko' : '');
 
 
+// comptage & feedback global
+const filled = (aState!=='neutral') || (bState!=='neutral') || (tState!=='neutral');
+if (!filled){ setFB(null,''); return false; }
+const okCount  = (aState==='ok') + (bState==='ok') + (tState==='ok');
+const totCount = (aState!=='neutral') + (bState!=='neutral') + (tState!=='neutral');
+setFB(okCount===totCount, `${okCount} / ${totCount}`);
+return okCount===totCount;
 
-  // (d) saisie finale "S = intervalle" — tick tk_ineq_S
-  function normInf(s){
-    return String(s).toLowerCase()
-      .replace(/\u221e/g,'oo')   // ∞
-      .replace(/\+\s*oo/g,'+oo')
-      .replace(/-\s*oo/g,'-oo')
-      .trim();
-  }
-  function parseInterval(str){
-    // accepte ]-oo; a[, ]-oo; a], [a; +oo[, etc. avec espaces optionnels
-    const s = normInf(str).replace(/\s+/g,'');
-    const m = s.match(/^([\[\]])(-?oo|[^\[\];]+);(-?oo|\+?oo|[^\[\];]+)([\[\]])$/);
-    if(!m) return null;
-    const [_, Lb, A, B, Rb] = m;
-    return { Lb, A, B, Rb };
-  }
-  function almostEq(a,b){ return Math.abs(a-b) < 1e-9; }
 
-  const wantFinal = (m.p>0 ? st.want : ({'>':'<','<':'>','>=':'<=','<=':'>='}[st.want]));
-  const Sraw = ($('#ineq_S')?.value||'').trim();
-  let sState='neutral';
-  if (Sraw!==''){
-    const iv = parseInterval(Sraw);
-    if (!iv) sState='ko';
-    else{
-      const a = iv.A, b = iv.B, Lb = iv.Lb, Rb = iv.Rb;
-      const okLeftInf  = (a==='-oo');
-      const okRightInf = (b==='+oo' || b==='oo');
-      const val = parseNum(a==='-oo'? b : a); // on regardera la borne finie
-      const isVal = isFinite(val) && almostEq(val, root);
-
-      let ok=false;
-      if (wantFinal === '<')   ok = (okLeftInf && isVal && Rb==='[');      // ]-oo; x0[
-      if (wantFinal === '<=')  ok = (okLeftInf && isVal && Rb===']');      // ]-oo; x0]
-      if (wantFinal === '>')   ok = (okRightInf && isVal && Lb===']');     // ]x0; +oo[
-      if (wantFinal === '>=')  ok = (okRightInf && isVal && Lb==='[');     // [x0; +oo[
-      sState = ok ? 'ok' : 'ko';
-    }
-  }
-  setTick('tk_ineq_S', sState==='ok'?'ok':sState==='ko'?'ko':'');
-
-  // Score global : ne compte que ce qui est rempli
-  const filled = (aState!=='neutral') || (bState!=='neutral') || (tState!=='neutral') || (sState!=='neutral');
-  if (!filled){ setFB(null,''); return false; }
-  const okCount  = (aState==='ok') + (bState==='ok') + (tState==='ok') + (sState==='ok');
-  const totCount = (aState!=='neutral') + (bState!=='neutral') + (tState!=='neutral') + (sState!=='neutral');
-  setFB(okCount===totCount, `${okCount} / ${totCount}`);
-  return okCount===totCount;
-}
-,
+    },
 
 
 
@@ -1004,91 +1010,95 @@ setTick('tk_tab', tState==='ok' ? 'ok' : tState==='ko' ? 'ko' : '');
   const st=this.state; if(!st) return;
   const {m,p,x0,want} = st;
 
+  // mêmes notations que ton fichier "Inéquations (1er degré)"
   const latexCmpAsk = {'>':'\\;>\\;','<':'\\;<\\;','>=':'\\;\\ge\\;','<=':'\\;\\le\\;'}[want];
   const swap = s=>({'>':'<','<':'>','>=':'<=','<=':'>='}[s]);
   const finalCmp = (m.p>0? want : swap(want));
   const finalTex = {'>':'\\;>\\;','<':'\\;<\\;','>=':'\\;\\ge\\;','<=':'\\;\\le\\;'}[finalCmp];
 
-  const fx = `${coefX(m)}${plusC(p)}`;
-  const x0Latex = latexR_leadingMinus(x0);
-// Valeur exacte de m, avec bon signe/forme (entier ou fraction)
-const mLatex = latexR_leadingMinus(m);
-// — Texte de justification demandé —
-const JUSTIF_TXT = (m.p>0)
-  ? `car \\(m=${mLatex}\\) \\(> 0\\) `
-  : `car \\(m=${mLatex}\\) \\(< 0\\)`;
-const justifHTML = `<p class="hint">${JUSTIF_TXT}</p>`;
+  const fx = `${fmtCoeffXLatex(m)}${fmtSignedConstLatex(p)}`;
+  const x0Latex = (x0.q===1 ? String(x0.p) : (x0.p<0? `−\\dfrac{${Math.abs(x0.p)}}{${x0.q}}` : `\\dfrac{${x0.p}}{${x0.q}}`));
 
-
-
-// Texte de justification AVEC la vraie valeur de m
-const JUSTIF_TXT2 = (m.p > 0)
-  ? `car \\(${mLatex}\\) \\(> 0\\) `
-  : `car \\(${mLatex}\\) \\(< 0\\)`;
-
-// petit helper HTML
-const justifHTML2 = `${JUSTIF_TXT2}`;
-
-
-  // -------- Colonne 1 : Équation f(x)=0 (sans doublons)
-  const eqSteps = [];
-  _pushStep(eqSteps, `\\(f(x)=0\\)`);
-  _pushStep(eqSteps, `\\(${fx}=0\\)`);
+  // ===== (A) ÉQUATION f(x)=0 — ordre identique au fichier modèle =====
+  const eq = [];
+  eq.push(`\\(f(x)=0\\)`);
+  eq.push(`\\(${fx}=0\\)`);
   if (p.p !== 0){
-    _pushStep(eqSteps, `\\(${coefX(m)} = ${latexR_leadingMinus(R(-p.p,p.q))}\\)`);
+    // passage du terme constant : ax = -p
+    eq.push(`\\(${fmtCoeffXLatex(m)} = ${fmtConstLatex(R(-p.p,p.q))}\\)`);
   }
-  _pushStep(eqSteps, `\\(x = ${x0Latex}\\)`);
-  _pushStep(eqSteps, `\\(S=\\{${x0Latex}\\}\\)`);
+  // produit par l’inverse (toujours montré si a≠1/−1)
+  if (!(isOne(m) || isNegOne(m))){
+    eq.push(`${stepMulInverse('=', R(-p.p,p.q), m)}`);
+  }
+  // division brute uniquement si a entier (évite 4/(1/6))
+  const divRawEq = stepDivideRaw('=', R(-p.p,p.q), m);
+  if (divRawEq) eq.push(divRawEq);
 
-  const colEq = `
-    <p><strong>Équation \\(f(x)=0\\)</strong></p>
-    ${_renderParas(eqSteps)}
+  // valeur de x non réduite puis réduite (si nécessaire)
+  const fracEq = quotientRaw(R(-p.p,p.q), m);                 // non réduit
+  eq.push(`\\(x = ${fracLatex(fracEq.p, fracEq.q)}\\)`);
+  if (needsSimplify(fracEq)){
+    eq.push(`\\(x = ${x0Latex}\\)`);
+  }
+  eq.push(`\\(\\textit{Solution :}\\; S=\\{${x0Latex}\\}\\)`);
+
+  const colEq = `<p><strong>Équation \\(f(x)=0\\)</strong></p>` + renderSteps(eq);
+
+  // ===== (B) INÉQUATION f(x) ? 0 — EXACTEMENT le même enchaînement =====
+  const ineq = [];
+  ineq.push(`\\(f(x) ${latexCmpAsk} 0\\)`);
+  ineq.push(`\\(${fx} ${latexCmpAsk} 0\\)`);
+  if (p.p !== 0){
+    ineq.push(`\\(${fmtCoeffXLatex(m)} ${latexCmpAsk} ${fmtConstLatex(R(-p.p,p.q))}\\)`);
+  }
+  if (m.p < 0){
+    ineq.push(`<span class="hint">Comme \\(${fmtConstLatex(m)} < 0\\), on <strong>change le sens</strong> de l’inégalité.</span>`);
+  }
+  if (!(isOne(m) || isNegOne(m))){
+    ineq.push(stepMulInverse(finalTex, R(-p.p,p.q), m));       // x ◻ k × q/p
+  }
+  const divRawIneq = stepDivideRaw(finalTex, R(-p.p,p.q), m);
+  if (divRawIneq) ineq.push(divRawIneq);
+
+  // borne non réduite, puis réduite si besoin
+  const fracIneq = quotientRaw(R(-p.p,p.q), m);
+  ineq.push(`\\(x ${finalTex} ${fracLatex(fracIneq.p, fracIneq.q)}\\)`);
+  if (needsSimplify(fracIneq)){
+    ineq.push(`\\(x ${finalTex} ${x0Latex}\\)`);
+  }
+
+  // ensemble S (même écriture que ton fichier)
+  function intervalFrom(op, tex){
+    if (op==='>')  return `S = ] ${tex} ; +\\infty [`;
+    if (op==='≥')  return `S = [ ${tex} ; +\\infty [`;
+    if (op==='<')  return `S = ] -\\infty ; ${tex} [`;
+    return `S = ] -\\infty ; ${tex} ]`; // ≤
+  }
+  ineq.push(`\\(${intervalFrom(finalCmp, x0Latex)}\\)`);
+
+  const colMeth1 = `<p><strong>1<sup>ère</sup> méthode (algébrique)</strong></p>` + renderSteps(ineq);
+
+  // ===== (C) Tableau de signes (inchangé)
+  const mSign = (m.p>0) ? 1 : -1;
+  const colMeth2 = `
+    <p><strong>2<sup>ème</sup> méthode (tableau de signes)</strong></p>
+    ${affineSignTableHTML(mSign, x0Latex)}
+    <p><em>Donc</em> \\(${intervalFrom(finalCmp, x0Latex)}\\)</p>
   `;
 
-  // -------- Colonne 2 : Méthode algébrique (sans doublons)
-  const ineqSteps = [];
-  _pushStep(ineqSteps, `\\(f(x) ${latexCmpAsk} 0\\)`);
-  _pushStep(ineqSteps, `\\(${fx} ${latexCmpAsk} 0\\)`);
-
-  if (p.p !== 0){
-    // étape "déplacement du p"
-    _pushStep(ineqSteps, `\\( ${coefX(m)} ${latexCmpAsk} ${latexR_leadingMinus(R(-p.p,p.q))}\\)`);
-  }
-
-  // étape finale "x … x0" (n'est ajoutée que si différente de la précédente)
-  _pushStep(ineqSteps, `\\(x ${finalTex} ${x0Latex}  \\) \\( \\) ${justifHTML2}`);
-
-  _pushStep(ineqSteps, `\\(S = ${intervalFromCmp(finalCmp, x0Latex)}\\)`);
-
-const colMeth1 = `
-  <p><strong>1<sup>ère</sup> méthode (algébrique)</strong></p>
-  ${_renderParas(ineqSteps)}
-`;
-
-
-  // -------- Colonne 3 : tableau de signes (inchangé)
-  const mSign = (m.p>0) ? 1 : -1;
-const colMeth2 = `
-  <p><strong>2<sup>ème</sup> méthode (tableau de signes)</strong></p>
-  <p>\\(f(x) ${latexCmpAsk} 0\\)</p>
-  ${affineSignTableHTML(mSign, x0Latex)}
-  ${justifHTML}    
-  Règle : Signe du coefficient directeur \\(m\\) "à droite du zéro".
-  <p>\\(S = ${intervalFromCmp(finalCmp, x0Latex)}\\)</p>
-`;
-
-
-  // -------- Assemblage (sans .join())
+  // ===== Assemblage (sans .join)
   let html = '';
   html += `<div class="steps"><table class="tbl-invis" style="width:100%"><tr>`;
-  html += `<td style="width:25%; border-right:2px solid #000; padding-right:.8rem;">${colEq}</td>`;
-  html += `<td style="width:30%; border-right:2px solid #000; padding:0 .8rem;">${colMeth1}</td>`;
-  html += `<td style="width:40%; padding-left:.8rem;">${colMeth2}</td>`;
+  html += `<td style="width:33.33%; border-right:2px solid #000; padding-right:.8rem;">${colEq}</td>`;
+  html += `<td style="width:33.33%; border-right:2px solid #000; padding:0 .8rem;">${colMeth1}</td>`;
+  html += `<td style="width:33.33%; padding-left:.8rem;">${colMeth2}</td>`;
   html += `</tr></table></div>`;
 
   setStepsHTML(html);
   retypeset(HOST);
 }
+
 
 
 

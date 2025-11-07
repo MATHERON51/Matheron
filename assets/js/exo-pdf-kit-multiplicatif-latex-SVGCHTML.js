@@ -935,6 +935,12 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 
 /* Masques spécifiques au rendu PDF */
 .pdf-hide{ display:none !important; }
+ .screen-only{display:none!important} .print-only{display:block!important} 
+/* tableau de signes : colonnes symétriques */
+.pdf-tbl.sign4 td { padding-left: 6px; padding-right: 6px; } /* optionnel, même padding */
+.pdf-tbl.sign4 td.L { text-align: left; }
+.pdf-tbl.sign4 td.C { text-align: center; position: relative; }
+.pdf-tbl.sign4 td.R { text-align: right; }
 
 
 </style>

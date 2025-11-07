@@ -879,7 +879,6 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 .pdf-hide{ display:none !important; }
 
 
- .screen-only{display:none!important} .print-only{display:block!important} 
 
 
 

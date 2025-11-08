@@ -1044,27 +1044,23 @@ table.pdf-tbl.sign-live thead td.sbar::before,
 table.pdf-tbl.sign-live thead td.dbar::before,
 table.pdf-tbl.sign-live thead td.dbar::after{ content:none !important; }
 
-/* Tableau de la SOLUTION uniquement */
-#res.steps table.pdf-tbl tbody tr > td.mid:first-of-type{
-  text-align: right !important;   /* signe collé à droite sur ]-∞ ; r1[ */
+
+/* ---- PDF iframe : cibler #pdf-steps (et pas #res) ---- */
+#pdf-steps table.pdf-tbl tbody tr > td.mid:first-of-type .midv{
+  display: flex;            /* on contrôle l’alignement du contenu réel */
+  justify-content: flex-end;/* signe collé à droite sur ]-∞ ; r1[ */
 }
-#res.steps table.pdf-tbl tbody tr > td.mid:last-of-type{
-  text-align: left !important;    /* signe collé à gauche sur [rk ; +∞[ */
-}
-/* Solution (PDF) : pousser les signes aux bords sur les colonnes extrêmes */
-#res.steps table.pdf-tbl tbody tr > td.mid:first-of-type .midv{
-  left: auto;              /* on annule le centrage horizontal */
-  right: 6px;              /* colle à droite */
-  transform: translateY(-50%);  /* seulement centré verticalement */
-  text-align: right;
+#pdf-steps table.pdf-tbl tbody tr > td.mid:last-of-type .midv{
+  display: flex;
+  justify-content: flex-start; /* signe collé à gauche sur [rk ; +∞[ */
 }
 
-#res.steps table.pdf-tbl tbody tr > td.mid:last-of-type .midv{
-  left: 6px;               /* colle à gauche */
-  right: auto;
-  transform: translateY(-50%);
-  text-align: left;
-}
+/* (optionnel) garder une compat de secours pour l'écran si besoin */
+#res.steps table.pdf-tbl tbody tr > td.mid:first-of-type .midv{ display:flex; justify-content:flex-end; }
+#res.steps table.pdf-tbl tbody tr > td.mid:last-of-type  .midv{ display:flex; justify-content:flex-start; }
+
+
+
 
 </style>
 <style>

@@ -1059,7 +1059,10 @@ table.pdf-tbl.sign-live thead td.dbar::after{ content:none !important; }
 #res.steps table.pdf-tbl tbody tr > td.mid:first-of-type .midv{ display:flex; justify-content:flex-end; }
 #res.steps table.pdf-tbl tbody tr > td.mid:last-of-type  .midv{ display:flex; justify-content:flex-start; }
 
-
+/* Allège visuellement les "0" dans les tableaux PDF (écran + PDF) */
+table.pdf-tbl td b {
+  font-weight: 400;      /* ou 400 pour normal */
+}
 
 
 </style>

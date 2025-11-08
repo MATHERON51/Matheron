@@ -305,11 +305,7 @@ table.pdf-tbl thead td.dbar::before, table.pdf-tbl thead td.dbar::after{ content
 <script>
 /* ====== Mini helpers ====== */
 const $=(s,r=document)=>r.querySelector(s);
-function retypeset(host){
-  // ⬅️ Empêche MathJax CHTML de s’exécuter pendant la fabrication PDF
-  if (window.__PDF_BUILDING) return;
-  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]);
-}
+function retypeset(host){ if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]); }
 function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t} return a||1; }
 function R(p,q=1){ if(q<0){p=-p;q=-q} const g=gcd(p,q); return {p:p/g,q:q/g}; }
@@ -536,7 +532,7 @@ ex1:{
   render(host,st){
     const fx = `\\dfrac{${affTeX(st.m1,st.p1,st.ordN)}}{${affTeX(st.n1,st.q1,st.ordD)}}`;
     const cmp2 = c=>({ '<':'\\;<\\;','>':'\\;>\\;','≤':'\\;\\le\\;','≥':'\\;\\ge\\;' }[c]);
-    $('#equ',host).innerHTML = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
+    $('#equ',host).innerHTML = `Résoudre \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
 
     const rN = red(-st.p1, st.m1);   // zéro f (numérateur)
     const rD = red(-st.q1, st.n1);   // interdit (dénominateur)
@@ -852,7 +848,7 @@ ex2:{
     const den = `${affTeX(st.n1,st.q1,st.ordD)}`;
 const fx = `\\dfrac{${st.a===1?'':A+'\\,'}${num}}{${den}}`;
     const cmp2 = c=>({ '<':'\\;<\\;','>':'\\;>\\;','≤':'\\;\\le\\;','≥':'\\;\\ge\\;' }[c]);
-    $('#equ',host).innerHTML = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
+    $('#equ',host).innerHTML = `Résoudre \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
 
     const rN1=red(-st.p1,st.m1), rN2=red(-st.p2,st.m2), rD1=red(-st.q1,st.n1);
     const points = [ {r:rN1,kind:'N1'}, {r:rN2,kind:'N2'}, {r:rD1,kind:'D'} ].sort((a,b)=>val(a.r)-val(b.r));
@@ -1301,7 +1297,7 @@ const den = `${prodTeX(denFactors, false)}`;
 const fx = `\\dfrac{${num}}{${den}}`;
 
     const cmp2=c=>({ '<':'\\;<\\;','>':'\\;>\\;','≤':'\\;\\le\\;','≥':'\\;\\ge\\;' }[st.cmp]);
-    $('#equ',host).innerHTML = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
+    $('#equ',host).innerHTML = `Résoudre \\( ${fx} ${cmp2(st.cmp)} 0 \\).`;
 
     // --- Points triés ---
     let pts = [];
@@ -1924,12 +1920,10 @@ const solution =
  const solutionClean  = stripCHTML(solutionTight);
 
   // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
-return {
-  // ⚠️ utiliser la version *clean* (TeX brut), pas la version avec CHTML
-  statement: `<div class="vec-tight">${statementClean || ''}</div>`,
-  solution:  `<div class="vec-tight">${solutionClean  || ''}</div>`
-};
-
+    return {
+      statement: `<div class="vec-tight">${statementTight||''}</div>`,
+      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
+    };
   } finally {
     window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
   }

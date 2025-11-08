@@ -883,19 +883,11 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
   margin-bottom:.2rem;
   text-decoration:underline;
 }
-/* --- Anti "barres noires" MathJax (PDF) --- */
-.exo-statement,
-.exo-solution { color:#111 !important; background:transparent !important; }
 
-/* Cas CHTML (au cas où) */
-mjx-container { color:#111 !important; background:transparent !important; }
-mjx-container svg { overflow:visible !important; }
-mjx-container svg rect,
-mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 
-/* Cas SVG standalone (ce que tu utilises dans l’iframe) */
-.exo-statement svg path[data-mml-node="mspace"],
-.exo-solution  svg path[data-mml-node="mspace"] { fill: none !important; }
+
+
+
 
   .optionline {
   display: none !important;}
@@ -914,19 +906,13 @@ mjx-container svg path[data-mml-node="mspace"] { fill:none !important; }
 }
 .table-black thead th{ background:#fff; }
 
-.table-compare {
-  border-collapse: collapse;
-  width: 100%;
-  margin: .5rem 0 .6rem 0;
-}
-.table-compare td {
-  vertical-align: top;
-  padding: 0 .8rem;
-  border: none;
-}
-.table-compare td:first-child {
-  border-right: 2px solid #000; /* fine barre verticale */
-}
+.table-compare { border-collapse: collapse; width: 100%; margin: .5rem 0 .6rem 0; }
+.table-compare td { vertical-align: top; padding: 0 .8rem; border: none; }
+/* barre verticale seulement si la table N’EST PAS en mode "one" */
+.table-compare:not(.one) td:first-child { border-right: 2px solid #000; }
+/* solo : aucune barre, padding standard */
+.table-compare.one td.solo { border: none; padding: 0 .8rem; }
+
 
 .grid{display:grid;gap:10px;align-items:start}
 .cols-3{grid-template-columns:auto auto 1fr}
@@ -1057,6 +1043,28 @@ table.pdf-tbl.sign-live thead td.zbar::before,
 table.pdf-tbl.sign-live thead td.sbar::before,
 table.pdf-tbl.sign-live thead td.dbar::before,
 table.pdf-tbl.sign-live thead td.dbar::after{ content:none !important; }
+
+/* Tableau de la SOLUTION uniquement */
+#res.steps table.pdf-tbl tbody tr > td.mid:first-of-type{
+  text-align: right !important;   /* signe collé à droite sur ]-∞ ; r1[ */
+}
+#res.steps table.pdf-tbl tbody tr > td.mid:last-of-type{
+  text-align: left !important;    /* signe collé à gauche sur [rk ; +∞[ */
+}
+/* Solution (PDF) : pousser les signes aux bords sur les colonnes extrêmes */
+#res.steps table.pdf-tbl tbody tr > td.mid:first-of-type .midv{
+  left: auto;              /* on annule le centrage horizontal */
+  right: 6px;              /* colle à droite */
+  transform: translateY(-50%);  /* seulement centré verticalement */
+  text-align: right;
+}
+
+#res.steps table.pdf-tbl tbody tr > td.mid:last-of-type .midv{
+  left: 6px;               /* colle à gauche */
+  right: auto;
+  transform: translateY(-50%);
+  text-align: left;
+}
 
 </style>
 <style>

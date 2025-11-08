@@ -540,12 +540,9 @@ table.pdf-tbl.sign-live thead td.dbar::after{ content:none !important; }
 const $ = (sel,root=document)=>root.querySelector(sel);
 const HOST = $('#host');
 function retypeset(host){
-  // ⬅️ Empêche MathJax CHTML de s’exécuter pendant la fabrication PDF
-  if (window.__PDF_BUILDING) return;
+  if (window.__PDF_BUILDING) return;              // ⬅️ ignore en phase PDF
   if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([host||document]);
-}
-
-function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+}function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){const t=a%b;a=b;b=t;} return a||1; }
 
 /* ====== Rationnels “propres” (pour jolies fractions dans les corrections) ====== */
@@ -972,8 +969,8 @@ function affTeX(m, p, ord = 'mxp'){
     const cmp2tex = c=>({ '<':'\\;<\\;', '≤':'\\;\\le\\;', '>':'\\;>\\;', '≥':'\\;\\ge\\;' }[c]);
 
     // 🔒 pour le PDF (#equ caché à l’écran)
-    setEqu(`Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
-    (this.state||(this.state={}))._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+    setEqu(`Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
+    (this.state||(this.state={}))._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
 
     // Sélecteurs
     const select = id => `<select id="${id}">
@@ -1090,7 +1087,7 @@ const rowHdr = `
     $('#cmpSel',host).addEventListener('change', e=>{
       st.cmp = e.target.value;
       this.state.cmp = st.cmp;
-      this.state._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+      this.state._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
       setEqu(this.state._equForPDF);
       this.solution(host, this.state);
       retypeset(host);
@@ -1431,8 +1428,8 @@ function affTeX(m, p, ord = 'mxp'){
     const cmp2tex = c=>({ '<':'\\;<\\;', '≤':'\\;\\le\\;', '>':'\\;>\\;', '≥':'\\;\\ge\\;' }[c]);
 
     // 🔒 pour le PDF (#equ caché à l’écran)
-    setEqu(`Résoudre l'inéquation : \\( \\)  \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
-    (this.state||(this.state={}))._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+    setEqu(`Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
+    (this.state||(this.state={}))._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
 
     // Sélecteurs
     const select = id => `<select id="${id}">
@@ -1549,7 +1546,7 @@ const rowHdr = `
     $('#cmpSel',host).addEventListener('change', e=>{
       st.cmp = e.target.value;
       this.state.cmp = st.cmp;
-      this.state._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+      this.state._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
       setEqu(this.state._equForPDF);
       this.solution(host, this.state);
       retypeset(host);
@@ -1880,8 +1877,8 @@ ex3: {
     const fx = `${A}\\big(${affTeX(st.m1,st.p1,st.ord1)}\\big)\\big(${affTeX(st.m2,st.p2,st.ord2)}\\big)\\big(${affTeX(st.m3,st.p3,st.ord3)}\\big)`;
     const cmp2tex = c=>({ '<':'\\;<\\;','>':'\\;>\\;','≤':'\\;\\le\\;','≥':'\\;\\ge\\;' }[c]);
 
-    setEqu(`Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
-    (this.state||(this.state={}))._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+    setEqu(`Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`);
+    (this.state||(this.state={}))._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
 
     const select = id => `<select id="${id}">
       <option value=""></option><option value="+">+</option><option value="−">−</option>
@@ -1989,7 +1986,7 @@ ex3: {
     $('#cmpSel',host).addEventListener('change', e=>{
       st.cmp = e.target.value;
       this.state.cmp = st.cmp;
-      this.state._equForPDF = `Résoudre l'inéquation : \\( \\) \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
+      this.state._equForPDF = `Résoudre \\( ${fx} ${cmp2tex(st.cmp)} 0 \\).`;
       setEqu(this.state._equForPDF);
       this.solution(host, this.state);
       retypeset(host);
@@ -2489,12 +2486,10 @@ const solution =
  const solutionClean  = stripCHTML(solutionTight);
 
   // ⚠️ On wrappe ici avec .vec-tight pour activer le CSS “resserré” côté iframe PDF (SVG)
-return {
-  // ⚠️ utiliser la version *clean* (TeX brut), pas la version avec CHTML
-  statement: `<div class="vec-tight">${statementClean || ''}</div>`,
-  solution:  `<div class="vec-tight">${solutionClean  || ''}</div>`
-};
-
+    return {
+      statement: `<div class="vec-tight">${statementTight||''}</div>`,
+      solution:  `<div class="vec-tight">${solutionTight||''}</div>`
+    };
   } finally {
     window.__PDF_BUILDING = false;        // ⬅️ on réactive l’écran quoi qu’il arrive
   }

@@ -787,34 +787,31 @@ function analyzeVariationFromCurve(){
   const b2 = Math.min(+$('#cxmax',host).value - 1, K.at(-1).x);
 
   // Toutes les racines sur chaque arc, filtrées dans [a2,b2]
-const EPS = 0.05; // ~ demi-dixième (cohérent avec fmtX)
-const roots = [];           // racines internes (strictement à l'intérieur)
-let edgeZeroLeft  = false;  // 0 sur la colonne de gauche ?
-let edgeZeroRight = false;  // 0 sur la colonne de droite ?
-
-for (let i = 0; i < K.length - 1; i++) {
-  const A = K[i], B = K[i+1], m0 = A.m || 0, m1 = B.m || 0;
-  const Ts = rootsOnArc(A, B, m0, m1);
-  Ts.forEach(t => {
-    const x = hermiteX(A, B, t);
-    const y = hermiteY(A, B, m0, m1, t);
-    if (Math.abs(y) >= 1e-3) return;
-
-    if (Math.abs(x - a2) <= EPS) { edgeZeroLeft  = true; return; }
-    if (Math.abs(x - b2) <= EPS) { edgeZeroRight = true; return; }
-
-    // racine vraiment intérieure
-    if (x > a2 + EPS && x < b2 - EPS) roots.push(x);
-  });
-}
-
+  const roots=[];
+  for(let i=0;i<K.length-1;i++){
+    const A=K[i], B=K[i+1], m0=A.m||0, m1=B.m||0;
+    // réutilise la routine robustes (subdivision+bissection) que tu avais, ou celle-ci :
+    const Ts = rootsOnArc(A,B,m0,m1);
+    Ts.forEach(t=>{
+      const x = hermiteX(A,B,t);
+      const y = hermiteY(A,B,m0,m1,t);
+      if(x>=a2-1e-6 && x<=b2+1e-6 && Math.abs(y)<1e-3) roots.push(x);
+    });
+  }
+  // Après avoir rempli `roots` (toutes les racines de chaque arc)
 roots.sort((a,b)=>a-b);
+
+// dédoublonnage global (tolérance cohérente avec l’arrondi au dixième)
+const EPS = 0.05;             // la moitié d’un dixième
 const uniq = [];
 for (const x of roots) {
-  if (uniq.length === 0 || Math.abs(x - uniq[uniq.length - 1]) > EPS) uniq.push(x);
+  if (uniq.length === 0 || Math.abs(x - uniq[uniq.length-1]) > EPS) {
+    uniq.push(x);
+  }
 }
-const xCols = [a2, ...uniq, b2]; // plus de répétition de la borne
 
+// Construit les colonnes avec racines uniques
+const xCols = [a2, ...uniq, b2];
 
 
   // Head x (avec intercalaires)
@@ -833,31 +830,22 @@ const xCols = [a2, ...uniq, b2]; // plus de répétition de la borne
 // Ligne f(x) : 0 sous chaque racine (pas sous a2/b2) + barres
 let rowF = '<tr><th>\\(f(x)\\)</th>';
 for (let j = 0; j < xCols.length; j++) {
-  const isLeftEdge  = (j === 0);
-  const isRightEdge = (j === xCols.length - 1);
-  const isInterior  = (!isLeftEdge && !isRightEdge);
+  const isEdge = (j === 0 || j === xCols.length - 1);
+  const isRootCol = (j > 0 && j < xCols.length - 1);
 
-  if (isInterior) {
-    // colonnes intérieures = racines internes -> 0
+  if (isRootCol) {
     rowF += `<td class="zbar" style="text-align:center">0</td>`;
-  } else if (isLeftEdge) {
-    // borne gauche : 0 si racine sur la borne, sinon vide
-    rowF += edgeZeroLeft ? `<td class="zbar" style="text-align:center">0</td>` : `<td></td>`;
-  } else if (isRightEdge) {
-    // borne droite : 0 si racine sur la borne, sinon vide
-    rowF += edgeZeroRight ? `<td class="zbar" style="text-align:center">0</td>` : `<td></td>`;
+  } else if (!isEdge) {
+    rowF += `<td class="sbar"></td>`;
+  } else {
+    rowF += `<td></td>`;
   }
 
-  // signe sur l'intervalle qui suit
   if (j < xCols.length - 1) {
-    const mid = (xCols[j] + xCols[j+1]) / 2;
-    const y   = valueOnCurve(K, mid); // (ou valueOnCurveK pour le multi)
-    const s   = y > 0 ? '+' : (y < 0 ? UMIN : '');
-    rowF += `<td style="text-align:center">${s}</td>`;
+    rowF += `<td style="text-align:center">${sgnInt[j] || ''}</td>`;
   }
 }
 rowF += '</tr>';
-
 
 
 
@@ -1520,34 +1508,18 @@ rep.hit.addEventListener('touchstart', onClick2, {passive:false});
       const a2 = Math.max(+$('#mcxmin',host).value + 1, K[0].x);
       const b2 = Math.min(+$('#mcxmax',host).value - 1, K.at(-1).x);
 
-      // ... après avoir défini a2, b2 et K :
-const EPS = 0.05;                 // cohérent avec fmtX (arrondi au dixième)
-const roots = [];                 // racines strictement intérieures
-let edgeZeroLeft  = false;        // 0 à la borne gauche ?
-let edgeZeroRight = false;        // 0 à la borne droite ?
-
-for (let i = 0; i < K.length - 1; i++) {
-  const A = K[i], B = K[i+1], m0 = A.m || 0, m1 = B.m || 0;
-  const Ts = rootsOnArc(A, B, m0, m1);
-  Ts.forEach(t => {
-    const x = hermiteX(A, B, t);
-    const y = hermiteY(A, B, m0, m1, t);
-    if (Math.abs(y) >= 1e-3) return;
-
-    if (Math.abs(x - a2) <= EPS) { edgeZeroLeft  = true; return; }
-    if (Math.abs(x - b2) <= EPS) { edgeZeroRight = true; return; }
-
-    if (x > a2 + EPS && x < b2 - EPS) roots.push(x); // intérieure
-  });
-}
-
-  roots.sort((a,b)=>a-b);
-const uniq = [];
-for (const x of roots) {
-  if (uniq.length === 0 || Math.abs(x - uniq.at(-1)) > EPS) uniq.push(x);
-}
-const xCols = [a2, ...uniq, b2];     // plus AUCUN doublon de borne
-
+      const roots=[];
+      for(let i=0;i<K.length-1;i++){
+        const A=K[i], B=K[i+1], m0=A.m||0, m1=B.m||0;
+        const Ts = rootsOnArc(A,B,m0,m1);
+        Ts.forEach(t=>{
+          const x=hermiteX(A,B,t); const y=hermiteY(A,B,m0,m1,t);
+          if(x>=a2-1e-6 && x<=b2+1e-6 && Math.abs(y)<1e-3) roots.push(x);
+        });
+      }
+      roots.sort((a,b)=>a-b);
+      const EPS=0.05, uniq=[]; for(const x of roots){ if(uniq.length===0 || Math.abs(x-uniq.at(-1))>EPS) uniq.push(x); }
+      const xCols=[a2, ...uniq, b2];
 
       const head=['<tr><th>\\(x\\)</th>'];
       xCols.forEach((x,j)=>{ head.push(`<td>\\(${fmtX(x).replace('-',UMIN)}\\)</td>`); if(j<xCols.length-1) head.push('<td></td>'); });
@@ -1560,33 +1532,16 @@ const xCols = [a2, ...uniq, b2];     // plus AUCUN doublon de borne
         sgnInt.push( y>0? '+' : (y<0? UMIN : '') );
       }
 
-let rowF = `<tr><th>\\(${a.name}(x)\\)</th>`;
-for (let j = 0; j < xCols.length; j++) {
-  const isLeftEdge  = (j === 0);
-  const isRightEdge = (j === xCols.length - 1);
-  const isInterior  = (!isLeftEdge && !isRightEdge);
-
-  if (isInterior) {
-    // racines intérieures : 0
-    rowF += `<td class="zbar" style="text-align:center">0</td>`;
-  } else if (isLeftEdge) {
-    // borne gauche
-    rowF += edgeZeroLeft ? `<td class="zbar" style="text-align:center">0</td>` : `<td></td>`;
-  } else if (isRightEdge) {
-    // borne droite
-    rowF += edgeZeroRight ? `<td class="zbar" style="text-align:center">0</td>` : `<td></td>`;
-  }
-
-  // signe sur l’intervalle qui suit
-  if (j < xCols.length - 1) {
-    const mid = (xCols[j] + xCols[j+1]) / 2;
-    const y   = valueOnCurveK(K, mid);          // ⚠️ bien utiliser la version K
-    const s   = y > 0 ? '+' : (y < 0 ? UMIN : '');
-    rowF += `<td style="text-align:center">${s}</td>`;
-  }
-}
-rowF += '</tr>';
-
+      let rowF=`<tr><th>\\(${a.name}(x)\\)</th>`;
+      for(let j=0;j<xCols.length;j++){
+        const isEdge = (j===0 || j===xCols.length-1);
+        const isRootCol = (j>0 && j<xCols.length-1);
+        if(isRootCol) rowF += `<td class="zbar" style="text-align:center">0</td>`;
+        else if(!isEdge) rowF += `<td class="sbar"></td>`;
+        else rowF += `<td></td>`;
+        if(j<xCols.length-1) rowF += `<td style="text-align:center">${sgnInt[j]||''}</td>`;
+      }
+      rowF += '</tr>';
 
       const html = `<div class="step"><div><b>${a.btn} — Tableau de signes :</b> <span class="small">(racines ≈)</span></div><div class="var-wrap"><table class="pdf-tbl"><thead>${head.join('')}</thead><tbody>${rowF}</tbody></table></div></div>`;
       a.outs.sign = html; $('#mc-out-sign',host).innerHTML = html; typesetAll($('#mc-out-sign',host));

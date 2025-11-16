@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1ère - Suites arithmétiques - Exercice bilan </title>
+
+<!-- mêmes feuilles que ton modèle -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.controls select{border:1px solid #ccc;border-radius:8px;padding:.45rem .55rem}
+.controls .btn:active{transform:translateY(1px)}
+.controls .score{margin-left:auto;font-weight:700}
+.small{font-size:.92rem;color:#555}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.tick{display:none;margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b;display:inline}
+.tick.ko{color:#b00020;display:inline}
+
+/* Traits de fraction plus visibles à l’écran et au PDF */
+.frac{display:inline-flex;flex-direction:column;line-height:1}
+.frac>.num,.frac>.den{display:block;text-align:center;padding:0 .2em}
+.frac>.num{border-bottom:1.5px solid currentColor}
+@media print{
+  .controls,.header,.kbd-host,.hide-print{display:none!important}
+  .card{box-shadow:none}
+  .frac>.num{border-bottom:0;position:relative}
+  .frac>.num::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:currentColor}
+}
+
+/* Lignes de réponse imprimables */
+.blank-wrap{ display:inline-block; vertical-align:baseline }
+.blank-wrap .blank{ display:none; height:1.4em; border-bottom:2px solid #000; vertical-align:baseline; }
+@media print{
+  .blank-wrap input{ display:none !important; }
+  .blank-wrap .blank{ display:inline-block !important; }
+}
+
+.tbl-suites{
+  border-collapse:collapse;
+  border:1px solid #ccc;
+}
+.tbl-suites th,
+.tbl-suites td{
+  border:1px solid #ccc;
+  padding:4px 6px;
+}
+
+ul.no-bullet{
+  list-style:none;
+  padding-left:0;
+  margin-left:0;
+}
+
+/* Grille façon tableur avec indices de lignes/colonnes */
+table.sheet{border-collapse:collapse;font-size:.95rem}
+.sheet th,.sheet td{border:1px solid #cfd6e4;padding:.25rem .55rem;min-width:46px;text-align:center}
+.sheet thead th{background:#f2f5fb;font-weight:700}
+.sheet .corner{background:#eef2f9;width:34px;min-width:34px}
+.sheet .rhead{background:#f7f8fb;font-weight:600;width:34px}
+.sheet .colA{background:#fafafa;font-weight:600}
+.warn{ color:#b00020; font-size:.9rem; margin-left:.4rem }
+</style>
+
+<!-- MathJax comme dans ton modèle -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true
+  },
+  chtml: { matchFontHeight:false },
+  startup: { typeset: true }
+};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+
+<!-- mêmes libs partagées -->
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1ère - Suites arithmétiques - Exercice bilan </strong></h1>
+  </div>
+
+  <div class="wrap">
+    <!-- Barre de contrôle identique -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-sol" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <!-- Hôte d’exercice -->
+    <div id="host" class="card" data-active="" data-state=""></div>
+
+    <!-- Bloc "Saisie & réponses acceptées" -->
+    <div class="card small" id="info-saisie">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul>
+        <li>Ecritures <em>toutes</em> acceptées
+          <code>u(n+1)=...</code>, <code>u_(n+1)=...</code>, <code>u_{n+1)=...</code>
+          (espaces, parenthèses/accolades, soulignés, <code>*</code> ou <code>×</code> sont normalisés).
+        </li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+(function(){
+"use strict";
+const UMINUS = '−';
+
+/* ===== Utilitaires génériques (mêmes patterns que tes autres pages) ===== */
+function $(sel,root){ return (root||document).querySelector(sel); }
+function $all(sel,root){ return Array.from((root||document).querySelectorAll(sel)); }
+function rint(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function choice(A){ return A[Math.floor(Math.random()*A.length)]; }
+function retypeMath(scope){
+  if(!window.MathJax) return;
+  if(MathJax.typesetPromise) MathJax.typesetPromise([scope||document]);
+  else if(MathJax.typeset)   MathJax.typeset([scope||document]);
+}
+function mkInput(id,w){
+  return `<span class="blank-wrap"><input id="${id}" style="width:${w||120}px;font-size:15px;padding:6px;border:1px solid #ddd;border-radius:8px"> <span class="blank" style="width:${(w||120)-14}px"></span></span>`;
+}
+function parseNumber(s){
+  if(s==null) return NaN;
+  s = String(s).trim().replace(/,/g,'.').replace(/\s+/g,'');
+  if(/^[-+]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return Number(s);
+  const m = s.match(/^([-+]?\d+)\/(\d+)$/);
+  if(m){ const a=+m[1], b=+m[2]; return b? a/b : NaN; }
+  const m2 = s.match(/^\\d?frac\{?\s*([-+]?\d+)\s*\}?\{?\s*(\d+)\s*\}?$/); // \frac{a}{b}
+  if(m2){ const a=+m2[1], b=+m2[2]; return b? a/b : NaN; }
+  return NaN;
+}
+/* Normalise une relation de type u_{n+1}=... */
+function normRelation(str){
+  if(str==null) return '';
+  let s = String(str).toLowerCase();
+
+  // espaces & commandes d'espacement LaTeX
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/\\(,|;|:|!|quad|qquad)/g,'');
+
+  // produits & signes
+  s = s.replace(/\\cdot/g,'');
+  s = s.replace(/×|\*/g,'');
+  s = s.replace(/[−–—]/g,'-');
+  s = s.replace(/\+\-/g,'-').replace(/\-\+/g,'-').replace(/\-\-/g,'+');
+
+  // normaliser les écritures de u(...) et a(...)
+  s = s.replace(/u_\(([^)]+)\)/g,'u_{$1}');
+  s = s.replace(/u\(([^)]+)\)/g,'u_{$1}');
+  s = s.replace(/u_\{([^}]+)\)/g,'u_{$1}');
+  s = s.replace(/u_\{([a-z])\}/g,'u_$1');
+
+  s = s.replace(/a_\(([^)]+)\)/g,'a_{$1}');
+  s = s.replace(/a\(([^)]+)\)/g,'a_{$1}');
+  s = s.replace(/a_\{([^}]+)\)/g,'a_{$1}');
+  s = s.replace(/a_\{([a-z])\}/g,'a_$1');
+
+  // indices {n+1} sans espaces
+  s = s.replace(/a_\{n\+1\}/g,'a_{n+1}');
+  s = s.replace(/u_\{n\+1\}/g,'u_{n+1}');
+
+  return s;
+}
+
+
+/* Normalisation pour formules de tableur */
+function normSheet(str){
+  if(str==null) return '';
+  let s = String(str);
+  s = s.replace(/\s+/g,'');       // on enlève les espaces
+  s = s.replace(/[−–—]/g,'-');
+  s = s.replace(/\+\(-/g,'-');    // B2+(-3) -> B2-3
+  s = s.replace(/\)/g,'');
+  s = s.toUpperCase();            // comparaison en majuscules
+  if(s.startsWith('=')) s = s.slice(1); // on enlève le '=' pour comparer
+  return s;
+}
+
+function hasOnlyUpperCols(raw, cols){
+  // raw : saisie originale (non modifiée)
+  // cols : tableau des lettres à contrôler, ex ['B'] ou ['B','C']
+  const txt = String(raw);
+  // au moins une lettre majuscules demandée…
+  const hasUpper = cols.some(c => txt.includes(c));
+  // …et aucune minuscule correspondante
+  const hasLower = cols.some(c => txt.includes(c.toLowerCase()));
+  return hasUpper && !hasLower;
+}
+
+
+
+function normPy(str){
+  if(str==null) return '';
+  return String(str)
+    .toLowerCase()
+    .replace(/[ \t]/g,'')
+    .replace(/[−–—]/g,'-')
+    .replace(/\u00A0/g,'');
+}
+
+
+
+function near(a,b,eps){ return Math.abs(a-b) <= (eps||1e-9); }
+function parseList(s){ return String(s).split(/[;,]/).map(t=>parseNumber(t)).filter(v=>!Number.isNaN(v)); }
+function tick(el,ok){ if(!el) return; el.classList.remove('ok','ko'); el.classList.add(ok?'ok':'ko'); el.textContent = ok?'✓':'✗'; }
+// ✓ / ✗ / neutre (champ vide)
+function tickTri(el, state){
+  if(!el) return;
+  el.classList.remove('ok','ko');
+  if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+  else { el.textContent=''; } // neutre si vide
+}
+
+function scoreSet(a,b){ const s=$("#score"); if(s) s.textContent = `Score : ${a} / ${b}`; }
+let SCORE=[0,0];
+function val(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
+
+/* ===== Helpers affichage LaTeX ===== */
+function fmtSigned(k){
+  if(k===0) return '';
+  const s = k<0 ? UMINUS : '+';
+  const a = Math.abs(k);
+  return ` ${s} ${a}`;
+}
+function monome(coeff, n, pow){
+  const a = coeff;
+  if(a===0) return '';
+  const sgn = a<0 ? UMINUS : '';
+  const c = Math.abs(a);
+  const cstr = (c===1) ? '' : String(c);
+  const nstr = (pow===0) ? '' : (pow===1 ? 'n' : 'n^'+pow);
+  if(pow===0){ return `${sgn}${c}`; }
+  return `${sgn}${cstr}${nstr}`;
+}
+function polyToLatex(coeffs){
+  const parts=[];
+  const pows=[3,2,1,0];
+  for(let i=0;i<coeffs.length;i++){
+    const t = monome(coeffs[i], 'n', pows[i]);
+    if(!t) continue;
+    parts.push(t);
+  }
+  let s = parts.join(' + ').replace(/\+\s*−/g, UMINUS).replace(/−\s*\+/g, UMINUS);
+  s = s.replace(/\+\s*$/,'');
+  s = s.replace(/\+/g,'+').replace(/−/g, UMINUS);
+  return s || '0';
+}
+
+function sheet3Cols(
+  headA="rang \\(n\\)",
+  headB="terme \\(u_n\\)",
+  headC="somme : \\(u_0+\\cdots+u_n\\)",
+  rows=[0,1,2,3,4],
+  b2Value=null,       // valeur à mettre en B2 (a0)
+  c2Value=null,       // valeur à mettre en C2 (a0 pour la somme initiale)
+  b3Value=null        // NOUVEAU : valeur à mettre en B3 (a1)
+){
+  const letters=['A','B','C'];
+  return `
+  <table class="sheet">
+    <thead>
+      <tr><th class="corner"></th>${letters.map(L=>`<th>${L}</th>`).join('')}</tr>
+      <tr><th class="rhead">1</th><th class="colA">${headA}</th><th>${headB}</th><th>${headC}</th></tr>
+    </thead>
+    <tbody>
+      ${rows.map((n,i)=>`
+        <tr>
+          <th class="rhead">${i+2}</th>
+          <td>${n}</td>
+          <td>${
+            i===0 && b2Value!==null ? b2Value :
+            i===1 && b3Value!==null ? b3Value :
+            ''
+          }</td>
+          <td>${i===0 && c2Value!==null ? c2Value : ''}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+
+
+function makeExos(){
+  const L = [];
+
+  /* === Ex. — Modélisation d’une suite arithmétique (banque de 20 contextes) === */
+
+  const BANK_MODEL = [
+    {name:'Léa',    label:"d'étrennes",                           year0:2016, a0:80,  r:5,   totalYear:2030, target:200},
+    {name:'Noah',   label:"de bourse universitaire",              year0:2020, a0:120, r:-4,  totalYear:2030, target:80},
+    {name:'Camille',label:"de prime d’ancienneté",                year0:2015, a0:150, r:10,  totalYear:2030, target:260},
+    {name:'Sarah',  label:"de prime de rendement",                 year0:2018, a0:110, r:6,   totalYear:2028, target:170},
+    {name:'Lucas',  label:"d’allocation de logement",              year0:2014, a0:180, r:-8,  totalYear:2024, target:120},
+    {name:'Emma',   label:"d’aide pour le transport scolaire",    year0:2017, a0:90,  r:-5,  totalYear:2027, target:40},
+    {name:'Yanis',  label:"de subvention pour un projet associatif",year0:2013,a0:130,r:7,   totalYear:2023, target:190},
+    {name:'Chloé',  label:"de bourse sportive",                    year0:2012, a0:100, r:5,   totalYear:2024, target:160},
+    {name:'Malo',   label:"de cagnotte pour ses vacances",        year0:2019, a0:70,  r:8,   totalYear:2032, target:180},
+    {name:'Inès',   label:"de budget pour ses sorties culturelles",year0:2015,a0:60,  r:4,   totalYear:2028, target:120},
+    {name:'Nina',   label:"de budget pour des cours de musique",  year0:2016, a0:75,  r:3,   totalYear:2030, target:135},
+    {name:'Adam',   label:"de participation de ses parents à son loyer",year0:2011,a0:200,r:-10,totalYear:2021,target:120},
+    {name:'Lina',   label:"de bourse au mérite",                  year0:2010, a0:140, r:9,   totalYear:2024, target:230},
+    {name:'Jade',   label:"de prime de stage",                    year0:2019, a0:95,  r:5,   totalYear:2032, target:160},
+    {name:'Maël',   label:"d’aide financière de ses grands-parents",year0:2013,a0:110,r:-6,  totalYear:2025, target:50},
+    {name:'Zoé',    label:"de budget consacré au carburant",      year0:2017, a0:130, r:-5,  totalYear:2029, target:70},
+    {name:'Hugo',   label:"de budget pour l’achat de livres",     year0:2014, a0:60,  r:4,   totalYear:2026, target:110},
+    {name:'Alice',  label:"de budget pour son équipement informatique",year0:2018,a0:150,r:-7,totalYear:2030,target:70},
+    {name:'Victor', label:"de prime annuelle de son entreprise",  year0:2012, a0:200, r:8,   totalYear:2024, target:260},
+    {name:'Eva',    label:"de dons pour une collecte caritative qu’elle organise",year0:2015,a0:120,r:6,totalYear:2027,target:190}
+  ];
+
+  function normTextSimple(str){
+    if(str==null) return '';
+    let s = String(str).toLowerCase();
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // enlève les accents
+    s = s.replace(/[^a-z0-9]/g,''); // supprime espaces, ponctuation…
+    return s;
+  }
+
+  // normalisation spécifique pour la formule explicite a_n = ...
+  function normAnFormula(str){
+  if(str==null) return '';
+  let s = String(str).toLowerCase();
+
+  // espaces, produits, signes
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/\\cdot/g,'');
+  s = s.replace(/×|\*/g,'');      // permet les multiplications explicites
+  s = s.replace(/[−–—]/g,'-');
+  s = s.replace(/\+\-/g,'-').replace(/\-\+/g,'-').replace(/\-\-/g,'+');
+
+  // --- normalisation de a_n / a(n) / a_(n) ---
+  s = s.replace(/a_\(\s*n\s*\)/g,'a_n');        // a_(n)
+  s = s.replace(/a\(\s*n\s*\)/g,'a_n');         // a(n)
+  s = s.replace(/a_\{?\s*n\s*\}?/g,'a_n');      // a_{n} -> a_n
+
+  // tolérer u_n / u(n) écrits à la place de a_n
+  s = s.replace(/u_\(\s*n\s*\)/g,'a_n');        // u_(n)
+  s = s.replace(/u\(\s*n\s*\)/g,'a_n');         // u(n)
+  s = s.replace(/u_\{?\s*n\s*\}?/g,'a_n');      // u_{n}
+  s = s.replace(/u_n/g,'a_n');
+
+  // --- normalisation de a_0 / a(0) / a_{0} -> a0 ---
+  s = s.replace(/a_\(\s*0\s*\)/g,'a0');
+  s = s.replace(/a\(\s*0\s*\)/g,'a0');
+  s = s.replace(/a_\{?\s*0\s*\}?/g,'a0');
+
+  // tolérer u_0 / u(0) / u0 pour le premier terme
+  s = s.replace(/u_\(\s*0\s*\)/g,'a0');
+  s = s.replace(/u\(\s*0\s*\)/g,'a0');
+  s = s.replace(/u_\{?\s*0\s*\}?/g,'a0');
+  s = s.replace(/u0/g,'a0');
+
+  return s;
+}
+
+
+
+  L.push({
+    id: 'ex_modelisation_arith',
+    title: "Ex. — Modélisation d'une suite arithmétique",
+
+    gen(){
+      const b = choice(BANK_MODEL);
+
+      const yearDiff = b.totalYear - b.year0;   // indice du dernier terme
+      const Nterms   = yearDiff + 1;
+
+      const a1 = b.a0 + b.r;
+      const a2 = b.a0 + 2*b.r;
+      const aN = b.a0 + yearDiff * b.r;
+      const S  = Nterms * (b.a0 + aN) / 2;
+
+      const num = b.target - b.a0;
+      const den = b.r;
+
+      const nReal = num / den;
+      const np = Math.ceil(nReal);
+      const yearP = b.year0 + np;
+
+      const aBefore = b.a0 + (np-1)*b.r;
+      const aAt     = b.a0 + np*b.r;
+
+      const cmpDir  = (b.r > 0 ? '>=' : '<=');
+
+      return {
+        ...b,
+        a1,a2,
+        yearDiff,Nterms,aN,S,
+        num,den,
+        np,yearP,
+        aBefore,aAt,
+        cmpDir
+      };
+    },
+
+    render(host,s){
+      host.__state = s;
+      const texInt = x => String(x).replace(/-/g, UMINUS);
+
+      const year1 = s.year0 + 1;
+      const year2 = s.year0 + 2;
+      const verb  = s.r > 0 ? 'augmente' : 'diminue';
+      const cmpTxt = s.cmpDir === '>=' ? 'supérieur ou égal' : 'inférieur ou égal';
+
+const table = sheet3Cols(
+  "rang \\(n\\)","terme \\(a_n\\)","somme : \\(a_0+\\cdots+a_n\\)",
+  [0,1,2,3,4],
+  texInt(s.a0),      // B2 = a0
+  texInt(s.a0),      // C2 = a0 (somme initiale)
+  texInt(s.a1)       // B3 = a1  (NOUVEAU)
+);
+
+
+
+
+      host.innerHTML = `
+        <div class="statement">
+          <p>En ${s.year0}, ${s.name} a reçu ${texInt(s.a0)}€ ${s.label}. Chaque année, cette somme ${verb} de ${texInt(Math.abs(s.r))}€.</p>
+          <p>Pour tout entier naturel \\(n\\), on note \\(a_n\\) le montant reçu l’année \\(${s.year0} + n\\).</p>
+
+          <ol style="padding-left:1.3rem">
+            <li>
+              Donner les valeurs \\(a_1\\) et \\(a_2\\). À quelle année correspondent-elles ?<br>
+			  <div class="pdf-hide">
+              \\(a_1 =\\) ${mkInput('m_a1',70)} <span id="t_a1" class="tick"></span>,
+              \\(a_2 =\\) ${mkInput('m_a2',70)} <span id="t_a2" class="tick"></span><br>
+              Année de \\(a_1\\) : ${mkInput('m_y1',80)} <span id="t_y1" class="tick"></span>,
+              année de \\(a_2\\) : ${mkInput('m_y2',80)} <span id="t_y2" class="tick"></span>
+			  </div>
+            </li>
+
+            <li style="margin-top:.6rem">
+              <ol type="a" class="no-bullet">
+                <li>
+                  Donner la nature de la suite \\((a_n)\\).<br>
+                  <div class="pdf-hide">Réponse : ${mkInput('m_q2a',260)} <span id="t_q2a" class="tick"></span></div>
+                </li>
+                <li style="margin-top:.25rem">
+                  Exprimer \\(a_{n+1}\\) en fonction de \\(a_n\\).<br>
+                 <div class="pdf-hide"> Réponse : ${mkInput('m_q2b',260)} <span id="t_q2b" class="tick"></span></div>
+                </li>
+                <li style="margin-top:.25rem">
+                  En déduire l’expression de \\(a_n\\) en fonction de \\(n\\).<br>
+                  <div class="pdf-hide">Réponse : ${mkInput('m_q2c',260)} <span id="t_q2c" class="tick"></span></div>
+                </li>
+              </ol>
+            </li>
+
+            <li style="margin-top:.4rem">
+              Donner le sens de variation de la suite \\((a_n)\\).<br>
+              <div class="pdf-hide">Réponse : ${mkInput('m_q3',260)} <span id="t_q3" class="tick"></span></div>
+            </li>
+
+                  <li style="margin-top:.4rem">
+              On construit la feuille de calcul ci-dessous pour calculer les premiers termes de la suite \\((a_n)\\) et la somme \\(a_0 + \\cdots + a_n\\).<br>
+
+              <table style="border-collapse:collapse;width:100%;margin-top:.3rem">
+                <tr>
+                  <!-- Colonne 1 : le tableau -->
+                  <td style="vertical-align:top;padding-right:12px">
+                    ${table}
+                  </td>
+
+                  <!-- Colonne 2 : les questions a., b., c. -->
+                  <td style="vertical-align:top">
+                    <ol type="a" class="no-bullet">
+                      <li>
+                        Quelle formule saisir dans la cellule <strong>B3</strong> pour que, lorsqu’on la recopie vers le bas, les termes de la suite se calculent ?<br>
+                       <div class="pdf-hide"> Formule en B3 : ${mkInput('m_q4a',260)} <span id="t_q4a" class="tick"></span></div>
+                      </li>
+                      <li style="margin-top:.25rem">
+                        Que devient cette formule dans la cellule <strong>B4</strong> ?<br>
+                       <div class="pdf-hide"> Formule en B4 : ${mkInput('m_q4b',260)} <span id="t_q4b" class="tick"></span></div>
+                      </li>
+                      <li style="margin-top:.25rem">
+                        Quelle formule saisir dans la cellule <strong>C3</strong> pour calculer la somme \\(a_0 + a_1\\), puis la recopier vers le bas ?<br>
+                        <div class="pdf-hide">Formule en C3 : ${mkInput('m_q4c',260)} <span id="t_q4c" class="tick"></span></div>
+                      </li>
+                    </ol>
+                  </td>
+                </tr>
+              </table>
+            </li>
+
+
+            <li style="margin-top:.4rem">
+              Quel montant total ${s.name} aura-t-elle reçu le 31 décembre ${s.totalYear} ?<br>
+              <div class="pdf-hide">Montant total : ${mkInput('m_Stot',90)} <span id="t_Stot" class="tick"></span></div>
+            </li>
+
+                     <li style="margin-top:.4rem">
+              On s’intéresse au rang \\(n_p\\) à partir duquel ${s.name} aura reçu un montant ${cmpTxt} à ${texInt(s.target)}€.
+
+              <ol type="a" class="no-bullet" style="margin-top:.3rem">
+                <li>
+                  Compléter le programme Python qui calcule ce rang seuil :
+<pre><code>def seuil():
+    n = 0
+    u = ${mkInput('py_u0',80)} <span id="t_py_u0" class="tick"></span>
+    while u ${mkInput('py_cmp',60)} ${texInt(s.target)}: <span id="t_py_cmp" class="tick"></span>
+        n = n + 1
+        u = ${mkInput('py_upd',160)} <span id="t_py_upd" class="tick"></span>
+    return n</code></pre>
+                </li>
+
+                <li style="margin-top:.25rem">
+                  À l’aide de ce programme ou en résolvant une inéquation, déterminer le rang seuil et l’année correspondante.<br>
+                  <div class="pdf-hide">\\(n_p =\\) ${mkInput('m_np',70)} <span id="t_np" class="tick"></span>,</div>
+                  <div class="pdf-hide">année correspondante : ${mkInput('m_yearp',90)} <span id="t_yearp" class="tick"></span></div>
+                </li>
+              </ol>
+            </li>
+
+          </ol>
+        </div>
+
+        <div class="steps" id="steps"></div>
+      `;
+
+      retypeMath(host);
+
+      host.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('keydown', ev=>{
+          if(ev.key === 'Enter'){
+            document.querySelector('#btn-check')?.click();
+          }
+        });
+      });
+    },
+
+check(host){
+  const s = host.__state;
+
+  function checkNum(id, expected, tickId){
+    const raw = val(id);
+    const t = $('#'+tickId,host);
+    if(!raw){
+      tickTri(t,null);
+      return {answered:false,ok:false};
+    }
+    const x = parseNumber(raw);
+    const ok = !Number.isNaN(x) && near(x, expected);
+    tickTri(t,ok);
+    return {answered:true,ok};
+  }
+
+  function checkQ2a(){
+    const raw = val('m_q2a');
+    const t = $('#t_q2a',host);
+    if(!raw){
+      tickTri(t,null);
+      return {answered:false,ok:false};
+    }
+    const n = normTextSimple(raw);
+    const ok = n.includes('arithmetique');
+    tickTri(t,ok);
+    return {answered:true,ok};
+  }
+
+  // ---- Q2.b : relation de récurrence a_{n+1} = a_n + r (r avant/après, valeur + ou −, r symbolique accepté) ----
+  function checkQ2b(){
+    const raw = val('m_q2b');
+    const t = $('#t_q2b',host);
+    if(!raw){
+      tickTri(t,null);
+      return {answered:false,ok:false};
+    }
+    let norm = normRelation(raw);
+
+    // unifier u_n / u_{n+1} vers a_n / a_{n+1}
+    norm = norm
+      .replace(/u_n/g,'a_n')
+      .replace(/u_\{n\+1\}/g,'a_{n+1}')
+      .replace(/u_{n\+1}/g,'a_{n+1}')
+      .replace(/u\(\s*n\+1\s*\)/g,'a_{n+1}')
+      .replace(/u\(\s*n\s*\)/g,'a_n');
+
+    const r = s.r;
+    const rStr = String(r);
+    const rAbs = Math.abs(r);
+
+    const allowed = new Set();
+
+    // Formes avec la valeur numérique de r
+    // a_{n+1} = a_n + r
+    allowed.add(`a_{n+1}=a_n${r>=0?'+':''}${rStr}`);
+    // a_{n+1} = r + a_n
+    allowed.add(`a_{n+1}=${rStr}${r>=0?'+':''}a_n`);
+    // a_{n+1} - a_n = r
+    allowed.add(`a_{n+1}-a_n=${rStr}`);
+
+    // variantes écrites directement avec ± |r|
+    if(r>0){
+      allowed.add(`a_{n+1}=a_n+${rAbs}`);
+      allowed.add(`a_{n+1}=+${rAbs}+a_n`);
+    }else if(r<0){
+      allowed.add(`a_{n+1}=a_n-${rAbs}`);
+      allowed.add(`a_{n+1}=-${rAbs}+a_n`);
+    }
+
+    // Formes symboliques avec la lettre r
+    allowed.add('a_{n+1}=a_n+r');
+    allowed.add('a_{n+1}=r+a_n');
+    allowed.add('a_{n+1}-a_n=r');
+
+    const ok = allowed.has(norm);
+    tickTri(t,ok);
+    return {answered:true,ok};
+  }
+
+  // ---- Q2.c : a_n = a0 + r n (ordre libre, multiplications explicites ou implicites) ----
+  function checkQ2c(){
+    const raw = val('m_q2c');
+    const t = $('#t_q2c',host);
+    if(!raw){
+      tickTri(t,null);
+      return {answered:false,ok:false};
+    }
+
+    const r  = s.r;
+    const a0 = s.a0;
+    const ans = normAnFormula(raw);
+
+    const a0Str = String(a0);
+    const rStr  = String(r);
+
+    const exps = [];
+
+    // Formes avec valeurs numériques
+    exps.push(`a_n=${a0Str}+${rStr}n`);   // a_n = a0 + r n
+    exps.push(`a_n=${rStr}n+${a0Str}`);   // a_n = r n + a0
+    exps.push(`a_n=${a0Str}+n${rStr}`);   // a_n = a0 + n r
+    exps.push(`a_n=n${rStr}+${a0Str}`);   // a_n = n r + a0
+
+    // Formes symboliques avec a0 et r
+    exps.push('a_n=a0+rn');
+    exps.push('a_n=rn+a0');
+    exps.push('a_n=a0+n*r');
+    exps.push('a_n=n*r+a0');
+
+    const ok = exps.some(e => normAnFormula(e) === ans);
+    tickTri(t,ok);
+    return {answered:true,ok};
+  }
+
+  function checkQ3(){
+    const raw = val('m_q3');
+    const t = $('#t_q3',host);
+    if(!raw){
+      tickTri(t,null);
+      return {answered:false,ok:false};
+    }
+    const n = normTextSimple(raw);
+    let ok = false;
+    if(s.r > 0){
+      ok = n.includes('croiss');
+    }else if(s.r < 0){
+      ok = n.includes('decroiss');
+    }
+    tickTri(t,ok);
+    return {answered:true,ok};
+  }
+
+  // ---- Q4.a : B3 ; on REFUSE toute réponse ne commençant pas par "=" ----
+  function checkQ4a(){
+  const raw = val('m_q4a');
+  const t = $('#t_q4a',host);
+  if(!raw){
+    tickTri(t,null);
+    return {answered:false,ok:false};
+  }
+
+  const trimmed = raw.trim();
+  const hasEq = trimmed.startsWith('=');
+
+  // lettres majuscules imposées pour la colonne B
+  const upperOk = hasOnlyUpperCols(raw, ['B']);
+
+  const r = s.r;
+  const absR = Math.abs(r);
+  const core = normSheet(raw);   // ex: "B2+5", "5+B2", "B2-3", "-3+B2"
+
+  const allowed = new Set();
+  if(r > 0){
+    allowed.add(`B2+${absR}`);   // =B2+5
+    allowed.add(`${absR}+B2`);   // =5+B2
+  }else if(r < 0){
+    allowed.add(`B2-${absR}`);   // =B2-3
+    allowed.add(`-${absR}+B2`);  // =-3+B2
+  }
+
+  const ok = hasEq && upperOk && allowed.has(core);
+  tickTri(t,ok);
+  return {answered:true,ok};
+}
+
+
+  // ---- Q4.b : B4 ; même règle sur le "=" ----
+  function checkQ4b(){
+  const raw = val('m_q4b');
+  const t = $('#t_q4b',host);
+  if(!raw){
+    tickTri(t,null);
+    return {answered:false,ok:false};
+  }
+
+  const trimmed = raw.trim();
+  const hasEq = trimmed.startsWith('=');
+
+  // lettre B majuscule imposée
+  const upperOk = hasOnlyUpperCols(raw, ['B']);
+
+  const r = s.r;
+  const absR = Math.abs(r);
+  const core = normSheet(raw);   // "B3+5", "5+B3", etc.
+
+  const allowed = new Set();
+  if(r > 0){
+    allowed.add(`B3+${absR}`);
+    allowed.add(`${absR}+B3`);
+  }else if(r < 0){
+    allowed.add(`B3-${absR}`);
+    allowed.add(`-${absR}+B3`);
+  }
+
+  const ok = hasEq && upperOk && allowed.has(core);
+  tickTri(t,ok);
+  return {answered:true,ok};
+}
+
+
+  // ---- Q4.c : C3 ; même règle sur le "=" ----
+  function checkQ4c(){
+  const raw = val('m_q4c');
+  const t = $('#t_q4c',host);
+  if(!raw){
+    tickTri(t,null);
+    return {answered:false,ok:false};
+  }
+
+  const trimmed = raw.trim();
+  const hasEq = trimmed.startsWith('=');
+
+  // lettres B et C en majuscules (et pas b/c)
+  const upperOk = hasOnlyUpperCols(raw, ['B','C']);
+
+  const core = normSheet(raw);   // "C2+B3" ou "B3+C2"
+
+  const okCore = (core === 'C2+B3' || core === 'B3+C2');
+
+  const ok = hasEq && upperOk && okCore;
+  tickTri(t,ok);
+  return {answered:true,ok};
+}
+
+
+  // --- 6.a : programme Python seuil() ---
+  function checkProg(){
+    const tU0  = $('#t_py_u0',host);
+    const tCmp = $('#t_py_cmp',host);
+    const tUpd = $('#t_py_upd',host);
+
+    const rawU0  = val('py_u0');
+    const rawCmp = val('py_cmp');
+    const rawUpd = val('py_upd');
+
+    let anyAns = false, allOk = true;
+
+    // u0 = a0
+    if(!rawU0){
+      tickTri(tU0,null);
+    }else{
+      anyAns = true;
+      const x = parseNumber(rawU0);
+      const ok = !Number.isNaN(x) && near(x, s.a0);
+      tickTri(tU0, ok);
+      if(!ok) allOk = false;
+    }
+
+    // comparateur : < si r>0, > si r<0
+    const expectedCmp = s.r > 0 ? '<' : '>';
+    if(!rawCmp){
+      tickTri(tCmp,null);
+    }else{
+      anyAns = true;
+      const c = normPy(rawCmp);
+      const ok = (c===expectedCmp || c===expectedCmp+'=');
+      tickTri(tCmp, ok);
+      if(!ok) allOk = false;
+    }
+
+    // mise à jour : u = u + r (ou u = u - |r|)
+    if(!rawUpd){
+      tickTri(tUpd,null);
+    }else{
+      anyAns = true;
+      let u = normPy(rawUpd);
+      u = u.replace(/^u=/,''); // au cas où l’élève retape "u = ..."
+      const r = s.r;
+      const absR = Math.abs(r);
+      const forms = new Set();
+      if(r>0){
+        forms.add(`u+${r}`);
+        forms.add(`u+${absR}`);
+      }else if(r<0){
+        forms.add(`u-${absR}`);
+        forms.add(`u+${r}`);
+      }
+      const ok = forms.has(u);
+      tickTri(tUpd, ok);
+      if(!ok) allOk = false;
+    }
+
+    return {answered:anyAns, ok:allOk};
+  }
+
+  // ---- Agrégation du score ----
+  let anyAnswered = false;
+  let allOk = true;
+
+  const c1  = checkNum('m_a1',   s.a1,           't_a1');
+  const c2  = checkNum('m_a2',   s.a2,           't_a2');
+  const c3  = checkNum('m_y1',   s.year0+1,      't_y1');
+  const c4  = checkNum('m_y2',   s.year0+2,      't_y2');
+  const c5  = checkNum('m_Stot', s.S,            't_Stot');
+  const c6  = checkNum('m_np',   s.np,           't_np');
+  const c7  = checkNum('m_yearp',s.yearP,        't_yearp');
+  const c8  = checkQ2a();
+  const c9  = checkQ2b();
+  const c10 = checkQ2c();
+  const c11 = checkQ3();
+  const c12 = checkQ4a();
+  const c13 = checkQ4b();
+  const c14 = checkQ4c();
+  const c15 = checkProg();   // 6.a
+
+  [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15].forEach(c=>{
+    if(c.answered){
+      anyAnswered = true;
+      if(!c.ok) allOk = false;
+    }
+  });
+
+  if(anyAnswered){
+    SCORE[1]++;
+    if(allOk) SCORE[0]++;
+    scoreSet(SCORE[0],SCORE[1]);
+  }
+
+  return allOk;
+},
+
+
+
+    solution(host){
+      const s = host.__state;
+      const W = $('#steps',host);
+      const texInt = x => String(x).replace(/-/g, UMINUS);
+
+      function pgcd(a,b){
+        a = Math.abs(a); b = Math.abs(b);
+        while(b){ const t=b; b = a % b; a = t; }
+        return a || 1;
+      }
+
+      function cleanSigns(str){
+        return str
+          .replace(/\+\s*−/g, ' − ')
+          .replace(/−\s*−/g, ' + ');
+      }
+
+      const a0 = s.a0;
+      const r  = s.r;
+      const a1 = s.a1;
+      const a2 = s.a2;
+
+      const nMax   = s.yearDiff;
+      const Nterms = s.Nterms;
+      const aN     = s.aN;
+      const S      = s.S;
+
+      const num = s.target - a0;
+      const den = r;
+      const g = pgcd(num,den);
+      const numRed = num/g;
+      const denRed = den/g;
+      const isInt = denRed === 1;
+
+      const fracTex = isInt
+        ? texInt(numRed)
+        : `\\dfrac{${texInt(numRed)}}{${texInt(denRed)}}`;
+
+      const year1 = s.year0 + 1;
+      const year2 = s.year0 + 2;
+
+      const isInc = r > 0;
+      const ineqSymbol = isInc ? '\\geq' : '\\leq';
+      const cmpPhrase  = isInc ? 'supérieur ou égal à' : 'inférieur ou égal à';
+
+      const rAbs = Math.abs(r);
+      const opExcel = r>=0 ? '+' : '−';
+
+      let html = `
+        <div class="steps">
+          <!-- 1. a1, a2 et années (tableau 2 colonnes) -->
+          <div class="step">
+            <strong>1.</strong>
+            D’après l’énoncé on a \\(a_0 = ${texInt(a0)}\\) (en ${s.year0}).<br>
+
+            <table style="border-collapse:collapse;width:50%;font-size:.95rem">
+              <tr>
+                <td>
+                  \\(a_1 = a_0 + ${texInt(r)} \\)<br>
+                  \\(a_1 = ${texInt(a0)} + ${texInt(r)} \\)<br>
+                  \\(a_1 = ${texInt(a1)}\\)<br>
+                  Année : ${year1}
+                </td>
+                <td>
+                  \\(a_2 = a_1 + ${texInt(r)}\\)<br>
+                  \\(a_2= ${texInt(a1)} + ${texInt(r)}\\)<br>
+                  \\(a_2= ${texInt(a2)}\\)<br>
+                  Année : ${year2}
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- 2.a Nature -->
+          <div class="step">
+            <strong>2.a</strong>
+            Pour passer d’un terme au suivant, on «ajoute» toujours \\(r = ${texInt(r)}\\).<br>
+            Ainsi la suite \\((a_n)\\) est arithmétique de raison \\(r = ${texInt(r)}\\) et de premier terme \\(a_0 = ${texInt(a0)}\\).
+          </div>
+
+          <!-- 2.b Relation de récurrence -->
+          <div class="step">
+            <strong>2.b</strong>
+            Comme il s’agit d’une suite arithmétique de raison \\(r = ${texInt(r)}\\), la relation de récurrence est pour tout entier \\(n\\) :<br>
+            \\(a_{n+1} = a_n + r\\).<br>
+            \\(a_{n+1} = a_n + ${texInt(r)}\\).
+          </div>
+
+          <!-- 2.c Forme explicite -->
+          <div class="step">
+            <strong>2.c</strong>
+            Pour une suite arithmétique de raison \\(r = ${texInt(r)}\\) et de premier terme \\(a_0 = ${texInt(a0)}\\), on a pour tout entier \\(n\\) :<br>
+            \\(a_n = a_0 + rn\\).<br>
+            \\(a_n = ${texInt(a0)} + ${texInt(r)}n\\).
+          </div>
+
+          <!-- 3. Sens de variation -->
+          <div class="step">
+            <strong>3.</strong>
+            Le signe de la raison \\(r\\) donne le sens de variation :<br>
+            ${
+              isInc
+              ? `Comme \\(r = ${texInt(r)} &gt; 0\\), la suite \\((a_n)\\) est <strong>strictement croissante</strong> sur \\(\\mathbb N\\).`
+              : `Comme \\(r = ${texInt(r)} &lt; 0\\), la suite \\((a_n)\\) est <strong>strictement décroissante</strong> sur \\(\\mathbb N\\).`
+            }
+          </div>
+
+          <!-- 4. Feuille de calcul -->
+          <div class="step">
+            <strong>4.</strong>
+            Dans la feuille de calcul, la colonne B contient les termes de la suite et la colonne C les sommes cumulées.<br>
+            On a déjà en ligne 2 : \\(a_0 = ${texInt(a0)}\\).<br>
+            <ul>
+              <li>Pour calculer \\(a_1\\), on utilise la relation de récurrence \\(a_{n+1} = a_n + ${texInt(r)}\\).<br>
+                Dans la cellule <strong>B3</strong>, on tape donc : <code>=B2 ${opExcel} ${rAbs}</code>.</li>
+              <li>En recopiant cette formule vers le bas, la cellule <strong>B4</strong> devient : <code>=B3 ${opExcel} ${rAbs}</code>.</li>
+              <li>Pour la somme, on additionne la somme précédente et le nouveau terme :<br>
+                dans la cellule <strong>C3</strong>, on tape : <code>=C2+B3</code> (puis on recopie vers le bas).</li>
+            </ul>
+          </div>
+
+          <!-- 5. Somme -->
+          <div class="step">
+            <strong>5.</strong>
+            On cherche la somme reçue de ${s.year0} à ${s.totalYear} inclus.<br>
+            Le dernier terme utilisé est celui de l’année ${s.totalYear} : \\(${s.totalYear} - ${s.year0} = ${nMax}\\), donc le dernier terme est \\(a_{${nMax}}\\).<br>
+            Le nombre de termes est donc \\(N = ${s.totalYear} - ${s.year0} + 1 = ${Nterms}\\).<br>
+            Calcul du dernier terme :<br>
+            \\(a_{${nMax}} = ${texInt(a0)} + ${texInt(r)}\\times ${nMax}\\)<br>
+             \\(a_{${nMax}} = ${texInt(a0)} + ${texInt(r*nMax)}\\)<br>
+             \\(a_{${nMax}} = ${texInt(aN)}\\)<br>
+            La somme cherchée est alors, pour une suite arithmétique :<br>
+            \\(S = N \\times \\dfrac{a_0 + a_{${nMax}}}{2}\\)<br>
+               \\(S= ${Nterms} \\times \\dfrac{${texInt(a0)} + ${texInt(aN)}}{2}\\)<br>
+               \\(S= ${texInt(S)}\\)<br>
+            Au 31 décembre ${s.totalYear}, ${s.name} a donc reçu au total ${texInt(S)}€.
+          </div>
+
+                   <!-- 6.a Programme Python seuil() -->
+          <div class="step">
+            <strong>6.a</strong>
+            On peut programmer la recherche de ce rang seuil avec la fonction suivante&nbsp;:<br>
+<pre><code>def seuil():
+    n = 0
+    u = ${texInt(a0)}
+    while u ${isInc ? '&lt;' : '&gt;'} ${texInt(s.target)}:
+        n = n + 1
+        u = u ${r>0 ? '+ ' : '− '}${texInt(Math.abs(r))}
+    return n</code></pre>
+            Ce programme renvoie précisément le rang \\(n_p\\) cherché.
+          </div>
+
+          <!-- 6.b Résolution de l’inéquation -->
+          <div class="step">
+            <strong>6.b</strong>
+            On cherche le plus petit entier \\(n_p\\) tel que \\(a_{n_p} ${ineqSymbol} ${texInt(s.target)}\\).<br>
+            On résout l’inéquation générale :<br>
+            ${
+              isInc
+              ? `
+                \\(a_n \\geq ${texInt(s.target)}\\)<br>
+                \\(  ${texInt(a0)} + ${texInt(r)}n \\geq ${texInt(s.target)}\\)<br>
+                \\(  ${texInt(r)}n \\geq ${texInt(num)}\\)<br>
+                \\(  n \\geq \\dfrac{${texInt(num)}}{${texInt(den)}} \\)<br>
+                \\(  n \\geq  ${s.np}\\)`
+              : `
+                \\(a_n \\leq ${texInt(s.target)}\\)<br>
+                \\(  ${texInt(a0)} + ${texInt(r)}n \\leq ${texInt(s.target)}\\)<br>
+                \\(  ${texInt(r)}n \\leq ${texInt(num)}\\)<br>
+                Comme on divise par \\(${texInt(r)} &lt; 0\\), on change le sens de l’inégalité :<br>
+                \\(n \\geq \\dfrac{${texInt(num)}}{${texInt(den)}} \\)<br>
+                \\(  n \\geq  ${s.np}\\)`
+            }<br>
+            Comme \\(n\\) est un entier naturel, on prend le plus petit entier \\(n_p = ${s.np}\\).<br>
+            L’année correspondante est alors \\(${s.year0} + ${s.np} = ${s.yearP}\\).<br>
+            À partir de l’année ${s.yearP}, ${s.name} reçoit un montant ${cmpPhrase} ${texInt(s.target)}€.
+          </div>
+
+<br>
+          <!-- Vérification calculatrice -->
+          <div class="step">
+            À la calculatrice (mode « RECUR »), on peut vérifier :<br>
+            ${
+              isInc
+              ? `\\(a_{${s.np-1}} = ${texInt(s.aBefore)} &lt; ${texInt(s.target)}\\) et
+                 \\(a_{${s.np}} = ${texInt(s.aAt)} \\geq ${texInt(s.target)}\\).`
+              : `\\(a_{${s.np-1}} = ${texInt(s.aBefore)} &gt; ${texInt(s.target)}\\) et
+                 \\(a_{${s.np}} = ${texInt(s.aAt)} \\leq ${texInt(s.target)}\\).`
+            }
+          </div>
+        </div>
+      `;
+
+      html = cleanSigns(html);
+
+      W.innerHTML = html;
+      retypeMath(W);
+    }
+
+  });
+
+
+  return L;
+}
+
+/* ===== REGISTRY & UI ===== */
+const REGISTRY = makeExos();
+window.REGISTRY = REGISTRY; // requis par le kit PDF
+
+function populateSelectSafe(){
+  const sel = document.querySelector('#exo-select');
+  if(!sel || !window.REGISTRY) return;
+  const current = sel.value;
+  sel.innerHTML = '';
+  for(const e of window.REGISTRY){
+    const opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = e.title;
+    sel.appendChild(opt);
+  }
+  if (current && Array.from(sel.options).some(o => o.value === current)){
+    sel.value = current;
+  } else {
+    sel.selectedIndex = 0;
+  }
+}
+
+function renderActiveSafe(source=''){
+  const host = document.querySelector('#host');
+  const sel  = document.querySelector('#exo-select');
+  try{
+    const def = window.REGISTRY.find(e => e.id === sel.value);
+    if(!def) throw new Error('Exercice introuvable: ' + sel.value);
+    host.dataset.active = def.id;
+    def.render(host, def.gen());
+    host.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ document.querySelector('#btn-check').click(); } });
+    });
+    if(window.MathJax) retypeMath(host);
+  }catch(e){
+    console.error('renderActive failed from', source, e);
+    host.innerHTML = `<div class="steps" style="color:#b00020">
+      <b>Erreur d’affichage :</b> ${e.message}<br>Ouvre la console pour le détail.
+    </div>`;
+  }
+}
+
+function attachSelectHandlers(){
+  const sel = document.querySelector('#exo-select');
+  if(!sel || sel.__BOUND__) return;
+  const rerender = (src)=>{ SCORE=[0,0]; scoreSet(0,0); renderActiveSafe(src); };
+  sel.addEventListener('change', ()=>rerender('select.change'));
+  sel.addEventListener('input',  ()=>rerender('select.input'));
+  sel.__BOUND__ = true;
+}
+
+window.addEventListener('load', ()=>{
+  populateSelectSafe();
+  attachSelectHandlers();
+  renderActiveSafe('boot');
+  scoreSet(0,0);
+
+  // boutons
+  document.querySelector('#btn-new')  ?.addEventListener('click', ()=>renderActiveSafe('btn-new'));
+  document.querySelector('#btn-reset')?.addEventListener('click', ()=>renderActiveSafe('btn-reset'));
+
+  document.querySelector('#btn-check')?.addEventListener('click', ()=>{
+    const host=document.querySelector('#host');
+    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+    if(!def || !def.check) return;
+    def.check(host);
+  });
+
+  document.querySelector('#btn-sol')?.addEventListener('click', ()=>{
+    const host=document.querySelector('#host');
+    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+    if(!def || !def.solution) return;
+    def.solution(host);
+  });
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  populateSelectSafe();
+  attachSelectHandlers();
+  renderActiveSafe('boot');
+  scoreSet(0,0);
+
+  (function waitForPDF(){
+    if (window.ExoPDF?.init && Array.isArray(window.REGISTRY) && window.REGISTRY.length){
+      ExoPDF.init({
+        title: '1ère - Suites arithmétiques - Exercice bilan ',
+        max: 50,
+        mountAfterSelector: '#info-saisie',
+        autoPrint: false
+      });
+    } else {
+      setTimeout(waitForPDF, 60);
+    }
+  })();
+});
+
+// --- (2) PATCHS qui évitent des effets de bord lors du rendu PDF ---
+(function(){
+  const def = (window.REGISTRY||[]).find(d=>d.id==='ex2_recurrence_1');
+  if(def && typeof def.check==='function'){
+    const _old = def.check;
+    def.check = function(host){
+      const res = _old.call(this, host);
+      const t4 = host.querySelector('#t4'); if(t4){ t4.textContent=''; t4.classList.remove('ok','ko'); }
+      return res;
+    };
+  }
+})();
+
+(function(){
+  const def = (window.REGISTRY||[]).find(d=>d.id==='ex2_recurrence_1');
+  if(def && typeof def.solution==='function'){
+    const _old = def.solution;
+    def.solution = function(host){
+      const W = host.querySelector('#steps');
+      if(!W){ const box=document.createElement('div'); box.id='steps'; host.appendChild(box); }
+      return _old.call(this, host);
+    };
+  }
+})();
+})();
+</script>
+<!-- === Console Python pour l’exercice de seuil arithmétique === -->
+<style>
+#py-panel{
+  position: fixed;
+  right: 16px;
+  bottom: auto;
+  width: 680px;
+  max-width: 95vw;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 12px 22px rgba(0,0,0,.14);
+  display: none;
+  flex-direction: column;
+  z-index: 9999;
+  max-height: 80vh;
+}
+#py-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px;border-bottom:1px solid #eee;
+}
+#py-head .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.35rem .6rem;cursor:pointer}
+#py-head .btn:active{transform:translateY(1px)}
+#py-status{margin-left:auto}
+#py-sections{display:flex;flex-direction:column;min-height:0}
+#py-editor{
+  width:100%;height:230px;min-height:120px;resize:vertical;
+  border:none;border-bottom:1px solid #eee;
+  padding:10px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+  outline:none;
+}
+#py-repl{display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid #eee}
+#py-input{
+  flex:1;border:1px solid #ddd;border-radius:8px;padding:8px 10px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+}
+#py-out{
+  flex:1 1 auto;min-height:120px;overflow:auto;padding:10px;
+  background:#0e1116;color:#d6deeb;
+  border-bottom-left-radius:12px;border-bottom-right-radius:12px;
+  white-space:pre-wrap;
+}
+@media (max-width:720px){ #py-panel{width:96vw} }
+</style>
+
+<script>
+(function(){
+  // Bouton dans la barre de contrôle
+  const bar = document.querySelector('.controls');
+  if(bar && !document.getElementById('py-open')){
+    const btn=document.createElement('button');
+    btn.id='py-open'; btn.className='btn'; btn.textContent='▶️ Console Python';
+    bar.insertBefore(btn, bar.children[1]||null);
+  }
+
+  // Panneau
+  const panel=document.createElement('div');
+  panel.id='py-panel';
+  panel.innerHTML=`
+    <div id="py-head">
+      <strong>Éditeur / Console / Sortie</strong>
+      <button id="py-fill" class="btn">🧩 Préremplir depuis l’exercice</button>
+      <button id="py-run"  class="btn">▶️ Exécuter le code</button>
+      <button id="py-eval" class="btn">⏎ Eval (ligne console)</button>
+      <button id="py-clear" class="btn">🧹 Effacer sortie</button>
+      <div id="py-status">Pyodide : chargement…</div>
+      <button id="py-close" class="btn">✖</button>
+    </div>
+    <div id="py-sections">
+      <textarea id="py-editor" spellcheck="false"
+        placeholder="# Écris ton programme ici (def seuil(): ...)."></textarea>
+      <div id="py-repl">
+        <span><strong>Console</strong> › </span>
+        <input id="py-input" placeholder="ex: seuil() ou print(seuil())">
+      </div>
+      <pre id="py-out">[sortie]</pre>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const $ = sel => document.querySelector(sel);
+
+  function placePanel(){
+    const controls = document.querySelector('.controls');
+    if(!controls) return;
+    const r = controls.getBoundingClientRect();
+    const top = Math.round(r.bottom + 8 + window.scrollY);
+    panel.style.top = top + 'px';
+    const free = window.innerHeight - (r.bottom + 8);
+    panel.style.maxHeight = Math.max(260, free - 16) + 'px';
+  }
+
+  // Pyodide
+  const PYODIDE_BASES = [
+    'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+    'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full/'
+  ];
+  let pyodide = null;
+  async function ensurePy(){
+    if(pyodide) return pyodide;
+    async function loadFrom(base){
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src=base+'pyodide.js?v='+Date.now();
+        s.crossOrigin='anonymous';
+        s.onload=resolve;
+        s.onerror=reject;
+        document.head.appendChild(s);
+      });
+      return await loadPyodide({indexURL:base});
+    }
+    const status = $('#py-status'); let lastErr=null;
+    for(const base of PYODIDE_BASES){
+      try{
+        if(status) status.textContent='Pyodide : chargement… ('+new URL(base).host+')';
+        pyodide = await loadFrom(base);
+        if(status) status.textContent='Pyodide : prêt';
+        return pyodide;
+      }catch(e){
+        lastErr=e;
+        if(status) status.textContent='Échec Pyodide ('+(e?.message||'')+')';
+      }
+    }
+    throw lastErr || new Error('Impossible de charger Pyodide');
+  }
+
+  // Ouverture / fermeture
+  $('#py-open')?.addEventListener('click', async ()=>{
+    const btn = $('#py-open');
+    const shown = panel.style.display === 'flex';
+    if(shown){
+      panel.style.display='none';
+      btn.textContent='▶️ Console Python';
+    }else{
+      placePanel();
+      panel.style.display='flex';
+      btn.textContent='⏹ Fermer la console';
+      await ensurePy();
+    }
+  });
+  $('#py-close')?.addEventListener('click', ()=>{ panel.style.display='none'; });
+
+  let _placeTO=null;
+  function schedulePlace(){ clearTimeout(_placeTO); _placeTO=setTimeout(placePanel,20); }
+  window.addEventListener('scroll', schedulePlace,{passive:true});
+  window.addEventListener('resize', schedulePlace);
+
+  // Exécution
+  function appendOut(txt){
+    const el=$('#py-out');
+    if(el.textContent.trim()==='[sortie]') el.textContent='';
+    el.textContent += (el.textContent?'\n':'') + txt;
+    el.scrollTop = el.scrollHeight;
+  }
+  async function pyExec(code){
+    await ensurePy();
+    let stdout='', stderr='';
+    pyodide.setStdout({batched:msg=>{stdout+=msg;}});
+    pyodide.setStderr({batched:msg=>{stderr+=msg;}});
+    try{
+      await pyodide.runPythonAsync(code);
+      if(stdout.trim()) appendOut(stdout.trim());
+      if(stderr.trim()) appendOut('[stderr]\\n'+stderr.trim());
+    }catch(e){
+      appendOut('[Erreur] '+(e?.message||String(e)));
+    }
+  }
+
+  $('#py-run').addEventListener('click', async ()=>{
+    const code=$('#py-editor').value;
+    await pyExec(code);
+  });
+
+  // Console REPL
+  const hist=[]; let hIdx=-1;
+  async function runConsoleLine(){
+    const line=$('#py-input').value.trim();
+    if(!line) return;
+    hist.push(line); hIdx=hist.length;
+    $('#py-input').value='';
+    const wrapper = `
+import builtins
+_res_ = None
+try:
+    _res_ = eval(${JSON.stringify(line)})
+    if _res_ is not None:
+        print(repr(_res_))
+except SyntaxError:
+    exec(${JSON.stringify(line)})
+`;
+    await pyExec(wrapper);
+  }
+  $('#py-eval').addEventListener('click', async ()=>{ await runConsoleLine(); });
+  $('#py-input').addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); await runConsoleLine(); }
+    else if(e.key==='ArrowUp'){
+      if(hist.length){ hIdx=Math.max(0,hIdx-1); $('#py-input').value=hist[hIdx]; e.preventDefault(); }
+    }else if(e.key==='ArrowDown'){
+      if(hist.length){ hIdx=Math.min(hist.length,hIdx+1); $('#py-input').value=(hIdx>=hist.length?'':hist[hIdx]); e.preventDefault(); }
+    }
+  });
+
+  $('#py-clear').addEventListener('click', ()=>{ $('#py-out').textContent='[sortie]'; });
+
+  // Préremplir depuis l’exercice actif (ex_modelisation_arith)
+  function getVal(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+
+  function codeFromExercise(){
+    const host=document.querySelector('#host');
+    const active=host?.dataset?.active||'';
+    const state=host?.__state||{};
+    if(active==='ex_modelisation_arith'){
+      const a0 = state.a0;
+      const r  = state.r;
+      const target = state.target;
+
+      let u0  = getVal('py_u0') || String(a0);
+      let cmp = getVal('py_cmp');
+      if(!cmp){ cmp = r>0 ? '<' : '>'; }
+
+      let upd = getVal('py_upd');
+      if(!upd){
+        const absR = Math.abs(r);
+        upd = r>0 ? `u + ${absR}` : `u - ${absR}`;
+      }
+      upd = upd.replace(/^\s*u\s*=\s*/,'');
+
+      return (
+`def seuil():
+    n = 0
+    u = ${u0}
+    while u ${cmp} ${target}:
+        n = n + 1
+        u = ${upd}
+    return n
+`);
+    }
+    return '# Aucun exercice compatible pour le préremplissage.';
+  }
+
+  $('#py-fill').addEventListener('click', ()=>{
+    $('#py-editor').value = codeFromExercise();
+  });
+
+  // Petit confort d’édition (Tab, indentation, Ctrl+Enter)
+  (function enhanceEditor(){
+    const ta=$('#py-editor');
+    function insert(text){
+      const s=ta.selectionStart,e=ta.selectionEnd;
+      ta.setRangeText(text,s,e,'end');
+    }
+    function curLine(){
+      const pos=ta.selectionStart,before=ta.value.slice(0,pos);
+      const ls=before.lastIndexOf('\n')+1;
+      const line=before.slice(ls);
+      const indent=(line.match(/^\s*/)||[''])[0];
+      return {line,indent};
+    }
+    function indentSel(add=true){
+      const start=ta.selectionStart,end=ta.selectionEnd,v=ta.value;
+      const from=v.lastIndexOf('\n',start-1)+1;
+      const to=v.indexOf('\n',end); const endPos=(to===-1?v.length:to);
+      const lines=v.slice(from,endPos).split('\n');
+      const pad='    ';
+      const changed=lines.map(s=> add? pad+s : (s.startsWith('    ')?s.slice(4):s.replace(/^ {1,3}/,''))).join('\n');
+      ta.value=v.slice(0,from)+changed+v.slice(endPos);
+      const delta=changed.length-(endPos-from);
+      ta.setSelectionRange(start+(add?4:0), end+delta);
+    }
+    ta.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#py-run').click(); return; }
+      if(e.key==='Tab'){ e.preventDefault(); if(ta.selectionStart!==ta.selectionEnd) indentSel(!e.shiftKey); else insert('    '); return; }
+      if(e.key==='Enter'){ e.preventDefault(); const {line,indent}=curLine(); const more=/:\s*$/.test(line)?'    ':''; insert('\n'+indent+more); return; }
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>

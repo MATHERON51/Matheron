@@ -1,0 +1,2006 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1ère - Suites géométrique - Exercice bilan </title>
+
+<!-- mêmes feuilles que ton modèle -->
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;line-height:1.5}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+.wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.controls select{border:1px solid #ccc;border-radius:8px;padding:.45rem .55rem}
+.controls .btn:active{transform:translateY(1px)}
+.controls .score{margin-left:auto;font-weight:700}
+.small{font-size:.92rem;color:#555}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.row.norepere{grid-template-columns:1fr}
+.hint{color:#444;font-style:italic;margin:.25rem 0}
+.steps{margin:.45rem 0 0 .15rem;padding:.6rem .7rem;background:#f6f6f6;border:1px dashed #e3e3e3;border-radius:8px}
+.step{margin:.25rem 0}
+
+.kbd{padding:.06rem .35rem;border:1px solid #ccc;border-radius:6px;background:#fff}
+.tick{display:none;margin-left:.35rem;font-weight:700}
+.tick.ok{color:#11823b;display:inline}
+.tick.ko{color:#b00020;display:inline}
+
+/* Traits de fraction plus visibles à l’écran et au PDF */
+.frac{display:inline-flex;flex-direction:column;line-height:1}
+.frac>.num,.frac>.den{display:block;text-align:center;padding:0 .2em}
+.frac>.num{border-bottom:1.5px solid currentColor}
+@media print{
+  .controls,.header,.kbd-host,.hide-print{display:none!important}
+  .card{box-shadow:none}
+  .frac>.num{border-bottom:0;position:relative}
+  .frac>.num::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:currentColor}
+}
+
+/* Lignes de réponse imprimables */
+.blank-wrap{ display:inline-block; vertical-align:baseline }
+.blank-wrap .blank{ display:none; height:1.4em; border-bottom:2px solid #000; vertical-align:baseline; }
+@media print{
+  .blank-wrap input{ display:none !important; }
+  .blank-wrap .blank{ display:inline-block !important; }
+}
+
+.tbl-suites{
+  border-collapse:collapse;
+  border:1px solid #ccc;
+}
+.tbl-suites th,
+.tbl-suites td{
+  border:1px solid #ccc;
+  padding:4px 6px;
+}
+
+ul.no-bullet{
+  list-style:none;
+  padding-left:0;
+  margin-left:0;
+}
+
+/* Grille façon tableur avec indices de lignes/colonnes */
+table.sheet{border-collapse:collapse;font-size:.95rem}
+.sheet th,.sheet td{border:1px solid #cfd6e4;padding:.25rem .55rem;min-width:46px;text-align:center}
+.sheet thead th{background:#f2f5fb;font-weight:700}
+.sheet .corner{background:#eef2f9;width:34px;min-width:34px}
+.sheet .rhead{background:#f7f8fb;font-weight:600;width:34px}
+.sheet .colA{background:#fafafa;font-weight:600}
+.warn{ color:#b00020; font-size:.9rem; margin-left:.4rem }
+</style>
+
+<!-- MathJax comme dans ton modèle -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)'], ['$', '$']],
+    displayMath: [['\\[','\\]'], ['$$','$$']],
+    processEscapes: true
+  },
+  chtml: { matchFontHeight:false },
+  startup: { typeset: true }
+};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+
+<!-- mêmes libs partagées -->
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1ère - Suites géométrique - Exercice bilan </strong></h1>
+  </div>
+
+  <div class="wrap">
+    <!-- Barre de contrôle identique -->
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-sol" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <div class="score" id="score">Score : 0 / 0</div>
+    </div>
+
+    <!-- Hôte d’exercice -->
+    <div id="host" class="card" data-active="" data-state=""></div>
+
+    <!-- Bloc "Saisie & réponses acceptées" -->
+    <div class="card small" id="info-saisie">
+      <strong>Saisie & réponses acceptées :</strong>
+      <ul>
+        <li>Ecritures <em>toutes</em> acceptées
+          <code>u(n+1)=...</code>, <code>u_(n+1)=...</code>, <code>u_{n+1)=...</code>
+          (espaces, parenthèses/accolades, soulignés, <code>*</code> ou <code>×</code> sont normalisés).
+        </li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+(function(){
+"use strict";
+const UMINUS = '−';
+
+/* ===== Utilitaires génériques ===== */
+function $(sel,root){ return (root||document).querySelector(sel); }
+function $all(sel,root){ return Array.from((root||document).querySelectorAll(sel)); }
+function rint(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function choice(A){ return A[Math.floor(Math.random()*A.length)]; }
+function retypeMath(scope){
+  if(!window.MathJax) return;
+  if(MathJax.typesetPromise) MathJax.typesetPromise([scope||document]);
+  else if(MathJax.typeset)   MathJax.typeset([scope||document]);
+}
+function mkInput(id,w){
+  return `<span class="blank-wrap"><input id="${id}" style="width:${w||120}px;font-size:15px;padding:6px;border:1px solid #ddd;border-radius:8px"> <span class="blank" style="width:${(w||120)-14}px"></span></span>`;
+}
+function parseNumber(s){
+  if(s==null) return NaN;
+  s = String(s).trim().replace(/,/g,'.').replace(/\s+/g,'');
+  if(/^[-+]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return Number(s);
+  const m = s.match(/^([-+]?\d+)\/(\d+)$/);
+  if(m){ const a=+m[1], b=+m[2]; return b? a/b : NaN; }
+  const m2 = s.match(/^\\d?frac\{?\s*([-+]?\d+)\s*\}?\{?\s*(\d+)\s*\}?$/); // \frac{a}{b}
+  if(m2){ const a=+m2[1], b=+m2[2]; return b? a/b : NaN; }
+  return NaN;
+}
+
+/* Normalise une relation de type u_{n+1}=... */
+function normRelation(str){
+  if(str==null) return '';
+  let s = String(str).toLowerCase();
+
+  // espaces & commandes d'espacement LaTeX
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/\\(,|;|:|!|quad|qquad)/g,'');
+
+  // produits & signes
+  s = s.replace(/\\cdot/g,'');
+  s = s.replace(/×|\*/g,'');
+  s = s.replace(/[−–—]/g,'-');
+  s = s.replace(/\+\-/g,'-').replace(/\-\+/g,'-').replace(/\-\-/g,'+');
+
+  // normaliser les écritures de u(...) et a(...)
+  s = s.replace(/u_\(([^)]+)\)/g,'u_{$1}');
+  s = s.replace(/u\(([^)]+)\)/g,'u_{$1}');
+  s = s.replace(/u_\{([^}]+)\)/g,'u_{$1}');
+  s = s.replace(/u_\{([a-z])\}/g,'u_$1');
+
+  s = s.replace(/a_\(([^)]+)\)/g,'a_{$1}');
+  s = s.replace(/a\(([^)]+)\)/g,'a_{$1}');
+  s = s.replace(/a_\{([^}]+)\)/g,'a_{$1}');
+  s = s.replace(/a_\{([a-z])\}/g,'a_$1');
+
+  // indices {n+1} sans espaces
+  s = s.replace(/a_\{n\+1\}/g,'a_{n+1}');
+  s = s.replace(/u_\{n\+1\}/g,'u_{n+1}');
+
+  return s;
+}
+
+/* Normalisation pour formules de tableur */
+function normSheet(str){
+  if(str==null) return '';
+  let s = String(str);
+  s = s.replace(/\s+/g,'');       // on enlève les espaces
+  s = s.replace(/[−–—]/g,'-');
+  s = s.replace(/\+\(-/g,'-');    // B2+(-3) -> B2-3
+  s = s.replace(/\)/g,'');
+  s = s.toUpperCase();            // comparaison en majuscules
+  if(s.startsWith('=')) s = s.slice(1); // on enlève le '=' pour comparer
+  return s;
+}
+
+function hasOnlyUpperCols(raw, cols){
+  const txt = String(raw);
+  const hasUpper = cols.some(c => txt.includes(c));
+  const hasLower = cols.some(c => txt.includes(c.toLowerCase()));
+  return hasUpper && !hasLower;
+}
+
+function normPy(str){
+  if(str==null) return '';
+  return String(str)
+    .toLowerCase()
+    .replace(/[ \t]/g,'')
+    .replace(/[−–—]/g,'-')
+    .replace(/\u00A0/g,'');
+}
+
+function near(a,b,eps){ return Math.abs(a-b) <= (eps||1e-9); }
+function parseList(s){ return String(s).split(/[;,]/).map(t=>parseNumber(t)).filter(v=>!Number.isNaN(v)); }
+// ✓ / ✗ / neutre (champ vide)
+function tickTri(el, state){
+  if(!el) return;
+  el.classList.remove('ok','ko');
+  if(state===true){ el.classList.add('ok'); el.textContent='✓'; }
+  else if(state===false){ el.classList.add('ko'); el.textContent='✗'; }
+  else { el.textContent=''; }
+}
+
+function scoreSet(a,b){ const s=$("#score"); if(s) s.textContent = `Score : ${a} / ${b}`; }
+let SCORE=[0,0];
+function val(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
+
+/* ===== Helpers affichage LaTeX ===== */
+function fmtSigned(k){
+  if(k===0) return '';
+  const s = k<0 ? UMINUS : '+';
+  const a = Math.abs(k);
+  return ` ${s} ${a}`;
+}
+
+/* Grille façon tableur */
+function sheet3Cols(
+  headA="rang \\(n\\)",
+  headB="terme \\(a_n\\)",
+  headC="somme : \\(a_0+\\cdots+a_n\\)",
+  rows=[0,1,2,3,4],
+  b2Value=null,
+  c2Value=null,
+  b3Value=null
+){
+  const letters=['A','B','C'];
+  return `
+  <table class="sheet">
+    <thead>
+      <tr><th class="corner"></th>${letters.map(L=>`<th>${L}</th>`).join('')}</tr>
+      <tr><th class="rhead">1</th><th class="colA">${headA}</th><th>${headB}</th><th>${headC}</th></tr>
+    </thead>
+    <tbody>
+      ${rows.map((n,i)=>`
+        <tr>
+          <th class="rhead">${i+2}</th>
+          <td>${n}</td>
+          <td>${
+            i===0 && b2Value!==null ? b2Value :
+            i===1 && b3Value!==null ? b3Value :
+            ''
+          }</td>
+          <td>${i===0 && c2Value!==null ? c2Value : ''}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+function fmtVal(x){
+  // Si l'arrondi entier est exact
+  if (Math.abs(x - Math.round(x)) < 1e-9) {
+    return texInt(String(Math.round(x)));  // affichage entier
+  }
+  // Sinon affichage décimal arrondi à 2 chiffres
+  return texInt(Number(x.toFixed(2)).toString());
+}
+
+
+
+/* ===== BANQUE : 30 contextes paramétrés (15 r>0, 15 r<0) ===== */
+/* Tous les nombres sont randomisés dans gen() : year0, a0, r, totalYear, target */
+
+function makeExos(){
+  const L = [];
+  const UMINUS = '−';
+
+  /* ===== BANQUE : 30 contextes (15 q>1, 15 0<q<1) =====
+     - sign = +1  → taux positif  → q = 1 + t/100  > 1
+     - sign = -1  → taux négatif  → q = 1 - t/100  dans (0;1)
+     - rateMinAbs/rateMaxAbs : |taux| en %, entier
+  */
+
+  const BANK_GEO_MODEL = [
+    /* ===== q > 1 : croissance (taux > 0) ===== */
+    {
+      name:'Compte épargne d’Emma',
+      sign:+1,
+      yearMin:2010, yearMax:2022,
+      a0Min:800, a0Max:2000,
+      rateMinAbs:2, rateMaxAbs:6,
+      horizonMin:6, horizonMax:12,
+      intro: "En {YEAR0}, Emma dépose {A0} € sur un compte épargne rémunéré à {RABS} % d’intérêt par an. Chaque année, le capital est multiplié par le même nombre.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le capital (en euros) détenu par Emma à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le capital détenu par Emma sur ce compte",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR} inclus, on note \\(S\\) la somme des capitaux possédés par Emma à la fin de chaque année. Calculer \\(S\\).",
+      sumMeaning: "Cette valeur représente la somme de tous les capitaux observés en fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Capital de Loris',
+      sign:+1,
+      yearMin:2015, yearMax:2023,
+      a0Min:1500, a0Max:3000,
+      rateMinAbs:3, rateMaxAbs:8,
+      horizonMin:6, horizonMax:10,
+      intro: "En {YEAR0}, Loris place {A0} € sur un livret dont le taux d’intérêt annuel est de {RABS} %. Le capital est multiplié chaque année par le même facteur.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le capital de Loris (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le capital de Loris placé sur ce livret",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR} inclus, on s’intéresse à la somme \\(S\\) des capitaux de fin d’année. Calculer \\(S\\).",
+      sumMeaning: "Cette valeur représente la somme de tous les capitaux de Loris à la fin de chaque année, de {YEAR0} à {TOTALYEAR}."
+    },
+    {
+      name:'Portefeuille d’actions de Milla',
+      sign:+1,
+      yearMin:2012, yearMax:2020,
+      a0Min:3000, a0Max:6000,
+      rateMinAbs:4, rateMaxAbs:12,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, Milla investit {A0} € en actions. La valeur de son portefeuille augmente en moyenne de {RABS} % par an, de façon régulière.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la valeur du portefeuille (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "la valeur du portefeuille d’actions de Milla",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les valeurs du portefeuille en fin d’année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme de toutes les valeurs du portefeuille de Milla en fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Population de bactéries',
+      sign:+1,
+      yearMin:0, yearMax:0,
+      a0Min:500, a0Max:1500,
+      rateMinAbs:20, rateMaxAbs:35,
+      horizonMin:5, horizonMax:8,
+      intro: "Au temps \\(t = {YEAR0}\\) heures, une culture contient {A0} bactéries. Toutes les heures, la population augmente de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre de bactéries au temps \\(t = {YEAR0}+n\\) heures.",
+      anShort: "le nombre de bactéries dans la culture",
+      sumQuestion: "On additionne les effectifs au bout de chaque heure entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\). Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des effectifs de bactéries observés à chaque heure entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\)."
+    },
+    {
+      name:'Capital de Sarah (PEL)',
+      sign:+1,
+      yearMin:2018, yearMax:2024,
+      a0Min:4000, a0Max:9000,
+      rateMinAbs:1, rateMaxAbs:3,
+      horizonMin:6, horizonMax:10,
+      intro: "En {YEAR0}, Sarah ouvre un plan épargne logement et y dépose {A0} €. Son capital est revalorisé de {RABS} % chaque année.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le capital de Sarah (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le capital de Sarah sur son PEL",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR} inclus, on note \\(S\\) la somme des capitaux de fin d’année. Calculer \\(S\\).",
+      sumMeaning: "Cette valeur représente la somme de tous les capitaux de Sarah en fin d’année, de {YEAR0} à {TOTALYEAR}."
+    },
+    {
+      name:'Prix d’un abonnement de streaming',
+      sign:+1,
+      yearMin:2015, yearMax:2022,
+      a0Min:60, a0Max:120,
+      rateMinAbs:2, rateMaxAbs:6,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, un abonnement de streaming coûte {A0} € par an. Chaque année, le prix augmente de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le prix annuel de l’abonnement (en euros) pour l’année \\({YEAR0}+n\\).",
+      anShort: "le prix annuel de l’abonnement de streaming",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les prix annuels successifs. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme de tous les prix annuels de l’abonnement entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Loyer de l’appartement de Noé',
+      sign:+1,
+      yearMin:2010, yearMax:2020,
+      a0Min:450, a0Max:900,
+      rateMinAbs:1, rateMaxAbs:4,
+      horizonMin:6, horizonMax:10,
+      intro: "En {YEAR0}, le loyer mensuel de l’appartement de Noé est de {A0} €. Chaque année, le propriétaire applique une hausse de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le loyer mensuel (en euros) au début de l’année \\({YEAR0}+n\\).",
+      anShort: "le loyer mensuel de l’appartement de Noé",
+      sumQuestion: "On additionne les loyers mensuels au début de chaque année entre {YEAR0} et {TOTALYEAR}. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme des loyers mensuels au début de chaque année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Audience d’un podcast',
+      sign:+1,
+      yearMin:2019, yearMax:2024,
+      a0Min:1000, a0Max:3000,
+      rateMinAbs:10, rateMaxAbs:25,
+      horizonMin:4, horizonMax:7,
+      intro: "En {YEAR0}, la première saison d’un podcast est écoutée {A0} fois. D’une saison à l’autre, l’audience progresse de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre d’écoutes de la saison \\({YEAR0}+n\\).",
+      anShort: "l’audience du podcast par saison",
+      sumQuestion: "On additionne les audiences des saisons de {YEAR0} à {TOTALYEAR}. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme des audiences de toutes les saisons entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Nombre de vues d’une vidéo',
+      sign:+1,
+      yearMin:0, yearMax:0,
+      a0Min:5000, a0Max:15000,
+      rateMinAbs:15, rateMaxAbs:30,
+      horizonMin:5, horizonMax:8,
+      intro: "Le jour de sa sortie (jour {YEAR0}), une vidéo cumule {A0} vues. Chaque jour, le nombre total de vues augmente de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre total de vues au jour \\({YEAR0}+n\\).",
+      anShort: "le nombre total de vues de la vidéo",
+      sumQuestion: "Entre le jour {YEAR0} et le jour {TOTALYEAR}, on additionne le nombre total de vues à la fin de chaque journée. Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des nombres totaux de vues à la fin de chaque journée, du jour {YEAR0} au jour {TOTALYEAR}."
+    },
+    {
+      name:'Valeur d’une carte de collection',
+      sign:+1,
+      yearMin:2010, yearMax:2022,
+      a0Min:40, a0Max:120,
+      rateMinAbs:8, rateMaxAbs:18,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une carte de collection vaut {A0} € sur le marché. Chaque année, sa cote augmente en moyenne de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la valeur de la carte (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "la valeur de la carte de collection",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les valeurs de la carte à la fin de chaque année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme de toutes les valeurs annuelles de la carte entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Nombre d’abonnés d’une appli',
+      sign:+1,
+      yearMin:2016, yearMax:2024,
+      a0Min:20000, a0Max:100000,
+      rateMinAbs:5, rateMaxAbs:15,
+      horizonMin:4, horizonMax:8,
+      intro: "En {YEAR0}, une application compte {A0} abonnés. Chaque année, le nombre d’abonnés augmente de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre d’abonnés à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le nombre d’abonnés à l’application",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les nombres d’abonnés à la fin de chaque année. Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des nombres d’abonnés fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Masse de miel produite',
+      sign:+1,
+      yearMin:2015, yearMax:2023,
+      a0Min:300, a0Max:800,
+      rateMinAbs:4, rateMaxAbs:10,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une ruche produit {A0} kg de miel. Grâce aux fleurs plantées autour, la production augmente de {RABS} % chaque année.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la masse de miel produite (en kg) durant l’année \\({YEAR0}+n\\).",
+      anShort: "la masse annuelle de miel produite par la ruche",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les productions annuelles. Calculer la masse totale obtenue.",
+      sumMeaning: "Cette valeur représente la masse totale de miel produite entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Production d’une centrale solaire',
+      sign:+1,
+      yearMin:2010, yearMax:2020,
+      a0Min:100000, a0Max:300000,
+      rateMinAbs:2, rateMaxAbs:7,
+      horizonMin:6, horizonMax:10,
+      intro: "En {YEAR0}, une centrale solaire produit {A0} kWh d’électricité. Chaque année, grâce à de nouveaux panneaux, la production augmente de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) l’énergie produite (en kWh) durant l’année \\({YEAR0}+n\\).",
+      anShort: "l’énergie annuelle produite par la centrale solaire",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les productions annuelles. Calculer la quantité totale d’énergie produite.",
+      sumMeaning: "Cette valeur représente la quantité totale d’énergie produite par la centrale solaire entre {YEAR0} et {TOTALYEAR}."
+    },
+{
+  name:'Salaire de Lina',
+  sign:+1,
+  yearMin:2020, yearMax:2024,
+  a0Min:20000, a0Max:36000,
+  rateMinAbs:1, rateMaxAbs:4,
+  horizonMin:5, horizonMax:9,
+  intro: "En {YEAR0}, Lina gagne {A0} € par an. Son salaire annuel est ensuite augmenté chaque année de {RABS} %.",
+  anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le salaire annuel de Lina (en euros) pour l’année \\({YEAR0}+n\\).",
+  anShort: "le salaire annuel de Lina",
+  sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les salaires annuels de Lina. Calculer la somme obtenue.",
+  sumMeaning: "Cette valeur représente la somme des salaires annuels de Lina entre {YEAR0} et {TOTALYEAR}."
+},
+
+
+    /* ===== 0 < q < 1 : décroissance (taux < 0) ===== */
+    {
+      name:'Valeur d’une voiture',
+      sign:-1,
+      yearMin:2015, yearMax:2022,
+      a0Min:12000, a0Max:25000,
+      rateMinAbs:8, rateMaxAbs:18,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une voiture neuve vaut {A0} €. Chaque année, sa valeur diminue de {RABS} % de façon régulière.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la valeur de la voiture (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "la valeur de la voiture",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les valeurs de la voiture en fin d’année. Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme de toutes les valeurs de la voiture entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Capital avec frais de gestion',
+      sign:-1,
+      yearMin:2010, yearMax:2020,
+      a0Min:5000, a0Max:15000,
+      rateMinAbs:1, rateMaxAbs:4,
+      horizonMin:6, horizonMax:10,
+      intro: "En {YEAR0}, un épargnant dispose de {A0} € sur un contrat soumis à des frais de gestion de {RABS} % par an. Chaque année, le capital résiduel est multiplié par le même nombre.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le capital (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le capital restant sur le contrat soumis aux frais",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les capitaux de fin d’année. Calculer \\(S\\).",
+      sumMeaning: "Cette valeur représente la somme des capitaux restants à la fin de chaque année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Nombre de sacs plastiques distribués',
+      sign:-1,
+      yearMin:2012, yearMax:2020,
+      a0Min:40000, a0Max:80000,
+      rateMinAbs:10, rateMaxAbs:30,
+      horizonMin:4, horizonMax:8,
+      intro: "En {YEAR0}, un supermarché distribue {A0} sacs plastiques. Chaque année, ce nombre baisse de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre de sacs plastiques distribués durant l’année \\({YEAR0}+n\\).",
+      anShort: "le nombre de sacs plastiques distribués par le supermarché",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les nombres de sacs distribués chaque année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente le nombre total de sacs plastiques distribués entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Nombre de joueurs sur un jeu vidéo',
+      sign:-1,
+      yearMin:2018, yearMax:2024,
+      a0Min:600000, a0Max:1500000,
+      rateMinAbs:5, rateMaxAbs:15,
+      horizonMin:4, horizonMax:7,
+      intro: "En {YEAR0}, un jeu vidéo compte {A0} joueurs actifs. Chaque année, le nombre de joueurs diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre de joueurs actifs à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le nombre de joueurs actifs sur le jeu vidéo",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les nombres de joueurs actifs fin d’année. Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des nombres de joueurs actifs en fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Masse de déchets accumulés',
+      sign:-1,
+      yearMin:2010, yearMax:2018,
+      a0Min:800, a0Max:1600,
+      rateMinAbs:6, rateMaxAbs:15,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une décharge contient {A0} tonnes de déchets. Chaque année, grâce au recyclage, cette masse diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la masse de déchets (en tonnes) présente en fin d’année \\({YEAR0}+n\\).",
+      anShort: "la masse de déchets dans la décharge",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les masses présentes en fin d’année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme des masses de déchets présentes en fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Stock d’un médicament dans le sang',
+      sign:-1,
+      yearMin:0, yearMax:0,
+      a0Min:80, a0Max:160,
+      rateMinAbs:15, rateMaxAbs:30,
+      horizonMin:5, horizonMax:8,
+      intro: "Au temps \\(t = {YEAR0}\\) heures, la concentration d’un médicament dans le sang est de {A0} mg. Chaque heure, cette concentration diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la concentration (en mg) au temps \\(t = {YEAR0}+n\\) heures.",
+      anShort: "la concentration du médicament dans le sang",
+      sumQuestion: "On additionne les concentrations mesurées à chaque heure entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\). Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des concentrations successives entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\)."
+    },
+    {
+      name:'Nombre d’abonnés à une newsletter',
+      sign:-1,
+      yearMin:2014, yearMax:2022,
+      a0Min:15000, a0Max:40000,
+      rateMinAbs:3, rateMaxAbs:10,
+      horizonMin:4, horizonMax:8,
+      intro: "En {YEAR0}, une newsletter compte {A0} abonnés. Chaque année, le nombre d’abonnés diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre d’abonnés à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le nombre d’abonnés à la newsletter",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les nombres d’abonnés fin d’année. Calculer la somme.",
+      sumMeaning: "Cette valeur représente la somme des nombres d’abonnés fin d’année entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Consommation annuelle d’eau',
+      sign:-1,
+      yearMin:2012, yearMax:2020,
+      a0Min:90000, a0Max:160000,
+      rateMinAbs:4, rateMaxAbs:12,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une famille consomme {A0} litres d’eau sur l’année. Chaque année, cette consommation baisse de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le volume d’eau (en litres) consommé durant l’année \\({YEAR0}+n\\).",
+      anShort: "le volume annuel d’eau consommé par la famille",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les volumes consommés chaque année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente le volume total d’eau consommé entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Énergie consommée par un ancien appareil',
+      sign:-1,
+      yearMin:2010, yearMax:2018,
+      a0Min:600, a0Max:1400,
+      rateMinAbs:5, rateMaxAbs:15,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, un appareil électrique consomme {A0} kWh par an. Chaque année, on réduit sa consommation de {RABS} % grâce à des réglages.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) l’énergie consommée (en kWh) durant l’année \\({YEAR0}+n\\).",
+      anShort: "l’énergie annuelle consommée par l’appareil",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les consommations annuelles. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la quantité totale d’énergie consommée par l’appareil entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Masse d’un radioélément',
+      sign:-1,
+      yearMin:0, yearMax:0,
+      a0Min:20, a0Max:80,
+      rateMinAbs:8, rateMaxAbs:20,
+      horizonMin:5, horizonMax:9,
+      intro: "Au temps \\(t = {YEAR0}\\) années, un échantillon contient {A0} g d’un radioélément. Chaque année, sa masse diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la masse de radioélément (en g) au temps \\(t = {YEAR0}+n\\).",
+      anShort: "la masse de radioélément dans l’échantillon",
+      sumQuestion: "On additionne les masses observées chaque année entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\). Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme des masses successives de radioélément observées entre \\(t = {YEAR0}\\) et \\(t = {TOTALYEAR}\\)."
+    },
+    {
+      name:'Prix d’un smartphone',
+      sign:-1,
+      yearMin:2015, yearMax:2023,
+      a0Min:700, a0Max:1200,
+      rateMinAbs:10, rateMaxAbs:25,
+      horizonMin:4, horizonMax:7,
+      intro: "En {YEAR0}, un smartphone vaut {A0} €. Chaque année, son prix conseillé diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le prix conseillé (en euros) à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le prix conseillé du smartphone",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les prix conseillés en fin d’année. Calculer cette somme.",
+      sumMeaning: "Cette valeur représente la somme de tous les prix conseillés entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Temps moyen passé sur un réseau social',
+      sign:-1,
+      yearMin:2020, yearMax:2024,
+      a0Min:18, a0Max:30,
+      rateMinAbs:5, rateMaxAbs:15,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, une personne passe en moyenne {A0} heures par semaine sur un réseau social. Chaque année, elle réduit ce temps de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le temps moyen hebdomadaire, en heures, passé sur ce réseau durant l’année \\({YEAR0}+n\\).",
+      anShort: "le temps moyen hebdomadaire passé sur le réseau social",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, en supposant ce temps constant chaque semaine de l’année, on additionne les temps hebdomadaires. Calculer la somme totale (en heures).",
+      sumMeaning: "Cette valeur représente le nombre total d’heures passées sur ce réseau social entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Quantité de sucre consommée par Camille',
+      sign:-1,
+      yearMin:2012, yearMax:2020,
+      a0Min:35, a0Max:60,
+      rateMinAbs:5, rateMaxAbs:15,
+      horizonMin:5, horizonMax:9,
+      intro: "En {YEAR0}, Camille consomme {A0} kg de sucre par an. Chaque année, elle réduit sa consommation de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) la masse de sucre consommée (en kg) durant l’année \\({YEAR0}+n\\).",
+      anShort: "la masse annuelle de sucre consommée par Camille",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les masses consommées chaque année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la masse totale de sucre consommée par Camille entre {YEAR0} et {TOTALYEAR}."
+    },
+    {
+      name:'Nombre de mails non lus',
+      sign:-1,
+      yearMin:2020, yearMax:2024,
+      a0Min:200, a0Max:500,
+      rateMinAbs:8, rateMaxAbs:20,
+      horizonMin:4, horizonMax:8,
+      intro: "En début d’année {YEAR0}, Eva a {A0} mails non lus. Chaque fin d’année, ce nombre diminue de {RABS} %.",
+      anLabel: "Pour tout entier naturel \\(n\\), on note \\(a_n\\) le nombre de mails non lus dans la boîte d’Eva à la fin de l’année \\({YEAR0}+n\\).",
+      anShort: "le nombre de mails non lus dans la boîte d’Eva",
+      sumQuestion: "Entre {YEAR0} et {TOTALYEAR}, on additionne les nombres de mails non lus en fin d’année. Calculer la somme obtenue.",
+      sumMeaning: "Cette valeur représente la somme des nombres de mails non lus à la fin de chaque année entre {YEAR0} et {TOTALYEAR}."
+    }
+  ];
+
+  /* ==== petits utilitaires locaux spécifiques à l’exo géométrique ==== */
+
+  function normTextSimple(str){
+    if(str==null) return '';
+    let s = String(str).toLowerCase();
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // accents
+    s = s.replace(/[^a-z0-9]/g,''); // supprime espaces, ponctuation…
+    return s;
+  }
+
+  function normSheet(str){
+    if(str==null) return '';
+    let s = String(str);
+    s = s.replace(/\s+/g,'');
+    s = s.replace(/,/g,'.');
+    s = s.replace(/[−–—]/g,'-');
+    s = s.replace(/\+\(-/g,'-');
+    s = s.replace(/\)/g,'');
+    s = s.toUpperCase();
+    if(s.startsWith('=')) s = s.slice(1);
+    return s;
+  }
+
+  function hasOnlyUpperCols(raw, cols){
+    const txt = String(raw);
+    const hasUpper = cols.some(c => txt.includes(c));
+    const hasLower = cols.some(c => txt.includes(c.toLowerCase()));
+    return hasUpper && !hasLower;
+  }
+
+  function normRelGeo(str){
+    if(str==null) return '';
+    let s = String(str).toLowerCase();
+    s = s.replace(/\s+/g,'');
+    s = s.replace(/,/g,'.');
+    s = s.replace(/\\cdot|×/g,'*');
+    s = s.replace(/[−–—]/g,'-');
+
+    // u → a
+    s = s.replace(/u_\(\s*n\+1\s*\)/g,'a_{n+1}');
+    s = s.replace(/u\(\s*n\+1\s*\)/g,'a_{n+1}');
+    s = s.replace(/u_\{?\s*n\+1\s*\}?/g,'a_{n+1}');
+    s = s.replace(/u_\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/u\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/u_\{?\s*n\s*\}?/g,'a_n');
+    s = s.replace(/u_n/g,'a_n');
+
+    s = s.replace(/a_\(\s*n\+1\s*\)/g,'a_{n+1}');
+    s = s.replace(/a\(\s*n\+1\s*\)/g,'a_{n+1}');
+    s = s.replace(/a_\{?\s*n\+1\s*\}?/g,'a_{n+1}');
+    s = s.replace(/a_\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/a\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/a_\{?\s*n\s*\}?/g,'a_n');
+
+    return s;
+  }
+
+  function normAnGeo(str){
+    if(str==null) return '';
+    let s = String(str).toLowerCase();
+    s = s.replace(/\s+/g,'');
+    s = s.replace(/,/g,'.');
+    s = s.replace(/\\cdot|×/g,'*');
+    s = s.replace(/[−–—]/g,'-');
+
+    // u → a, indices
+    s = s.replace(/u_\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/u\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/u_\{?\s*n\s*\}?/g,'a_n');
+    s = s.replace(/u_n/g,'a_n');
+    s = s.replace(/a_\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/a\(\s*n\s*\)/g,'a_n');
+    s = s.replace(/a_\{?\s*n\s*\}?/g,'a_n');
+
+    s = s.replace(/u_\(\s*0\s*\)/g,'a0');
+    s = s.replace(/u\(\s*0\s*\)/g,'a0');
+    s = s.replace(/u_\{?\s*0\s*\}?/g,'a0');
+    s = s.replace(/u0/g,'a0');
+    s = s.replace(/a_\(\s*0\s*\)/g,'a0');
+    s = s.replace(/a\(\s*0\s*\)/g,'a0');
+    s = s.replace(/a_\{?\s*0\s*\}?/g,'a0');
+
+    return s;
+  }
+
+  function fillText(str, s, texInt){
+    if(!str) return '';
+    return str
+      .replace(/\{NAME\}/g, s.name)
+      .replace(/\{YEAR0\}/g, s.year0)
+      .replace(/\{TOTALYEAR\}/g, s.totalYear)
+      .replace(/\{A0\}/g, texInt(s.a0))
+      .replace(/\{RABS\}/g, texInt(Math.abs(s.rate)))
+      .replace(/\{TARGET\}/g, texInt(s.target))
+      .replace(/\{YEARP\}/g, s.yearP);
+  }
+
+  function near(a,b,eps){ return Math.abs(a-b) <= (eps||1e-6); }
+
+  /* ===== EXERCICE : Modélisation suite géométrique ===== */
+
+  L.push({
+    id: 'ex_modelisation_geo',
+    title: "Ex. — Modélisation d'une suite géométrique",
+
+    gen(){
+  while(true){
+    const tpl = BANK_GEO_MODEL[Math.floor(Math.random()*BANK_GEO_MODEL.length)];
+
+    const year0 = rint(tpl.yearMin, tpl.yearMax);
+    const horizonMin = Math.max(tpl.horizonMin,5);
+    const horizon = rint(horizonMin, tpl.horizonMax);
+    const totalYear = year0 + horizon;
+    const a0 = rint(tpl.a0Min, tpl.a0Max);
+
+    const tAbs = rint(tpl.rateMinAbs, tpl.rateMaxAbs);
+    const rate = tpl.sign > 0 ? tAbs : -tAbs;
+    const q = 1 + rate/100;
+    if(!(q > 0 && q !== 1)) continue; // sécurité
+
+    const a1 = a0 * q;
+    const a2 = a1 * q;
+
+    const yearDiff = totalYear - year0;
+    const Nterms   = yearDiff + 1;
+    const aN       = a0 * Math.pow(q, yearDiff);
+
+    // Somme géométrique (on accepte une valeur approchée)
+    const S = a0 * (1 - Math.pow(q, Nterms)) / (1 - q);
+
+    // --- Seuil ENTIER ---
+    // On choisit d’abord un rang "cible" k ≥ 5,
+    // puis on ARRONDIT le terme correspondant pour avoir un montant entier.
+    const kTarget   = rint(5, yearDiff);
+    const rawTarget = a0 * Math.pow(q, kTarget);
+    const target    = Math.round(rawTarget);   // <-- seuil ENTIER
+
+    // On recalcule ensuite le vrai rang seuil n_p :
+    // plus petit n tel que a_n >= target (croissance)
+    // ou a_n <= target (décroissance).
+    let np  = 0;
+    let val = a0;
+
+    if(rate > 0){
+      // suite croissante
+      while(val < target && np < 200){
+        np++;
+        val = a0 * Math.pow(q, np);
+      }
+    }else{
+      // suite décroissante
+      while(val > target && np < 200){
+        np++;
+        val = a0 * Math.pow(q, np);
+      }
+    }
+
+    const yearP   = year0 + np;
+    const aBefore = (np > 0) ? a0 * Math.pow(q, np - 1) : a0;
+    const aAt     = a0 * Math.pow(q, np);
+
+    return {
+      ...tpl,
+      year0, totalYear,
+      a0,
+      rate, tAbs,
+      q,
+      yearDiff, Nterms,
+      a1, a2, aN, S,
+      target, np, yearP,
+      aBefore, aAt
+    };
+  }
+}
+,
+
+  render(host,s){
+  host.__state = s;
+  const texInt = x => String(x).replace(/-/g, UMINUS);
+
+  const year1 = s.year0 + 1;
+  const year2 = s.year0 + 2;
+  const isInc = s.rate > 0;
+  const cmpTxt = isInc ? 'supérieur ou égal à' : 'inférieur ou égal à';
+
+  // On prépare les textes déjà « remplis »
+  const intro       = fillText(s.intro, s, texInt);
+  const anLabel     = fillText(s.anLabel, s, texInt);
+  const sumQuestion = fillText(s.sumQuestion, s, texInt);
+  const anShort     = fillText(s.anShort, s, texInt);
+
+  // Heuristique : on décide si on parle d’« année » ou d’« instant »
+  let timeMode = 'year'; // valeur par défaut
+  const introLow = intro.toLowerCase();
+  if(
+    introLow.includes('temps')   ||
+    introLow.includes('heure')   ||
+    introLow.includes('heures')  ||
+    introLow.includes('jour')    ||
+    introLow.includes('jours')   ||
+    introLow.includes('semaine') ||
+    introLow.includes('saison')
+  ){
+    timeMode = 'instant';
+  }
+  s.timeMode = timeMode; // on mémorise pour la solution
+
+  const timeWord       = (timeMode === 'instant') ? 'instant' : 'année';
+    const timeWordQuel       = (timeMode === 'instant') ? 'Quel instant' : 'Quelle année';
+
+    const timeWordCor       = (timeMode === 'instant') ? 'Instant correspondant' : 'Année correspondante';
+    const timeWordcor       = (timeMode === 'instant') ? 'instant correspondant' : 'année correspondante';
+
+  const timeWordCap    = timeWord.charAt(0).toUpperCase() + timeWord.slice(1);
+  const timeWordPlural = (timeMode === 'instant') ? 'instants' : 'années';
+
+const table = sheet3Cols(
+  "rang \\(n\\)",
+  "terme \\(a_n\\)",
+  "somme : \\(a_0+\\cdots+a_n\\)",
+  [0,1,2,3,4],
+  texInt(s.a0),                  // a0 entier
+  texInt(s.a0),                  // somme a0
+  texInt(Number(s.a1.toFixed(2))) // a1 ARRONDI à 0,01
+);
+
+
+  host.innerHTML = `
+    <div class="statement">
+      <p>${intro}</p>
+      <p>${anLabel}</p>
+
+      <ol style="padding-left:1.3rem">
+        <li>
+          Calculer \\(a_1\\) et \\(a_2\\). À ${timeWordQuel} correspondent ces valeurs ?<br>
+          <div class="pdf-hide">
+          \\(a_1 =\\) ${mkInput('m_a1',90)} <span id="t_a1" class="tick"></span>,
+          \\(a_2 =\\) ${mkInput('m_a2',90)} <span id="t_a2" class="tick"></span><br>
+          ${timeWordCor}  à \\(a_1\\) : ${mkInput('m_y1',80)} <span id="t_y1" class="tick"></span>,
+          ${timeWordCor}  à \\(a_2\\) : ${mkInput('m_y2',80)} <span id="t_y2" class="tick"></span>
+          </div>
+        </li>
+
+            <li style="margin-top:.6rem">
+              <ol type="a" class="no-bullet">
+                <li>
+                  Donner la nature de la suite \\((a_n)\\).<br>
+                  <div class="pdf-hide">Réponse : ${mkInput('m_q2a',260)} <span id="t_q2a" class="tick"></span></div>
+                </li>
+                <li style="margin-top:.25rem">
+                  Exprimer \\(a_{n+1}\\) en fonction de \\(a_n\\).<br>
+                  <div class="pdf-hide">Réponse : ${mkInput('m_q2b',260)} <span id="t_q2b" class="tick"></span></div>
+                </li>
+                <li style="margin-top:.25rem">
+                  En déduire l’expression de \\(a_n\\) en fonction de \\(n\\).<br>
+                  <div class="pdf-hide">Réponse : ${mkInput('m_q2c',260)} <span id="t_q2c" class="tick"></span></div>
+                </li>
+              </ol>
+            </li>
+
+            <li style="margin-top:.4rem">
+              Donner le sens de variation de la suite \\((a_n)\\) en fonction du signe du taux et donc de la valeur de \\(q\\).<br>
+              <div class="pdf-hide">Réponse : ${mkInput('m_q3',260)} <span id="t_q3" class="tick"></span></div>
+            </li>
+
+            <li style="margin-top:.4rem">
+              On construit la feuille de calcul ci-dessous pour calculer les premiers termes de la suite \\((a_n)\\) et la somme \\(a_0 + \\cdots + a_n\\).<br>
+
+              <table style="border-collapse:collapse;width:100%;margin-top:.3rem">
+                <tr>
+                  <td style="vertical-align:top;padding-right:12px">
+                    ${table}
+                  </td>
+                  <td style="vertical-align:top">
+                    <ol type="a" class="no-bullet">
+                      <li>
+                        Quelle formule saisir dans la cellule <strong>B3</strong> pour que, lorsqu’on la recopie vers le bas, les termes de la suite se calculent ?<br>
+                        <div class="pdf-hide">Formule en B3 : ${mkInput('m_q4a',260)} <span id="t_q4a" class="tick"></span></div>
+                      </li>
+                      <li style="margin-top:.25rem">
+                        Que devient cette formule dans la cellule <strong>B4</strong> ?<br>
+                        <div class="pdf-hide">Formule en B4 : ${mkInput('m_q4b',260)} <span id="t_q4b" class="tick"></span></div>
+                      </li>
+                      <li style="margin-top:.25rem">
+                        Quelle formule saisir dans la cellule <strong>C3</strong> pour calculer \\(a_0 + a_1\\), puis la recopier vers le bas ?<br>
+                        <div class="pdf-hide">Formule en C3 : ${mkInput('m_q4c',260)} <span id="t_q4c" class="tick"></span></div>
+                      </li>
+                    </ol>
+                  </td>
+                </tr>
+              </table>
+            </li>
+
+            <li style="margin-top:.4rem">
+              ${sumQuestion}<br>
+              <div class="pdf-hide">Réponse numérique approchée : ${mkInput('m_Stot',110)} <span id="t_Stot" class="tick"></span></div>
+            </li>
+
+            <li style="margin-top:.4rem">
+              On s’intéresse au rang \\(n_p\\) à partir duquel ${anShort} sera ${cmpTxt} ${texInt(s.target)}.<br>
+
+              <ol type="a" class="no-bullet" style="margin-top:.3rem">
+                <li>
+                  Compléter le programme Python ci-dessous qui répond à la question.  
+                  
+<pre><code>def seuil():
+    n = 0
+    u = ${mkInput('py_u0',80)} <span id="t_py_u0" class="tick"></span>
+    while u ${mkInput('py_cmp',60)} ${texInt(s.target)}: <span id="t_py_cmp" class="tick"></span>
+        n = n + 1
+        u = ${mkInput('py_upd',160)} <span id="t_py_upd" class="tick"></span>
+    return n</code></pre>
+                </li>
+
+                <li style="margin-top:.25rem">
+                  À l’aide de ce programme ou de la calculatrice, déterminer le rang seuil et l’${timeWordcor}.<br>
+                  <div class="pdf-hide">\\(n_p =\\) ${mkInput('m_np',70)} <span id="t_np" class="tick"></span>,</div>
+<div class="pdf-hide">${timeWordCor} : ${mkInput('m_yearp',90)} <span id="t_yearp" class="tick"></span></div>
+                </li>
+              </ol>
+            </li>
+
+          </ol>
+        </div>
+
+        <div class="steps" id="steps"></div>
+      `;
+
+      retypeMath(host);
+
+      host.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('keydown', ev=>{
+          if(ev.key === 'Enter'){
+            document.querySelector('#btn-check')?.click();
+          }
+        });
+      });
+    },
+
+    check(host){
+      const s = host.__state;
+
+      function checkNum(id, expected, tickId, tol=1e-6){
+        const raw = val(id);
+        const t = $('#'+tickId,host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const x = parseNumber(raw);
+        const ok = !Number.isNaN(x) && near(x, expected, tol);
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function checkQ2a(){
+        const raw = val('m_q2a');
+        const t = $('#t_q2a',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const n = normTextSimple(raw);
+        const ok = n.includes('geometrique');
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+                 function checkQ2b(){
+        const raw = val('m_q2b');
+        const t = $('#t_q2b',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+
+        const qTheo = s.q; // vraie raison de la suite
+
+        // Normalisation "de base" locale (indépendante de normRelGeo)
+        function normBase(str){
+          let u = String(str).toLowerCase();
+          u = u.replace(/\s+/g,'');      // espaces
+          u = u.replace(/,/g,'.');       // virgules -> points
+          u = u.replace(/[−–—]/g,'-');   // différents moins
+          u = u.replace(/\\cdot|×/g,'*');// produits
+          u = u.replace(/u/g,'a');       // u -> a (même lettre pour tout le monde)
+          return u;
+        }
+
+        let sNorm = normBase(raw);
+
+        // On découpe en "gauche = droite"
+        const parts = sNorm.split('=');
+        if(parts.length !== 2){
+          tickTri(t,false);
+          return {answered:true,ok:false};
+        }
+        let lhs = parts[0];
+        let rhs = parts[1];
+
+        // --- GESTION DE a(n+1), a_(n+1), a{n+1} ---
+        // On veut seulement vérifier qu'on parle bien de a_{n+1} à gauche.
+        const lhsOk =
+          /a\(\s*n\+1\s*\)/.test(lhs) ||  // a(n+1)
+          /a_\{?\s*n\+1\s*\}?/.test(lhs); // a_{n+1} ou a_n+1 variante
+        if(!lhsOk){
+          tickTri(t,false);
+          return {answered:true,ok:false};
+        }
+
+        // --- Normalisation du membre de droite ---
+        // On ramène tout à a_n, a(n), a_{n}
+        rhs = rhs
+          .replace(/a\(\s*n\s*\)/g,'a_n')
+          .replace(/a_\{?\s*n\s*\}?/g,'a_n');
+
+        // Juxtapositions : 1.05a_n, a_n1.05 -> produits explicites
+        rhs = rhs
+          .replace(/(\d+(?:\.\d+)?)a_n/g,'$1*a_n')
+          .replace(/a_n(\d+(?:\.\d+)?)/g,'a_n*$1')
+          .replace(/(\d+(?:\.\d+)?)q/g,'$1*q')
+          .replace(/q(\d+(?:\.\d+)?)/g,'q*$1');
+
+        let ok = false;
+
+        // 1) Forme symbolique avec q : a_{n+1} = q*a_n ou a_n*q
+        if(/a_n/.test(rhs) && /q/.test(rhs)){
+          if(/^q\*a_n$/.test(rhs) || /^a_n\*q$/.test(rhs)){
+            ok = true;
+          }
+        }
+        // 2) Forme numérique : a_{n+1} = 1.05*a_n ou a_n*1.05
+        else if(/a_n/.test(rhs)){
+          const numMatch = rhs.match(/([0-9]+(?:\.[0-9]+)?)/);
+          if(numMatch){
+            const coeff = Number(numMatch[1]);   // ex : 1.05 ou 0.85
+            const close = Math.abs(coeff - qTheo) <= 0.005; // tolérance sur le coeff
+            const goodShape =
+              /^([0-9]+(?:\.[0-9]+)?)\*a_n$/.test(rhs) ||
+              /^a_n\*([0-9]+(?:\.[0-9]+)?)$/.test(rhs);
+            if(close && goodShape){
+              ok = true;
+            }
+          }
+        }
+
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+
+
+
+      function checkQ2c(){
+        const raw = val('m_q2c');
+        const t = $('#t_q2c',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const a0 = s.a0;
+        const q = s.q;
+        const ans = normAnGeo(raw);
+
+        let qNum = Math.round(q*1000)/1000;
+        let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+        const a0Str = String(a0);
+
+        const exps = [];
+        exps.push(`a_n=${a0Str}*${qStr}^n`);
+        exps.push(`a_n=${a0Str}*(${qStr})^n`);
+        exps.push(`a_n=a0*q^n`);
+        exps.push(`a_n=a0*(q)^n`);
+
+        const ok = exps.some(e => normAnGeo(e) === ans);
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function checkQ3(){
+        const raw = val('m_q3');
+        const t = $('#t_q3',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const n = normTextSimple(raw);
+        let ok = false;
+        if(s.rate > 0){
+          ok = n.includes('croiss') || (n.includes('aug') && n.includes('n'));
+        }else if(s.rate < 0){
+          ok = n.includes('decroiss') || n.includes('baisse');
+        }
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function checkQ4a(){
+        const raw = val('m_q4a');
+        const t = $('#t_q4a',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const trimmed = raw.trim();
+        const hasEq = trimmed.startsWith('=');
+        const upperOk = hasOnlyUpperCols(raw, ['B']);
+
+        const q = s.q;
+        let qNum = Math.round(q*1000)/1000;
+        let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+        const core = normSheet(raw);
+
+        const allowed = new Set();
+        allowed.add(`B2*${qStr}`);
+        allowed.add(`${qStr}*B2`);
+
+        const ok = hasEq && upperOk && allowed.has(core);
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function checkQ4b(){
+        const raw = val('m_q4b');
+        const t = $('#t_q4b',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const trimmed = raw.trim();
+        const hasEq = trimmed.startsWith('=');
+        const upperOk = hasOnlyUpperCols(raw, ['B']);
+
+        const q = s.q;
+        let qNum = Math.round(q*1000)/1000;
+        let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+        const core = normSheet(raw);
+
+        const allowed = new Set();
+        allowed.add(`B3*${qStr}`);
+        allowed.add(`${qStr}*B3`);
+
+        const ok = hasEq && upperOk && allowed.has(core);
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function checkQ4c(){
+        const raw = val('m_q4c');
+        const t = $('#t_q4c',host);
+        if(!raw){
+          tickTri(t,null);
+          return {answered:false,ok:false};
+        }
+        const trimmed = raw.trim();
+        const hasEq = trimmed.startsWith('=');
+        const upperOk = hasOnlyUpperCols(raw, ['B','C']);
+        const core = normSheet(raw);
+        const okCore = (core === 'C2+B3' || core === 'B3+C2');
+        const ok = hasEq && upperOk && okCore;
+        tickTri(t,ok);
+        return {answered:true,ok};
+      }
+
+      function normPy(str){
+        if(str==null) return '';
+        return String(str)
+          .toLowerCase()
+          .replace(/[ \t]/g,'')
+          .replace(/,/g,'.')
+          .replace(/[−–—]/g,'-')
+          .replace(/\u00A0/g,'');
+      }
+
+      function checkProg(){
+        const tU0  = $('#t_py_u0',host);
+        const tCmp = $('#t_py_cmp',host);
+        const tUpd = $('#t_py_upd',host);
+
+        const rawU0  = val('py_u0');
+        const rawCmp = val('py_cmp');
+        const rawUpd = val('py_upd');
+
+        let anyAns = false, allOk = true;
+
+        if(!rawU0){
+          tickTri(tU0,null);
+        }else{
+          anyAns = true;
+          const x = parseNumber(rawU0);
+          const ok = !Number.isNaN(x) && near(x, s.a0);
+          tickTri(tU0, ok);
+          if(!ok) allOk = false;
+        }
+
+        const expectedCmp = s.rate > 0 ? '<' : '>';
+        if(!rawCmp){
+          tickTri(tCmp,null);
+        }else{
+          anyAns = true;
+          const c = normPy(rawCmp);
+          const ok = (c===expectedCmp || c===expectedCmp+'=');
+          tickTri(tCmp, ok);
+          if(!ok) allOk = false;
+        }
+
+        if(!rawUpd){
+          tickTri(tUpd,null);
+        }else{
+          anyAns = true;
+          let u = normPy(rawUpd);
+          u = u.replace(/^u=/,'');
+          const q = s.q;
+          let qNum = Math.round(q*1000)/1000;
+          let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+          const forms = new Set();
+          forms.add(`u*${qStr}`);
+          forms.add(`${qStr}*u`);
+          forms.add('u*q');
+          forms.add('q*u');
+          const ok = forms.has(u);
+          tickTri(tUpd, ok);
+          if(!ok) allOk = false;
+        }
+
+        return {answered:anyAns, ok:allOk};
+      }
+
+      let anyAnswered = false;
+      let allOk = true;
+
+const c1  = checkNum('m_a1',   s.a1, 't_a1', 0.5);
+const c2  = checkNum('m_a2',   s.a2, 't_a2', 0.5);
+      const c3  = checkNum('m_y1',   s.year0+1,      't_y1');
+      const c4  = checkNum('m_y2',   s.year0+2,      't_y2');
+const c5  = checkNum('m_Stot', s.S,  't_Stot', 0.5);
+      const c6  = checkNum('m_np',   s.np,           't_np');
+      const c7  = checkNum('m_yearp',s.yearP,        't_yearp');
+      const c8  = checkQ2a();
+      const c9  = checkQ2b();
+      const c10 = checkQ2c();
+      const c11 = checkQ3();
+      const c12 = checkQ4a();
+      const c13 = checkQ4b();
+      const c14 = checkQ4c();
+      const c15 = checkProg();
+
+      [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15].forEach(c=>{
+        if(c.answered){
+          anyAnswered = true;
+          if(!c.ok) allOk = false;
+        }
+      });
+
+      if(anyAnswered){
+        SCORE[1]++;
+        if(allOk) SCORE[0]++;
+        scoreSet(SCORE[0],SCORE[1]);
+      }
+
+      return allOk;
+    },
+
+solution(host){
+  const s = host.__state;
+  const W = $('#steps',host);
+  const UMINUS = '−';
+  const texInt = x => String(x).replace(/-/g, UMINUS);
+
+  function cleanSigns(str){
+    return str
+      .replace(/\+\s*−/g, ' − ')
+      .replace(/−\s*−/g, ' + ');
+  }
+
+  // === NOUVEAU : gestion entier / décimal ===
+  const isInt = x => Math.abs(x - Math.round(x)) < 1e-9;
+  const fmtVal = x => {
+    if (isInt(x)) return texInt(String(Math.round(x)));
+    return texInt(String(Number(x.toFixed(2))));
+  };
+  const signFor = x => isInt(x) ? '=' : '\\approx';
+
+  // On redétermine année/instant (ou on reprend ce qui a été stocké)
+  const introFull = fillText(s.intro || '', s, texInt);
+  let timeMode = s.timeMode || 'year';
+  if(!s.timeMode){
+    const introLow = introFull.toLowerCase();
+    if(
+      introLow.includes('temps')   ||
+      introLow.includes('heure')   ||
+      introLow.includes('heures')  ||
+      introLow.includes('jour')    ||
+      introLow.includes('jours')   ||
+      introLow.includes('semaine') ||
+      introLow.includes('saison')
+    ){
+      timeMode = 'instant';
+    }
+  }
+  const timeWord       = (timeMode === 'instant') ? 'instant' : 'année';
+  const timeWordQuel   = (timeMode === 'instant') ? 'Quel instant' : 'Quelle année';
+  const timeWordCor    = (timeMode === 'instant') ? 'Instant correspondant' : 'Année correspondante';
+  const timeWordcor    = (timeMode === 'instant') ? 'instant correspondant' : 'année correspondante';
+  const timeWordCap    = timeWord.charAt(0).toUpperCase() + timeWord.slice(1);
+  const timeWordPlural = (timeMode === 'instant') ? 'instants' : 'années';
+
+  const a0 = s.a0;
+  const q  = s.q;
+  const a1 = s.a1;
+  const a2 = s.a2;
+
+  const nMax   = s.yearDiff;
+  const Nterms = s.Nterms;
+  const aN     = s.aN;
+  const S      = s.S;
+  const year1  = s.year0 + 1;
+  const year2  = s.year0 + 2;
+
+  const isInc = s.rate > 0;
+  const ineqSymbol = isInc ? '\\geq' : '\\leq';
+  const cmpPhrase  = isInc ? 'supérieur ou égal à' : 'inférieur ou égal à';
+  const anShort    = fillText(s.anShort, s, texInt);
+  const sumMeaning = fillText(s.sumMeaning, s, texInt);
+
+  const tAbs = Math.abs(s.rate);
+  const qTexFrac = s.rate > 0
+    ? `1 + \\dfrac{${tAbs}}{100}`
+    : `1 - \\dfrac{${tAbs}}{100}`;
+
+  let qNum = Math.round(q*1000)/1000;
+  let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+
+  const ratio    = s.target / a0;
+  const logRatio = Math.log(ratio) / Math.log(q);
+  const nReal    = logRatio;
+  const np       = s.np;
+
+  // Pré-calcul des valeurs / signes pour l’affichage
+  const a1Val       = fmtVal(a1);
+  const a2Val       = fmtVal(a2);
+  const SVal        = fmtVal(S);
+  const aBeforeVal  = fmtVal(s.aBefore);
+  const aAtVal      = fmtVal(s.aAt);
+  const a1Sign      = signFor(a1);
+  const a2Sign      = signFor(a2);
+  const SSign       = signFor(S);
+  const beforeSign  = signFor(s.aBefore);
+  const atSign      = signFor(s.aAt);
+
+  let html = `
+    <div class="steps">
+      <div class="step">
+        <strong>1.</strong>
+D’après l’énoncé on a \\(a_0 = ${texInt(a0)}\\) (pour l'${timeWord} ${s.year0}).<br>
+<!-- Phrase imposée -->
+${isInc
+  ? `Augmenter de \\(${tAbs}\\) % revient à multiplier par \\(${qTexFrac} = ${qStr}\\).`
+  : `Diminuer de \\(${tAbs}\\) % revient à multiplier par \\(${qTexFrac} = ${qStr}\\).`
+}<br>
+
+        <table style="border-collapse:collapse;width:60%;font-size:.95rem">
+          <tr>
+            <td>
+              Suite géométrique de raison \\(q\\).<br>
+              \\(a_1 = a_0 \\times ${qStr}\\)<br>
+              \\(a_1 = ${texInt(a0)} \\times ${qStr}\\)<br>
+              \\(a_1 ${a1Sign} ${a1Val}\\)<br>
+              ${timeWordCap} : ${year1}
+            </td>
+            <td>
+              \\(a_2 = a_1 \\times ${qStr}\\)<br>
+              \\(a_2 = ${a1Val} \\times ${qStr}\\)<br>
+              \\(a_2 ${a2Sign} ${a2Val}\\)<br>
+              ${timeWordCap} : ${year2}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="step">
+        <strong>2.a</strong>
+        Pour passer d’un terme au suivant on multiplie toujours par ${qStr} <br>
+        La suite \\((a_n)\\) est donc une <strong>suite géométrique</strong> de raison \\(q = ${qStr}\\) et de premier terme \\(a_0 = ${texInt(a0)}\\).
+      </div>
+
+      <div class="step">
+        <strong>2.b</strong>
+        Pour une suite géométrique de raison \\(q=${qStr}\\), on a, pour tout entier \\(n\\) :<br>
+        \\(a_{n+1} = q \\times a_n\\)<br>
+        \\(a_{n+1} = ${qStr} \\times a_n\\)
+      </div>
+
+      <div class="step">
+        <strong>2.c</strong>
+        Pour une suite géométrique de raison \\(q=${qStr}\\) et de premier terme \\(a_0=${texInt(a0)}\\), on a, pour tout entier \\(n\\) :<br>
+        \\(a_n = a_0 \\times q^n\\)<br>
+        \\(a_n = ${texInt(a0)} \\times ${qStr}^n\\)
+      </div>
+
+      <div class="step">
+        <strong>3.</strong>
+        Comme \\(a_0 = ${texInt(a0)} &gt; 0\\) et que <br>
+        ${
+          isInc
+            ? `\\(q=${qStr} &gt; 1\\), la suite \\((a_n)\\) est <strong>strictement croissante</strong>.`
+            : `\\(0 &lt; ${qStr} &lt; 1\\), la suite \\((a_n)\\) est <strong>strictement décroissante</strong>.`
+        }
+      </div>
+
+      <div class="step">
+        <strong>4.</strong>
+        Dans la feuille de calcul, la colonne B contient les termes de la suite et la colonne C les sommes cumulées.<br>
+        On a déjà en ligne 2 : \\(a_0 = ${texInt(a0)}\\).<br>
+        <ul>
+          <li>Pour calculer \\(a_1\\) à partir de \\(a_0\\), on multiplie par \\(${qStr}\\).<br>
+            Dans la cellule <strong>B3</strong>, on tape une formule du type : <code>=B2*${qStr}</code> (ou <code>=${qStr}*B2</code>), puis on recopie vers le bas.</li>
+          <li>En recopiant cette formule vers le bas, la cellule <strong>B4</strong> devient : <code>=B3*${qStr}</code> (ou <code>=${qStr}*B3</code>).</li>
+          <li>Pour la somme, on additionne la somme précédente et le nouveau terme :<br>
+            dans la cellule <strong>C3</strong>, on tape : <code>=C2+B3</code> (puis on recopie vers le bas).</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <strong>5.</strong>
+        On cherche la somme des termes de la suite de l’${timeWord}  ${s.year0} à ${s.totalYear} inclus.<br>
+        Le dernier terme utilisé est celui de l’${timeWord} ${s.totalYear} : \\(${s.totalYear} - ${s.year0} = ${nMax}\\), donc le dernier terme est \\(a_{${nMax}}\\).<br>
+        Il y a donc \\(N =${s.totalYear} - ${s.year0}+1 = ${nMax}+1= ${Nterms}\\) termes au total.<br>
+        Pour une suite géométrique de premier terme \\(a_0\\) et de raison \\(q\\neq 1\\), on a :<br>
+        \\(S = a_0 \\times \\dfrac{1 - q^{N}}{1 - q}\\)<br>
+        \\(S = ${texInt(a0)} \\times \\dfrac{1 - ${qStr}^{${Nterms}}}{1 - ${qStr}}\\)<br>
+        \\(S ${SSign} ${SVal}\\)<br>
+        ${sumMeaning}
+      </div>
+
+      <div class="step">
+        <strong>6.a</strong>
+        Pour trouver le rang seuil \\(n_p\\), on peut utiliser le programme Python suivant :<br>
+<pre><code>def seuil():
+    n = 0
+    u = ${texInt(a0)}
+    while u ${isInc ? '&lt;' : '&gt;'} ${texInt(s.target)}:
+        n = n + 1
+        u = u * ${qStr}
+    return n</code></pre>
+        Au départ, \\(u = a_0 = ${texInt(a0)}\\).  
+        À chaque tour de boucle, on multiplie \\(u\\) par \\(q\\) et on augmente \\(n\\) de 1.<br>
+        La boucle s’arrête dès que \\(u\\) devient ${cmpPhrase} ${texInt(s.target)} : la valeur renvoyée est alors le rang \\(n_p\\) recherché.
+      </div>
+      <div class="step">
+         <strong>6.b</strong>
+        On cherche le plus petit entier \\(n_p\\) tel que \\(a_{n_p} ${ineqSymbol} ${texInt(s.target)}\\).<br>
+        On cherche sur la calculatrice (mode RECUR) :<br>
+        ${
+          isInc
+            ? `\\(a_{${s.np-1}} ${beforeSign} ${aBeforeVal} &lt; ${texInt(s.target)}\\)
+                et \\(a_{${s.np}} ${atSign} ${aAtVal} \\geq ${texInt(s.target)}\\).`
+            : `\\(a_{${s.np-1}} ${beforeSign} ${aBeforeVal} &gt; ${texInt(s.target)}\\)
+                et \\(a_{${s.np}} ${atSign} ${aAtVal} \\leq ${texInt(s.target)}\\).`
+        }
+        <br>
+        L’${timeWord} correspondant à ce rang est alors \\(${s.year0} + ${s.np} = ${s.yearP}\\).<br>
+        À partir de ${s.yearP}, ${anShort} est ${cmpPhrase} ${texInt(s.target)}.
+      </div>
+      <br>
+          <div class="step">
+            <strong>Remarque : </strong> On pourra résoudre l'inéquation en terminale en utilisant la fonction logarithme népérien : <br>
+            On cherche le plus petit entier \\(n_p\\) tel que \\(a_{n_p} ${ineqSymbol} ${texInt(s.target)}\\).<br>
+            Comme \\(a_n = ${texInt(a0)}\\times ${qStr}^n\\), on résout :<br>
+            ${
+              isInc
+              ? `
+                \\(a_n \\geq ${texInt(s.target)}\\)<br>
+                \\(${texInt(a0)}\\times ${qStr}^n \\geq ${texInt(s.target)}\\)<br>
+                \\(${qStr}^n \\geq \\dfrac{${texInt(s.target)}}{${texInt(a0)}}\\)<br>
+                Comme \\(q&gt;1\\), on obtient :<br>
+                \\(n \\geq \\dfrac{\\ln\\left(\\dfrac{${texInt(s.target)}}{${texInt(a0)}}\\right)}{\\ln(${qStr})} \\)<br>
+                On prend donc \\(n_p = ${s.np}\\).`
+              : `
+                \\(a_n \\leq ${texInt(s.target)}\\)<br>
+                \\(${texInt(a0)}\\times ${qStr}^n \\leq ${texInt(s.target)}\\)<br>
+                \\(${qStr}^n \\leq \\dfrac{${texInt(s.target)}}{${texInt(a0)}}\\)<br>
+                Comme \\(0&lt;q&lt;1\\), la fonction \\(n\\mapsto q^n\\) est décroissante, d’où encore :<br>
+                \\(n \\geq \\dfrac{\\ln\\left(\\dfrac{${texInt(s.target)}}{${texInt(a0)}}\\right)}{\\ln(${qStr})} \\)<br>
+                On prend donc \\(n_p = ${s.np}\\).`
+            }
+          </div>
+    </div>
+  `;
+
+  html = cleanSigns(html);
+  W.innerHTML = html;
+  retypeMath(W);
+}
+
+  });
+
+  return L;
+}
+
+
+/* ===== REGISTRY & UI ===== */
+const REGISTRY = makeExos();
+window.REGISTRY = REGISTRY;
+
+function populateSelectSafe(){
+  const sel = document.querySelector('#exo-select');
+  if(!sel || !window.REGISTRY) return;
+  const current = sel.value;
+  sel.innerHTML = '';
+  for(const e of window.REGISTRY){
+    const opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = e.title;
+    sel.appendChild(opt);
+  }
+  if (current && Array.from(sel.options).some(o => o.value === current)){
+    sel.value = current;
+  } else {
+    sel.selectedIndex = 0;
+  }
+}
+
+function renderActiveSafe(source=''){
+  const host = document.querySelector('#host');
+  const sel  = document.querySelector('#exo-select');
+  try{
+    const def = window.REGISTRY.find(e => e.id === sel.value);
+    if(!def) throw new Error('Exercice introuvable: ' + sel.value);
+    host.dataset.active = def.id;
+    def.render(host, def.gen());
+    host.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ document.querySelector('#btn-check').click(); } });
+    });
+    if(window.MathJax) retypeMath(host);
+  }catch(e){
+    console.error('renderActive failed from', source, e);
+    host.innerHTML = `<div class="steps" style="color:#b00020">
+      <b>Erreur d’affichage :</b> ${e.message}<br>Ouvre la console pour le détail.
+    </div>`;
+  }
+}
+
+function attachSelectHandlers(){
+  const sel = document.querySelector('#exo-select');
+  if(!sel || sel.__BOUND__) return;
+  const rerender = (src)=>{ SCORE=[0,0]; scoreSet(0,0); renderActiveSafe(src); };
+  sel.addEventListener('change', ()=>rerender('select.change'));
+  sel.addEventListener('input',  ()=>rerender('select.input'));
+  sel.__BOUND__ = true;
+}
+
+window.addEventListener('load', ()=>{
+  populateSelectSafe();
+  attachSelectHandlers();
+  renderActiveSafe('boot');
+  scoreSet(0,0);
+
+  document.querySelector('#btn-new')  ?.addEventListener('click', ()=>renderActiveSafe('btn-new'));
+  document.querySelector('#btn-reset')?.addEventListener('click', ()=>renderActiveSafe('btn-reset'));
+
+  document.querySelector('#btn-check')?.addEventListener('click', ()=>{
+    const host=document.querySelector('#host');
+    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+    if(!def || !def.check) return;
+    def.check(host);
+  });
+
+  document.querySelector('#btn-sol')?.addEventListener('click', ()=>{
+    const host=document.querySelector('#host');
+    const def = window.REGISTRY.find(e => e.id === host.dataset.active);
+    if(!def || !def.solution) return;
+    def.solution(host);
+  });
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  populateSelectSafe();
+  attachSelectHandlers();
+  renderActiveSafe('boot');
+  scoreSet(0,0);
+
+  (function waitForPDF(){
+    if (window.ExoPDF?.init && Array.isArray(window.REGISTRY) && window.REGISTRY.length){
+      ExoPDF.init({
+        title: '1ère - Suites géométrique - Exercice bilan',
+        max: 50,
+        mountAfterSelector: '#info-saisie',
+        autoPrint: false
+      });
+    } else {
+      setTimeout(waitForPDF, 60);
+    }
+  })();
+});
+
+// PATCHS anciens gardés si jamais d'autres exos sont ajoutés plus tard
+(function(){
+  const def = (window.REGISTRY||[]).find(d=>d.id==='ex2_recurrence_1');
+  if(def && typeof def.check==='function'){
+    const _old = def.check;
+    def.check = function(host){
+      const res = _old.call(this, host);
+      const t4 = host.querySelector('#t4'); if(t4){ t4.textContent=''; t4.classList.remove('ok','ko'); }
+      return res;
+    };
+  }
+})();
+
+(function(){
+  const def = (window.REGISTRY||[]).find(d=>d.id==='ex2_recurrence_1');
+  if(def && typeof def.solution==='function'){
+    const _old = def.solution;
+    def.solution = function(host){
+      const W = host.querySelector('#steps');
+      if(!W){ const box=document.createElement('div'); box.id='steps'; host.appendChild(box); }
+      return _old.call(this, host);
+    };
+  }
+})();
+})();
+</script>
+
+
+<!-- === Console Python pour l’exercice de seuil arithmétique === -->
+<style>
+#py-panel{
+  position: fixed;
+  right: 16px;
+  bottom: auto;
+  width: 680px;
+  max-width: 95vw;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 12px 22px rgba(0,0,0,.14);
+  display: none;
+  flex-direction: column;
+  z-index: 9999;
+  max-height: 80vh;
+}
+#py-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px;border-bottom:1px solid #eee;
+}
+#py-head .btn{border:1px solid #ccc;background:#fff;border-radius:8px;padding:.35rem .6rem;cursor:pointer}
+#py-head .btn:active{transform:translateY(1px)}
+#py-status{margin-left:auto}
+#py-sections{display:flex;flex-direction:column;min-height:0}
+#py-editor{
+  width:100%;height:230px;min-height:120px;resize:vertical;
+  border:none;border-bottom:1px solid #eee;
+  padding:10px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+  outline:none;
+}
+#py-repl{display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid #eee}
+#py-input{
+  flex:1;border:1px solid #ddd;border-radius:8px;padding:8px 10px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+}
+#py-out{
+  flex:1 1 auto;min-height:120px;overflow:auto;padding:10px;
+  background:#0e1116;color:#d6deeb;
+  border-bottom-left-radius:12px;border-bottom-right-radius:12px;
+  white-space:pre-wrap;
+}
+@media (max-width:720px){ #py-panel{width:96vw} }
+</style>
+
+<script>
+(function(){
+  const bar = document.querySelector('.controls');
+  if(bar && !document.getElementById('py-open')){
+    const btn=document.createElement('button');
+    btn.id='py-open'; btn.className='btn'; btn.textContent='▶️ Console Python';
+    bar.insertBefore(btn, bar.children[1]||null);
+  }
+
+  const panel=document.createElement('div');
+  panel.id='py-panel';
+  panel.innerHTML=`
+    <div id="py-head">
+      <strong>Éditeur / Console / Sortie</strong>
+      <button id="py-fill" class="btn">🧩 Préremplir depuis l’exercice</button>
+      <button id="py-run"  class="btn">▶️ Exécuter le code</button>
+      <button id="py-eval" class="btn">⏎ Eval (ligne console)</button>
+      <button id="py-clear" class="btn">🧹 Effacer sortie</button>
+      <div id="py-status">Pyodide : chargement…</div>
+      <button id="py-close" class="btn">✖</button>
+    </div>
+    <div id="py-sections">
+      <textarea id="py-editor" spellcheck="false"
+        placeholder="# Écris ton programme ici (def seuil(): ...)."></textarea>
+      <div id="py-repl">
+        <span><strong>Console</strong> › </span>
+        <input id="py-input" placeholder="ex: seuil() ou print(seuil())">
+      </div>
+      <pre id="py-out">[sortie]</pre>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const $ = sel => document.querySelector(sel);
+
+  function placePanel(){
+    const controls = document.querySelector('.controls');
+    if(!controls) return;
+    const r = controls.getBoundingClientRect();
+    const top = Math.round(r.bottom + 8 + window.scrollY);
+    panel.style.top = top + 'px';
+    const free = window.innerHeight - (r.bottom + 8);
+    panel.style.maxHeight = Math.max(260, free - 16) + 'px';
+  }
+
+  const PYODIDE_BASES = [
+    'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+    'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full/'
+  ];
+  let pyodide = null;
+  async function ensurePy(){
+    if(pyodide) return pyodide;
+    async function loadFrom(base){
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src=base+'pyodide.js?v='+Date.now();
+        s.crossOrigin='anonymous';
+        s.onload=resolve;
+        s.onerror=reject;
+        document.head.appendChild(s);
+      });
+      return await loadPyodide({indexURL:base});
+    }
+    const status = $('#py-status'); let lastErr=null;
+    for(const base of PYODIDE_BASES){
+      try{
+        if(status) status.textContent='Pyodide : chargement… ('+new URL(base).host+')';
+        pyodide = await loadFrom(base);
+        if(status) status.textContent='Pyodide : prêt';
+        return pyodide;
+      }catch(e){
+        lastErr=e;
+        if(status) status.textContent='Échec Pyodide ('+(e?.message||'')+')';
+      }
+    }
+    throw lastErr || new Error('Impossible de charger Pyodide');
+  }
+
+  $('#py-open')?.addEventListener('click', async ()=>{
+    const btn = $('#py-open');
+    const shown = panel.style.display === 'flex';
+    if(shown){
+      panel.style.display='none';
+      btn.textContent='▶️ Console Python';
+    }else{
+      placePanel();
+      panel.style.display='flex';
+      btn.textContent='⏹ Fermer la console';
+      await ensurePy();
+    }
+  });
+  $('#py-close')?.addEventListener('click', ()=>{ panel.style.display='none'; });
+
+  let _placeTO=null;
+  function schedulePlace(){ clearTimeout(_placeTO); _placeTO=setTimeout(placePanel,20); }
+  window.addEventListener('scroll', schedulePlace,{passive:true});
+  window.addEventListener('resize', schedulePlace);
+
+  function appendOut(txt){
+    const el=$('#py-out');
+    if(el.textContent.trim()==='[sortie]') el.textContent='';
+    el.textContent += (el.textContent?'\n':'') + txt;
+    el.scrollTop = el.scrollHeight;
+  }
+  async function pyExec(code){
+    await ensurePy();
+    let stdout='', stderr='';
+    pyodide.setStdout({batched:msg=>{stdout+=msg;}});
+    pyodide.setStderr({batched:msg=>{stderr+=msg;}});
+    try{
+      await pyodide.runPythonAsync(code);
+      if(stdout.trim()) appendOut(stdout.trim());
+      if(stderr.trim()) appendOut('[stderr]\\n'+stderr.trim());
+    }catch(e){
+      appendOut('[Erreur] '+(e?.message||String(e)));
+    }
+  }
+
+  $('#py-run').addEventListener('click', async ()=>{
+    const code=$('#py-editor').value;
+    await pyExec(code);
+  });
+
+  const hist=[]; let hIdx=-1;
+  async function runConsoleLine(){
+    const line=$('#py-input').value.trim();
+    if(!line) return;
+    hist.push(line); hIdx=hist.length;
+    $('#py-input').value='';
+    const wrapper = `
+import builtins
+_res_ = None
+try:
+    _res_ = eval(${JSON.stringify(line)})
+    if _res_ is not None:
+        print(repr(_res_))
+except SyntaxError:
+    exec(${JSON.stringify(line)})
+`;
+    await pyExec(wrapper);
+  }
+  $('#py-eval').addEventListener('click', async ()=>{ await runConsoleLine(); });
+  $('#py-input').addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); await runConsoleLine(); }
+    else if(e.key==='ArrowUp'){
+      if(hist.length){ hIdx=Math.max(0,hIdx-1); $('#py-input').value=hist[hIdx]; e.preventDefault(); }
+    }else if(e.key==='ArrowDown'){
+      if(hist.length){ hIdx=Math.min(hist.length,hIdx+1); $('#py-input').value=(hIdx>=hist.length?'':hist[hIdx]); e.preventDefault(); }
+    }
+  });
+
+  $('#py-clear').addEventListener('click', ()=>{ $('#py-out').textContent='[sortie]'; });
+
+  function getVal(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+
+    function codeFromExercise(){
+    const host  = document.querySelector('#host');
+    const active = host?.dataset?.active || '';
+    const state  = host?.__state || {};
+
+    // Exercice de modélisation ARITHMÉTIQUE (ancien)
+    if(active === 'ex_modelisation_arith'){
+      const a0 = state.a0;
+      const r  = state.r;
+      const target = state.target;
+
+      let u0  = getVal('py_u0') || String(a0);
+      let cmp = getVal('py_cmp');
+      if(!cmp){ cmp = r > 0 ? '<' : '>'; }
+
+      let upd = getVal('py_upd');
+      if(!upd){
+        const absR = Math.abs(r);
+        upd = r > 0 ? `u + ${absR}` : `u - ${absR}`;
+      }
+      upd = upd.replace(/^\s*u\s*=\s*/,'');
+
+      return (
+`def seuil():
+    n = 0
+    u = ${u0}
+    while u ${cmp} ${target}:
+        n = n + 1
+        u = ${upd}
+    return n
+`);
+    }
+
+    // Exercice de modélisation GÉOMÉTRIQUE (celui qu'on vient de faire)
+    if(active === 'ex_modelisation_geo'){
+      const a0     = state.a0;
+      const q      = state.q;
+      const target = state.target;
+
+      let u0  = getVal('py_u0') || String(a0);
+      let cmp = getVal('py_cmp');
+      if(!cmp){ cmp = state.rate > 0 ? '<' : '>'; }
+
+      let upd = getVal('py_upd');
+      if(!upd){
+        // on propose la mise à jour correcte : u = u*q
+        let qNum = Math.round(q*1000)/1000;
+        let qStr = String(qNum).replace(/0+$/,'').replace(/\.$/,'');
+        upd = `u * ${qStr}`;
+      }
+      upd = upd.replace(/^\s*u\s*=\s*/,'');
+
+      return (
+`def seuil():
+    n = 0
+    u = ${u0}
+    while u ${cmp} ${target}:
+        n = n + 1
+        u = ${upd}
+    return n
+`);
+    }
+
+    // Pour les autres exos (s'il y en a plus tard)
+    return '# Aucun exercice compatible pour le préremplissage.';
+  }
+
+
+  $('#py-fill').addEventListener('click', ()=>{
+    $('#py-editor').value = codeFromExercise();
+  });
+
+  (function enhanceEditor(){
+    const ta=$('#py-editor');
+    function insert(text){
+      const s=ta.selectionStart,e=ta.selectionEnd;
+      ta.setRangeText(text,s,e,'end');
+    }
+    function curLine(){
+      const pos=ta.selectionStart,before=ta.value.slice(0,pos);
+      const ls=before.lastIndexOf('\n')+1;
+      const line=before.slice(ls);
+      const indent=(line.match(/^\s*/)||[''])[0];
+      return {line,indent};
+    }
+    function indentSel(add=true){
+      const start=ta.selectionStart,end=ta.selectionEnd,v=ta.value;
+      const from=v.lastIndexOf('\n',start-1)+1;
+      const to=v.indexOf('\n',end); const endPos=(to===-1?v.length:to);
+      const lines=v.slice(from,endPos).split('\n');
+      const pad='    ';
+      const changed=lines.map(s=> add? pad+s : (s.startsWith('    ')?s.slice(4):s.replace(/^ {1,3}/,''))).join('\n');
+      ta.value=v.slice(0,from)+changed+v.slice(endPos);
+      const delta=changed.length-(endPos-from);
+      ta.setSelectionRange(start+(add?4:0), end+delta);
+    }
+    ta.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('#py-run').click(); return; }
+      if(e.key==='Tab'){ e.preventDefault(); if(ta.selectionStart!==ta.selectionEnd) indentSel(!e.shiftKey); else insert('    '); return; }
+      if(e.key==='Enter'){ e.preventDefault(); const {line,indent}=curLine(); const more=/:\s*$/.test(line)?'    ':''; insert('\n'+indent+more); return; }
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>

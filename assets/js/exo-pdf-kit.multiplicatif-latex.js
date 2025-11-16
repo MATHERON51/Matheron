@@ -879,7 +879,25 @@ table.pdf-tbl td.zbar { font-weight:400 !important; }
 .pdf-hide{ display:none !important; }
 
 
+.tbl-suites{
+  border-collapse:collapse;
+  border:1px solid #ccc;
+}
+.tbl-suites th,
+.tbl-suites td{
+  border:1px solid #ccc;
+  padding:4px 6px;
+}
 
+ul.no-bullet{
+  list-style:none;
+  padding-left:0;
+  margin-left:0;
+}
+
+/* Masques spécifiques au rendu PDF */
+.pdf-hide{ display:none !important; }
+ .screen-only{display:none!important} .print-only{display:block!important} 
 
 
 </style>

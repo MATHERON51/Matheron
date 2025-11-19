@@ -828,36 +828,66 @@ function checkEx1(host, st){
   })();
 
   // ========= 3.b PHRASE (intersection avec un complément) — exige "et" + bonne négation
+    // ========= 3.b PHRASE (intersection avec un complément, même logique que ex2–2.e) =========
   (function(){
-    const el = get3('q3bph'); const tk = tickForInput(el);
-    if(!el || el.value.trim()===''){ tick(tk,null); }
-else{
-  const T = tokensOf(el.value);
+    const el = get3('q3bph');
+    const tk = tickForInput(el);
+    const txt = (el?.value || '').trim();
 
-  const vWords = sigWords(st.ctx.Vsg);
-  const cWords = sigWords(st.ctx.Csg);
+    // neutre si vide
+    if (!el || txt === '') {
+      tick(tk, null);
+      return;
+    }
 
-  // ➊ Vérifie que c’est bien une INTERSECTION (et pas "ou"/"soit ... soit ...")
-  const sidesOK = intersectionSidesOK(T, vWords, cWords);
-  if(!sidesOK){ tick(tk,'ko'); addStat.add(false); return; }
+    const T = tokensOf(txt);
 
-  // ➋ Présence + bon signe (négation) selon la cible
-  const posV = positions(T, vWords);
-  const posC = positions(T, cWords);
-  const vPresent = posV.length>0, cPresent = posC.length>0;
-  const vNeg = posV.some(i=>negSpan(T,i));
-  const cNeg = posC.some(i=>negSpan(T,i));
+    // on exige explicitement "et"
+    const iEt = T.indexOf('et');
+    if (iEt <= 0 || iEt >= T.length - 1) {
+      tick(tk, 'ko'); addStat.add(false);
+      return;
+    }
 
-  let good=false;
-  if(st.NEG==='C'){         // demander V ∩ C̄
-    good = vPresent && cPresent && !vNeg && cNeg;
-  }else{                    // demander C ∩ V̄
-    good = vPresent && cPresent &&  vNeg && !cNeg;
-  }
-  tick(tk, good?'ok':'ko'); addStat.add(good);
-}
+    const L = T.slice(0, iEt);
+    const R = T.slice(iEt + 1);
 
+    const vWords = sigWords(st.ctx.Vsg);
+    const cWords = sigWords(st.ctx.Csg);
+
+    const pos = (tokens, words) => positions(tokens, words);
+    const negAny = (tokens, indexes) => indexes.some(j => negSpan(tokens, j));
+
+    // ---- côté gauche
+    const LV = pos(L, vWords), LC = pos(L, cWords);
+    const vNegL = negAny(L, LV), cNegL = negAny(L, LC);
+
+    // ---- côté droit
+    const RV = pos(R, vWords), RC = pos(R, cWords);
+    const vNegR = negAny(R, RV), cNegR = negAny(R, RC);
+
+    let ok = false;
+
+    if (st.NEG === 'C') {
+      // On veut V ∩ C̄ :
+      //  soit (V affirmé à gauche, C nié à droite)
+      //  soit (C nié à gauche, V affirmé à droite)
+      ok =
+        (LV.length > 0 && !vNegL && RC.length > 0 && cNegR) ||
+        (LC.length > 0 &&  cNegL && RV.length > 0 && !vNegR);
+    } else {
+      // st.NEG === 'V' : on veut C ∩ V̄
+      //  soit (C affirmé à gauche, V nié à droite)
+      //  soit (V nié à gauche, C affirmé à droite)
+      ok =
+        (LC.length > 0 && !cNegL && RV.length > 0 &&  vNegR) ||
+        (LV.length > 0 &&  vNegL && RC.length > 0 && !cNegR);
+    }
+
+    tick(tk, ok ? 'ok' : 'ko');
+    addStat.add(ok);
   })();
+
 
   // ========= 3.b VALEUR
   (function(){

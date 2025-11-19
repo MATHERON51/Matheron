@@ -408,6 +408,23 @@ function EXO_remarkable_values(){
     const askCos = Math.random()<0.5;
     TASKS.push({a, askCos});
   }
+  
+  
+    // Associe à un angle son point remarquable le plus proche (I, A, B, C, J, ...).
+  function angleToPointLabel(a){
+    let t = ((a % TAU) + TAU) % TAU; // normalise dans [0, 2π)
+    let best = null;
+    let bestDiff = 1e9;
+    for(const [name, ang] of Object.entries(POINTS_MAP)){
+      const d = Math.abs(t - ang);
+      if(d < bestDiff){
+        bestDiff = d;
+        best = name;
+      }
+    }
+    return best || '?';
+  }
+
   statement.innerHTML = `
     <div class="q">
       <div><strong>Exercice 2 — Cosinus et sinus d’un angle</strong></div>
@@ -454,14 +471,42 @@ function EXO_remarkable_values(){
     return {solved};
   }
   function solution(){
-    const box=$('#solEx2'); box.style.display='';
+    const box=$('#solEx2'); 
+    box.style.display='';
+
     const rows = TASKS.map((t,i)=>{
-      const exact = t.askCos ? cosSinExact(t.a).cosTex : cosSinExact(t.a).sinTex;
-      return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;${L(`${t.askCos?'\\cos':'\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`)}</th><td>${L(exact)}</td></tr>`;
+      const exactAll = cosSinExact(t.a);
+      const exact = t.askCos ? exactAll.cosTex : exactAll.sinTex;
+      const pointLabel = angleToPointLabel(t.a);
+      const coordUsed = t.askCos ? '\\text{abscisse}' : '\\text{ordonnée}';
+      const lab = `${t.askCos?'\\\\cos':'\\\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`;
+
+      return `
+        <tr>
+          <th class="lab">${String.fromCharCode(97+i)}.&nbsp;\\(${lab}\\)</th>
+          <td>\\(${pointLabel}\\)</td>
+          <td>${L(coordUsed)}</td>
+          <td>${L(exact)}</td>
+        </tr>`;
     }).join('');
-    box.innerHTML = `<div><strong>Correction.</strong></div><table class="radtab" style="margin-top:6px"><tbody>${rows}</tbody></table>`;
+
+    box.innerHTML = `
+      <div><strong>Correction.</strong></div>
+      <table class="radtab" style="margin-top:6px">
+        <thead>
+          <tr>
+            <th class="lab">Question</th>
+            <th>Point image</th>
+            <th>Il faut lire sur le cercle :</th>
+            <th>Valeur exacte</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
     typesetAll(box);
   }
+
   function reset(){
     $$('#mount-here input[type=text]').forEach(inp=>{ inp.value=''; inp.style.borderColor='#dcdcdc'; });
     $$('#mount-here .mark').forEach(m=>{ m.textContent=''; m.className='mark'; });
@@ -471,42 +516,91 @@ function EXO_remarkable_values(){
   return {check, solution, reset,
     pdf:{
       gen(){ return {TASKS}; },
-      render(st,isSol){
+       render(st,isSol){
         const {svg}=circleWithPointsSVG({R:110});
-  const left = svg.outerHTML.replace('<svg','<svg style="width:70mm;height:70mm"');
-  const rows = st.TASKS.map((t,i)=>{
-    const lab = `${t.askCos?'\\\\cos':'\\\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`;
-    const exact = t.askCos ? cosSinExact(t.a).cosTex : cosSinExact(t.a).sinTex;
-    return `<tr><th class="lab">${String.fromCharCode(97+i)}.&nbsp;\\(${lab}\\)</th><td>${isSol? L(exact) : ''}</td></tr>`;
-  }).join('');
-  const css = `
-    .radtab{border-collapse:collapse;width:100%}
-    .radtab th,.radtab td{border:1.2pt solid #000;padding:6pt 8pt;text-align:center;vertical-align:middle}
-    .radtab .lab{text-align:left}
-  `;
-const right = `
-         <table class="radtab" style="table-layout:fixed;width:100%">
-            <colgroup>
-              <col style="width:40mm">
-              <col style="width:auto">
-            </colgroup>
-            <tbody>${rows}</tbody>
-          </table>`;
- const title = `<b>Exercice 2 — Cosinus et sinus d’un angle</b>`;
- const enonce = `<div style="margin:4mm 0 3mm 0">
+        const left = svg.outerHTML.replace('<svg','<svg style="width:70mm;height:70mm"');
+
+        const css = `
+          .radtab{border-collapse:collapse;width:100%}
+          .radtab th,.radtab td{border:1.2pt solid #000;padding:6pt 8pt;text-align:center;vertical-align:middle}
+          .radtab .lab{text-align:left}
+        `;
+
+        let right;
+
+        if(!isSol){
+          // Version énoncé : tableau simple (question + case vide)
+          const rowsEnonce = st.TASKS.map((t,i)=>{
+            const lab = `${t.askCos?'\\\\cos':'\\\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`;
+            return `
+              <tr>
+                <th class="lab">${String.fromCharCode(97+i)}.&nbsp;\\(${lab}\\)</th>
+                <td></td>
+              </tr>`;
+          }).join('');
+
+          right = `
+            <table class="radtab" style="table-layout:fixed;width:100%">
+              <colgroup>
+                <col style="width:40mm">
+                <col style="width:60mm">
+              </colgroup>
+              <tbody>${rowsEnonce}</tbody>
+            </table>`;
+        }else{
+          // Version corrigé : 4 colonnes (Question, Point image, Coordonnée, Valeur exacte)
+          const rowsSol = st.TASKS.map((t,i)=>{
+            const exactAll = cosSinExact(t.a);
+            const exact = t.askCos ? exactAll.cosTex : exactAll.sinTex;
+            const pointLabel = angleToPointLabel(t.a);
+            const coordUsed = t.askCos ? 'abscisse' : 'ordonnée';
+            const lab = `${t.askCos?'\\\\cos':'\\\\sin'}\\big( ${fmtPiTex(t.a)} \\big)`;
+
+            return `
+              <tr>
+                <th class="lab">${String.fromCharCode(97+i)}.&nbsp;\\(${lab}\\)</th>
+                <td>\\(${pointLabel}\\)</td>
+                <td>${coordUsed}</td>
+                <td>${L(exact)}</td>
+              </tr>`;
+          }).join('');
+
+right = `
+  <table class="radtab" style="width:100%">
+    <colgroup>
+      <col style="width:40mm">
+      <col style="width:24mm">
+      <col style="width:100mm">
+      <col style="width:60">
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="lab">Question</th>
+        <th>Point image</th>
+        <th>Il faut lire sur le cercle :</th>
+        <th>Valeur exacte</th>
+      </tr>
+    </thead>
+    <tbody>${rowsSol}</tbody>
+  </table>`;
+
+        }
+
+        const title = `<b>Exercice 2 — Cosinus et sinus d’un angle</b>`;
+        const enonce = `<div style="margin:4mm 0 3mm 0">
    En utilisant le cercle trigonométrique et le tableau des valeurs remarquables,
   déterminer la valeur exacte demandée.
  </div>`;
 
- return `<style>${css}</style>
-          <div style="width:180mm;display:grid;grid-template-columns:70mm 1fr;column-gap:10mm;align-items:start;font-size:12pt">
-     ${title}
-     ${enonce}
+        return `<style>${css}</style>
+          <div style="width:300mm;display:grid;grid-template-columns:70mm 1fr;column-gap:10mm;align-items:start;font-size:12pt">
+            ${title}
+            ${enonce}
             <div style="display:flex;justify-content:center;align-items:center">${left}</div>
             <div>${right}</div>
-     </div>
-  </div>`;
-}
+          </div>`;
+      }
+
     }
   };
 }

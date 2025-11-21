@@ -161,118 +161,469 @@ function retypeset(host){
 
 
 /* ======= Banque (25 contextes) ======= */
+/* ======= Banque (25 contextes) ======= */
 function bank25(){
-  const B=[
-    {name:'adhérents d’un club', unit:'adhérents', int:true, dec:0, vi:()=>rnd(100,800),
-      t2:(vi,p1,s1,p2,s2)=>`Un club compte ${vi} adhérents. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien d’adhérents ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un club compte ${vf} adhérents après une ${s1==='+'?'hausse':'baisse'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien avant ?`,
-      t4:(vi,p,n)=>`L’effectif augmente de ${p}% par an. Il était de ${vi} adhérents en année 0. Combien en année ${n} ?`},
-    {name:'population d’une ville', unit:'habitants', int:true, dec:0, vi:()=>rnd(15000,150000),
-      t2:(vi,p1,s1,p2,s2)=>`La population d’une ville est de ${vi} habitants. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Une ville compte ${vf} habitants après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien avant ?`,
-      t4:(vi,p,n)=>`La population augmente de ${p}%/an à partir de ${vi} habitants. Combien en année ${n} ?`},
-    {name:'arbres plantés', unit:'arbres', int:true, dec:0, vi:()=>rnd(200,5000),
-      t2:(vi,p1,s1,p2,s2)=>`On a planté ${vi} arbres l’an dernier. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien cette année ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, on compte ${vf} arbres. Combien au départ ?`,
-      t4:(vi,p,n)=>`Le nombre d’arbres progresse de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
-    {name:'spectateurs d’un concert', unit:'spectateurs', int:true, dec:0, vi:()=>rnd(500,8000),
-      t2:(vi,p1,s1,p2,s2)=>`Un concert réunit ${vi} spectateurs. L’affluence ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au concert suivant ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un concert a réuni ${vf} spectateurs après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au précédent ?`,
-      t4:(vi,p,n)=>`Le nombre de spectateurs augmente de ${p}%/mois à partir de ${vi}. Combien après ${n} mois ?`},
-    {name:'élèves d’un lycée', unit:'élèves', int:true, dec:0, vi:()=>rnd(300,2000),
-      t2:(vi,p1,s1,p2,s2)=>`Un lycée compte ${vi} élèves. L’effectif ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un lycée compte ${vf} élèves après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
-      t4:(vi,p,n)=>`L’effectif progresse de ${p}%/an à partir de ${vi}. Combien dans ${n} ans ?`},
-    {name:'stock d’un magasin', unit:'pièces', int:true, dec:0, vi:()=>rnd(200,5000),
-      t2:(vi,p1,s1,p2,s2)=>`Le stock d’un magasin est de ${vi} pièces. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le stock final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Le stock d’un magasin est ${vf} pièces après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le stock initial ?`,
-      t4:(vi,p,n)=>`La production augmente de ${p}%/mois à partir de ${vi} pièces. Quel stock après ${n} mois ?`},
-    {name:'arbustes d’un parc', unit:'arbustes', int:true, dec:0, vi:()=>rnd(500,9000),
-      t2:(vi,p1,s1,p2,s2)=>`Un parc compte ${vi} arbustes. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau nombre ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un parc compte ${vf} arbustes. Combien au départ ?`,
-      t4:(vi,p,n)=>`Le nombre d’arbustes croît de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
-    {name:'salaire', unit:'€', int:false, dec:2, vi:()=>rnd(1200,3200)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un salaire est ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le salaire final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un salaire vaut ${tidyDecFR(vf,2)} €. Quel était-il avant ?`,
-      t4:(vi,p,n)=>`Un salaire évolue de ${p}%/an. Il vaut ${tidyDecFR(vi,2)} € à l’année 0. Combien à l’année ${n} ?`},
-    {name:'prix d’un billet', unit:'€', int:false, dec:2, vi:()=>rnd(8,120)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un billet coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un billet coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le prix initial ?`,
-      t4:(vi,p,n)=>`Le prix d’un billet augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
-    {name:'loyer', unit:'€', int:false, dec:2, vi:()=>rnd(400,1600)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un loyer est ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau loyer ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, un loyer vaut ${tidyDecFR(vf,2)} €. Quel était-il avant ?`,
-      t4:(vi,p,n)=>`Un loyer évolue de ${p}%/an et vaut ${tidyDecFR(vi,2)} €. Quel sera-t-il dans ${n} ans ?`},
-    {name:'prix d’un ordinateur', unit:'€', int:false, dec:2, vi:()=>rnd(300,1500)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un ordinateur coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un ordinateur coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était son prix initial ?`,
-      t4:(vi,p,n)=>`Le prix d’un ordinateur varie de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
-    {name:'facture d’électricité', unit:'€', int:false, dec:2, vi:()=>rnd(50,250)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Une facture d’électricité est ${tidyDecFR(vi,2)} €. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le montant final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Après ${Math.abs(p1)}% puis ${Math.abs(p2)}%, une facture est ${tidyDecFR(vf,2)} €. Quel était le montant initial ?`,
-      t4:(vi,p,n)=>`La facture évolue de ${p}%/an. Montant initial ${tidyDecFR(vi,2)} €. Quel montant dans ${n} ans ?`},
-    {name:'consommation électrique', unit:'kWh', int:true, dec:0, vi:()=>rnd(1800,6000),
-      t2:(vi,p1,s1,p2,s2)=>`La consommation annuelle d’un foyer est ${vi} kWh. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle consommation ?`,
-      t3:(vf,p1,s1,p2,s2)=>`La consommation annuelle est ${vf} kWh après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
-      t4:(vi,p,n)=>`La consommation croît de ${p}%/an. Elle est de ${vi} kWh l’année 0. Quelle valeur en année ${n} ?`},
-    {name:'distance d’un parcours', unit:'km', int:false, dec:2, vi:()=>rnd(2,30)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`La distance d’un parcours est ${tidyDecFR(vi,2)} km. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la distance finale ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un parcours mesure ${tidyDecFR(vf,2)} km après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était sa longueur initiale ?`,
-      t4:(vi,p,n)=>`Une distance augmente de ${p}%/an. Longueur initiale ${tidyDecFR(vi,2)} km. Quelle longueur dans ${n} ans ?`},
-    {name:'volume d’un réservoir', unit:'L', int:false, dec:1, vi:()=>rnd(50,300)/10,
-      t2:(vi,p1,s1,p2,s2)=>`Le volume d’un réservoir est ${tidyDecFR(vi,1)} L. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le volume final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Le volume d’un réservoir est ${tidyDecFR(vf,1)} L après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le volume initial ?`,
-      t4:(vi,p,n)=>`Le volume augmente de ${p}%/an, à partir de ${tidyDecFR(vi,1)} L. Quel volume après ${n} ans ?`},
-    {name:'vitesse moyenne', unit:'km/h', int:false, dec:1, vi:()=>rnd(30,120)/1,
-      t2:(vi,p1,s1,p2,s2)=>`La vitesse moyenne d’un trajet est ${tidyDecFR(vi,1)} km/h. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle vitesse ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Une vitesse moyenne atteint ${tidyDecFR(vf,1)} km/h après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était-elle auparavant ?`,
-      t4:(vi,p,n)=>`La vitesse progresse de ${p}%/an. Elle est ${tidyDecFR(vi,1)} km/h l’année 0. Quelle vitesse dans ${n} ans ?`},
-    {name:'durée d’un trajet', unit:'min', int:true, dec:0, vi:()=>rnd(20,120),
-      t2:(vi,p1,s1,p2,s2)=>`La durée d’un trajet est ${vi} minutes. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle durée ?`,
-      t3:(vf,p1,s1,p2,s2)=>`La durée d’un trajet est ${vf} minutes après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la durée initiale ?`,
-      t4:(vi,p,n)=>`La durée diminue de ${p}%/an à partir de ${vi} minutes. Quelle durée après ${n} ans ?`},
-    {name:'surface d’un appartement', unit:'m²', int:true, dec:0, vi:()=>rnd(30,150),
-      t2:(vi,p1,s1,p2,s2)=>`La surface d’un appartement est ${vi} m². Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle surface ?`,
-      t3:(vf,p1,s1,p2,s2)=>`La surface d’un appartement est ${vf} m² après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la surface initiale ?`,
-      t4:(vi,p,n)=>`La surface utile augmente de ${p}%/an à partir de ${vi} m². Quelle surface dans ${n} ans ?`},
-    {name:'prix d’un sandwich', unit:'€', int:false, dec:2, vi:()=>rnd(2,8)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un sandwich coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le nouveau prix ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un sandwich coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le prix initial ?`,
-      t4:(vi,p,n)=>`Le prix d’un sandwich augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
-    {name:'masse d’un colis', unit:'kg', int:false, dec:1, vi:()=>rnd(5,120)/10,
-      t2:(vi,p1,s1,p2,s2)=>`La masse d’un colis est ${tidyDecFR(vi,1)} kg. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle masse ?`,
-      t3:(vf,p1,s1,p2,s2)=>`La masse d’un colis est ${tidyDecFR(vf,1)} kg après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la masse au départ ?`,
-      t4:(vi,p,n)=>`La masse varie de ${p}%/an. Quelle masse après ${n} ans si elle vaut ${tidyDecFR(vi,1)} kg au départ ?`},
-    {name:'longueur d’un câble', unit:'m', int:false, dec:2, vi:()=>Math.round((rnd(50,500)/10 + Math.random())*100)/100,
-      t2:(vi,p1,s1,p2,s2)=>`La longueur d’un câble est ${tidyDecFR(vi,2)} m. Elle ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle est la nouvelle longueur ?`,
-      t3:(vf,p1,s1,p2,s2)=>`La longueur d’un câble est ${tidyDecFR(vf,2)} m après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quelle était la longueur initiale ?`,
-      t4:(vi,p,n)=>`La longueur du câble augmente de ${p}%/an à partir de ${tidyDecFR(vi,2)} m. Quelle longueur dans ${n} ans ?`},
-    {name:'prix d’un téléphone', unit:'€', int:false, dec:2, vi:()=>rnd(150,1200)+rnd(0,99)/100,
-      t2:(vi,p1,s1,p2,s2)=>`Un téléphone coûte ${tidyDecFR(vi,2)} €. Il ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le prix final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un téléphone coûte ${tidyDecFR(vf,2)} € après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était son prix initial ?`,
-      t4:(vi,p,n)=>`Le prix d’un téléphone évolue de ${p}%/an à partir de ${tidyDecFR(vi,2)} €. Quel prix dans ${n} ans ?`},
-    {name:'billets vendus', unit:'billets', int:true, dec:0, vi:()=>rnd(100,5000),
-      t2:(vi,p1,s1,p2,s2)=>`Une salle vend ${vi} billets. Les ventes ${s1==='+'?'augmentent':'diminuent'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Une salle vend ${vf} billets après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
-      t4:(vi,p,n)=>`Les ventes progressent de ${p}%/mois, à partir de ${vi} billets. Combien après ${n} mois ?`},
-    {name:'arbres fruitiers', unit:'arbres', int:true, dec:0, vi:()=>rnd(50,800),
-      t2:(vi,p1,s1,p2,s2)=>`Un verger compte ${vi} arbres fruitiers. Leur nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un verger compte ${vf} arbres après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au début ?`,
-      t4:(vi,p,n)=>`Le verger grandit de ${p}%/an et commence à ${vi} arbres. Combien après ${n} ans ?`},
-    {name:'clients par jour', unit:'clients', int:true, dec:0, vi:()=>rnd(40,600),
-      t2:(vi,p1,s1,p2,s2)=>`Un commerce reçoit ${vi} clients par jour. La fréquentation ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un commerce reçoit ${vf} clients après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien auparavant ?`,
-      t4:(vi,p,n)=>`La fréquentation progresse de ${p}%/mois à partir de ${vi} clients. Combien après ${n} mois ?`},
-    {name:'lits d’hôpital', unit:'lits', int:true, dec:0, vi:()=>rnd(500,50000),
-      t2:(vi,p1,s1,p2,s2)=>`Un hôpital dispose de ${vi} lits. Le nombre ${s1==='+'?'augmente':'diminue'} de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel est le total final ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Un hôpital compte ${vf} lits après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Quel était le total initial ?`,
-      t4:(vi,p,n)=>`Le nombre de lits augmente de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
-    {name:'arbres replantés', unit:'arbres', int:true, dec:0, vi:()=>rnd(100,3000),
-      t2:(vi,p1,s1,p2,s2)=>`Une commune replante ${vi} arbres. Elle ${s1==='+'?'augmente':'diminue'} ce nombre de ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien ensuite ?`,
-      t3:(vf,p1,s1,p2,s2)=>`Une commune annonce ${vf} arbres après ${Math.abs(p1)}% puis ${Math.abs(p2)}%. Combien au départ ?`,
-      t4:(vi,p,n)=>`Les plantations augmentent de ${p}%/an à partir de ${vi}. Combien après ${n} ans ?`},
+  const B = [
+    {
+      name: 'adhérents d’un club',
+      unit: 'adhérents',
+      int: true,
+      dec: 0,
+      vi: () => rnd(100,800),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un club compte ${vi} adhérents. Le nombre d’adhérents subit une première évolution : il ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième évolution : il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien y a-t-il d’adhérents après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un club compte ${vf} adhérents après une première évolution où l’effectif ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième évolution où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien y avait-il d’adhérents avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `L’effectif du club augmente de ${p} % par an. Il est de ${vi} adhérents en année 0. Combien y en a-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'population d’une ville',
+      unit: 'habitants',
+      int: true,
+      dec: 0,
+      vi: () => rnd(15000,150000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La population d’une ville est de ${vi} habitants. Elle subit deux évolutions successives : d’abord elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’habitants compte la ville après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Une ville compte ${vf} habitants après une première évolution où la population ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième évolution où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’habitants y avait-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `La population augmente de ${p} % par an à partir de ${vi} habitants. Combien d’habitants la ville comptera-t-elle après ${n} années ?`
+    },
+
+    {
+      name: 'arbres plantés',
+      unit: 'arbres',
+      int: true,
+      dec: 0,
+      vi: () => rnd(200,5000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `On a planté ${vi} arbres l’an dernier. Le nombre d’arbres subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien y a-t-il d’arbres après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Après une première évolution où le nombre d’arbres ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %, on compte finalement ${vf} arbres. Combien y avait-il d’arbres avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Le nombre d’arbres progresse de ${p} % par an à partir de ${vi}. Combien y en aura-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'spectateurs d’un concert',
+      unit: 'spectateurs',
+      int: true,
+      dec: 0,
+      vi: () => rnd(500,8000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un concert réunit ${vi} spectateurs. L’affluence subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de spectateurs y a-t-il après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un concert a finalement réuni ${vf} spectateurs après une première évolution où l’affluence ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien y avait-il de spectateurs avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Le nombre de spectateurs augmente de ${p} % par mois à partir de ${vi}. Combien y en a-t-il après ${n} mois ?`
+    },
+
+    {
+      name: 'élèves d’un lycée',
+      unit: 'élèves',
+      int: true,
+      dec: 0,
+      vi: () => rnd(300,2000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un lycée compte ${vi} élèves. L’effectif subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’élèves le lycée compte-t-il après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un lycée compte ${vf} élèves après une première évolution où l’effectif ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’élèves y avait-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `L’effectif du lycée progresse de ${p} % par an à partir de ${vi} élèves. Combien d’élèves comptera-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'stock d’un magasin',
+      unit: 'pièces',
+      int: true,
+      dec: 0,
+      vi: () => rnd(200,5000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Le stock d’un magasin est de ${vi} pièces. Ce stock subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le stock final ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Le stock d’un magasin est de ${vf} pièces après une première évolution où le stock ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était le stock initial ?`,
+
+      t4: (vi,p,n) =>
+        `La production du magasin augmente de ${p} % par mois à partir de ${vi} pièces. Quel stock obtient-on après ${n} mois ?`
+    },
+
+    {
+      name: 'arbustes d’un parc',
+      unit: 'arbustes',
+      int: true,
+      dec: 0,
+      vi: () => rnd(500,9000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un parc compte ${vi} arbustes. Leur nombre subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le nouveau nombre d’arbustes dans le parc ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Après une première évolution où le nombre d’arbustes ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %, un parc compte finalement ${vf} arbustes. Combien y en avait-il au départ ?`,
+
+      t4: (vi,p,n) =>
+        `Le nombre d’arbustes croît de ${p} % par an à partir de ${vi}. Combien y en aura-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'salaire',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(1200,3200) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un salaire est de ${tidyDecFR(vi,2)} €. Il subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le salaire final ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Après une première évolution où le salaire ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %, un salaire atteint ${tidyDecFR(vf,2)} €. Quel était-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Un salaire évolue de ${p} % par an. Il vaut ${tidyDecFR(vi,2)} € à l’année 0. Combien va-t-il valoir après ${n} années ?`
+    },
+
+    {
+      name: 'prix d’un billet',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(8,120) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un billet coûte ${tidyDecFR(vi,2)} €. Son prix subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le prix final du billet ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un billet coûte ${tidyDecFR(vf,2)} € après une première évolution où son prix ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était le prix initial du billet ?`,
+
+      t4: (vi,p,n) =>
+        `Le prix d’un billet augmente de ${p} % par an à partir de ${tidyDecFR(vi,2)} €. Quel sera le prix dans ${n} ans ?`
+    },
+
+    {
+      name: 'loyer',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(400,1600) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un loyer est de ${tidyDecFR(vi,2)} €. Il subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le nouveau loyer ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Après une première évolution où le loyer ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %, un loyer vaut ${tidyDecFR(vf,2)} €. Quel était-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Un loyer évolue de ${p} % par an et vaut ${tidyDecFR(vi,2)} € l’année 0. Quel sera son montant dans ${n} ans ?`
+    },
+
+    {
+      name: 'prix d’un ordinateur',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(300,1500) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un ordinateur coûte ${tidyDecFR(vi,2)} €. Son prix subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le prix final de l’ordinateur ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un ordinateur coûte ${tidyDecFR(vf,2)} € après une première évolution où son prix ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était le prix initial de cet ordinateur ?`,
+
+      t4: (vi,p,n) =>
+        `Le prix d’un ordinateur varie de ${p} % par an à partir de ${tidyDecFR(vi,2)} €. Quel sera son prix dans ${n} ans ?`
+    },
+
+    {
+      name: 'facture d’électricité',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(50,250) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Une facture d’électricité est de ${tidyDecFR(vi,2)} €. Son montant subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le montant final de la facture ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Après une première évolution où la facture ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %, une facture d’électricité atteint ${tidyDecFR(vf,2)} €. Quel était le montant initial ?`,
+
+      t4: (vi,p,n) =>
+        `La facture d’électricité évolue de ${p} % par an. Elle est de ${tidyDecFR(vi,2)} € l’année 0. Quel sera son montant dans ${n} ans ?`
+    },
+
+    {
+      name: 'consommation électrique',
+      unit: 'kWh',
+      int: true,
+      dec: 0,
+      vi: () => rnd(1800,6000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La consommation annuelle d’un foyer est de ${vi} kWh. Elle subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la nouvelle consommation annuelle ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `La consommation annuelle d’un foyer est de ${vf} kWh après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la consommation avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `La consommation croît de ${p} % par an. Elle est de ${vi} kWh l’année 0. Quelle sera la consommation en année ${n} ?`
+    },
+
+    {
+      name: 'distance d’un parcours',
+      unit: 'km',
+      int: false,
+      dec: 2,
+      vi: () => rnd(2,30) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La distance d’un parcours est de ${tidyDecFR(vi,2)} km. Cette distance subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la distance finale du parcours ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un parcours mesure ${tidyDecFR(vf,2)} km après une première évolution où sa longueur ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était sa longueur initiale ?`,
+
+      t4: (vi,p,n) =>
+        `Une distance augmente de ${p} % par an. La longueur initiale est ${tidyDecFR(vi,2)} km. Quelle sera la longueur de ce parcours dans ${n} ans ?`
+    },
+
+    {
+      name: 'volume d’un réservoir',
+      unit: 'L',
+      int: false,
+      dec: 1,
+      vi: () => rnd(50,300)/10,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Le volume d’un réservoir est de ${tidyDecFR(vi,1)} L. Il subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le volume final du réservoir ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Le volume d’un réservoir est de ${tidyDecFR(vf,1)} L après une première évolution où il ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était le volume initial ?`,
+
+      t4: (vi,p,n) =>
+        `Le volume de ce réservoir augmente de ${p} % par an, à partir de ${tidyDecFR(vi,1)} L. Quel sera son volume après ${n} ans ?`
+    },
+
+    {
+      name: 'vitesse moyenne',
+      unit: 'km/h',
+      int: false,
+      dec: 1,
+      vi: () => rnd(30,120),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La vitesse moyenne d’un trajet est de ${tidyDecFR(vi,1)} km/h. Cette vitesse subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la nouvelle vitesse moyenne ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Une vitesse moyenne atteint ${tidyDecFR(vf,1)} km/h après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la vitesse moyenne au départ ?`,
+
+      t4: (vi,p,n) =>
+        `La vitesse progresse de ${p} % par an. Elle est de ${tidyDecFR(vi,1)} km/h l’année 0. Quelle sera la vitesse moyenne dans ${n} ans ?`
+    },
+
+    {
+      name: 'durée d’un trajet',
+      unit: 'min',
+      int: true,
+      dec: 0,
+      vi: () => rnd(20,120),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La durée d’un trajet est de ${vi} minutes. Cette durée subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la nouvelle durée du trajet ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `La durée d’un trajet est de ${vf} minutes après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la durée initiale de ce trajet ?`,
+
+      t4: (vi,p,n) =>
+        `La durée du trajet diminue de ${p} % par an à partir de ${vi} minutes. Quelle sera la durée du trajet après ${n} ans ?`
+    },
+
+    {
+      name: 'surface d’un appartement',
+      unit: 'm²',
+      int: true,
+      dec: 0,
+      vi: () => rnd(30,150),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La surface d’un appartement est de ${vi} m². Cette surface subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la surface finale de l’appartement ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `La surface d’un appartement est de ${vf} m² après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la surface initiale ?`,
+
+      t4: (vi,p,n) =>
+        `La surface utile de l’appartement augmente de ${p} % par an à partir de ${vi} m². Quelle surface atteindra-t-elle dans ${n} ans ?`
+    },
+
+    {
+      name: 'prix d’un sandwich',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(2,8) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un sandwich coûte ${tidyDecFR(vi,2)} €. Son prix subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le nouveau prix du sandwich ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un sandwich coûte ${tidyDecFR(vf,2)} € après une première évolution où son prix ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était son prix initial ?`,
+
+      t4: (vi,p,n) =>
+        `Le prix d’un sandwich augmente de ${p} % par an à partir de ${tidyDecFR(vi,2)} €. Quel sera le prix du sandwich dans ${n} ans ?`
+    },
+
+    {
+      name: 'masse d’un colis',
+      unit: 'kg',
+      int: false,
+      dec: 1,
+      vi: () => rnd(5,120)/10,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La masse d’un colis est de ${tidyDecFR(vi,1)} kg. Elle subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la masse finale du colis ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `La masse d’un colis est de ${tidyDecFR(vf,1)} kg après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la masse initiale ?`,
+
+      t4: (vi,p,n) =>
+        `La masse de ce colis varie de ${p} % par an. Quelle sera sa masse après ${n} ans s’il pèse ${tidyDecFR(vi,1)} kg au départ ?`
+    },
+
+    {
+      name: 'longueur d’un câble',
+      unit: 'm',
+      int: false,
+      dec: 2,
+      vi: () => Math.round((rnd(50,500)/10 + Math.random())*100)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `La longueur d’un câble est de ${tidyDecFR(vi,2)} m. Cette longueur subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle est la nouvelle longueur du câble ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `La longueur d’un câble est de ${tidyDecFR(vf,2)} m après une première évolution où elle ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quelle était la longueur initiale du câble ?`,
+
+      t4: (vi,p,n) =>
+        `La longueur de ce câble augmente de ${p} % par an à partir de ${tidyDecFR(vi,2)} m. Quelle sera sa longueur dans ${n} ans ?`
+    },
+
+    {
+      name: 'prix d’un téléphone',
+      unit: '€',
+      int: false,
+      dec: 2,
+      vi: () => rnd(150,1200) + rnd(0,99)/100,
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un téléphone coûte ${tidyDecFR(vi,2)} €. Son prix subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le prix final du téléphone ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un téléphone coûte ${tidyDecFR(vf,2)} € après une première évolution où son prix ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel était le prix initial de ce téléphone ?`,
+
+      t4: (vi,p,n) =>
+        `Le prix d’un téléphone évolue de ${p} % par an à partir de ${tidyDecFR(vi,2)} €. Quel sera son prix dans ${n} ans ?`
+    },
+
+    {
+      name: 'billets vendus',
+      unit: 'billets',
+      int: true,
+      dec: 0,
+      vi: () => rnd(100,5000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Une salle vend ${vi} billets pour un spectacle. Le nombre de billets vendus subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de billets sont finalement vendus ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Une salle vend finalement ${vf} billets après une première évolution où le nombre de billets vendus ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de billets étaient vendus au départ ?`,
+
+      t4: (vi,p,n) =>
+        `Les ventes de billets progressent de ${p} % par mois à partir de ${vi} billets. Combien de billets seront vendus après ${n} mois ?`
+    },
+
+    {
+      name: 'arbres fruitiers',
+      unit: 'arbres',
+      int: true,
+      dec: 0,
+      vi: () => rnd(50,800),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un verger compte ${vi} arbres fruitiers. Leur nombre subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien y a-t-il d’arbres fruitiers après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un verger compte ${vf} arbres fruitiers après une première évolution où leur nombre ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’arbres fruitiers y avait-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Le verger s’agrandit de ${p} % par an et commence avec ${vi} arbres. Combien d’arbres fruitiers comptera-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'clients par jour',
+      unit: 'clients',
+      int: true,
+      dec: 0,
+      vi: () => rnd(40,600),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un commerce reçoit ${vi} clients par jour. La fréquentation subit deux évolutions successives : elle ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de clients par jour le commerce reçoit-il après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un commerce reçoit ${vf} clients par jour après une première évolution où la fréquentation ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où elle ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de clients par jour recevait-il avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `La fréquentation du commerce progresse de ${p} % par mois à partir de ${vi} clients par jour. Combien de clients par jour recevra-t-il après ${n} mois ?`
+    },
+
+    {
+      name: 'lits d’hôpital',
+      unit: 'lits',
+      int: true,
+      dec: 0,
+      vi: () => rnd(500,50000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Un hôpital dispose de ${vi} lits. Le nombre de lits subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Quel est le nombre final de lits ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Un hôpital compte ${vf} lits après une première évolution où leur nombre ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien de lits l’hôpital avait-il au départ ?`,
+
+      t4: (vi,p,n) =>
+        `Le nombre de lits d’hôpital augmente de ${p} % par an à partir de ${vi}. Combien de lits l’hôpital comptera-t-il après ${n} années ?`
+    },
+
+    {
+      name: 'arbres replantés',
+      unit: 'arbres',
+      int: true,
+      dec: 0,
+      vi: () => rnd(100,3000),
+
+      t2: (vi,p1,s1,p2,s2) =>
+        `Une commune replante ${vi} arbres. Ce nombre subit deux évolutions successives : il ${s1==='+' ? 'augmente' : 'diminue'} d’abord de ${Math.abs(p1)} %, puis il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’arbres la commune annonce-t-elle après ces deux évolutions ?`,
+
+      t3: (vf,p1,s1,p2,s2) =>
+        `Une commune annonce avoir replanté ${vf} arbres après une première évolution où ce nombre ${s1==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p1)} %, puis une deuxième où il ${s2==='+' ? 'augmente' : 'diminue'} de ${Math.abs(p2)} %. Combien d’arbres avaient été replantés avant ces deux évolutions ?`,
+
+      t4: (vi,p,n) =>
+        `Les plantations augmentent de ${p} % par an à partir de ${vi} arbres. Combien d’arbres auront été plantés après ${n} années ?`
+    },
   ];
-  // Post-traitement : forcer l'affichage des mots "augmente/diminue" si besoin (déjà OK ici)
+
   return B;
 }
 

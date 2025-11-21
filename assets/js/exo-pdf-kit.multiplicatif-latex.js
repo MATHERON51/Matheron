@@ -898,7 +898,17 @@ ul.no-bullet{
 /* Masques spécifiques au rendu PDF */
 .pdf-hide{ display:none !important; }
  .screen-only{display:none!important} .print-only{display:block!important} 
-
+  /* 2 barres (||) — écart RESSERRÉ */
+  table.pdf-tbl td.dbar::before,
+  table.pdf-tbl td.dbar::after{
+    content:'';
+    position:absolute;
+    top:-1.5px;
+    bottom:-1.5px;
+    border-left:2px solid #000;
+  }
+  table.pdf-tbl td.dbar::before{ left: calc(50% - 2px); }
+  table.pdf-tbl td.dbar::after { left: calc(50% + 2px); }
 
 </style>
 

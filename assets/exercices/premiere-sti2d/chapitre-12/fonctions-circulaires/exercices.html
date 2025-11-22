@@ -1,35 +1,1449 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 12 – Fonctions circulaires</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1ʳᵉ — Étude de fonctions trigonométriques</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; } .tick.ok::after{ content:'✓'; color:#11823b; } .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* — mini tableau de variations (PDF-like) réutilisé — */
+  .var-wrap{display:flex;justify-content:center}
+  table.pdf-tbl{border-collapse:separate;border-spacing:0;border:none;margin:.4rem 0}
+  table.pdf-tbl th,table.pdf-tbl td{border:none;padding:4px 6px;text-align:center;vertical-align:middle}
+  table.pdf-tbl th{background:#f3f3f6}
+  table.pdf-tbl tr:first-child>*{border-top:1.5px solid #000}
+  table.pdf-tbl tr:last-child>*{border-bottom:1.5px solid #000}
+  table.pdf-tbl tr>*:first-child{border-left:1.5px solid #000}
+  table.pdf-tbl tr>*:last-child{border-right:1.5px solid #000}
+  table.pdf-tbl thead tr>*:first-child,
+  table.pdf-tbl tbody tr>*:first-child{border-right:1.5px solid #000}
+  /* ===== Graphe (SVG) ===== */
+.repere { width:100%; height:auto }
+.repere .grid{ stroke:#e6e6e6; stroke-width:1 }
+.repere .axis{ stroke:#555; stroke-width:1.4 }
+.repere .curve{ stroke:#111; stroke-width:2; fill:none }
+.repere .tick text{ font-size:12px; fill:#333 }
+
+
+
+/* Quadrillage complet */
+.repere .gridH{ stroke:#e8e8e8; stroke-width:1 }
+.repere .gridV{ stroke:#e8e8e8; stroke-width:1 }
+.repere .gridH.major, .repere .gridV.major{ stroke:#dddddd; stroke-width:1.2 } /* un poil plus visible */
+
+.repere .tickline{ stroke:#111; stroke-width:1.4 }
+.repere .tick.int text{ font-size:12px; dominant-baseline:ideographic; }
+.repere .tick.pi  text{ font-size:11px; opacity:.85; dominant-baseline:ideographic; }
+.repere .tick.y  text{ font-size:12px; dominant-baseline:middle; }
+
+/* cellules 3-lignes pour variations : max en haut, min en bas */
+.pdf-tbl td.stack{ padding:0 6px; }
+.pdf-tbl td.stack .slot{
+  display:flex; flex-direction:column; justify-content:space-between;
+  height:46px; min-width:38px;
+}
+.pdf-tbl td.stack .mid{ font-size:13px; }
+
+/* Cache les contrôles pour le rendu PDF (impression) */
+@media print{
+  .controls,
+  [data-math-kbd],
+  input, select, textarea, button,
+  .tick { display:none !important; }
+}
+
+/* Supporte aussi le hook JS ci-dessous */
+[data-pdf-hide]{ display:none !important; }
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true,macros:{frac:['\\dfrac{#1}{#2}',2]}},options:{skipHtmlTags:['script','noscript','style','textarea']},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
 </head>
 <body>
-  <h1>Exercices – Fonctions circulaires</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Fonctions circulaires</strong> (Premiere Sti2D, chapitre 12) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-12</code></li>
-        <li>Thème (slug) : <code>fonctions-circulaires</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1ʳᵉ — Étude de fonctions trigonométriques</h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Pour écrire \(\pi\)vous pouvez saisir pi ou utiliser le \(\pi\) du clavier maths.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+  <script src="../../../../js/math-kbd.js" defer></script>
+
+<script defer src="../../../../js/exo-pdf-kit.multiplicatif-latex.js"></script>
+
+  <script>
+  (function(){
+  'use strict';
+
+  /* ===== utils ===== */
+  const $=(s,r)=> (r||document).querySelector(s);
+  let scoreOK=0, scoreTot=0;
+  function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+  function L(s){return '\\( '+String(s).replace(/\\u2212/g,'-')+' \\)';}
+  function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+  function ensureTickAfter(el){ let s=el?.nextElementSibling; if(!s || !s.classList?.contains('tick')){ s=document.createElement('span'); s.className='tick nu'; el.insertAdjacentElement('afterend',s);} return s; }
+  function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+  function valTrim(el){ return (el?.value||'').replace(/\u2212/g,'-').trim(); }
+function rawVal(el){ return (el?.value ?? '').replace(/\u2212/g,'-').trim(); }
+
+// nombre ou null si vide / invalide
+function numOrNull(el){
+  const s = rawVal(el).replace(',', '.');
+  if(s==='') return null;
+  const v = Number(s);
+  return Number.isFinite(v) ? v : null;
+}
+
+// expression π ou null si vide / invalide
+function piOrNull(el){
+  const s = rawVal(el);
+  if(s==='') return null;
+  const v = parsePiExpr(s);
+  return Number.isFinite(v) ? v : null;
+}
+
+// texte non vide ?
+function hasText(el){ return rawVal(el) !== ''; }
+
+  // parse "a*pi/b" or "k*pi" or decimals
+  function parsePiExpr(txt){
+    if(!txt) return NaN;
+    let s = String(txt).toLowerCase().replace(/,/g,'.').replace(/\s+/g,'');
+    if(s==='pi') return Math.PI;
+    if(/pi/.test(s)){
+      // possible forms: k*pi, (k/b)*pi, pi/3, 2pi, etc.
+      s = s.replace(/([0-9.])pi/g,'$1*pi');
+      try{ /* eslint-disable no-eval */
+        return eval(s.replace(/pi/g,Math.PI));
+      }catch(_){ return NaN; }
+    }
+    const v = Number(s);
+    return Number.isFinite(v)?v:NaN;
+  }
+  function sameNum(a,b){ return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<1e-9; }
+
+
+// cellule empilée : valeur haute (A), flèche + éventuel 0 au milieu, valeur basse (-A)
+function stackCell(val, nextVal, A){
+  const arrow = (nextVal==null) ? '' : (nextVal - val > 0 ? '↗' : '↘');
+  const top    = (val=== A) ? `\\(${A}\\)`   : '&nbsp;';
+  const middle = (Math.abs(val) < 1e-12 ? '\\(0\\) ' : '') + arrow;
+  const bottom = (val===-A) ? `\\(${-A}\\)`  : '&nbsp;';
+  return `<td class="stack"><div class="slot">
+            <div class="top">${top}</div>
+            <div class="mid">${middle}</div>
+            <div class="bot">${bottom}</div>
+          </div></td>`;
+}
+
+
+// === Tableau de variations sur [xmin;xmax] pour A·cos(ωx) / A·sin(ωx)
+// par défaut : [-4 ; 4] — colonnes = bornes + tous les extrémums dans l'intervalle
+function varTableRangeTrig(kind, A, omega, xmin=-4, xmax=4){
+  const f = x => kind==='cos' ? A*Math.cos(omega*x) : A*Math.sin(omega*x);
+  const T = 2*Math.PI/omega;
+  const step = T/2;
+  const start = (kind==='cos') ? 0 : T/4;      // positions des extrémums
+
+const EPS = 1e-9;
+  const xs = [xmin];
+
+  // n'ajoute que les extrémums STRICTEMENT à l'intérieur
+  for(let m=Math.ceil((xmin-start)/step); ; m++){
+    const xk = start + m*step;
+    if (xk >= xmax - EPS) break;
+    if (xk >  xmin + EPS) xs.push(xk);
+  }
+  xs.push(xmax);
+
+  xs.sort((a,b)=>a-b);
+  const xsU=[]; for(const x of xs){ if(xsU.length===0 || Math.abs(x - xsU.at(-1))>1e-7) xsU.push(x); }
+
+
+  const ys   = xsU.map(f);
+  const dirs = ys.slice(0,-1).map((y,i)=> y<ys[i+1] ? '↗' : (y>ys[i+1] ? '↘' : '→'));
+
+  const fmtx = x => {
+    const r = Math.round(x*100)/100;                     // 2 décimales
+    const nearInt = Math.abs(r - Math.round(r)) < 1e-9;
+    return String(nearInt ? Math.round(r) : r).replace('.', ',');
+  };
+  const L = s => `\\(${String(s).replace('.',',')}\\)`;
+  const cell    = (v,top)=> `<td><div style="text-align:center">${top?L(v):'&nbsp;'}</div><div style="height:6px"></div><div style="text-align:center">${!top?L(v):'&nbsp;'}</div></td>`;
+  const cellMid = v       => `<td class="mid"><div class="midv">${L(v)}</div></td>`;
+
+  // THEAD (avec intercalaires pour les flèches)
+  const head = ['<tr><th>\\(x\\)</th>'];
+  xsU.forEach((x,i)=>{ head.push(`<td>\\(${fmtx(x)}\\)</td>`); if(i<xsU.length-1) head.push('<td></td>'); });
+  head.push('</tr>');
+
+  // TBODY
+  const omegaPiCoef = (omega/Math.PI); // écrit ω = (coef)·π
+  const title = kind==='cos'
+    ? `\\(f\\)`
+    : `\\(f\\)`;
+
+  const body = [`<tr><th>${title}</th>`];
+  for(let i=0;i<xsU.length;i++){
+    const v = Math.round(ys[i]*1000)/1000;
+    if(i===0){
+      const d=dirs[0]; body.push(d==='↗'?cell(v,false):d==='↘'?cell(v,true):cellMid(v));
+    }else if(i===xsU.length-1){
+      const d=dirs.at(-1); body.push(d==='↗'?cell(v,true):d==='↘'?cell(v,false):cellMid(v));
+    }else{
+      const isMax = ys[i]>ys[i-1] && ys[i]>ys[i+1];
+      const isMin = ys[i]<ys[i-1] && ys[i]<ys[i+1];
+      body.push(isMax?cell(v,true):isMin?cell(v,false):cellMid(v));
+    }
+    if(i<xsU.length-1) body.push(`<td class="arr">${dirs[i]}</td>`);
+  }
+  body.push('</tr>');
+
+  return `
+  <div class="var-wrap">
+    <table class="pdf-tbl">
+      <thead>${head.join('')}</thead>
+      <tbody>${body.join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+
+
+// — entiers sur [a,b] (ticks majeurs, labels "k")
+function makeIntegerXTicks(a, b, step = 1){
+  const out = [];
+  const k0 = Math.ceil(a/step), k1 = Math.floor(b/step);
+  for(let k=k0; k<=k1; k++){
+    const x = k*step;
+    out.push({ x, major:true, label:String(x), kind:'int' });
+  }
+  // toujours étiqueter 0 s'il est dans [a,b]
+  if(a<=0 && 0<=b && !out.some(t=>Math.abs(t.x)<1e-9))
+    out.push({ x:0, major:true, label:'0', kind:'int' });
+  return out.sort((u,v)=>u.x-v.x);
+}
+
+
+
+// Fonction utilitaire pour PGCD
+function pgcd(a, b){
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) [a, b] = [b, a % b];
+  return a || 1;
+}
+
+
+
+// -- transforme un réel r en fraction p/q via fractions continues
+function toFrac(r, tol=1e-10, maxDen=100000){
+  if(!isFinite(r)) return {p:0,q:1};
+  const s = r<0 ? -1 : 1; r=Math.abs(r);
+  if(Math.abs(r - Math.round(r)) < tol) return {p:s*Math.round(r), q:1};
+  let a0=Math.floor(r), p0=1,q0=0,p1=a0,q1=1, x=r, k=0;
+  while(k++<25){
+    const frac=x-Math.floor(x); if(frac<tol) break;
+    x=1/frac; const a=Math.floor(x);
+    const p=a*p1+p0, q=a*q1+q0; if(q>maxDen) break;
+    p0=p1; q0=q1; p1=p; q1=q;
+    if(Math.abs(p/q - r) < tol) break;
+  }
+  return {p:s*p1, q:q1};
+}
+
+// -- LaTeX de (p/q)*π, fraction irréductible et sans “1” inutile
+function latexCoefPi(r){
+  const {p,q} = toFrac(r);
+  const sign = p<0 ? '−' : '';
+  const n = Math.abs(p);
+  if(q===1)         return n===1 ? sign+'\\pi' : sign + n + '\\pi';
+  if(n===1)         return sign + `\\dfrac{\\pi}{${q}}`;
+  return               sign + `\\dfrac{${n}\\pi}{${q}}`;
+}
+
+// --- coefficient LaTeX avant cos/sin : 
+//    1  -> ''     (rien)
+//   -1  -> '-'    (juste le signe)
+//  autre -> le nombre tel quel
+function coefLatex(k, eps=1e-12){
+  if (Math.abs(k-1) < eps)  return '';
+  if (Math.abs(k+1) < eps)  return '-';
+  return String(k);
+}
+
+// LaTeX d'un réel r sous forme de fraction irréductible (ou entier)
+function latexFrac(r){
+  const {p,q} = toFrac(r);
+  const sign = p<0 ? '−' : '';
+  const n = Math.abs(p);
+  if(q === 1) return sign + String(n);           // entier
+  return sign + `\\dfrac{${n}}{${q}}`;           // fraction irréductible
+}
+
+
+// Label LaTeX propre et irréductible pour k·π/d
+function latexPiFrac(k, d){
+  if (k === 0) return '0';
+
+  // simplification du signe et du rapport k/d
+  const sign = (k < 0 ? '−' : '');   // signe unicode
+  let num = Math.abs(k), den = Math.abs(d);
+  const g = pgcd(num, den);
+  num /= g; den /= g;
+
+  // Cas particuliers
+  if (den === 1) {
+    // entier devant π
+    if (num === 1) return sign + '\\pi';
+    return sign + num + '\\pi';
+  }
+  if (num === 1) {
+    // pas de 1 inutile
+    return sign + `\\dfrac{\\pi}{${den}}`;
+  }
+  // cas général irréductible
+  return sign + `\\dfrac{${num}\\pi}{${den}}`;
+}
+
+// ——— Lecture "A·trig(ω·x)" dans une saisie utilisateur ———
+// ——— Lecture "A·trig(ω·x)" ou "A·trig(ω·t)" ———
+function parseFormulaAX(s){
+  if(!s) return null;
+  const S = String(s).replace(/\s+/g,'').toLowerCase();
+
+  const trig = S.includes('cos(') ? 'cos' : (S.includes('sin(') ? 'sin' : '');
+  if(!trig) return null;
+
+  const i = S.indexOf(trig+'(');
+
+  // amplitude A devant le trig (vide -> 1, "-" -> -1, nombre -> ce nombre)
+  const head = S.slice(0, i).replace(/\*$/,'').replace(',', '.');
+  let A = 1;
+  if (head === '-') A = -1;
+  else if (head !== '' && head !== '+') {
+    const num = Number(head);
+    if (Number.isFinite(num)) A = num; else return null;
+  }
+
+  // contenu de la parenthèse
+  const j = S.indexOf(')', i);
+  if (j === -1) return null;
+  const inside = S.slice(i + trig.length + 1, j);
+
+  // dernière lettre = variable (x, t, …)
+  const m = inside.match(/([a-z])$/);
+  if (!m) return null;
+  const variable = m[1];
+
+  // coefficient devant la variable = ω
+  const coefStr = inside.slice(0, -1).replace(/\*$/,'');
+  const omega = coefStr ? parsePiExpr(coefStr) : 1;
+
+  return { A, omega, trig, variable };
+}
+
+
+
+// === Helpers locaux au tableau ===
+function cellVar_(v, top){
+  const L = s => `\\(${String(s).replace('.',',').replace('-', '−')}\\)`;
+  const up = top ? L(v) : '&nbsp;';
+  const dn = top ? '&nbsp;' : L(v);
+  return `<td><div style="text-align:center">${up}</div>
+            <div style="height:6px"></div>
+            <div style="text-align:center">${dn}</div></td>`;
+}
+function cellMid_(v){
+  const L = s => `\\(${String(s).replace('.',',').replace('-', '−')}\\)`;
+  return `<td class="mid"><div class="midv">${L(v)}</div></td>`;
+}
+
+// petit helper pour un THEAD aligné avec les colonnes d'intervalles (↗/↘)
+function buildHeadWithGaps(labels){
+  const head = ['<tr><th>\\(x\\)</th>'];
+  labels.forEach((lab,i)=>{
+    head.push(`<td>\\(${lab}\\)</td>`);
+    if(i < labels.length-1) head.push('<td></td>'); // cellule pour la flèche
+  });
+  head.push('</tr>');
+  return head.join('');
+}
+
+function varTableCos(A, b){
+  const ks = Array.from({length:2*b+1},(_,i)=>i-b);      // −b … b
+  const labs = ks.map(k => latexPiFrac(k,b));            // étiquettes x
+  const dirs = ks.slice(0,-1).map(k => (k%2===0?'↘':'↗'));
+
+  const body = ['<tr><th>\\(f\\)</th>'];
+  ks.forEach((k, idx)=>{
+    const val = A * (k%2===0 ? 1 : -1);
+    // extrémités : place la valeur au bon “étage” selon la flèche
+    if(idx===0)          body.push(dirs[0]==='↗' ? cellVar_(val,false) : cellVar_(val,true));
+    else if(idx===ks.length-1)
+                         body.push(dirs.at(-1)==='↗' ? cellVar_(val,true) : cellVar_(val,false));
+    else                 body.push(k%2===0 ? cellVar_(val,true) : cellVar_(val,false));
+    if(idx<ks.length-1)  body.push(`<td class="arr">${dirs[idx]}</td>`);
+  });
+  body.push('</tr>');
+
+  return `
+  <div class="var-wrap">
+    <table class="pdf-tbl">
+      <thead>${buildHeadWithGaps(labs)}</thead>
+      <tbody>${body.join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function varTableSin(A, b){
+  const cols = [{lab: latexPiFrac(-1,1), kind:'end'}];
+  for(let n=-b; n<=b-1; n++) cols.push({lab: latexPiFrac(2*n+1,2*b), kind:'crit', n});
+  cols.push({lab: latexPiFrac(1,1), kind:'end'});
+  const labs = cols.map(c => c.lab);
+  let d = (b%2===0 ? '↗' : '↘');
+  const dirs=[]; for(let i=0;i<labs.length-1;i++){ dirs.push(d); d = (d==='↗'?'↘':'↗'); }
+
+  const body = ['<tr><th>\\(f\\)</th>'];
+  cols.forEach((c, idx)=>{
+    if(c.kind==='end'){
+      if(idx===0)        body.push(dirs[0]==='↗' ? cellVar_(0,false) : cellVar_(0,true));
+      else               body.push(dirs.at(-1)==='↗' ? cellVar_(0,true)  : cellVar_(0,false));
+    }else{
+      const val = A * ((c.n%2===0)?1:-1);
+      body.push(val>0 ? cellVar_(val,true) : cellVar_(val,false));
+    }
+    if(idx<cols.length-1) body.push(`<td class="arr">${dirs[idx]}</td>`);
+  });
+  body.push('</tr>');
+
+  return `
+  <div class="var-wrap">
+    <table class="pdf-tbl">
+      <thead>${buildHeadWithGaps(labs)}</thead>
+      <tbody>${body.join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+
+
+
+
+// multiples π/6, π/4, π/3, π/2, π (et opposés) dans [a,b]
+function makePiFamilyXTicks(a, b){
+  const denoms = [6,4,3,2,1];
+  const out = [];
+  const seen = new Set();
+  const key = x => Math.round(x*1e6);
+
+  for(const d of denoms){
+    const step = Math.PI/d;
+    const k0 = Math.ceil(a/step);
+    const k1 = Math.floor(b/step);
+    for(let k=k0; k<=k1; k++){
+      const x = k*step;
+      const ky = key(x); if(seen.has(ky)) continue; seen.add(ky);
+      out.push({
+        x,
+        major: (d<=2),          // π et π/2 plus marqués
+        kind : 'pi',
+        label: '',              // on n’utilise pas le label texte
+        latex: latexPiFrac(k,d) // ← LaTeX à afficher
+      });
+    }
+  }
+  // garantir 0
+  if(a<=0 && 0<=b && !out.some(t=>Math.abs(t.x)<1e-9)){
+    out.push({x:0, major:true, kind:'pi', label:'0', latex:'0'});
+  }
+  return out.sort((u,v)=>u.x-v.x);
+}
+
+
+/* ===== 2) Graphe trigonométrique dynamique (SVG) ===== */
+/* ===== Graphe trigonométrique dynamique + quadrillage aligné sur TOUTES les graduations ===== */
+function niceStep(v){                       // pas “joli” ~ 1–2–5 × 10^n
+  if(v<=0 || !isFinite(v)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const r = v / p;
+  const base = (r < 1.5) ? 1 : (r < 3.5 ? 2 : (r < 7.5 ? 5 : 10));
+  return base * p;
+}
+function makeYTicksFromStep(yMin, yMax, step){
+  const out = []; const kMin = Math.ceil(yMin/step), kMax = Math.floor(yMax/step);
+  for(let k=kMin;k<=kMax;k++) out.push(k*step);
+  return out;
+}
+
+
+
+function drawTrigGraph(f, a, b, mount, opts={}){
+  const W=620, H=260;
+
+  // marges de base
+  const mT=36, mR=36, mB=36, mL=36;
+
+  // 🆕 petit retrait à gauche si l’axe Y est collé au bord (a≈0)
+  const needLeftGutter = Math.abs(a) < 1e-9;
+  const gutterLeft = needLeftGutter ? 22 : 0;  // 22 px suffisent pour le “−”
+
+  // zone de tracé
+  const x0 = mL + gutterLeft, y0 = mT;
+  const w  = W - (mL + mR + gutterLeft);
+  const h  = H - (mT + mB);
+  const N=800, xs=[...Array(N)].map((_,i)=>a+(b-a)*i/(N-1));
+  const ys=xs.map(x=>f(x));
+  let yMin=Math.min(...ys), yMax=Math.max(...ys);
+  const pad = 0.08*(yMax-yMin || 1);
+  if(Number.isFinite(opts.yMin)) yMin=opts.yMin; else yMin-=pad;
+  if(Number.isFinite(opts.yMax)) yMax=opts.yMax; else yMax+=pad;
+  if(yMin===yMax){ yMin-=1; yMax+=1; }
+
+  const X=x=>x0+(x-a)/(b-a)*w;
+  const Y=y=>y0+h-(y-yMin)/(yMax-yMin)*h;
+
+  mount.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+ const svg=document.createElementNS(svgNS,'svg');
+  // --- defs : flèche pour les axes ---
+  const defs = document.createElementNS(svgNS,'defs');
+  const mk = document.createElementNS(svgNS,'marker');   // ← pas "m" !
+  mk.setAttribute('id','ax-arrow');
+    mk.setAttribute('viewBox','0 0 10 10');
+  mk.setAttribute('refX','10');
+  mk.setAttribute('refY','5');
+  mk.setAttribute('markerWidth','7');
+  mk.setAttribute('markerHeight','7');
+  mk.setAttribute('orient','auto-start-reverse');
+const p = document.createElementNS(svgNS,'path');
+p.setAttribute('d','M 0 0 L 10 5 L 0 10 Z');   // triangle
+p.setAttribute('fill','#555');                 // même teinte que tes axes
+mk.appendChild(p);
+defs.appendChild(mk);
+svg.appendChild(defs);
+
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('class','repere');
+  mount.appendChild(svg);
+
+  const AXIS_X = Y(0), AXIS_Y = X(0);
+  const eps = 1e-9;
+
+  /* ---------- (A) LISTES DE TICKS ---------- */
+
+  // Y ticks (pilotés par yStep ou niceStep)
+  const yStep = Number(opts.yStep) && isFinite(opts.yStep) ? Number(opts.yStep)
+               : niceStep((yMax - yMin)/6);         // ~6 lignes
+  const yTicks = makeYTicksFromStep(yMin, yMax, yStep);
+
+  // X ticks
+  let xTicks = [];  // {x:number, major:boolean, label?:string, kind:'int'|'pi'|'custom'}
+  function pushTick(arr, x, major, label, kind){
+    arr.push({x,major,label:label||'',kind});
+  }
+  if (Array.isArray(opts.customXTicks) && opts.customXTicks.length){
+  // ✅ on passe à travers toutes les infos (dont 'kind' et 'latex')
+  xTicks = opts.customXTicks.map(t => ({
+    x: t.x,
+    major: !!t.major,
+    label: t.label ?? '',
+    kind: t.kind ?? 'custom',
+    latex: t.latex
+  }));
+  } else {
+    // exos 1–2–5–6 : entiers + multiples de π, sans doublons
+    const ints=[];
+    for(let k=Math.ceil(a); k<=Math.floor(b); k++) ints.push(k);
+    const pis=[];
+    for(let k=Math.ceil(a/Math.PI); k<=Math.floor(b/Math.PI); k++) pis.push(k*Math.PI);
+
+    // dédoublonnage (au cas où un entier tombe près d’un multiple de π)
+    const taken = new Set();
+    const key = x => Math.round((x - a)/(b-a) * 100000); // quantisation
+    ints.forEach(x => { taken.add(key(x)); pushTick(xTicks,x,true,String(x),'int'); });
+    pis.forEach(x => {
+      const k = key(x);
+      if(taken.has(k)) return;  // déjà un entier ici
+      // label π
+      const mult = Math.round(x/Math.PI);
+      const lab = (mult===1?'π':(mult===-1?'−π':mult+'π'));
+      pushTick(xTicks,x,false,lab,'pi');
+    });
+  }
+
+  /* ---------- (B) QUADRILLAGE (avant axes/courbe) ---------- */
+  // horizontales
+  yTicks.forEach((yVal,idx)=>{
+    if (Math.abs(yVal) < eps) return;     // on évite la ligne confondue avec l'axe x (qui sera plus foncée)
+    const l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',x0); l.setAttribute('y1',Y(yVal));
+    l.setAttribute('x2',x0+w); l.setAttribute('y2',Y(yVal));
+    l.setAttribute('class','gridH'+(idx%2===0?' major':'')); svg.appendChild(l);
+  });
+  // verticales
+  xTicks.forEach(t=>{
+    if (Math.abs(t.x) < eps) return;      // on évite la ligne confondue avec l'axe y
+    const l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',X(t.x)); l.setAttribute('y1',y0);
+    l.setAttribute('x2',X(t.x)); l.setAttribute('y2',y0+h);
+    l.setAttribute('class','gridV'+(t.major?' major':'')); svg.appendChild(l);
+  });
+
+  /* ---------- (C) AXES ---------- */
+const axX = document.createElementNS(svgNS,'line');
+// de gauche vers droite pour que la flèche soit à droite
+axX.setAttribute('x1', x0);
+axX.setAttribute('y1', AXIS_X);
+axX.setAttribute('x2', x0 + w);
+axX.setAttribute('y2', AXIS_X);
+axX.setAttribute('class','axis');
+axX.setAttribute('marker-end','url(#ax-arrow)');   // <<< flèche
+svg.appendChild(axX);
+
+
+const axY = document.createElementNS(svgNS,'line');
+// de bas vers haut pour que la flèche soit en haut
+axY.setAttribute('x1', AXIS_Y);
+axY.setAttribute('y1', y0 + h);
+axY.setAttribute('x2', AXIS_Y);
+axY.setAttribute('y2', y0);
+axY.setAttribute('class','axis');
+axY.setAttribute('marker-end','url(#ax-arrow)');   // <<< flèche
+svg.appendChild(axY);
+
+
+  /* ---------- (D) COURBE ---------- */
+  let d=`M ${X(xs[0])} ${Y(ys[0])}`;
+  for(let i=1;i<N;i++) d+=` L ${X(xs[i])} ${Y(ys[i])}`;
+  const path=document.createElementNS(svgNS,'path');
+  path.setAttribute('d',d); path.setAttribute('class','curve'); svg.appendChild(path);
+
+  /* ---------- (E) TICKS + LABELS SUR LES AXES ---------- */
+  // X — entiers (majeurs) + π (mineurs ou custom)
+   // --- X : traits + labels (entiers en texte, π en LaTeX) ---
+  // X — traits + labels (entiers en texte, π en LaTeX)
+// --- X : traits + labels (entiers en texte, π en LaTeX) ---
+const yAxisLine = AXIS_X;
+xTicks.forEach(t=>{
+  const len = t.major ? 8 : 5;
+  const xpx = X(t.x);
+
+  // trait de graduation
+  const tl = document.createElementNS(svgNS,'line');
+  tl.setAttribute('x1', xpx); tl.setAttribute('y1', yAxisLine - len);
+  tl.setAttribute('x2', xpx); tl.setAttribute('y2', yAxisLine + len);
+  tl.setAttribute('class','tickline');
+  svg.appendChild(tl);
+
+  if (t.kind === 'pi' && t.latex) {
+  const fo = document.createElementNS(svgNS,'foreignObject');
+
+  // un peu plus large/haut + positionné légèrement plus bas que l’axe
+  const boxW = 64;                      // avant 52
+  const boxH = 32;                      // avant 24
+  fo.setAttribute('x', xpx - boxW / 2);
+  fo.setAttribute('y', yAxisLine + (t.major ? 10 : 8)); // un poil plus bas
+  fo.setAttribute('width', boxW);
+  fo.setAttribute('height', boxH);
+  fo.setAttribute('style', 'overflow: visible');        // évite la coupe du dénominateur
+
+  const div = document.createElement('div');
+  div.style.textAlign = 'center';
+  div.style.fontSize  = (t.major ? '13px' : '12px');
+  div.style.lineHeight = '1.1';
+  div.style.padding = '0 2px';
+  div.innerHTML = `\\(${t.latex}\\)`;
+
+  fo.appendChild(div);
+  svg.appendChild(fo);
+
+  // typeset uniquement ce label
+  MathJax?.typesetPromise?.([fo]).catch(()=>{});
+} else {
+
+    // ⬇️ entiers & autres labels sous l’axe
+    const lab = (t.label ?? '') || (t.kind==='int' ? String(Math.round(t.x)) : '');
+    if (lab) {
+      const tx = document.createElementNS(svgNS,'text');
+      tx.setAttribute('x', xpx);
+      tx.setAttribute('y', yAxisLine + 16);          // ← dessous
+      tx.setAttribute('text-anchor','middle');
+      tx.setAttribute('class','tick int');
+      tx.textContent = lab;
+      svg.appendChild(tx);
+    }
+  }
+});
+
+
+
+  // Y — graduations “jolies” via yStep, avec labels à gauche de l’axe
+  const xAxisX = AXIS_Y;
+  yTicks.forEach((yv)=>{
+    const yy = Y(yv);
+    const tl=document.createElementNS(svgNS,'line');
+    tl.setAttribute('x1',xAxisX-8); tl.setAttribute('y1',yy);
+    tl.setAttribute('x2',xAxisX+8); tl.setAttribute('y2',yy);
+    tl.setAttribute('class','tickline'); svg.appendChild(tl);
+
+    const lab=document.createElementNS(svgNS,'text');
+    lab.setAttribute('x',xAxisX-10); lab.setAttribute('y',yy);
+    lab.setAttribute('text-anchor','end'); lab.setAttribute('class','tick y');
+    // nombres entiers si possible, sinon 1 décimale
+    lab.textContent = (Math.abs(yv-Math.round(yv))<1e-9 ? String(Math.round(yv)) : String(Math.round(yv*10)/10));
+    svg.appendChild(lab);
+  });
+}
+
+
+function makeTimeTicks_T_over_4(a, b, T){
+  // ticks à pas T/4 ; labels sur k*(T/2) uniquement, affichés en secondes
+  const minorStep = T/4, majorStep = T/2;
+  const ticks = [];
+  const eps = 1e-9;
+
+  // commence au premier multiple de T/4 dans [a,b]
+  const k0 = Math.ceil((a - eps)/minorStep);
+  const k1 = Math.floor((b + eps)/minorStep);
+
+  function fmtSec(x){
+    // arrondi "propre", virgule française
+    const v = Math.round((x + Number.EPSILON)*1000)/1000; // 3 décimales
+    return String(v).replace('.', ',');
+  }
+
+  for(let k=k0; k<=k1; k++){
+    const x = k*minorStep;
+    const isMajor = Math.abs((x/majorStep) - Math.round(x/majorStep)) < 1e-9;
+    ticks.push({
+      x,
+      major: isMajor,
+      label: isMajor ? fmtSec(x) : '' // label seulement sur major
+    });
+  }
+  return ticks;
+}
+
+  /* ===== EXERCICES ===== */
+
+  // 1) A et T d’un cosinus, puis ω
+  const ex1 = {
+    id:'trig1_cos_ATw',
+    title:'A et période d’un cosinus (puis ω)',
+    gen(){
+      const A = [1,2,3][Math.floor(Math.random()*3)];
+      const T = [2,3,4][Math.floor(Math.random()*3)];
+      return {A,T,omega:2*Math.PI/T};
+    },
+    render(host,st){
+      host.innerHTML = `
+      <div>Dans le repère orthogonal \\((O,I,J)\\), on considère la courbe d’une fonction \\(f\\) définie par \\(f(x)=A\\cos(\\omega x)\\) où \\(A>0,\\ \\omega>0\\).</div>
+<div id="graph-host" style="margin:.5rem 0"></div>     
+	 <ol style="margin:.4rem 0 0 1.1rem">
+        <li>Déterminer graphiquement la valeur de \\(A\\).</li>
+		        <div><input class="inA" style="width:90px"></div>
+        <li>a. Déterminer graphiquement la période \\(T\\) de \\(f\\). 
+		<div><input class="inT" style="width:90px"></div>
+b. En déduire la valeur de \\(ω\\).
+<div><input class="inW"  style="width:180px"></div>
+<li>En déduire l'expression exacte de la fonction \\(f\\).</li>
+		        <div><input class="fEX" style="width:200px"></div>
+				<li>Donner graphiquement le tableau de variation de la fonction \\(f\\) dans \\([-4;4].\\)</li>
+
+       </ol>
+         <div id="res" class="steps"></div>`;
+	  
+	  const T = 2*Math.PI/st.omega;
+const a = 0, b = 2*T;                 // comme sur tes screens (0 → 2T)
+// === EXO 1 / EXO 2 ===
+drawTrigGraph(
+  x => st.A *  Math.cos(st.omega*x),
+  -4, 4,
+  $('#graph-host', host),
+  {
+    yMax:  st.A * 1.2,
+    yMin: -st.A * 1.2,
+    // >>> ticks X : uniquement ENTiers
+    customXTicks: makeIntegerXTicks(-4, 4),
+    // (optionnel) pas vertical automatique ; tu peux forcer yStep si tu veux
+  }
+);
+
+      host.dataset.state = JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+correct(host, st){
+  let ok=0, tot=0;
+
+  const elA = $('.inA',host), elT = $('.inT',host), elW = $('.inW',host), elF = $('.fEX',host);
+
+  const A = numOrNull(elA);
+  const T = numOrNull(elT);
+  const W = piOrNull(elW);
+  const F = (elF?.value||'').trim();
+
+  // A
+  if (A !== null){ 
+    tot++; setTick(elA, A===st.A ? 'ok' : 'ko'); 
+    if (A===st.A) ok++; 
+  } else setTick(elA,'nu');
+
+  // T
+  if (T !== null){ 
+    tot++; setTick(elT, T===st.T ? 'ok' : 'ko'); 
+    if (T===st.T) ok++; 
+  } else setTick(elT,'nu');
+
+  // ω
+  if (W !== null){ 
+    tot++; setTick(elW, sameNum(W,st.omega) ? 'ok' : 'ko'); 
+    if (sameNum(W,st.omega)) ok++; 
+  } else setTick(elW,'nu');
+
+  // f(x)
+  if (F){
+    const pf = parseFormulaAX(F);
+    const okF = pf && pf.trig==='cos' && pf.A===st.A && sameNum(pf.omega, st.omega);
+    tot++; setTick(elF, okF ? 'ok' : 'ko'); 
+    if (okF) ok++;
+  } else setTick(elF,'nu');
+
+  return {ok,total:tot};
+}
+,
+solution(host,st){
+const omegaCoef = 2 / st.T;                // coefficient de π
+const omegaLatex = latexCoefPi(omegaCoef); // ex.: "π", "2π/3", "50π", ...
+const Acoef = coefLatex(st.A);   
+  $('#res',host).innerHTML = `
+  <div class="step">1. Le maximum de \\(f\\) est \\(${st.A}\\) donc \\(A=${st.A}\\).</div>
+  <div class="step">2a. On lit graphiquement : \\(T=${st.T}\\).</div>
+    <div class="step">2b. On a donc donc \\(\\omega=\\dfrac{2\\pi}{T}=${omegaLatex}\\).</div>
+  <div class="step">3. On en déduit \\(f(x)=${Acoef}\\cos(${omegaLatex}\\,x)\\).</div>
+  4. ${varTableRangeTrig('cos', st.A, st.omega, -4, 4)}
+
+  `;
+  typesetAll(host);
+},
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  // 2) A et T d’un sinus, puis ω
+  const ex2 = {
+    id:'trig2_sin_ATw',
+    title:'A et période d’un sinus (puis ω)',
+    gen(){
+      const A = [1,2,3][Math.floor(Math.random()*3)];
+      const T = [2,3,4][Math.floor(Math.random()*3)];
+      return {A,T,omega:2*Math.PI/T};
+    },
+
+    render(host,st){
+      host.innerHTML = `
+      <div>Dans le repère orthogonal \\((O,I,J)\\), on considère la courbe d’une fonction \\(f\\) définie par \\(f(x)=A\\sin(\\omega x)\\) où \\(A>0,\\ \\omega>0\\).</div>
+<div id="graph-host" style="margin:.5rem 0"></div>     
+	 <ol style="margin:.4rem 0 0 1.1rem">
+        <li>Déterminer graphiquement la valeur de \\(A\\).</li>
+		        <div><input class="inA" style="width:90px"></div>
+        <li>a. Déterminer graphiquement la période \\(T\\) de \\(f\\). 
+		<div><input class="inT" style="width:90px"></div>
+b. En déduire la valeur de \\(ω\\).
+<div><input class="inW"  style="width:180px"></div>
+<li>En déduire l'expression exacte de la fonction \\(f\\).</li>
+		        <div><input class="fEX" style="width:200px"></div>
+<li>Donner graphiquement le tableau de variation de la fonction \\(f\\) dans \\([-4;4].\\)</li>
+
+       </ol>
+         <div id="res" class="steps"></div>`;
+	  const T = 2*Math.PI/st.omega;
+// === EXO 1 / EXO 2 ===
+drawTrigGraph(
+  x => st.A * Math.sin(st.omega*x),
+  -4, 4,
+  $('#graph-host', host),
+  {
+    yMax:  st.A * 1.2,
+    yMin: -st.A * 1.2,
+    // >>> ticks X : uniquement ENTiers
+    customXTicks: makeIntegerXTicks(-4, 4),
+    // (optionnel) pas vertical automatique ; tu peux forcer yStep si tu veux
+  }
+);
+
+      host.dataset.state=JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+correct(host, st){
+  let ok=0, tot=0;
+
+  const elA = $('.inA',host), elT = $('.inT',host), elW = $('.inW',host), elF = $('.fEX',host);
+
+  const A = numOrNull(elA);
+  const T = numOrNull(elT);
+  const W = piOrNull(elW);
+  const F = (elF?.value||'').trim();
+
+  // A
+  if (A !== null){ 
+    tot++; setTick(elA, A===st.A ? 'ok' : 'ko'); 
+    if (A===st.A) ok++; 
+  } else setTick(elA,'nu');
+
+  // T
+  if (T !== null){ 
+    tot++; setTick(elT, T===st.T ? 'ok' : 'ko'); 
+    if (T===st.T) ok++; 
+  } else setTick(elT,'nu');
+
+  // ω
+  if (W !== null){ 
+    tot++; setTick(elW, sameNum(W,st.omega) ? 'ok' : 'ko'); 
+    if (sameNum(W,st.omega)) ok++; 
+  } else setTick(elW,'nu');
+
+  // f(x)
+  if (F){
+    const pf = parseFormulaAX(F);
+    const okF = pf && pf.trig==='sin' && pf.A===st.A && sameNum(pf.omega, st.omega);
+    tot++; setTick(elF, okF ? 'ok' : 'ko'); 
+    if (okF) ok++;
+  } else setTick(elF,'nu');
+
+  return {ok,total:tot};
+}
+,
+solution(host,st){
+const omegaCoef = 2 / st.T;                // coefficient de π
+const omegaLatex = latexCoefPi(omegaCoef); // ex.: "π", "2π/3", "50π", ...
+const Acoef = coefLatex(st.A);   
+  $('#res',host).innerHTML = `
+  <div class="step">1. Le maximum de \\(f\\) est \\(${st.A}\\) donc \\(A=${st.A}\\).</div>
+  <div class="step">2a. On lit graphiquement : \\(T=${st.T}\\).</div>
+    <div class="step">2b. On a donc donc \\(\\omega=\\dfrac{2\\pi}{T}=${omegaLatex}\\).</div>
+  <div class="step">3. On en déduit \\(f(x)=${Acoef}\\sin(${omegaLatex}\\,x)\\).</div>
+  4. ${varTableRangeTrig('sin', st.A, st.omega, -4, 4)}
+
+  `;
+  typesetAll(host);
+}
+,
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  // 3) Son pur : f(t)=A sin(ωt+φ) — T, A, φ via f(0)=0
+  const ex3 = {
+    id:'trig3_son',
+    title:'Son pur : f(t)=A sin(ωt+φ)',
+    gen(){
+      const T=[0.02,0.04][Math.floor(Math.random()*2)];
+      const A=[200,250,300][Math.floor(Math.random()*3)];
+      const phi=0; // choisi pour f(0)=0
+      return {T,A,omega:2*Math.PI/T,phi};
+    },
+    render(host,st){
+      host.innerHTML = `
+      <div>Lors de l’émission d’un son pur, la pression de l’air (en mP) est modélisée par \\(f(t)=A\\sin(\\omega t+\\varphi)\\) où \\(t\\)  est le temps exprimé en secondes.</div>
+<div id="graph-host" style="margin:.5rem 0"></div>     
+	 <ol style="margin:.4rem 0 0 1.1rem">
+        <li>a. Lire graphiquement une période de \\(T\\). 
+		<div><input class="perT" style="width:180px" ></div>
+		b. En déduire \\(\\omega\\).
+		<div><input class="inW" style="width:180px"></div>
+		</li>
+        <li>Déterminer sur le graphique la valeur de \\(A\\).</li>
+		<div><input class="inA" style="width:100px"></div>
+        <li>a. En utilisant l'image de 0, déterminer la valeur de \\(\\varphi\\).
+		<div><input class="inP" style="width:160px" ></div>
+		b. En déduire l’expression de \\(f\\).</li>
+		<div><input class="inF" style="width:360px"></div>
+      </ol>
+      <div id="res" class="steps"></div>`;
+	  const T = 2*Math.PI / st.omega;
+const a = 0, b = 2*T;        // 2 périodes
+const yPad = 1.2;            // marge visuelle 20%
+const yMax =  st.A * yPad;
+const yMin = -st.A * yPad;
+
+// on fixe un pas lisible en fonction de A (≈ A/5 jolifié)
+const yStep = niceStep(st.A / 5);
+
+drawTrigGraph(
+  t => st.A * Math.sin(st.omega*t + (st.phi||0)),
+  a, b,
+  $('#graph-host', host),
+  {
+    yMax, yMin,
+    intTicks: false, piTicks: false,                 // on coupe entiers/π en temps
+    customXTicks: makeTimeTicks_T_over_4(a, b, T),   // ticks temps
+    yStep                                          // <<< pas vertical piloté par A
+  }
+);
+
+
+	  
+
+      host.dataset.state=JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+correct(host,st){
+  let ok=0, tot=0;
+
+  const Tm = numOrNull($('.perT',host));
+  const W  = piOrNull($('.inW',host));
+  const A  = numOrNull($('.inA',host));
+  const P  = piOrNull($('.inP',host));
+  const F  = ($('.inF',host)?.value||'').trim();
+
+  // T
+  if (Tm !== null){ tot++; setTick($('.perT',host), sameNum(Tm,st.T)?'ok':'ko'); if(sameNum(Tm,st.T)) ok++; }
+  else setTick($('.perT',host),'nu');
+
+  // ω
+  if (W !== null){ tot++; setTick($('.inW',host), sameNum(W,st.omega)?'ok':'ko'); if(sameNum(W,st.omega)) ok++; }
+  else setTick($('.inW',host),'nu');
+
+  // A
+  if (A !== null){ tot++; setTick($('.inA',host), A===st.A?'ok':'ko'); if(A===st.A) ok++; }
+  else setTick($('.inA',host),'nu');
+
+  // φ
+  if (P !== null){ tot++; setTick($('.inP',host), sameNum(P,st.phi)?'ok':'ko'); if(sameNum(P,st.phi)) ok++; }
+  else setTick($('.inP',host),'nu');
+
+  // f(t)
+  if (F){
+    const pf = parseFormulaAX(F);
+    const okF = pf && pf.trig==='sin' && pf.A===st.A && sameNum(pf.omega, st.omega);
+    tot++; setTick($('.inF',host), okF?'ok':'ko'); if(okF) ok++;
+  } else setTick($('.inF',host),'nu');
+
+  return {ok,total:tot};
+},
+
+
+solution(host,st){
+  // affichages propres
+  const Tdisp      = String(st.T).replace('.',','); // ex. 0,04
+  const omegaCoef  = 2 / st.T;                      // coefficient de π
+  const omegaLatex = latexCoefPi(omegaCoef);        // ex. "100\\pi"
+  const Acoef      = coefLatex(st.A);               // '' si A=1, sinon le nombre
+
+  // ligne 1 : lecture de T et déduction de ω (forme exacte)
+  const wLine = `\\(\\omega=\\dfrac{2\\pi}{${Tdisp}}=${omegaLatex}\\)`;
+
+  $('#res',host).innerHTML = `
+    <div class="step">1a. On lit graphiquement : \\(T=${Tdisp}\\).</div>
+    <div class="step">1b. On en déduit que :  ${wLine}.</div>
+    <div class="step">2. Le maximum de \\(f\\) est \\(${st.A}\\) donc \\(A=${st.A}\\).</div>
+
+    <div class="step">3a. <b>Avec les éléments ci-dessus :</b><br>
+      \\(f(t)=${Acoef}\\sin(${omegaLatex}\\,t+\\varphi)\\)<br>
+      \\(f(0)=${Acoef}\\sin(\\varphi)\\)
+    </div>
+
+    <div class="step"><b>Graphiquement :</b><br>
+      \\(f(0)=0\\)<br>
+      \\(${Acoef}\\sin(\\varphi)=0\\)<br>
+      \\(\\sin(\\varphi)=0\\)<br>
+      \\(\\varphi=0\\)
+    </div>
+
+    <div class="step">3b. On a donc : \\(f(t)=${Acoef}\\sin(${omegaLatex}\\,t)\\).</div>
+  `;
+  typesetAll(host);
+},
+
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  // 4) Générateur TB (VLF) : U(t)=A cos(ωt+φ), T connu, U(0)=±A
+  const ex4 = {
+    id:'trig4_vlf',
+    title:'Tension TB : U(t)=A cos(ωt+φ)',
+    gen(){
+      const T=[20,30,40][Math.floor(Math.random()*3)];
+      const A=[2,3,5][Math.floor(Math.random()*3)];
+      const sign = Math.random()<0.5 ? +1 : -1; // U(0)=±A
+      const phi = (sign===+1?0:Math.PI);
+      return {T,A,omega:2*Math.PI/T,phi,sign};
+    },
+    render(host,st){
+      host.innerHTML = `
+      <div>La tension (en V) aux bornes d’un générateur très basse fréquence est \\(U(t)=A\\cos(\\omega t+\\varphi)\\) où \\(t\\)  est le temps exprimé en secondes.</div>
+      <div id="graph-host" style="margin:.5rem 0"></div>
+	 <ol style="margin:.4rem 0 0 1.1rem">
+        <li>a. Lire graphiquement une période de \\(T\\). 
+		<div><input class="perT" style="width:180px" ></div>
+		b. En déduire \\(\\omega\\).
+		<div><input class="inW" style="width:180px"></div>
+		</li>
+        <li>Déterminer sur le graphique la valeur de \\(A\\).</li>
+		<div><input class="inA" style="width:100px"></div>
+        <li>a. En utilisant l'image de 0, déterminer la valeur de \\(\\varphi\\).
+		<div><input class="inP" style="width:160px" ></div>
+		b. En déduire l’expression de \\(f\\).</li>
+		<div><input class="inF" style="width:360px"></div>
+      </ol>
+      <div id="res" class="steps"></div>`;
+	 const T = 2*Math.PI / st.omega;
+const a = 0, b = 2*T;
+drawTrigGraph(
+  t => st.A * Math.cos(st.omega*t + (st.phi||0)),
+  a, b,
+  $('#graph-host', host),
+  {
+    yMax:  st.A * 1.2,
+    yMin: -st.A * 1.2,
+    intTicks: false, piTicks: false,
+    customXTicks: makeTimeTicks_T_over_4(a, b, T)
+  }
+);
+
+      host.dataset.state=JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+   correct(host,st){
+  let ok=0, tot=0;
+
+  const Tm = numOrNull($('.perT',host));
+  const W  = piOrNull($('.inW',host));
+  const A  = numOrNull($('.inA',host));
+  const P  = piOrNull($('.inP',host));
+  const F  = ($('.inF',host)?.value||'').trim();
+
+  // T
+  if (Tm !== null){ tot++; setTick($('.perT',host), sameNum(Tm,st.T)?'ok':'ko'); if(sameNum(Tm,st.T)) ok++; }
+  else setTick($('.perT',host),'nu');
+
+  // ω
+  if (W !== null){ tot++; setTick($('.inW',host), sameNum(W,st.omega)?'ok':'ko'); if(sameNum(W,st.omega)) ok++; }
+  else setTick($('.inW',host),'nu');
+
+  // A
+  if (A !== null){ tot++; setTick($('.inA',host), A===st.A?'ok':'ko'); if(A===st.A) ok++; }
+  else setTick($('.inA',host),'nu');
+
+  // φ
+  if (P !== null){ tot++; setTick($('.inP',host), sameNum(P,st.phi)?'ok':'ko'); if(sameNum(P,st.phi)) ok++; }
+  else setTick($('.inP',host),'nu');
+
+  // f(t)
+  if (F){
+    const pf = parseFormulaAX(F);
+    const okF = pf && pf.trig==='sin' && pf.A===st.A && sameNum(pf.omega, st.omega);
+    tot++; setTick($('.inF',host), okF?'ok':'ko'); if(okF) ok++;
+  } else setTick($('.inF',host),'nu');
+
+  return {ok,total:tot};
+},
+
+solution(host,st){
+  // affichages propres
+  const Tdisp      = String(st.T).replace('.',','); // ex. 20 → "20", 0.04 → "0,04"
+  const omegaCoef  = 2 / st.T;                      // coefficient de π
+  const omegaLatex = latexCoefPi(omegaCoef);        // ex. "\pi/15", "100\pi", ...
+  const Acoef      = coefLatex(st.A);               // '' si A=1, sinon le nombre
+  const U0num      = (st.sign>0 ? st.A : -st.A);    // valeur lue de U(0)
+
+  $('#res',host).innerHTML = `
+    <div class="step">1a. On lit graphiquement : \\(T=${Tdisp}\\).</div>
+    <div class="step">1b. On en déduit que : \\(\\displaystyle \\omega=\\frac{2\\pi}{${Tdisp}}=${omegaLatex}\\).</div>
+    <div class="step">2. Le maximum de \\(f\\) est \\(${st.A}\\) donc \\(A=${st.A}\\).</div>
+
+    <div class="step">3a. <b>Avec les éléments ci-dessus :</b><br>
+      \\(U(t)=${Acoef}\\cos(${omegaLatex}\\,t+\\varphi)\\)<br>
+      \\(U(0)=${Acoef}\\cos(\\varphi)\\)
+    </div>
+
+    <div class="step"><b>Graphiquement :</b><br>
+      \\(U(0)=${U0num}\\) <br>
+	  \\(${Acoef}\\cos(\\varphi)=${U0num}\\)<br>
+      \\(\\cos(\\varphi)=${st.sign>0?'1':'-1'}\\)<br>
+      \\(\\varphi=${st.sign>0?'0':'\\pi'}\\)
+    </div>
+
+    <div class="step">3b. On a donc : \\(U(t)=${Acoef}\\cos(${omegaLatex}\\,t${st.sign>0?'':'+'+'\\pi'})\\).
+    </div>
+  `;
+  typesetAll(host);
+},
+
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  // 5) f(x)=A cos(ωx) — période & nombre de solutions
+  const ex5 = {
+    id:'trig5_ex24',
+    title:'Ex. type — f(x)=A cos(ωx) : période, solutions, variations',
+    gen(){
+      const b=[2,3][Math.floor(Math.random()*2)];
+      const k=[2,3,4][Math.floor(Math.random()*3)];
+      const m = Math.floor(Math.random()*(k-1))* (Math.random()<.5?-1:1); // |m|<k (évite ±k)
+      return {b,k,m, T: 2*Math.PI/b };
+    },
+    render(host,st){
+      host.innerHTML = `
+      <div>On a tracé la courbe de la fonction \\(f\\) définie sur ℝ par  \\(f(x)= ${st.k}\\cos(${st.b}x)\\).</div>
+	  <div id="graph-host" style="margin:.5rem 0"></div>
+      <ol style="margin:.4rem 0 0 1.1rem">
+        <li>Déterminer graphiquement la période \\(T\\) de \\(f\\). Justifier par le calcul.</li>
+		<div><input class="inT" style="width:160px" ></div>
+        <li>Déterminer graphiquement le nombre de solutions de l’équation \\( ${st.k}\\cos(${st.b}x) = ${st.m} \\) dans \\([-\\pi;\\pi].\\)</li>
+		<div><input class="inN" style="width:120px" ></div>
+		        <li>Donner graphiquement le tableau de variation de la fonction \\(f\\) dans \\([-\\pi;\\pi].\\)</li>
+      </ol>
+       <div id="res" class="steps"></div>`;
+const a = -Math.PI, b = Math.PI;
+
+drawTrigGraph(
+  x => st.k * Math.cos(st.b*x),
+  a, b,
+  $('#graph-host', host),
+  {
+    yMax:  st.k * 1.2,
+    yMin: -st.k * 1.2,
+    // >>> ticks X : famille π (π/6, π/4, π/3, π/2, π et opposés)
+    customXTicks: makePiFamilyXTicks(a, b),
+    // aucune graduation entière sur x (puisqu'on fournit des custom)
+  }
+);
+
+
+      host.dataset.state=JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+   correct(host,st){
+  let ok=0, tot=0;
+
+  const Tm = numOrNull($('.perT',host));
+  const W  = piOrNull($('.inW',host));
+  const A  = numOrNull($('.inA',host));
+  const P  = piOrNull($('.inP',host));
+  const F  = ($('.inF',host)?.value||'').trim();
+
+  // T
+  if (Tm !== null){ tot++; setTick($('.perT',host), sameNum(Tm,st.T)?'ok':'ko'); if(sameNum(Tm,st.T)) ok++; }
+  else setTick($('.perT',host),'nu');
+
+  // ω
+  if (W !== null){ tot++; setTick($('.inW',host), sameNum(W,st.omega)?'ok':'ko'); if(sameNum(W,st.omega)) ok++; }
+  else setTick($('.inW',host),'nu');
+
+  // A
+  if (A !== null){ tot++; setTick($('.inA',host), A===st.A?'ok':'ko'); if(A===st.A) ok++; }
+  else setTick($('.inA',host),'nu');
+
+  // φ
+  if (P !== null){ tot++; setTick($('.inP',host), sameNum(P,st.phi)?'ok':'ko'); if(sameNum(P,st.phi)) ok++; }
+  else setTick($('.inP',host),'nu');
+
+  // f(t)
+  if (F){
+    const pf = parseFormulaAX(F);
+    const okF = pf && pf.trig==='cos' && pf.A===st.A && sameNum(pf.omega, st.omega);
+    tot++; setTick($('.inF',host), okF?'ok':'ko'); if(okF) ok++;
+  } else setTick($('.inF',host),'nu');
+
+  return {ok,total:tot};
+},
+solution(host,st){
+ const Tcoef  = 2 / st.b;                      // coefficient de π
+  const TLatex      = latexCoefPi(Tcoef);            
+ const omegaCoef  = 2 / st.T;                      // coefficient de π
+  const omegaLatex = latexCoefPi(omegaCoef);        // ex. "\pi/15", "100\pi", ...
+  const Acoef      = coefLatex(st.A);               // '' si A=1, sinon le nombre
+  const wantN = 2*st.b;
+  $('#res',host).innerHTML = `
+      <div class="step">1. On lit graphiquement : \\(T=${TLatex}\\).</div>
+    <div class="step">\\(\\omega=${st.b}\\) donc \\(T=\\dfrac{2\\pi}{\\omega}=${TLatex}\\).</div>
+    <div class="step">2. Graphiquement l’équation \\( ${st.k}\\cos(${st.b}x) = ${st.m} \\) admet <b>${wantN}</b> solutions dans \\([-\\pi;\\pi] \\) .</div>
+    <div class="step">3. <b>Tableau de variations sur \\([-\u03c0;\u03c0]\\)</b></div>
+    ${varTableCos(st.k, st.b)}
+  `;
+  typesetAll(host);
+}
+,
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  // 6) f(x)=A sin(ωx) — période & solutions + tableau de variations (sur [0;2π])
+  const ex6 = {
+    id:'trig6_ex25',
+    title:'Ex. type — f(x)=A sin(ωx) : période, solutions, variations',
+    gen(){
+      const b=[2,3][Math.floor(Math.random()*2)];
+      const k=[3,4][Math.floor(Math.random()*2)];
+      const m = (Math.random()<.5?-1:1) * (1); // prend ±1 pour l’exemple
+      return {b,k,m, T: 2*Math.PI/b };
+    },
+    render(host,st){
+      host.innerHTML = `
+    <div>On a tracé la courbe de la fonction \\(f\\) définie sur ℝ par  \\(f(x)= ${st.k}\\sin(${st.b}x)\\).</div>
+	  <div id="graph-host" style="margin:.5rem 0"></div>
+      <ol style="margin:.4rem 0 0 1.1rem">
+        <li>Déterminer graphiquement la période \\(T\\) de \\(f\\). Justifier par le calcul.</li>
+		<div><input class="inT" style="width:160px" ></div>
+        <li>Déterminer graphiquement le nombre de solutions de l’équation \\( ${st.k}\\sin(${st.b}x) = ${st.m} \\) dans \\([-\\pi;\\pi].\\)</li>
+		<div><input class="inN" style="width:120px" ></div>
+		        <li>Donner graphiquement le tableau de variation de la fonction \\(f\\) dans \\([-\\pi;\\pi].\\)</li>
+      </ol>
+       <div id="res" class="steps"></div>`;
+const a = -Math.PI, b = Math.PI;
+
+drawTrigGraph(
+  x => st.k *  Math.sin(st.b*x),
+  a, b,
+  $('#graph-host', host),
+  {
+    yMax:  st.k * 1.2,
+    yMin: -st.k * 1.2,
+    // >>> ticks X : famille π (π/6, π/4, π/3, π/2, π et opposés)
+    customXTicks: makePiFamilyXTicks(a, b),
+    // aucune graduation entière sur x (puisqu'on fournit des custom)
+  }
+);
+
+
+      host.dataset.state=JSON.stringify(st);
+      host.querySelectorAll('input').forEach(ensureTickAfter);
+      typesetAll(host);
+    },
+   correct(host,st){
+  let ok=0, tot=0;
+
+  const T = piOrNull($('.inT',host));
+  const N = numOrNull($('.inN',host));
+
+  const wantN = 2*st.b;                   // |m/k|<1 ⇒ 2 solutions par période × b périodes
+  if(Number.isFinite(T)){ tot++; setTick($('.inT',host), sameNum(T,st.T)?'ok':'ko'); if(sameNum(T,st.T)) ok++; }
+  if(!Number.isNaN(N)){  tot++; setTick($('.inN',host), N===wantN?'ok':'ko');       if(N===wantN) ok++; }
+
+  return {ok,total:tot};
+},
+solution(host,st){
+ const Tcoef  = 2 / st.b;                      // coefficient de π
+  const TLatex      = latexCoefPi(Tcoef);            
+ const omegaCoef  = 2 / st.T;                      // coefficient de π
+  const omegaLatex = latexCoefPi(omegaCoef);        // ex. "\pi/15", "100\pi", ...
+  const Acoef      = coefLatex(st.A);               // '' si A=1, sinon le nombre
+  const wantN = 2*st.b;
+  $('#res',host).innerHTML = `
+      <div class="step">1. On lit graphiquement : \\(T=${TLatex}\\).</div>
+    <div class="step">\\(\\omega=${st.b}\\) donc \\(T=\\dfrac{2\\pi}{\\omega}=${TLatex}\\).</div>
+    <div class="step">2. Graphiquement l’équation \\( ${st.k}\\sin(${st.b}x) = ${st.m} \\) admet <b>${wantN}</b> solutions dans \\([-\\pi;\\pi] \\) .</div>
+    <div class="step">3. <b>Tableau de variations sur \\([-\u03c0;\u03c0]\\)</b></div>
+${varTableSin(st.k, st.b)}
+  `;
+  typesetAll(host);
+}
+,
+    reset(host){ $('#res',host).textContent=''; }
+  };
+
+  /* ====== Registre & UI ====== */
+  const REGISTRY=[ex1,ex2,ex3,ex4,ex5,ex6];
+  window.REGISTRY = REGISTRY; // pour éventuel kit PDF
+
+  (function waitExoPDF(){
+    if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+      ExoPDF.init({
+		      mountAfterSelector: '.card.small',
+      });
+    } else {
+      setTimeout(waitExoPDF, 50);
+    }
+  })();
+
+  function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+  function buildOne(){
+    const def=getDefById($("#exo-select").value), host=$("#host");
+    const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+    def.render(host,st);
+    try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+  }
+  function checkAll(){
+    scoreOK=0; scoreTot=0;
+    const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}');
+    const r=def.correct(host,st)||{ok:0,total:0}; scoreOK=r.ok; scoreTot=r.total; updateScore();
+  }
+  function showSolution(){ const def=getDefById($("#exo-select").value), host=$("#host"), st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st); }
+  function resetAll(){ const def=getDefById($("#exo-select").value), host=$("#host"); def.reset(host); scoreOK=0; scoreTot=0; updateScore(); }
+
+  document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+  (function init(){
+    const sel=$("#exo-select");
+    sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+    sel.onchange = buildOne;
+    $("#btn-new").onclick=buildOne;
+    $("#btn-check").onclick=checkAll;
+    $("#btn-solution").onclick=showSolution;
+    $("#btn-reset").onclick=resetAll;
+    sel.value = REGISTRY[0].id;
+    buildOne();
+  })();
+
+  })();
+
+  // Masquer les contrôles juste avant la capture du PDF,
+  // puis les réafficher après.
+  document.addEventListener('exopdf:before-capture', () => {
+    document.querySelectorAll(
+      '.controls, [data-math-kbd], input, select, textarea, button, .tick'
+    ).forEach(el => el.setAttribute('data-pdf-hide',''));
+  });
+  document.addEventListener('exopdf:after-capture', () => {
+    document.querySelectorAll('[data-pdf-hide]')
+      .forEach(el => el.removeAttribute('data-pdf-hide'));
+  });
+</script>
+
 </body>
 </html>

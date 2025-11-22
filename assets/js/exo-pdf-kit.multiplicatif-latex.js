@@ -910,6 +910,19 @@ ul.no-bullet{
   table.pdf-tbl td.dbar::before{ left: calc(50% - 2px); }
   table.pdf-tbl td.dbar::after { left: calc(50% + 2px); }
 
+/* tableau invisible pour le développement de f'(x) */
+.devtab{
+  border-collapse:collapse;
+  margin:.4rem 0 .2rem 0;
+  font-size:0.95rem;
+}
+.devtab td{
+  border:none;
+  padding:2px 6px;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+
 </style>
 
 <style>

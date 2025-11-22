@@ -1,35 +1,1486 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 11 – Dérivée d'un quotient et de l'inverse d'une fonction</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1ère STI2D — Dérivation : Quotient / Inverse</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --ink:#111;
+  --bg:#fafafa;
+  --card:#fff;
+  --line:#e6e6e6;
+  --ok:#11823b;
+  --ko:#b00020
+}
+html,body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font:16px/1.55 system-ui,Segoe UI,Roboto,Arial
+}
+.header{
+  position:sticky;
+  top:0;
+  background:#fff;
+  border-bottom:1px solid #eee;
+  padding:14px 18px;
+  z-index:5
+}
+.wrap{
+  max-width:1200px;
+  margin:0 auto;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px
+}
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)
+}
+
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center
+}
+select,input[type="text"]{
+  padding:8px 10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:15px
+}
+.btn{
+  padding:8px 12px;
+  border:1px solid #ddd;
+  background:#fff;
+  border-radius:8px;
+  cursor:pointer
+}
+.btn:hover{background:#f6f6f6}
+.score{margin-left:auto}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin:.35rem 0
+}
+.table th,.table td{
+  border:1px solid #e5e5e5;
+  padding:6px 8px;
+  vertical-align:top
+}
+.table th{
+  background:#f3f3f6;
+  text-align:left
+}
+
+/* bloc d'étapes solution */
+.steps{
+  margin:.45rem 0 0 .15rem;
+  padding:.45rem .6rem;
+  background:#f7f8fb;
+  border:1px dashed #c7d2fe;
+  border-radius:10px
+}
+.stepTitle{
+  font-weight:600;
+  margin-top:.4rem;
+  margin-bottom:.2rem;
+  text-decoration:underline;
+}
+.line{
+  white-space:nowrap;
+  line-height:1.8;
+  margin:.32rem 0;
+}
+.tick{
+  display:inline-block;
+  min-width:1.2em;
+  margin-left:8px;
+  font-weight:700
+}
+.tick.ok{color:#11823b}
+.tick.ko{color:#b00020}
+
+.answers{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.4rem .5rem;
+}
+.answers .qa-row{
+  flex-basis:100%;
+  display:flex;
+  align-items:center;
+  gap:.4rem;
+  margin-top:.35rem;
+}
+.answers .qa-row label{
+  margin-right:.3rem;
+}
+
+@media print{ .controls{display:none !important;} }
+
+/* on calme MathJax CHTML en inline */
+mjx-container{
+  line-height:1.2;          /* pas géant dans les phrases */
+  font-size:1em;            /* hérite bien dans le flux */
+  vertical-align:middle;
+}
+.steps mjx-container{
+  padding-bottom:.08em;
+}
+@media print{
+  .steps .line{ margin:.36rem 0; line-height:2 }
+  mjx-container{font-size:1em; line-height:1.2}
+}
+
+/* bloc exo visible */
+.exo-block{
+  border:2px solid #ddd;
+  border-radius:10px;
+  padding:12px 14px;
+}
+.exo-title{
+  font-weight:700;
+  text-decoration:underline;
+  margin-bottom:.5rem;
+  display:block;
+}
+
+/* mini-table u,v / u',v' */
+.uvtab{
+  border-collapse:collapse;
+  margin:.6rem 0 .8rem 0;
+  font-size:0.95rem;
+}
+.uvtab td{
+  border:none;
+  padding:4px 32px 4px 0;
+  white-space:nowrap;
+  vertical-align:top;
+  line-height:1.6;
+}
+@media print{
+  .uvtab td{padding:4px 40px 4px 0;}
+}
+
+/* tableau correction 2 colonnes */
+.twocol-solution{
+  border-collapse:collapse;
+  margin:.6rem 0 .8rem 0;
+  width:auto;
+}
+.twocol-solution td{
+  vertical-align:top;
+  padding:0 16px;
+  border:none;
+  white-space:nowrap;
+  line-height:1.75;
+  font-size:0.95rem;
+}
+.twocol-solution td.col-gauche{
+  border-right:2px solid #999;
+  padding-right:24px;
+}
+.twocol-solution td.col-droite{
+  padding-left:24px;
+}
+.twocol-solution .line{
+  margin:.3rem 0;
+}
+.twocol-solution .line mjx-container{
+  padding-bottom:.08em;
+}
+
+/* accessibilité off */
+.MJX_Assistive_MathML, mjx-assistive-mml { display:none !important; }
+</style>
+
+<!-- ⭐ MATHJAX CONFIG CHTML (PAS SVG) -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(','\\)'], ['$', '$']],
+      displayMath: [['\\[','\\]'], ['$$','$$']],
+      processEscapes: true,
+      packages: { '[+]': ['bbox','ams'] },
+      macros: { frac: ['\\dfrac{#1}{#2}', 2] }
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+    chtml: { matchFontHeight:false },
+    startup: { typeset: true }
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<!-- FIN MathJax -->
+
+
 </head>
 <body>
-  <h1>Exercices – Dérivée d'un quotient et de l'inverse d'une fonction</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Dérivée d'un quotient et de l'inverse d'une fonction</strong> (Premiere Sti2D, chapitre 11) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-11</code></li>
-        <li>Thème (slug) : <code>derivee-dun-quotient-et-de-linverse-dune-fonction</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+<div class="header">
+  <h1 style="margin:0;font-size:1.1rem">
+    <strong>1ère STI2D – Dérivation : Quotient / Inverse</strong>
+  </h1>
+</div>
+
+<div class="wrap">
+  <div class="controls card">
+    <label for="exo-select"><strong>Type d’exercice :</strong></label>
+    <select id="exo-select"></select>
+
+    <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+    <button id="btn-check" class="btn">✅ Vérifier</button>
+    <button id="btn-solution" class="btn">💡 Solution</button>
+    <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+
+    <span class="score">Score : <span id="score">0 / 0</span></span>
   </div>
+
+  <div class="card" id="host"></div>
+
+  <div class="card small">
+    <strong>Saisie &amp; réponses acceptées :</strong>
+    <ul style="margin:.5rem 0 0 18px">
+      <li>Puissances : <code>x^n</code>, <code>x**n</code>, <code>x²</code>…</li>
+      <li>Fractions : <code>(num)/(den)</code> ou <code>num/den</code>. Parenthèses conseillées.</li>
+      <li>Tu peux simplifier si tu veux, mais ce n’est pas obligatoire tant que la réponse est algébriquement égale à la dérivée attendue.</li>
+      <li>Interdits : <code>1x</code> (écrire juste <code>x</code>), <code>+0</code>, <code>0x</code>.</li>
+    </ul>
+  </div>
+
+  <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+</div>
+
+<!-- Dépendances projet -->
+<script src='../../../../js/dev-rules-clean.dedup.js' defer></script>
+<script src='../../../../js/exo-pdf-kit-multiplicatif-latex-SVGCHTML.js' defer></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.multiplicatif.js' defer></script>
+
+<script>
+'use strict';
+
+/* =========================================================
+   Utils / random / évaluation élève
+   ========================================================= */
+
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+let scoreOK=0, scoreTot=0;
+function updateScore(){ const el=$("#score"); if(el) el.textContent = scoreOK+" / "+scoreTot; }
+function scanFractions(root){ try{ if(window.FractionSignClarity?.scan) FractionSignClarity.scan(root||document); }catch(_){} }
+
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+function nzChoose(list){ return choice(list.filter(x=>x!==0)); }
+
+function normalizeRac(s){
+  s = String(s||'');
+  s = s.replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)')
+       .replace(/\\rac\{([^{}]+)\}/g,  'sqrt($1)');
+  s = s.replace(/(\d|\))\s*rac\s*\(/gi, '$1*sqrt(');
+  s = s.replace(/(^|[^A-Za-z0-9_])rac\s*\(/gi, '$1sqrt(');
+  s = s.replace(/(\d|\))\s*√\s*\(/g, '$1*sqrt(');
+  s = s.replace(/(\d|\))\s*√\s*x\b/gi, '$1*sqrt(x)');
+  s = s.replace(/√\s*\(/g,   'sqrt(')
+       .replace(/√\s*x\b/gi, 'sqrt(x)');
+  s = s.replace(/\)\s*(?=sqrt\()/g, ')*');
+  s = s.replace(/\/\(\s*(\d+)\s*(?=sqrt\()/gi, '/($1*');
+  return s;
+}
+function numEval(expr, x){
+  if(expr==null) return NaN;
+  let s = String(expr);
+
+  s = s.replace(/−/g,'-').replace(/[×·]/g,'*');
+  s = normalizeRac(s);
+
+  const SUP = {'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'};
+  s = s.replace(/([A-Za-z0-9\)\]])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g,
+        (_m, base, expo)=> base + '^' + expo.split('').map(c=>SUP[c]||'').join('')
+      )
+      .replace(/\^/g,'**');
+
+  s = s.replace(/\bsqrt\s*\(/gi,'Math.sqrt(');
+
+  s = s
+    .replace(/\)\s*\(/g, ')*(')
+    .replace(/(\d)\s*\(/g, '$1*(')
+    .replace(/(\d)\s*x/g, '$1*x')
+    .replace(/\)\s*x/g, ')*x')
+    .replace(/x\s*\(/g, 'x*(');
+
+  s = s
+    .replace(/(\d|\))\s*(?=Math\.sqrt\()/g, '$1*')
+    .replace(/x\s*(?=Math\.sqrt\()/g, 'x*');
+
+  if (typeof x === 'number') {
+    s = s.replace(/(?<![A-Za-z_])x(?![A-Za-z_])/g, '('+x+')');
+  }
+
+  try { return Number(Function('"use strict";return ('+s+')')()); }
+  catch { return NaN; }
+}
+function almost(a,b,eps=1e-8){ return Math.abs(a-b) <= eps*(1+Math.max(1,Math.abs(a),Math.abs(b))); }
+
+/* =========================================================
+   Polynômes
+   ========================================================= */
+
+function randAffine(){
+  const A = nzChoose([-5,-4,-3,-2,-1,1,2,3,4,5]);
+  const B = rnd(-5,5);
+  return {A,B, coeffs:[B,A]};
+}
+function randQuad(){
+  const a = nzChoose([-3,-2,-1,1,2,3]);
+  const b = rnd(-5,5);
+  const c = rnd(-5,5);
+  return {a,b,c, coeffs:[c,b,a]};
+}
+
+function polyDeriv(p){
+  if(p.length<=1) return [0];
+  const d=[];
+  for(let i=1;i<p.length;i++){
+    d.push(p[i]*i);
+  }
+  return d;
+}
+function polyTimes(p,q){
+  const r = Array(p.length+q.length-1).fill(0);
+  for(let i=0;i<p.length;i++){
+    for(let j=0;j<q.length;j++){
+      r[i+j]+=p[i]*q[j];
+    }
+  }
+  return r;
+}
+
+function polyToLatex(p){
+  const terms=[];
+  for(let deg=p.length-1;deg>=0;deg--){
+    const a = p[deg];
+    if(a===0) continue;
+    const absA = Math.abs(a);
+
+    let mono;
+    if(deg===0){
+      mono = ''+absA;
+    }else if(deg===1){
+      mono = (absA===1)?'x':`${absA}x`;
+    }else{
+      mono = (absA===1)?`x^{${deg}}`:`${absA}x^{${deg}}`;
+    }
+
+    const piece = (a<0?'- ':'+ ')+mono;
+    terms.push(piece);
+  }
+  if(!terms.length) return '0';
+  return terms.join(' ').replace(/^\+\s*/,'').trim();
+}
+function polyToJS(p){
+  const parts=[];
+  for(let deg=p.length-1;deg>=0;deg--){
+    const a=p[deg];
+    if(a===0) continue;
+    const absA=Math.abs(a);
+
+    let seg;
+    if(deg===0){
+      seg = ''+absA;
+    }else if(deg===1){
+      seg = (absA===1)?'x':`${absA}*x`;
+    }else{
+      seg = (absA===1)?`x**${deg}`:`${absA}*x**${deg}`;
+    }
+
+    if(a<0) parts.push(`-(${seg})`);
+    else    parts.push(seg);
+  }
+  if(!parts.length) return '0';
+
+  let expr = parts.join('+');
+  expr = expr.replace(/\+\-\(/g,'-(');
+  return expr;
+}
+function makePolyFuncJS(p){
+  const fExpr = polyToJS(p);
+  return x => Function("x","return ("+fExpr+");")(x);
+}
+function makePolyDerivFuncJS(p){
+  const dp = polyDeriv(p);
+  const dfExpr = polyToJS(dp);
+  return x => Function("x","return ("+dfExpr+");")(x);
+}
+function polyDerivToLatex(p){
+  return polyToLatex(polyDeriv(p));
+}
+function polyDerivToJS(p){
+  return polyToJS(polyDeriv(p));
+}
+
+/* signes / nettoyage */
+function cleanSigns(s){
+  if(!s) return s;
+  let out = String(s);
+  out = out.replace(/\s+/g,' ').trim();
+  out = out.replace(/\+\s*-\s*/g,' - ');
+  out = out.replace(/-\s*-\s*/g,' + ');
+  out = out.replace(/\+\s*\+\s*/g,' + ');
+  out = out.replace(/-\s*\+\s*/g,' - ');
+  out = out.replace(/^\+\s*/,'');
+  return out.replace(/\s+/g,' ').trim();
+}
+function polyToMonomeData(p){
+  const list=[];
+  for(let deg=p.length-1;deg>=0;deg--){
+    const c=p[deg];
+    if(c!==0){
+      list.push({coeff:c,deg});
+    }
+  }
+  if(!list.length){
+    list.push({coeff:0,deg:0});
+  }
+  return list;
+}
+function monomeNumericLatex(coeff,deg){
+  const absC = Math.abs(coeff);
+  let core;
+  if(deg===0){
+    core = ''+absC;
+  }else if(deg===1){
+    core = (absC===1)?'x':`${absC}x`;
+  }else{
+    core = (absC===1)?`x^{${deg}}`:`${absC}x^{${deg}}`;
+  }
+  return core;
+}
+function expandProductAsOrderedSignedTerms(P, Q){
+  const monsP = polyToMonomeData(P);
+  const monsQ = polyToMonomeData(Q);
+
+  const terms=[];
+  for(const mp of monsP){
+    for(const mq of monsQ){
+      const coeff = mp.coeff * mq.coeff;
+      if(coeff===0) continue;
+      const deg   = mp.deg   + mq.deg;
+      const base  = monomeNumericLatex(coeff,deg);
+      if(coeff<0){
+        terms.push(`- ${base}`);
+      }else{
+        terms.push(`+ ${base}`);
+      }
+    }
+  }
+  if(!terms.length){
+    terms.push('+ 0');
+  }
+  return terms;
+}
+function joinSignedTermList(terms){
+  if(!terms.length) return '0';
+  let txt = terms.join(' ');
+  txt = cleanSigns(txt);
+  return txt;
+}
+function buildNumeratorReduced(uPrimeCoeffs,vCoeffs,vPrimeCoeffs,uCoeffs){
+  const uv = polyTimes(uPrimeCoeffs,vCoeffs);
+  const vu = polyTimes(vPrimeCoeffs,uCoeffs);
+  const maxDeg = Math.max(uv.length-1, vu.length-1);
+  const res = Array(maxDeg+1).fill(0);
+  for(let k=0;k<=maxDeg;k++){
+    const a = uv[k]||0;
+    const b = vu[k]||0;
+    res[k]=a-b;
+  }
+  return polyToLatex(res);
+}
+function isConstantPoly(p){
+  for(let i=1;i<p.length;i++){
+    if(p[i] !== 0) return false;
+  }
+  return true;
+}
+
+/* ===== ligne substitution quotient ===== */
+function buildLineSubstitution(uPrimeLatex, vLatex, vPrimeLatex, uLatex, vPrimeCoeffs){
+  const uPrimeClean = uPrimeLatex.replace(/\s+/g,'').trim();
+  const isConstUPrime = /^-?\d+(\.\d+)?$/.test(uPrimeClean);
+
+  let termUV;
+  if(isConstUPrime){
+    if(uPrimeClean === '1'){
+      termUV = `(${vLatex})`;
+    } else if(uPrimeClean === '-1'){
+      termUV = `-${vLatex.startsWith('-') ? `(${vLatex})` : `(${vLatex})`}`;
+    } else {
+      termUV = `${uPrimeClean}(${vLatex})`;
+    }
+  } else {
+    termUV = `(${uPrimeLatex})(${vLatex})`;
+  }
+
+  const denom = `\\left(${vLatex}\\right)^{2}`;
+
+  if (isConstantPoly(vPrimeCoeffs)){
+    const k = vPrimeCoeffs[0];
+    if (k < 0){
+      const kk = Math.abs(k);
+      const secondPretty = (kk===1?`(${uLatex})`:`${kk}\\,(${uLatex})`);
+      return `f'(x)=\\dfrac{${termUV} + ${secondPretty}}{${denom}}`;
+    } else {
+      if (k === 0){
+        return `f'(x)=\\dfrac{${termUV}}{${denom}}`;
+      } else {
+        const secondPretty = (k===1?`(${uLatex})`:`${k}\\,(${uLatex})`);
+        return `f'(x)=\\dfrac{${termUV} - ${secondPretty}}{${denom}}`;
+      }
+    }
+  }
+
+  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim();
+  const m = vPrimeNoSpace.match(/^(-?\d*\.?\d*)x$/);
+
+  if (m){
+    let kStr = m[1];
+    let kVal;
+    if(kStr === '' || kStr === '+'){ kVal = 1; }
+    else if(kStr === '-'){ kVal = -1; }
+    else { kVal = parseFloat(kStr); }
+
+    function kxLatex(k){
+      const absK = Math.abs(k);
+      if (absK === 1){
+        return `x`;
+      } else {
+        return `${absK}x`;
+      }
+    }
+
+    let secondTerm;
+    if(kVal > 0){
+      secondTerm = ` - ${kxLatex(kVal)}(${uLatex})`;
+    } else if(kVal < 0){
+      secondTerm = ` + ${kxLatex(kVal)}(${uLatex})`;
+    } else {
+      secondTerm = ``;
+    }
+
+    return `f'(x)=\\dfrac{${termUV}${secondTerm}}{${denom}}`;
+  }
+
+  const termVU = `(${vPrimeLatex})(${uLatex})`;
+  return `f'(x)=\\dfrac{${termUV} - ${termVU}}{${denom}}`;
+}
+
+/* =========================================================
+   Construction exo quotient
+   ========================================================= */
+
+function randUVpair(){
+  const pattern = choice(["aff/aff","aff/quad","quad/aff","quad/quad"]);
+
+  let u, v;
+  if(pattern==="aff/aff"){
+    u = randAffine();
+    v = randAffine();
+  }else if(pattern==="aff/quad"){
+    u = randAffine();
+    v = randQuad();
+  }else if(pattern==="quad/aff"){
+    u = randQuad();
+    v = randAffine();
+  }else{
+    u = randQuad();
+    v = randQuad();
+  }
+
+  const uCoeffs = u.coeffs;
+  const vCoeffs = v.coeffs;
+
+  const uPrimeCoeffs = polyDeriv(uCoeffs);
+  const vPrimeCoeffs = polyDeriv(vCoeffs);
+
+  const uLatex = polyToLatex(uCoeffs);
+  const vLatex = polyToLatex(vCoeffs);
+  const uPrimeLatex = polyToLatex(uPrimeCoeffs);
+  const vPrimeLatex = polyToLatex(vPrimeCoeffs);
+
+  const uJS      = '('+polyToJS(uCoeffs)+')';
+  const vJS      = '('+polyToJS(vCoeffs)+')';
+  const uPrimeJS = '('+polyToJS(uPrimeCoeffs)+')';
+  const vPrimeJS = '('+polyToJS(vPrimeCoeffs)+')';
+
+  return {
+    uCoeffs,vCoeffs,uPrimeCoeffs,vPrimeCoeffs,
+    uLatex,vLatex,uPrimeLatex,vPrimeLatex,
+    uJS,vJS,uPrimeJS,vPrimeJS
+  };
+}
+
+function makeQuotientEval(uJS,vJS,uPrimeJS,vPrimeJS){
+  const fJS = x => {
+    const u = Function("x","return "+uJS+";")(x);
+    const v = Function("x","return "+vJS+";")(x);
+    return u/v;
+  };
+  const fpJS = x => {
+    const u  = Function("x","return "+uJS+";")(x);
+    const v  = Function("x","return "+vJS+";")(x);
+    const du = Function("x","return "+uPrimeJS+";")(x);
+    const dv = Function("x","return "+vPrimeJS+";")(x);
+    return (du*v - u*dv)/(v*v);
+  };
+  return {fJS, fpJS};
+}
+
+function genExQuotient(){
+  const {
+    uCoeffs,vCoeffs,uPrimeCoeffs,vPrimeCoeffs,
+    uLatex,vLatex,uPrimeLatex,vPrimeLatex,
+    uJS,vJS,uPrimeJS,vPrimeJS
+  } = randUVpair();
+
+  const {fJS, fpJS} = makeQuotientEval(uJS,vJS,uPrimeJS,vPrimeJS);
+
+  const fLatex = `\\dfrac{${uLatex}}{${vLatex}}`;
+
+  const lineFormule =
+    `f'(x)=\\dfrac{u'(x)v(x)-v'(x)u(x)}{(v(x))^{2}}`;
+
+  const lineSubstitution = buildLineSubstitution(
+    uPrimeLatex,
+    vLatex,
+    vPrimeLatex,
+    uLatex,
+    vPrimeCoeffs
+  );
+
+  const vPrimeIsConst = isConstantPoly(vPrimeCoeffs);
+  const vPrimeNoSpace = vPrimeLatex.replace(/\s+/g,'').trim();
+  const vPrimeIsKx = /^-?\d*\.?\d*x$/.test(vPrimeNoSpace);
+
+  const numerateurReduit = buildNumeratorReduced(
+    uPrimeCoeffs,
+    vCoeffs,
+    vPrimeCoeffs,
+    uCoeffs
+  );
+  const denomSquared = `\\left(${vLatex}\\right)^{2}`;
+
+  let lineDevSectionHTML = '';
+  let lineConclusion = '';
+
+  if(vPrimeIsConst){
+    const k = vPrimeCoeffs[0];
+
+    let mult;
+    if(k < 0){
+      mult = Math.abs(k);
+    }else if(k > 0){
+      mult = -k;
+    }else{
+      mult = 0;
+    }
+
+    const uvPoly = polyTimes(uPrimeCoeffs,vCoeffs);
+    const kuPoly = uCoeffs.map(c => mult*c);
+
+    const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
+    const uvJoined = joinSignedTermList(uvTerms);
+
+    let kuJoined = '';
+    if(mult!==0){
+      const kuTerms = expandProductAsOrderedSignedTerms([mult], uCoeffs);
+      kuJoined = joinSignedTermList(kuTerms);
+    }
+
+    let numDeveloppe = uvJoined;
+    if(mult!==0){
+      numDeveloppe = cleanSigns((uvJoined + '+ ' + kuJoined).trim());
+    }
+
+    const maxDeg = Math.max(uvPoly.length-1, kuPoly.length-1);
+    const res = Array(maxDeg+1).fill(0);
+    for(let d=0; d<=maxDeg; d++){
+      res[d] = (uvPoly[d]||0) + (kuPoly[d]||0);
+    }
+    const numerateurReduitConst = polyToLatex(res);
+
+    lineDevSectionHTML = `
+      <div class="line">\\(f'(x)=\\dfrac{${numDeveloppe}}{${denomSquared}}\\)</div>
+      <div class="line">\\(f'(x)=\\dfrac{${numerateurReduitConst}}{${denomSquared}}\\)</div>
+    `;
+
+    lineConclusion = `f'(x)=\\dfrac{${numerateurReduitConst}}{${denomSquared}}`;
+
+  } else {
+
+    const uvTerms = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
+    const uvJoined = joinSignedTermList(uvTerms);
+
+    const vuTerms = expandProductAsOrderedSignedTerms(vPrimeCoeffs, uCoeffs);
+    const vuJoined = joinSignedTermList(vuTerms);
+
+    const numReduit = numerateurReduit;
+
+    if (vPrimeIsKx){
+      let kStr = vPrimeNoSpace.replace('x','');
+      let kVal = (kStr === '' || kStr === '+') ? 1
+               : (kStr === '-' ? -1 : parseFloat(kStr));
+
+      const uvPoly = polyTimes(uPrimeCoeffs, vCoeffs);
+
+      const coefGlobal = (kVal>0 ? -kVal : Math.abs(kVal));
+
+      const xTimesU = [0, ...uCoeffs];
+      const secondPoly = xTimesU.map(c => coefGlobal * c);
+
+      const maxLen = Math.max(uvPoly.length, secondPoly.length);
+      const numDevPoly = Array(maxLen).fill(0);
+      for (let i=0;i<maxLen;i++){
+        numDevPoly[i] = (uvPoly[i]||0) + (secondPoly[i]||0);
+      }
+
+      function polyToSignedTerms(p){
+        const mons = polyToMonomeData(p);
+        return mons
+          .filter(m=>m.coeff!==0)
+          .map(m=>{
+            const absC = Math.abs(m.coeff);
+            let core;
+            if(m.deg===0){
+              core = ''+absC;
+            }else if(m.deg===1){
+              core = (absC===1)?'x':`${absC}x`;
+            }else{
+              core = (absC===1)?`x^{${m.deg}}`:`${absC}x^{${m.deg}}`;
+            }
+            return (m.coeff<0?'- ':'+ ') + core;
+          });
+      }
+
+      const uvTerms2     = expandProductAsOrderedSignedTerms(uPrimeCoeffs, vCoeffs);
+      const secondTerms  = polyToSignedTerms(secondPoly);
+      const allTermsRaw  = uvTerms2.concat(secondTerms);
+      let numDevDistrib  = joinSignedTermList(allTermsRaw);
+
+      lineDevSectionHTML = `
+        <div class="line">\\(f'(x)=\\dfrac{${numDevDistrib}}{${denomSquared}}\\)</div>
+        <div class="line">\\(f'(x)=\\dfrac{${numReduit}}{${denomSquared}}\\)</div>
+      `;
+
+      lineConclusion = `f'(x)=\\dfrac{${numReduit}}{${denomSquared}}`;
+
+    } else {
+      const numDevBrut = `${uvJoined} - (${vuJoined})`;
+      const numDevBrutClean = cleanSigns(numDevBrut);
+
+      const flippedVuTerms = vuTerms.map(t=>{
+        t = t.trim();
+        if(t.startsWith('+')){
+          return t.replace(/^\+\s*/,'- ');
+        }else if(t.startsWith('-')){
+          return t.replace(/^\-\s*/,'+ ');
+        }
+        return t;
+      });
+      const flippedVuJoined = joinSignedTermList(flippedVuTerms);
+      let numDevDistribRaw = (uvJoined + '+ ' + flippedVuJoined).trim();
+      numDevDistribRaw = cleanSigns(numDevDistribRaw);
+      const numDevDistrib = numDevDistribRaw.replace(/([+\-])\s*(?=[0-9x])/g, '$1 ');
+
+      lineDevSectionHTML = `
+        <div class="line">\\(f'(x)=\\dfrac{${numDevBrutClean}}{${denomSquared}}\\)</div>
+        <div class="line">\\(f'(x)=\\dfrac{${numDevDistrib}}{${denomSquared}}\\)</div>
+        <div class="line">\\(f'(x)=\\dfrac{${numReduit}}{${denomSquared}}\\)</div>
+      `;
+
+      lineConclusion = `f'(x)=\\dfrac{${numReduit}}{${denomSquared}}`;
+    }
+  }
+
+  const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
+
+  const solHTML = `
+  <div class="steps">
+    <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
+    <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\( \\) \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+    <div class="line"><br></div>
+
+    <div class="line"><strong>Méthode — Règle du quotient</strong></div>
+
+    <div class="line">On a  \\( \\) \\(f(x)=\\dfrac{u(x)}{v(x)}\\)  \\( \\) avec :</div>
+
+    <table class="uvtab">
+      <tr>
+        <td>\\(u(x)=${uLatex}\\)</td>
+        <td>\\(v(x)=${vLatex}\\)</td>
+      </tr>
+      <tr>
+        <td>\\(u'(x)=${uPrimeLatex}\\)</td>
+        <td>\\(v'(x)=${vPrimeLatex}\\)</td>
+      </tr>
+    </table>
+
+    <div class="line">\\(${lineFormule}\\)</div>
+    <div class="line">\\(${lineSubstitution}\\)</div>
+
+    ${lineDevSectionHTML}
+  </div>`;
+
+  const title  = "Exercice 1 : Quotient";
+  const enonce = `Déterminer la dérivée de la fonction définie (sur son ensemble de définition) par :<br><br>\\[ f(x)=${fLatex} \\]`;
+
+  return {
+    title,
+    enonce,
+    latexF: fLatex,
+    latexFp_raw: lineConclusion.replace(/^f'\(x\)=/,'').trim(),
+    latexFp:     lineConclusion.replace(/^f'\(x\)=/,'').trim(),
+    solHTML,
+    fJS,
+    fpJS
+  };
+}
+
+/* =========================================================
+   Exo inverse
+   ========================================================= */
+
+function randInverseData(){
+  const isQuad = Math.random()<0.5;
+  let vObj = isQuad ? randQuad() : randAffine();
+
+  const vCoeffs = vObj.coeffs;
+  const vLatex  = polyToLatex(vCoeffs);
+  const vPrimeCoeffs = polyDeriv(vCoeffs);
+  const vPrimeLatex  = polyToLatex(vPrimeCoeffs);
+
+  const vJS      = '('+polyToJS(vCoeffs)+')';
+  const vPrimeJS = '('+polyToJS(vPrimeCoeffs)+')';
+
+  const k = choice([-5,-4,-3,-2,-1,1,2,3,4,5]);
+  const useK = Math.random()<0.5;
+
+  let fLatex, fJSexpr;
+  if(useK){
+    fLatex = `\\dfrac{${k}}{${vLatex}}`;
+    fJSexpr = `(${k})/(${vJS.slice(1,-1)})`;
+  }else{
+    fLatex = `\\dfrac{1}{${vLatex}}`;
+    fJSexpr = `1/(${vJS.slice(1,-1)})`;
+  }
+
+  const K = useK ? k : 1;
+
+  const derivLatexFinal =
+    `${(K===1?'- \\dfrac{'+vPrimeLatex+'}{\\left('+vLatex+'\\right)^{2}}'
+          : ( (Math.abs(-K)===1? ( (-K<0)?'- ':'') : ((-K<0?'- ':'')+Math.abs(-K)+"\\,")) +
+              '\\dfrac{'+vPrimeLatex+'}{\\left('+vLatex+'\\right)^{2}}'
+            )
+     )}`
+     .replace(/\s+/g,' ')
+     .trim();
+
+  const derivLatexAFinal =
+    `${( (Math.abs(-K)===1?((-K<0)?'- ':'')
+        : ((-K<0?'- ':'')+Math.abs(-K)+"\\,")) +
+       '\\dfrac{v\'(x)}{\\left(v(x)\\right)^{2}}'
+     )}`.replace(/\s+/g,' ').trim();
+
+  const fJS = x => Function("x","return ("+fJSexpr+");")(x);
+  const fpJS = x => {
+    const v  = Function("x","return "+vJS+";")(x);
+    const dv = Function("x","return "+vPrimeJS+";")(x);
+    return -(K*dv)/(v*v);
+  };
+
+  const defDomLine = `Ensemble de définition :\\( \\) \\( \\mathcal{D}_f = \\{ x \\in \\mathbb{R} \\mid ${vLatex} \\neq 0 \\} \\).`;
+
+  const title = "Exercice 2 : Inverse";
+  const enonce = `Déterminer la dérivée de la fonction définie (sur son ensemble de définition) par :<br><br>\\[ f(x)=${fLatex} \\]`;
+
+  let solHTML = '';
+
+  if (!useK || K === 1) {
+    const derivLatexCase1 =
+      `-\\dfrac{${vPrimeLatex}}{\\left(${vLatex}\\right)^{2}}`
+      .replace(/\s+/g,' ')
+      .trim();
+
+    function minusOneTimes_vPrime_develop(vPrimeCoeffs){
+      const scaled = vPrimeCoeffs.map(c => -1 * c);
+      return polyToLatex(scaled);
+    }
+    const devNum = minusOneTimes_vPrime_develop(vPrimeCoeffs);
+    const denomSq = `\\left(${vLatex}\\right)^{2}`;
+
+    const lineAfterDev =
+      `f'(x)=\\dfrac{${devNum}}{${denomSq}}`;
+
+    solHTML = `
+    <div class="steps">
+      <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
+      <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\( \\)  \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+      <div class="line"><br></div>
+
+      <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
+
+      <div class="line">On a \\( \\) \\(f(x)=\\dfrac{1}{v(x)}\\) \\( \\) avec :</div>
+
+      <div class="line">\\(v(x)=${vLatex}\\).</div>
+      <div class="line">\\(v'(x)=${vPrimeLatex}\\).</div>
+
+      <div class="line">\\(f'(x)= -\\dfrac{v'(x)}{\\big(v(x)\\big)^2}\\)</div>
+
+      <div class="line">\\(f'(x)= ${derivLatexCase1}\\)</div>
+
+      <div class="line">\\(${lineAfterDev}\\)</div>
+    </div>`;
+
+    const derivLatexFinalCase = derivLatexCase1;
+    return {
+      title,
+      enonce,
+      latexF: fLatex,
+      latexFp_raw: derivLatexFinalCase,
+      latexFp: derivLatexFinalCase,
+      solHTML,
+      fJS,
+      fpJS
+    };
+  } else {
+    function productMinusK_vPrime_develop(k, vPrimeCoeffs){
+      const mk = -k;
+      const scaled = vPrimeCoeffs.map(c => mk*c);
+      return polyToLatex(scaled);
+    }
+
+    const rawDevNum = productMinusK_vPrime_develop(K, vPrimeCoeffs);
+    const lineAfterDev =
+      `f'(x)=\\dfrac{${rawDevNum}}{\\left(${vLatex}\\right)^{2}}`;
+
+    solHTML = `
+    <div class="steps">
+      <div class="line" style="margin-top:.6rem"><strong>${defDomLine}</strong></div>
+      <div class="line">Remarque : Si l'énoncé demande clairement l'ensemble de définition de \\( \\)  \\(f\\) \\( \\) il faut alors résoudre : \\( \\) \\(${vLatex}=0\\) \\( \\) et exclure les racines éventuelles.</div>
+      <div class="line"><br></div>
+
+      <div class="line"><strong>Méthode — Règle de l'inverse d'une fonction</strong></div>
+
+      <div class="line">On a \\( \\) \\(f(x)=\\dfrac{${K}}{v(x)}\\) \\( \\) avec :</div>
+      <div class="line">\\(v(x)=${vLatex}\\)</div>
+      <div class="line">\\(v'(x)=${vPrimeLatex}\\)</div>
+
+      <div class="line">\\(f'(x)= ${K}\\,\\dfrac{-v'(x)}{\\big(v(x)\\big)^2}\\)</div>
+      <div class="line">\\(f'(x)= ${derivLatexAFinal}\\)</div>
+      <div class="line">\\(f'(x)= ${derivLatexFinal}\\)</div>
+      <div class="line">\\(${lineAfterDev}\\)</div>
+    </div>`;
+
+    return {
+      title,
+      enonce,
+      latexF: fLatex,
+      latexFp_raw: derivLatexFinal,
+      latexFp: derivLatexFinal,
+      solHTML,
+      fJS,
+      fpJS
+    };
+  }
+}
+
+/* =========================================================
+   RENDU / UI / Vérification
+   ========================================================= */
+
+function buildHostHTML(st){
+  return `
+    <div class="exo-block">
+      <span class="exo-title">${st.title}</span>
+      <div class="enonce">${st.enonce}</div>
+
+      <div class="answers">
+        <div class="qa-row">
+          <label for="ansF"><strong>\\(f'(x)=\\)</strong></label>
+          <input id="ansF" class="inp" style="min-width:360px">
+          <span id="tickF" class="tick" style="margin-left:6px"></span>
+        </div>
+      </div>
+
+      <div id="res"></div>
+    </div>
+  `;
+}
+
+function setTick(ok){
+  const el = $('#tickF');
+  if(!el) return;
+  el.className = 'tick ' + (ok===true?'ok':ok===false?'ko':'');
+  el.textContent = ok===true?'✓': ok===false?'✗':'—';
+}
+
+function checkAnswer(st){
+  const inp = $('#ansF');
+  if(!inp){ setTick(null); return {count:0,good:0}; }
+  const val = inp.value||'';
+  if(!val.trim()){
+    setTick(null);
+    return {count:0,good:0};
+  }
+
+  const xs=[-2.4,-1.1,0.7,1.3,2.8,4.2];
+  let ok=true;
+  for(const x of xs){
+    const got=numEval(val,x);
+    const ref=st.fpJS(x);
+    if(!Number.isFinite(got)||!Number.isFinite(ref)||!almost(got,ref,1e-6)){
+      ok=false;break;
+    }
+  }
+  setTick(ok);
+  return {count:1, good:(ok?1:0)};
+}
+
+/* =========================================================
+   REGISTRY
+   ========================================================= */
+
+const EXO_Q = {
+  id:'exoQ',
+  title:'Exercice 1 — Quotient',
+  gen(host){
+    const st = genExQuotient();
+    if(host){
+      host.innerHTML = buildHostHTML(st);
+      host.__state = st;
+      host.dataset.state = JSON.stringify({
+        title:        st.title,
+        enonce:       st.enonce,
+        latexF:       st.latexF,
+        latexFp:      st.latexFp,
+        latexFp_raw:  st.latexFp_raw,
+        solHTML:      st.solHTML
+      });
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([host]);
+      else if(window.MathJax?.typeset)   MathJax.typeset([host]);
+      scanFractions(host);
+    }
+    return st;
+  },
+  correct(host, st){
+    const r = checkAnswer(st);
+    scoreTot += r.count;
+    scoreOK  += r.good;
+    updateScore();
+  },
+  solution(host, st){
+    $('#res',host).innerHTML = st.solHTML;
+    if(window.MathJax?.typesetPromise) MathJax.typesetPromise([$('#res',host)]);
+    else if(window.MathJax?.typeset)   MathJax.typeset([$('#res',host)]);
+  },
+  reset(host){
+    $('#res',host).textContent = '';
+    setTick(null);
+    const inp = $('#ansF',host);
+    if(inp) inp.value = '';
+  }
+};
+
+const EXO_I = {
+  id:'exoI',
+  title:'Exercice 2 — Inverse',
+  gen(host){
+    const st = randInverseData();
+    if(host){
+      host.innerHTML = buildHostHTML(st);
+      host.__state = st;
+      host.dataset.state = JSON.stringify({
+        title:        st.title,
+        enonce:       st.enonce,
+        latexF:       st.latexF,
+        latexFp:      st.latexFp,
+        latexFp_raw:  st.latexFp_raw,
+        solHTML:      st.solHTML
+      });
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([host]);
+      else if(window.MathJax?.typeset)   MathJax.typeset([host]);
+      scanFractions(host);
+    }
+    return st;
+  },
+  correct(host, st){
+    const r = checkAnswer(st);
+    scoreTot += r.count;
+    scoreOK  += r.good;
+    updateScore();
+  },
+  solution(host, st){
+    $('#res',host).innerHTML = st.solHTML;
+    if(window.MathJax?.typesetPromise) MathJax.typesetPromise([$('#res',host)]);
+    else if(window.MathJax?.typeset)   MathJax.typeset([$('#res',host)]);
+  },
+  reset(host){
+    $('#res',host).textContent = '';
+    setTick(null);
+    const inp = $('#ansF',host);
+    if(inp) inp.value = '';
+  }
+};
+
+const REG = [EXO_Q,EXO_I];
+window.REG = REG;
+window.REGISTRY = REG;
+
+/* =========================================================
+   Montage UI / PDF / mobile tweaks
+   ========================================================= */
+
+function mount(){
+  const sel=$("#exo-select"); if(!sel) return;
+  sel.innerHTML = REG.map((e,i)=>`<option value="${e.id}">${i+1}. ${e.title}</option>`).join('');
+
+  function getDef(){
+    const id=sel.value||REG[0].id;
+    return REG.find(e=>e.id===id)||REG[0];
+  }
+  function newOne(){
+    const ex=getDef();
+    const host=$("#host");
+    ex.gen(host);
+  }
+  function check(){
+    const ex=getDef();
+    const host=$("#host");
+    ex.correct(host, host.__state);
+  }
+  function sol(){
+    const ex=getDef();
+    const host=$("#host");
+    ex.solution(host, host.__state);
+  }
+  function reset(){
+    const ex=getDef();
+    const host=$("#host");
+    ex.reset(host);
+  }
+
+  sel.onchange=newOne;
+  $("#btn-new").onclick=newOne;
+  $("#btn-check").onclick=check;
+  $("#btn-solution").onclick=sol;
+  $("#btn-reset").onclick=reset;
+
+  document.addEventListener('keydown', e=>{ if(e.key==='Enter'){ check(); }});
+
+  sel.value=REG[0].id;
+  newOne();
+  updateScore();
+}
+document.addEventListener('DOMContentLoaded', mount);
+
+
+/* =========================================================
+   Adaptateur PDF : version iframe SVG
+   ========================================================= */
+(function(){
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!(window.ExoPDF && typeof ExoPDF.init === 'function')) return;
+
+    ExoPDF.init({
+      title: document.title,
+      mountAfterSelector: '#host',
+
+      beforeGen(def, _st, ctx){
+        const hostTmp = document.createElement('div');
+        if (def && typeof def.gen === 'function') def.gen(hostTmp);
+        let st = {};
+        try {
+          st = JSON.parse(hostTmp.dataset.state || '{}');
+        } catch(_){}
+        return st;
+      },
+
+
+
+
+      // >>>>>>>>>>>>> async PROMISE RETURN
+  beforeRender(def, st, withSolutions){
+  return (async () => {
+    let host = null;
+    try {
+
+      // 1. Construire un host OFFSCREEN juste pour récupérer l'état (mais SANS typeset écran)
+      host = document.createElement('div');
+      host.id = 'pdf-host';
+      host.style.position='fixed';
+      host.style.left='-10000px';
+      host.style.top='-10000px';
+      document.body.appendChild(host);
+
+      // on DOIT recréer l'enoncé de base
+      host.innerHTML = buildHostHTML(st);
+      host.dataset.state = JSON.stringify(st);
+
+      // 👉⚠ NE PAS appeler def.solution(host, st) ici,
+      //    car ça MathJax-typeset en CHTML et flingue le LaTeX brut.
+
+      // 2. Construire le HTML qu'on veut envoyer dans le PDF
+      //    - si withSolutions === false : on prend juste l'énoncé tel quel
+      //    - si withSolutions === true  : on fabrique nous-même un bloc
+      //      qui contient st.solHTML (non encore typeset).
+      let innerHTML_for_pdf;
+if (withSolutions){
+  innerHTML_for_pdf = `
+    <div class="exo-block">
+      <span class="exo-title">${st.title}</span>
+      <div class="enonce">
+        ${st.enonce}
+        <div style="margin-top:1rem;font-weight:600">Corrigé :</div>
+      </div>
+      ${st.solHTML}
+    </div>
+  `;
+} else {
+  innerHTML_for_pdf = host.innerHTML;
+}
+
+
+      // 3. IFRAME sandbox pour MathJax SVG ...
+      // (le reste de ton code continue comme avant)
+
+
+      // 2. Créer l'iframe sandbox
+      const iframe = document.createElement('iframe');
+      iframe.style.position   = 'fixed';
+      iframe.style.left       = '-10000px';
+      iframe.style.top        = '-10000px';
+      iframe.style.width      = '0';
+      iframe.style.height     = '0';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+
+      const iwin = iframe.contentWindow;
+      const idoc = iframe.contentDocument;
+
+      // 3. Écrire un DOM minimal dans l'iframe
+      // pas de <script> ici pour éviter de casser notre propre <script> parent
+      idoc.open();
+      idoc.write('<!doctype html><html><head><meta charset="utf-8"><title>pdf-build</title></head><body><div id="content"></div></body></html>');
+      idoc.close();
+// 4. Injecter le contenu (énoncé/solution) dans l'iframe
+const contentDiv = idoc.getElementById('content');
+contentDiv.innerHTML = innerHTML_for_pdf;
+
+// 🔧 IMPORTANT : on vire toute trace d'anciens rendus MathJax CHTML
+// (dans le host original il y a déjà des <mjx-container jax="CHTML">...</mjx-container> )
+// On veut repartir du LaTeX brut pour que MathJax SVG refasse tout proprement.
+
+contentDiv.querySelectorAll('mjx-container').forEach(mjx => {
+  // On essaie de récupérer le tex d'origine si MathJax l'a gardé en commentaire,
+  // sinon on remplace par juste le texte rendu (fallback).
+  // Mais dans notre cas, comme l'innerHTML_for_pdf vient AVANT typeset dans l'iframe,
+  // il devrait déjà contenir le LaTeX source (\( ... \)). Donc en pratique,
+  // ce bloc servira surtout si jamais un ancien mjx traine.
+  mjx.replaceWith(mjx.textContent || '');
+});
+
+// Enlever aussi l'accessibilité MathML pré-existante (au cas où)
+contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml')
+  .forEach(n => n.remove());
+
+
+      // 5. Préparer MathJax SVG dans l'iframe
+      //    a) script config MathJax
+      const cfg = idoc.createElement('script');
+      cfg.type = 'text/javascript';
+      cfg.text = `
+        window.MathJax = {
+          tex: {
+            inlineMath: [['\\\\(','\\\\)'], ['$', '$']],
+            displayMath: [['\\\\[','\\\\]'], ['$$','$$']],
+            processEscapes: true,
+            packages: { '[+]': ['bbox','ams'] }
+          },
+          svg: {
+            fontCache: 'none'
+          },
+          options: {
+            skipHtmlTags: ['script','noscript','style','textarea']
+          },
+          startup: { typeset: false }
+        };
+      `;
+      idoc.head.appendChild(cfg);
+
+      //    b) script tex-svg.js (URL absolue pour être sûr)
+      const svgScriptURL = new URL("../../../../es5/tex-svg.js", window.location.href).href;
+      const mj = idoc.createElement('script');
+      mj.type = 'text/javascript';
+      mj.src  = svgScriptURL;
+      idoc.head.appendChild(mj);
+
+// 6. Attendre que tex-svg.js soit chargé puis typer
+await new Promise(resolve=>{
+  mj.onload = resolve;
+  mj.onerror = resolve; // on résout quand même même si ça plante
+});
+
+// sécurité: attendre que MathJax initialise typesetPromise
+async function waitMathJaxReady(win){
+  const limit = 200;
+  let n = 0;
+  while (
+    (!win.MathJax) ||
+    (!win.MathJax.typesetPromise && !win.MathJax.typeset)
+  ){
+    await new Promise(res=>setTimeout(res,5));
+    n++;
+    if(n>limit) break;
+  }
+}
+await waitMathJaxReady(iwin);
+
+// 7. Faire le typeset SVG dans l'iframe
+if (iwin.MathJax && iwin.MathJax.typesetPromise){
+  await iwin.MathJax.typesetPromise([ contentDiv ]);
+} else if (iwin.MathJax && iwin.MathJax.typeset){
+  iwin.MathJax.typeset([ contentDiv ]);
+}
+
+// 8. *** NETTOYAGE ANTI-DOUBLON ***
+//    On enlève la version CHTML héritée de l'écran et on garde la version SVG.
+(function purgeCHTML(){
+  // 1. Supprimer les conteneurs CHTML de l'écran s'ils existent
+  //    (dans ta page écran, MathJax CHTML génère <mjx-container jax="CHTML"> ...)
+  contentDiv.querySelectorAll('mjx-container[jax="CHTML"]').forEach(n => n.remove());
+
+  // 2. Certains contenus d'origine peuvent encore contenir du texte LaTeX brut
+  //    suivi d'un conteneur SVG généré. Ex :
+  //      "f'(x)=" <mjx-container jax="SVG">...</mjx-container>
+  //    → ça va, on garde.
+
+  // 3. Option belt & suspenders :
+  //    Si jamais MathJax SVG a cloné au lieu de remplacer, on vire les doublons restants
+  //    du type <mjx-container jax="CHTML"> même imbriqués.
+  contentDiv.querySelectorAll('mjx-container:not([jax="SVG"])').forEach(n => n.remove());
+
+  // 4. On enlève les aides d’accessibilité inutiles pour le PDF
+  contentDiv.querySelectorAll('.MJX_Assistive_MathML, mjx-assistive-mml').forEach(n => n.remove());
+})();
+
+// 9. Récupérer le HTML final (ne contenant plus que le SVG)
+const finalHTML = contentDiv.innerHTML;
+
+// 10. Nettoyage DOM temporaire
+iframe.remove();
+if (host) host.remove();
+
+// 11. Retourner le HTML prêt pour le PDF
+return finalHTML;
+
+
+    } catch(e){
+      console.error('beforeRender SVG error:', e);
+
+      let fallbackHTML = '';
+      if (host) {
+        fallbackHTML = withSolutions
+          ? (host.querySelector('#res')?.outerHTML || host.innerHTML)
+          : host.innerHTML;
+        host.remove();
+        host = null;
+      }
+      return fallbackHTML;
+    }
+  })(); // IIFE async
+}
+
+    }); // <-- FERMETURE ExoPDF.init
+  }); // <-- FERMETURE addEventListener DOMContentLoaded
+})(); // <-- FERMETURE IIFE global
+
+
+/* =========================================================
+   mobile tweaks (inchangé)
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  const coarse = matchMedia('(pointer:coarse)').matches;
+
+  if (window.innerWidth <= 760) {
+    const actions = document.querySelector('.controls') || document.querySelector('.header .controls');
+    if (actions) {
+      const bar = document.createElement('div');
+      bar.className = 'mb-actions';
+      [['#btn-check','Vérifier'], ['#btn-solution','Solution']].forEach(([sel,label])=>{
+        const src = document.querySelector(sel);
+        if (src) {
+          const clone = src.cloneNode(true);
+          clone.classList.add('btn');
+          clone.type='button';
+          clone.removeAttribute('id');
+          clone.addEventListener('click',(e)=>{ e.preventDefault(); src.click(); });
+          bar.appendChild(clone);
+        } else {
+          const fallback = document.createElement('button');
+          fallback.className='btn';
+          fallback.type='button';
+          fallback.textContent=label;
+          fallback.addEventListener('click',(e)=>{ e.preventDefault(); document.querySelector(sel)?.click(); });
+          bar.appendChild(fallback);
+        }
+      });
+      document.body.appendChild(bar);
+    }
+  }
+
+  const kbdHost = document.querySelector('[data-math-kbd]')?.closest('.kbd-host');
+  if (kbdHost && window.innerWidth <= 760) {
+    kbdHost.setAttribute('data-collapsible','');
+    const tg = document.createElement('button');
+    tg.className='kbd-toggle'; tg.type='button';
+    tg.textContent='Clavier math';
+    tg.addEventListener('click',()=>kbdHost.setAttribute('data-open', kbdHost.getAttribute('data-open')==='1'?'0':'1'));
+    document.body.appendChild(tg);
+  }
+
+  document.querySelectorAll('input[type="text"], textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    el.setAttribute('autocapitalize','off');
+    el.setAttribute('autocorrect','off');
+    el.setAttribute('spellcheck','false');
+    el.addEventListener('focus', ()=>{ setTimeout(()=>el.scrollIntoView({block:'center', behavior:'smooth'}), 50); }, {passive:true});
+  });
+
+  if (coarse) {
+    document.querySelectorAll('circle[data-draggable], .pt, .drag-point').forEach(c=>{
+      const r = parseFloat(c.getAttribute('r')||'5');
+      if (r<10) c.setAttribute('r','12');
+      c.style.touchAction='none';
+    });
+  }
+}, {passive:true});
+
+</script>
+
+
 </body>
 </html>

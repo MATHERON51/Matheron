@@ -1,35 +1,964 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercices – Premiere Sti2D – Chapitre 7 – Lien entre le signe de la dérivée et les variations d'une fonction f</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .box { border: 1px solid #ddd; padding: 1.25rem; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    .muted { color:#666; font-size: 0.95rem; }
-    .btn { display:inline-block; padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ccc; background:#f7f7f7; cursor:pointer; }
-    .btn:hover { background:#eee; }
-    code { background:#f1f1f1; padding: .1rem .35rem; border-radius: 6px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1ère STI2D – Étude de fonctions • Lien entre le signe de la dérivée et les variations d'une fonction f</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* mini tableaux “PDF-like” (cadre extérieur) */
+  table.pdf-tbl{
+    border-collapse: separate; border-spacing: 0; border: none; margin:.4rem 0;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border: none; padding: 4px 6px; text-align: center; vertical-align: middle;
+  }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+
+
+
+
+  /* variation table (interactive) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.grid{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  .g-ax{stroke:#000;stroke-width:1.4}
+  .g-grid{stroke:#a78bfa22}
+  .g-curve{stroke:#111;stroke-width:2.2;fill:none}
+  .g-pt{fill:#111}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  
+  /* Tableau de variations : uniquement le cadre + séparations x/f et labels */
+table.var.frame-only{
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table.var.frame-only th,
+table.var.frame-only td{
+  border: none;                 /* pas de bordures intérieures */
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cadre extérieur */
+table.var.frame-only tr:first-child > * { border-top:    1.5px solid #000; }
+table.var.frame-only tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var.frame-only tr > *:first-child { border-left:   1.5px solid #000; }
+table.var.frame-only tr > *:last-child  { border-right:  1.5px solid #000; }
+
+/* Séparation verticale après la 1re colonne (labels x / f) */
+table.var.frame-only tbody tr > *:first-child { border-right: 1.5px solid #000; }
+
+/* Séparation horizontale entre la ligne x et la ligne f */
+table.var.frame-only tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+
+/* cellule flèche pleine hauteur */
+table.var.frame-only td.bigsel{ padding:0 }
+
+/* le select occupe 100% et centre la flèche */
+table.var.frame-only td.bigsel select{
+  display:block;
+  width:100%;
+  height:100%;
+  border:1;
+  background:transparent;
+  padding:0;
+  margin:0;
+  text-align:center;         /* Chrome/Edge */
+  text-align-last:center;    /* Firefox */
+  appearance:none;           /* enlève le chevron natif */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+}
+table.var.frame-only td.bigsel option{ font-size:inherit; line-height:inherit; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+/* Affichage conditionnel */
+@media screen { .screen-only{display:block!important} .print-only{display:none!important} }
+@media print  { .screen-only{display:none!important} .print-only{display:block!important} }
+
+/* Tableau QCM (écran) */
+.table-qcm-screen{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:12px 8px;
+}
+.table-qcm-screen td{ width:50%; vertical-align:top }
+.table-qcm-screen .cell{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 12px;
+  background:#fff;
+}
+.table-qcm-screen .num{ font-weight:700; margin-right:6px }
+.table-qcm-screen select{ margin-left:8px }
+
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
 </head>
 <body>
-  <h1>Exercices – Lien entre le signe de la dérivée et les variations d'une fonction f</h1>
-  <div class="box">
-    <p class="muted">Page générée automatiquement le 10/08/2025 à 07:19.</p>
-    <p>Les exercices pour <strong>Lien entre le signe de la dérivée et les variations d'une fonction f</strong> (Premiere Sti2D, chapitre 7) ne sont pas encore disponibles.</p>
-    <p>Tu peux remplir cette page plus tard avec tes exercices interactifs.</p>
-    <details>
-      <summary>Infos techniques</summary>
-      <ul>
-        <li>Niveau : <code>premiere-sti2d</code></li>
-        <li>Chapitre : <code>chapitre-7</code></li>
-        <li>Thème (slug) : <code>lien-entre-le-signe-de-la-derivee-et-les-variations-dune-fonction-f</code></li>
-        <li>Fichier : <code>exercices.html</code></li>
-      </ul>
-    </details>
-    <p><a class="btn" href="../../../../premiere-sti2d/index.html">← Retour à l'index Premiere Sti2D</a></p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">1ère STI2D – Étude de fonctions • Lien entre le signe de la dérivée et les variations d'une fonction f</h1>
   </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Extremums (tableau) : remplisser dans la saisie du haut si maximum et dans la saisie du bas si minimum.</li>
+        <li>Flèches : choisissez ↘ ou ↗.</li>
+		        <li>Extremums (phrase) : Si l'extremum est atteint plusieurs fois, écrire une liste. Exemple : -3;2</li>
+
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- même emplacement que dans ton modèle -->
+
+<script>
+(function(){
+'use strict';
+
+/* ————— Utils ————— */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+const UMIN='−';
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+s+' \\)';}
+function ensureTickAfter(el){
+  if(!el) return null;
+
+  // 1) voisin immédiat
+  let s = el.nextElementSibling;
+  if (s && s.classList && s.classList.contains('tick')) return s;
+
+  // 2) chercher un tick déjà présent dans le même <li>
+  const li = el.closest('li');
+  if (li) {
+    const found = li.querySelector(':scope > .tick');
+    if (found) return found;
+  }
+
+  // 3) créer un tick et l’ajouter en fin de <li> (ou juste après el en secours)
+  s = document.createElement('span');
+  s.className = 'tick nu';
+  if (li) li.appendChild(s);
+  else el.insertAdjacentElement('afterend', s);
+  return s;
+}
+function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+function typesetAll(root){
+  const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{});
+  if(MathJax?.startup?.promise){
+    MathJax.startup.promise.then(run);
+  } else {
+    const t=setInterval(()=>{
+      if(MathJax?.typesetPromise){
+        clearInterval(t); run();
+      }
+    },60);
+  }
+}
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* ————— Petits rendus de tableaux ————— */
+
+function pickExtremaCountWeighted(){
+  const r = Math.random()*100;
+  if (r < 15) return 1;
+  if (r < 55) return 2;
+  if (r < 90) return 3;
+  return 4;
+}
+
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+// map + concat sans .join
+function mapHTML(arr, render, sep=''){
+  let out = '';
+  for (let i = 0; i < arr.length; i++){
+    out += render(arr[i], i);
+    if (sep && i < arr.length - 1) out += sep;
+  }
+  return out;
+}
+
+const toTeX = s => s.replace(/</g, '\\lt ').replace(/>/g, '\\gt ');
+const escHTML = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+
+// ———————————————————————————————————————————————————————————————
+// GÉNÉRATEUR COMMUN : X, Y, flèches de f et signes de f′(x)
+// ———————————————————————————————————————————————————————————————
+function genVarConfig(){
+  // —— Nombre d'abscisses : 3 à 7 ——
+  const nPts = rint(3,7);      // nb d'abscisses X0..X_{nPts-1}
+  const nInt = nPts - 1;       // nb d’intervalles
+
+  // Domaine large non symétrique avec nPts abscisses
+  function makeNonSymmetricX(nPts){
+    const steps = Array.from({length:nPts-1}, ()=> rint(3,7)); // tailles 3..7
+    const span  = steps.reduce((s,t)=>s+t,0);
+
+    const LMIN = -20, RMAX_TARGET = 20;
+    const LMAX = Math.max(LMIN, RMAX_TARGET - span);
+    const L    = rint(LMIN, LMAX);
+
+    const X = [L];
+    for(const s of steps) X.push(X[X.length-1] + s);
+    return X;
+  }
+
+  const X = makeNonSymmetricX(nPts);
+
+  // ——— Variations alternées : extremum en TOUTE abscisse intérieure ———
+  const baseSign = Math.random() < 0.5 ? +1 : -1;  // +1 → ↗, -1 → ↘
+  const DIR = new Array(nInt);
+  let s = baseSign;
+  DIR[0] = (s===1 ? '↗' : '↘');
+  for(let i=1;i<nInt;i++){
+    s = -s;                       // on alterne systématiquement
+    DIR[i] = (s===1 ? '↗' : '↘'); // donc extremum en chaque X_i pour i=1..nPts-2
+  }
+
+  // Amplitudes lisibles
+  const ups   = [2,3,4];
+  const downs = [2,3];
+
+  let y0 = rint(-3, 2);
+  const Y = [y0];
+  for (let i=0;i<DIR.length;i++){
+    if (DIR[i] === '↗'){
+      Y.push(Y[i] + choice(ups));         // strictement croissant
+    }else{
+      Y.push(Y[i] - (choice(downs)+1));   // strictement décroissant
+    }
+  }
+
+  // Signe de f′ sur chaque intervalle ]x_i ; x_{i+1}[
+  const fpSigns = DIR.map(d => d === '↗' ? '+' : '-');
+
+  // Extremums intérieurs : toutes les abscisses intérieures (hors bornes)
+  const extFlags = new Array(nPts).fill(false);
+  for(let j=1; j<=nPts-2; j++){
+    extFlags[j] = true;   // extremum en X_j pour j=1..nPts-2
+  }
+
+  return { X, Y, DIR, fpSigns, extFlags };
+}
+
+// ———————————————————————————————————————————————————————————————
+// EXERCICE 1 — Remplir le signe de f′(x) à partir du tableau de variations de f
+// ———————————————————————————————————————————————————————————————
+const ex1 = {
+  id: 'var_sign_deriv',
+  title: "Compléter le signe de f′(x) à partir du tableau de variations de f",
+
+  gen(){
+    return genVarConfig();
+  },
+
+  render(host, st){
+    const {X,Y,DIR,extFlags} = st;
+    const UMIN = '−';
+    const SX = x => String(x).replace('-',UMIN);
+
+    function rowX(){
+      let r = '<tr><th>\\(x\\)</th>';
+      X.forEach((x,i)=>{
+        r += `<td>\\(${SX(x)}\\)</td>`;
+        if(i<X.length-1) r+='<td></td>';
+      });
+      r += '</tr>';
+      return r;
+    }
+
+    // Ligne f′(x) : signes sur intervalles + cases "0" sous TOUTES les abscisses intérieures
+    function rowFp(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\'(x)\\)</th>';
+
+      // sous x0 : rien
+      r += '<td style="border-top:1.5px solid #000"></td>';
+
+      for(let i=0;i<DIR.length;i++){
+        // sous la flèche : signe de f′(x) sur l’intervalle
+        r += `
+          <td class="bigsel" style="border-top:1.5px solid #000">
+            <select class="fp-sign" data-idx="${i}">
+              <option value=""></option>
+              <option value="+">+</option>
+              <option value="-">${UMIN}</option>
+            </select>
+          </td>`;
+
+        // sous x_{i+1} : 0 si abscisse intérieure (extremum), sinon vide
+        const j = i+1;
+        if (extFlags && extFlags[j]){
+          r += `
+            <td style="border-top:1.5px solid #000">
+              <input class="fp-zero" data-x-idx="${j}"
+                     type="text" style="width:50px;text-align:center" placeholder="">
+            </td>`;
+        } else {
+          r += '<td style="border-top:1.5px solid #000"></td>';
+        }
+      }
+
+      r += '</tr>';
+      return r;
+    }
+
+    // Ligne f(x) : variations + extremums
+    function rowF(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\\)</th>';
+
+      const isMax0 = (DIR[0] === '↘');
+      const up0 = isMax0 ? `\\(${Y[0]}\\)` : '&nbsp;';
+      const dn0 = isMax0 ? '&nbsp;'       : `\\(${Y[0]}\\)`;
+      r += `
+        <td style="text-align:center;border-top:1.5px solid #000">
+          <div>${up0}</div>
+          <div style="height:6px"></div>
+          <div>${dn0}</div>
+        </td>`;
+
+      for(let i=0;i<DIR.length;i++){
+        r += `<td style="text-align:center;border-top:1.5px solid #000">${DIR[i]}</td>`;
+
+        const isMax = (DIR[i]==='↗' && DIR[i+1]==='↘') || (i===DIR.length-1 && DIR[i]==='↗');
+        const up = isMax ? `\\(${Y[i+1]}\\)` : '&nbsp;';
+        const dn = isMax ? '&nbsp;'         : `\\(${Y[i+1]}\\)`;
+        r += `
+          <td style="text-align:center;border-top:1.5px solid #000">
+            <div>${up}</div>
+            <div style="height:6px"></div>
+            <div>${dn}</div>
+          </td>`;
+      }
+      r += '</tr>';
+      return r;
+    }
+
+    host.innerHTML = `
+      <div>On donne le tableau de variations d’une fonction \\(f\\).<br>
+      Compléter le <b>signe</b> de \\(f'(x)\\) sur chaque intervalle, et écrire \\(0\\) en-dessous de chaque extremum local.</div>
+
+      <div class="var-wrap" style="margin-top:.35rem">
+        <table class="pdf-tbl">
+          <tbody>
+            ${rowX()}
+            ${rowFp()}
+            ${rowF()}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="steps small" id="res" style="margin-top:.5rem"></div>
+    `;
+
+    // Ticks pour les signes
+    host.querySelectorAll('select.fp-sign').forEach(sel=>{
+      ensureTickAfter(sel);
+      sel.addEventListener('change', ()=> ensureTickAfter(sel));
+    });
+
+    // Ticks pour les 0
+    host.querySelectorAll('input.fp-zero').forEach(inp=>{
+      ensureTickAfter(inp);
+      inp.addEventListener('input', ()=> ensureTickAfter(inp));
+    });
+
+    typesetAll(host);
+  },
+
+  correct(host, st){
+    const {fpSigns} = st;
+    let ok = 0, tot = 0;
+
+    // Signe sur les intervalles
+    host.querySelectorAll('.fp-sign').forEach(sel=>{
+      const v = (sel.value || '').trim();
+      if(!v){
+        setTick(sel,'nu');
+        return;
+      }
+      const idx = +sel.dataset.idx;
+      tot++;
+      const good = (v === fpSigns[idx]);
+      setTick(sel, good ? 'ok' : 'ko');
+      if(good) ok++;
+    });
+
+    // Zéros aux extremums (toutes abscisses intérieures)
+    host.querySelectorAll('.fp-zero').forEach(inp=>{
+      let v = (inp.value || '').trim()
+                .replace(/\u2212/g,'-')
+                .replace(',','.');
+      if(!v){
+        setTick(inp,'nu');
+        return;
+      }
+      tot++;
+      const isZero = (v === '0' || v === '+0' || v === '-0');
+      setTick(inp, isZero ? 'ok' : 'ko');
+      if(isZero) ok++;
+    });
+
+    const res = $('#res',host);
+    if(res){
+      res.textContent = '';
+      ensureTickAfter(res).className = 'tick ' + (ok===tot && tot>0 ? 'ok' : 'nu');
+    }
+
+    return {ok, total: tot};
+  },
+
+  solution(host, st){
+    const {fpSigns, X, Y, DIR, extFlags} = st;
+    const UMIN = '−';
+    const SX = x => String(x).replace('-', UMIN);
+
+    const res = $('#res',host);
+    if(!res) return;
+
+    function rowX(){
+      let r = '<tr><th>\\(x\\)</th>';
+      X.forEach((x,i)=>{
+        r += `<td>\\(${SX(x)}\\)</td>`;
+        if(i<X.length-1) r+='<td></td>';
+      });
+      r += '</tr>';
+      return r;
+    }
+
+    function rowFpFull(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\'(x)\\)</th>';
+
+      r += '<td style="border-top:1.5px solid #000"></td>';
+
+      for(let i=0;i<DIR.length;i++){
+        const s = fpSigns[i] === '+' ? '+' : UMIN;
+        r += `<td style="border-top:1.5px solid #000">${s}</td>`;
+
+        const j = i+1;
+        if (extFlags && extFlags[j]){
+          r += `<td class="zbar" style="border-top:1.5px solid #000">0</td>`;
+        } else {
+          r += '<td style="border-top:1.5px solid #000"></td>';
+        }
+      }
+
+      r += '</tr>';
+      return r;
+    }
+
+    function rowFFull(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\\)</th>';
+
+      const isMax0 = (DIR[0] === '↘');
+      const up0 = isMax0 ? `\\(${Y[0]}\\)` : '&nbsp;';
+      const dn0 = isMax0 ? '&nbsp;'       : `\\(${Y[0]}\\)`;
+      r += `
+        <td style="text-align:center;border-top:1.5px solid #000">
+          <div>${up0}</div>
+          <div style="height:6px"></div>
+          <div>${dn0}</div>
+        </td>`;
+
+      for(let i=0;i<DIR.length;i++){
+        r += `<td style="text-align:center;border-top:1.5px solid #000">${DIR[i]}</td>`;
+
+        const isMax = (DIR[i]==='↗' && DIR[i+1]==='↘') || (i===DIR.length-1 && DIR[i]==='↗');
+        const up = isMax ? `\\(${Y[i+1]}\\)` : '&nbsp;';
+        const dn = isMax ? '&nbsp;'         : `\\(${Y[i+1]}\\)`;
+        r += `
+          <td style="text-align:center;border-top:1.5px solid #000">
+            <div>${up}</div>
+            <div style="height:6px"></div>
+            <div>${dn}</div>
+          </td>`;
+      }
+      r += '</tr>';
+      return r;
+    }
+
+    res.innerHTML = `
+      <div class="step">
+        Sur un intervalle où \\(f\\) est <b>strictement croissante</b>, on a \\(f'(x) &gt; 0\\), donc on écrit le signe <b>+</b>.
+      </div>
+      <div class="step">
+        Sur un intervalle où \\(f\\) est <b>strictement décroissante</b>, on a \\(f'(x) &lt; 0\\), donc on écrit le signe <b>${UMIN}</b>.
+      </div>
+      <div class="step">
+        À chaque <b>extremum local</b>, on a \\(f'(x)=0\\).
+      </div>
+      <div class="step" style="margin-top:.4rem">
+        Tableau complété :
+        <div class="var-wrap" style="margin-top:.25rem">
+          <table class="pdf-tbl">
+            <tbody>
+              ${rowX()}
+              ${rowFpFull()}
+              ${rowFFull()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    ensureTickAfter(res).className = 'tick ok';
+    typesetAll(res);
+  },
+
+  reset(host){
+    host.querySelectorAll('.fp-sign').forEach(sel=>{
+      sel.value = '';
+      setTick(sel,'nu');
+    });
+    host.querySelectorAll('.fp-zero').forEach(inp=>{
+      inp.value = '';
+      setTick(inp,'nu');
+    });
+    const res = $('#res',host);
+    if(res){
+      res.textContent = '';
+      ensureTickAfter(res).className = 'tick nu';
+    }
+  }
+};
+
+
+// ———————————————————————————————————————————————————————————————
+// EXERCICE 2 — Avoir le signe de f′(x) et compléter les flèches de f
+// ———————————————————————————————————————————————————————————————
+// ———————————————————————————————————————————————————————————————
+// EXERCICE 2 — Avoir le signe de f′(x) et compléter les flèches de f
+// ———————————————————————————————————————————————————————————————
+const ex2 = {
+  id: 'sign_to_var',
+  title: "Compléter les variations de f à partir du signe de f′(x)",
+
+  gen(){
+    return genVarConfig();
+  },
+
+  render(host, st){
+    const {X,Y,DIR,fpSigns,extFlags} = st;
+    const UMIN = '−';
+    const SX = x => String(x).replace('-',UMIN);
+
+    function rowX(){
+      let r = '<tr><th>\\(x\\)</th>';
+      X.forEach((x,i)=>{
+        r += `<td>\\(${SX(x)}\\)</td>`;
+        if(i<X.length-1) r+='<td></td>';
+      });
+      r += '</tr>';
+      return r;
+    }
+
+    // Ligne f′(x) FIXE : signes + zéros donnés
+    function rowFpGiven(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\'(x)\\)</th>';
+
+      // sous x0 : rien
+      r += '<td style="border-top:1.5px solid #000"></td>';
+
+      for(let i=0;i<DIR.length;i++){
+        const s = fpSigns[i] === '+' ? '+' : UMIN;
+        // sous la flèche : signe
+        r += `<td style="border-top:1.5px solid #000">${s}</td>`;
+
+        // sous x_{i+1} : 0 si abscisse intérieure, sinon vide
+        const j = i+1;
+        if (extFlags && extFlags[j]){
+r += `<td class="zbar" style="border-top:1.5px solid #000">0</td>`;
+        } else {
+          r += '<td style="border-top:1.5px solid #000"></td>';
+        }
+      }
+
+      r += '</tr>';
+      return r;
+    }
+
+    // Ligne f(x) : flèches à compléter, SANS AUCUN NOMBRE (juste les “cases” d’extremum vides)
+    function rowFEditable(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\\)</th>';
+
+      // première colonne : deux lignes vides (pas de Y[0])
+      const up0 = '&nbsp;';
+      const dn0 = '&nbsp;';
+      r += `
+        <td style="text-align:center;border-top:1.5px solid #000">
+          <div>${up0}</div>
+          <div style="height:6px"></div>
+          <div>${dn0}</div>
+        </td>`;
+
+      for(let i=0;i<DIR.length;i++){
+        // cellule flèche : choix ↗ / ↘
+        r += `
+          <td style="text-align:center;border-top:1.5px solid #000">
+            <select class="f-dir" data-idx="${i}">
+              <option value=""></option>
+              <option value="↗">↗</option>
+              <option value="↘">↘</option>
+            </select>
+          </td>`;
+
+        // cellule suivante : deux “cases” vides, SANS nombre (même si c’est un extremum)
+        const up = '&nbsp;';
+        const dn = '&nbsp;';
+        r += `
+          <td style="text-align:center;border-top:1.5px solid #000">
+            <div>${up}</div>
+            <div style="height:6px"></div>
+            <div>${dn}</div>
+          </td>`;
+      }
+      r += '</tr>';
+      return r;
+    }
+
+    host.innerHTML = `
+      <div>On donne le <b>tableau de signes</b> de \\(f'(x)\\).<br>
+      Compléter les <b>flèches de variations</b> de \\(f\\) sur chaque intervalle.</div>
+
+      <div class="var-wrap" style="margin-top:.35rem">
+        <table class="pdf-tbl">
+          <tbody>
+            ${rowX()}
+            ${rowFpGiven()}
+            ${rowFEditable()}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="steps small" id="res" style="margin-top:.5rem"></div>
+    `;
+
+    // Ticks pour les flèches
+    host.querySelectorAll('.f-dir').forEach(sel=>{
+      ensureTickAfter(sel);
+      sel.addEventListener('change', ()=> ensureTickAfter(sel));
+    });
+
+    typesetAll(host);
+  },
+
+  correct(host, st){
+    const {DIR} = st;
+    let ok = 0, tot = 0;
+
+    host.querySelectorAll('.f-dir').forEach(sel=>{
+      const v = (sel.value || '').trim();
+      if(!v){
+        setTick(sel,'nu');
+        return;
+      }
+      const idx = +sel.dataset.idx;
+      tot++;
+      const good = (v === DIR[idx]);
+      setTick(sel, good ? 'ok' : 'ko');
+      if(good) ok++;
+    });
+
+    const res = $('#res',host);
+    if(res){
+      res.textContent = '';
+      ensureTickAfter(res).className = 'tick ' + (ok===tot && tot>0 ? 'ok' : 'nu');
+    }
+
+    return {ok, total: tot};
+  },
+
+  solution(host, st){
+    const {fpSigns, X, Y, DIR, extFlags} = st;
+    const UMIN = '−';
+    const SX = x => String(x).replace('-', UMIN);
+
+    const res = $('#res',host);
+    if(!res) return;
+
+    function rowX(){
+      let r = '<tr><th>\\(x\\)</th>';
+      X.forEach((x,i)=>{
+        r += `<td>\\(${SX(x)}\\)</td>`;
+        if(i<X.length-1) r+='<td></td>';
+      });
+      r += '</tr>';
+      return r;
+    }
+
+    function rowFpFull(){
+      let r = '<tr><th style="border-top:1.5px solid #000">\\(f\'(x)\\)</th>';
+
+      r += '<td style="border-top:1.5px solid #000"></td>';
+
+      for(let i=0;i<DIR.length;i++){
+        const s = fpSigns[i] === '+' ? '+' : UMIN;
+        r += `<td style="border-top:1.5px solid #000">${s}</td>`;
+
+        const j = i+1;
+        if (extFlags && extFlags[j]){
+          r += `<td class="zbar" style="border-top:1.5px solid #000">0</td>`;
+        } else {
+          r += '<td style="border-top:1.5px solid #000"></td>';
+        }
+      }
+
+      r += '</tr>';
+      return r;
+    }
+
+    // Dans la solution, on peut garder les valeurs de f pour bien montrer les extremums
+function rowFFull(){
+  let r = '<tr><th style="border-top:1.5px solid #000">\\(f\\)</th>';
+
+  // première colonne : pas de valeur, juste deux cases vides
+  const up0 = '&nbsp;';
+  const dn0 = '&nbsp;';
+  r += `
+    <td style="text-align:center;border-top:1.5px solid #000">
+      <div>${up0}</div>
+      <div style="height:6px"></div>
+      <div>${dn0}</div>
+    </td>`;
+
+  for(let i=0;i<DIR.length;i++){
+    // flèche correcte
+    r += `<td style="text-align:center;border-top:1.5px solid #000">${DIR[i]}</td>`;
+
+    // cases extremum : toujours vides (pas de valeurs de f)
+    const up = '&nbsp;';
+    const dn = '&nbsp;';
+    r += `
+      <td style="text-align:center;border-top:1.5px solid #000">
+        <div>${up}</div>
+        <div style="height:6px"></div>
+        <div>${dn}</div>
+      </td>`;
+  }
+  r += '</tr>';
+  return r;
+}
+
+
+    res.innerHTML = `
+      <div class="step">
+        Si \\(f'(x) &gt; 0\\) sur un intervalle, alors \\(f\\) est <b>strictement croissante</b> sur cet intervalle, on met donc la flèche <b>↗</b>.
+      </div>
+      <div class="step">
+        Si \\(f'(x) &lt; 0\\) sur un intervalle, alors \\(f\\) est <b>strictement décroissante</b> sur cet intervalle, on met donc la flèche <b>↘</b>.
+      </div>
+      <div class="step">
+        Quand \\(f'(x)=0\\) en un point intérieur, la fonction \\(f\\) présente un <b>extremum local</b> en ce point (maximum ou minimum selon le sens des flèches de part et d’autre).
+      </div>
+      <div class="step" style="margin-top:.4rem">
+        Tableau complété :
+        <div class="var-wrap" style="margin-top:.25rem">
+          <table class="pdf-tbl">
+            <tbody>
+              ${rowX()}
+              ${rowFpFull()}
+              ${rowFFull()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    ensureTickAfter(res).className = 'tick ok';
+    typesetAll(res);
+  },
+
+  reset(host){
+    host.querySelectorAll('.f-dir').forEach(sel=>{
+      sel.value = '';
+      setTick(sel,'nu');
+    });
+    const res = $('#res',host);
+    if(res){
+      res.textContent = '';
+      ensureTickAfter(res).className = 'tick nu';
+    }
+  }
+};
+
+
+
+/* ————— Registre & UI ————— */
+const REGISTRY=[ex1, ex2];
+window.REGISTRY = REGISTRY; // pour le kit PDF
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: `1ère – Étude de fonctions • Lien entre le signe de la dérivée et les variations d'une fonction f`,
+      mountAfterSelector: '.card.small',
+    });
+  } else {
+    setTimeout(waitExoPDF, 50);
+  }
+})();
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st)||{ok:0,total:0};
+  scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = mapHTML(REGISTRY, (ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`);
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+})();
+</script>
+
 </body>
 </html>

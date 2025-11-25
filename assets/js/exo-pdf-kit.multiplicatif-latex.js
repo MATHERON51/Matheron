@@ -923,6 +923,19 @@ ul.no-bullet{
   vertical-align:middle;
 }
 
+.fig-geom{
+  display:flex;
+  justify-content:center;
+  margin:.35rem 0 .4rem;
+}
+
+/* NOUVELLE VERSION : figures bien plus petites */
+.fig-geom svg{
+  width:300px;        /* largeur fixe raisonnable */
+  max-width:300px;    /* limite écran / mobile */
+  height:auto;
+}
+
 </style>
 
 <style>

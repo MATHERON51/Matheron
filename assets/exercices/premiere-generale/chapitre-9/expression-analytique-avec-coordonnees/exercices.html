@@ -1495,10 +1495,461 @@ const ex3 = {
   }
 };
 
+/* ————— Exercice 4 : Produit scalaire et angle dans un triangle ————— */
+const ex4 = {
+  id: 'analytique_angle_triangle',
+  title: `Expression analytique – Angle dans un triangle`,
+
+  gen(){
+    const MIN = -5, MAX = 5;
+    function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+    function randPoint(){
+      return {x: randInt(MIN,MAX), y: randInt(MIN,MAX)};
+    }
+
+    for(;;){
+      const A = randPoint();
+      const B = randPoint();
+      const C = randPoint();
+
+      // points distincts
+      if ((A.x===B.x && A.y===B.y) ||
+          (A.x===C.x && A.y===C.y) ||
+          (B.x===C.x && B.y===C.y)) continue;
+
+      const AB = {x: B.x - A.x, y: B.y - A.y};
+      const AC = {x: C.x - A.x, y: C.y - A.y};
+
+      // vecteurs non nuls
+      if ((AB.x===0 && AB.y===0) || (AC.x===0 && AC.y===0)) continue;
+
+      // triangle non aplati (AB et AC non colinéaires)
+      const det = AB.x*AC.y - AB.y*AC.x;
+      if(det === 0) continue;
+
+      return {A,B,C};
+    }
+  },
+
+  render(host, st){
+    const {A,B,C} = st;
+
+    host.innerHTML = `
+      <div id="lead" class="small"></div>
+      <div id="equ" class="eq"></div>
+      <div id="fb"></div>
+      <div id="inputs"></div>
+      <div id="res" class="steps"></div>
+    `;
+
+    const lead   = host.querySelector('#lead');
+    const equ    = host.querySelector('#equ');
+    const inputs = host.querySelector('#inputs');
+
+    if(lead){
+      lead.innerHTML = `
+        On étudie l'angle \\(\\widehat{BAC}\\) dans le triangle \\(ABC\\).
+        Pour la question&nbsp;3, donner \\(\\cos\\widehat{BAC}\\) à \\(10^{-2}\\) près,
+        et pour la question&nbsp;4, une mesure de l’angle <strong>au degré près</strong>.
+      `;
+    }
+
+    if(equ){
+      equ.innerHTML = `
+        <p><strong>Exercice 4 :</strong></p>
+        <p>Soient les points :</p>
+        <p>
+          \\(A(${A.x}\\;;\\;${A.y})\\),
+          \\(B(${B.x}\\;;\\;${B.y})\\) et
+          \\(C(${C.x}\\;;\\;${C.y})\\).
+        </p>
+        <p>On note \\(\\widehat{BAC}\\) l'angle du triangle \\(ABC\\) au sommet \\(A\\).</p>
+      `;
+    }
+
+    if(inputs){
+      inputs.innerHTML = `
+        <ol style="margin-top:6px;">
+          <li style="margin-bottom:6px;">
+            Calculer les coordonnées des vecteurs \\(\\overrightarrow{AB}\\) et \\(\\overrightarrow{AC}\\).
+            <div class="pdf-hide" style="margin-top:4px;">
+              <table style="border-collapse:collapse; border:none; margin-top:2px;">
+                <tr>
+                  <td style="padding-right:24px; vertical-align:top;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <span>\\(\\overrightarrow{AB} \\)</span>
+                      <span class="colvec sm">
+                        <input id="ab_x" type="text" inputmode="decimal" autocomplete="off">
+                        <input id="ab_y" type="text" inputmode="decimal" autocomplete="off">
+                      </span>
+                      <span id="tick_ab" class="tick nu"></span>
+                    </div>
+                  </td>
+                  <td style="vertical-align:top;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <span>\\(\\overrightarrow{AC} \\)</span>
+                      <span class="colvec sm">
+                        <input id="ac_x" type="text" inputmode="decimal" autocomplete="off">
+                        <input id="ac_y" type="text" inputmode="decimal" autocomplete="off">
+                      </span>
+                      <span id="tick_ac" class="tick nu"></span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </div>  </li>
+			 <li style="margin-bottom:6px;">
+            En déduire les distances \\(AB\\) et \\(AC\\).
+            <div class="pdf-hide" style="margin-top:6px;">
+              <span>\\(AB =\\)</span>
+              <input id="ab_len" type="text" inputmode="decimal" autocomplete="off" style="width:80px;">
+              <span id="tick_ablen" class="tick nu" style="margin-right:16px;"></span>
+              <span>\\(AC =\\)</span>
+              <input id="ac_len" type="text" inputmode="decimal" autocomplete="off" style="width:80px;">
+              <span id="tick_aclen" class="tick nu"></span>
+            </div>
+          </li>
+
+          <li style="margin-bottom:6px;">
+            Calculer \\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC}\\).
+            <div class="pdf-hide" style="margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>\\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC}=\\)</span>
+              <input id="ps_abac" type="text" inputmode="decimal" autocomplete="off" style="width:80px;">
+              <span id="tick_ps" class="tick nu"></span>
+            </div>
+          </li>
+
+          <li style="margin-bottom:6px;">
+            Calculer \\(\\cos\\widehat{BAC}\\) à \\(10^{-2}\\) près.
+            <div class="pdf-hide" style="margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>\\(\\cos\\widehat{BAC}=\\)</span>
+              <input id="cos_bac" type="text" inputmode="decimal" autocomplete="off" style="width:120px;">
+              <span id="tick_cos" class="tick nu"></span>
+            </div>
+          </li>
+
+          <li style="margin-bottom:6px;">
+            Donner une mesure, en degré, de l’angle \\(\\widehat{BAC}\\) (au degré près).
+            <div class="pdf-hide" style="margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>\\(\\widehat{BAC} \\approx\\)</span>
+              <input id="ang_bac" type="text" inputmode="decimal" autocomplete="off" style="width:80px;">
+              <span>\\(^{\\circ}\\)</span>
+              <span id="tick_ang" class="tick nu"></span>
+            </div>
+          </li>
+
+          <li>
+            Le triangle \\(ABC\\) est-il rectangle en \\(A\\)&nbsp;? Justifier.
+            <span class="screen-only small">(Question uniquement rédigée dans la solution.)</span>
+          </li>
+        </ol>
+      `;
+    }
+
+    typesetAll(host);
+  },
+
+  correct(host, st){
+    const {A,B,C} = st;
+
+    const ABx = B.x - A.x;
+    const ABy = B.y - A.y;
+    const ACx = C.x - A.x;
+    const ACy = C.y - A.y;
+
+    const psExact = ABx*ACx + ABy*ACy;
+    const nAB2 = ABx*ABx + ABy*ABy;
+    const nAC2 = ACx*ACx + ACy*ACy;
+    const nAB = Math.sqrt(nAB2);
+    const nAC = Math.sqrt(nAC2);
+    const cosExact = psExact / (nAB*nAC);
+    const cosTarget = Math.round(cosExact*100)/100;  // au centième
+    const angExactDeg = radToDeg(Math.acos(cosExact));
+
+    const fb = host.querySelector('#fb');
+    const val = id => (host.querySelector('#'+id)?.value || '').trim();
+
+    const ab_x = val('ab_x');
+    const ab_y = val('ab_y');
+    const ac_x = val('ac_x');
+    const ac_y = val('ac_y');
+    const ab_len = val('ab_len');
+    const ac_len = val('ac_len');
+    const ps    = val('ps_abac');
+    const cosV  = val('cos_bac');
+    const ang   = val('ang_bac');
+
+    const tick = (id, state)=>{
+      const el = host.querySelector('#'+id);
+      if(!el) return;
+      if(state === null) el.className = 'tick nu';
+      else el.className = 'tick ' + (state ? 'ok' : 'ko');
+    };
+
+    // tout vide → neutre
+    if(!ab_x && !ab_y && !ac_x && !ac_y && !ab_len && !ac_len && !ps && !cosV && !ang){
+      ['tick_ab','tick_ac','tick_ablen','tick_aclen','tick_ps','tick_cos','tick_ang'].forEach(id=>tick(id,null));
+      if(fb) fb.textContent = '';
+      return {ok:0,total:7};
+    }
+
+    const toNum = s => s==='' ? NaN : parseNumber(s);
+
+    const ab_x_n = toNum(ab_x);
+    const ab_y_n = toNum(ab_y);
+    const ac_x_n = toNum(ac_x);
+    const ac_y_n = toNum(ac_y);
+    const ab_len_n = toNum(ab_len);
+    const ac_len_n = toNum(ac_len);
+    const ps_n   = toNum(ps);
+    const cos_n  = toNum(cosV);
+    const ang_n  = toNum(ang);
+
+    let okAB=false, okAC=false, okABlen=false, okAClen=false, okPS=false, okCOS=false, okANG=false;
+
+    // AB
+    if(ab_x || ab_y){
+      okAB = (!isNaN(ab_x_n) && !isNaN(ab_y_n) &&
+              ab_x_n === ABx && ab_y_n === ABy);
+      tick('tick_ab', okAB);
+    }else tick('tick_ab', null);
+
+    // AC
+    if(ac_x || ac_y){
+      okAC = (!isNaN(ac_x_n) && !isNaN(ac_y_n) &&
+              ac_x_n === ACx && ac_y_n === ACy);
+      tick('tick_ac', okAC);
+    }else tick('tick_ac', null);
+
+    // longueurs AB, AC (tolérance sur l’approximation)
+    if(ab_len){
+      okABlen = (!isNaN(ab_len_n) && approxEqual(ab_len_n, nAB, 1e-3));
+      tick('tick_ablen', okABlen);
+    }else tick('tick_ablen', null);
+
+    if(ac_len){
+      okAClen = (!isNaN(ac_len_n) && approxEqual(ac_len_n, nAC, 1e-3));
+      tick('tick_aclen', okAClen);
+    }else tick('tick_aclen', null);
+
+    // produit scalaire
+    if(ps){
+      okPS = (!isNaN(ps_n) && approxEqual(ps_n, psExact, 1e-6));
+      tick('tick_ps', okPS);
+    }else tick('tick_ps', null);
+
+    // cos à 10^-2 près
+    if(cosV){
+      okCOS = (!isNaN(cos_n) && approxEqual(cos_n, cosTarget, 0.005));
+      tick('tick_cos', okCOS);
+    }else tick('tick_cos', null);
+
+    // angle en degrés (tolérance ~0,6°)
+    if(ang){
+      okANG = (!isNaN(ang_n) && approxEqual(ang_n, angExactDeg, 0.6));
+      tick('tick_ang', okANG);
+    }else tick('tick_ang', null);
+
+    const okCount =
+      (okAB?1:0)+(okAC?1:0)+(okABlen?1:0)+(okAClen?1:0)+
+      (okPS?1:0)+(okCOS?1:0)+(okANG?1:0);
+
+    if(fb){
+      if(!(ab_x || ab_y) || !(ac_x || ac_y)){
+        fb.textContent = "Commence par calculer les coordonnées de \\(\\overrightarrow{AB}\\) et de \\(\\overrightarrow{AC}\\).";
+      }else if(!(okAB && okAC)){
+        fb.textContent = "Corrige d’abord les coordonnées des vecteurs.";
+      }else if(!ab_len || !ac_len){
+        fb.textContent = "Calcule ensuite les longueurs \\(AB\\) et \\(AC\\).";
+      }else if(!(okABlen && okAClen)){
+        fb.textContent = "Revois les calculs de longueur (utilise la formule avec les carrés des coordonnées).";
+      }else if(!ps){
+        fb.textContent = "Coordonnées et longueurs correctes. Calcule maintenant \\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC}\\).";
+      }else if(!okPS){
+        fb.textContent = "Revois le calcul du produit scalaire.";
+      }else if(!cosV){
+        fb.textContent = "Utilise la formule \\(\\cos\\widehat{BAC} = \\dfrac{\\overrightarrow{AB}\\cdot\\overrightarrow{AC}}{AB\\times AC}\\) et donne un résultat au centième près.";
+      }else if(!okCOS){
+        fb.textContent = "La valeur de \\(\\cos\\widehat{BAC}\\) n’est pas correcte à \\(10^{-2}\\) près.";
+      }else if(!ang){
+        fb.textContent = "Il reste à donner une mesure en degré de l’angle \\(\\widehat{BAC}\\).";
+      }else if(!okANG){
+        fb.textContent = "Ta mesure en degré ne correspond pas au cosinus trouvé (arrondir au degré près).";
+      }else{
+        fb.textContent = "✔ Tout est correct. Tu peux maintenant conclure si le triangle est rectangle en A (ou non).";
+      }
+      if (window.MathJax?.typesetPromise) MathJax.typesetPromise([fb]);
+    }
+
+    return {ok:okCount, total:7};
+  },
+
+  solution(host, st){
+    const {A,B,C} = st;
+    const res = host.querySelector('#res');
+    if(!res) return;
+
+    const ABx = B.x - A.x;
+    const ABy = B.y - A.y;
+    const ACx = C.x - A.x;
+    const ACy = C.y - A.y;
+
+    const psExact = ABx*ACx + ABy*ACy;
+    const nAB2 = ABx*ABx + ABy*ABy;
+    const nAC2 = ACx*ACx + ACy*ACy;
+    const nAB = Math.sqrt(nAB2);
+    const nAC = Math.sqrt(nAC2);
+    const cosExact = psExact / (nAB*nAC);
+    const cosRounded = Math.round(cosExact*100)/100;  // au centième
+    const angRad   = Math.acos(cosExact);
+    const angDeg   = radToDeg(angRad);
+
+    const isPerfectAB = Number.isInteger(Math.sqrt(nAB2));
+    const isPerfectAC = Number.isInteger(Math.sqrt(nAC2));
+    const ABexact = isPerfectAB ? Math.sqrt(nAB2) : null;
+    const ACexact = isPerfectAC ? Math.sqrt(nAC2) : null;
+
+    const denABTex = isPerfectAB ? String(ABexact) : `\\sqrt{${nAB2}}`;
+    const denACTex = isPerfectAC ? String(ACexact) : `\\sqrt{${nAC2}}`;
+
+    // p - q sans jamais "-(-q)"
+    function texDiff(p,q){
+      if(q < 0){
+        const absq = Math.abs(q);
+        return `${p} + ${absq}`;
+      }else{
+        return `${p} - ${q}`;
+      }
+    }
+    // a × b avec parenthèses autour des nombres négatifs
+    function texMul(a,b){
+      const left  = (a < 0) ? `(${a})` : `${a}`;
+      const right = (b < 0) ? `(${b})` : `${b}`;
+      return `${left}\\times${right}`;
+    }
+    // a + b sans "+(-…)"
+    function texSum(a,b){
+      if(b === 0) return `${a}`;
+      if(b > 0)   return `${a} + ${b}`;
+      const absb = Math.abs(b);
+      return `${a} - ${absb}`;
+    }
+    function powTerm(n){ return (n<0?`(${n})`:`${n}`)+`^2`; }
+
+    const p1 = ABx*ACx;
+    const p2 = ABy*ACy;
+    const rightAtA = (psExact === 0);
+
+    const stepsAB = [
+      `\\(\\overrightarrow{AB}\\begin{pmatrix} x_B - x_A \\\\ y_B - y_A \\end{pmatrix}\\)`,
+      `\\(\\overrightarrow{AB}\\begin{pmatrix} ${texDiff(B.x, A.x)} \\\\ ${texDiff(B.y, A.y)} \\end{pmatrix}\\)`,
+      `\\(\\overrightarrow{AB}\\begin{pmatrix} ${ABx} \\\\ ${ABy} \\end{pmatrix}\\)`
+    ];
+
+    const stepsAC = [
+      `\\(\\overrightarrow{AC}\\begin{pmatrix} x_C - x_A \\\\ y_C - y_A \\end{pmatrix}\\)`,
+      `\\(\\overrightarrow{AC}\\begin{pmatrix} ${texDiff(C.x, A.x)} \\\\ ${texDiff(C.y, A.y)} \\end{pmatrix}\\)`,
+      `\\(\\overrightarrow{AC}\\begin{pmatrix} ${ACx} \\\\ ${ACy} \\end{pmatrix}\\)`
+    ];
+
+    // longueurs AB et AC : pas de valeur décimale si ce n'est pas exact
+    const stepsABlen = [
+      `\\(AB = \\sqrt{${powTerm(ABx)} + ${powTerm(ABy)}}\\)`,
+      `\\(AB = \\sqrt{${nAB2}}\\)`
+    ];
+    if(isPerfectAB){
+      stepsABlen.push(`\\(AB = ${ABexact}\\)`);
+    }
+
+    const stepsAClen = [
+      `\\(AC = \\sqrt{${powTerm(ACx)} + ${powTerm(ACy)}}\\)`,
+      `\\(AC = \\sqrt{${nAC2}}\\)`
+    ];
+    if(isPerfectAC){
+      stepsAClen.push(`\\(AC = ${ACexact}\\)`);
+    }
+
+    const stepsPS = [
+      `\\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC} = ${texMul(ABx,ACx)} + ${texMul(ABy,ACy)}\\)`,
+      `\\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC} = ${texSum(p1,p2)}\\)`,
+      `\\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC} = ${psExact}\\)`
+    ];
+
+    const stepsCOS = [
+      `\\(\\cos\\widehat{BAC} = \\dfrac{\\overrightarrow{AB}\\cdot\\overrightarrow{AC}}{AB\\times AC}\\)`,
+      `\\(\\cos\\widehat{BAC} = \\dfrac{${psExact}}{${denABTex}\\times${denACTex}}\\)`,
+      `\\(\\cos\\widehat{BAC} \\approx ${formatNumber(cosRounded)}\\)`
+    ];
+
+    const stepsANG = [
+      `\\(\\widehat{BAC} \\approx ${formatNumber(angDeg)}^{\\circ}\\)`
+    ];
+
+    const concl = rightAtA
+      ? `Comme \\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC}=0\\), on a \\(\\widehat{BAC}=90^{\\circ}\\). Le triangle \\(ABC\\) est donc <strong>rectangle en \\(A\\)</strong>.`
+      : `Comme \\(\\overrightarrow{AB}\\cdot\\overrightarrow{AC}\\neq 0\\), l’angle \\(\\widehat{BAC}\\) n’est pas droit. Le triangle \\(ABC\\) n’est donc <strong>pas rectangle en \\(A\\)</strong>.`;
+
+    res.innerHTML = `
+      <p><strong>1. Coordonnées des vecteurs</strong></p>
+      <table style="border-collapse:collapse; border:none; width:100%; max-width:620px; margin:0 auto;">
+        <tr>
+          <td style="vertical-align:top; padding-right:16px;">
+            ${stepsAB.map(s=>`<p>${s}</p>`).join('')}
+          </td>
+          <td style="vertical-align:top; padding-left:16px;">
+            ${stepsAC.map(s=>`<p>${s}</p>`).join('')}
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin-top:.6rem;"><strong>2. Longueurs \\(AB\\) et \\(AC\\)</strong></p>
+      <table style="border-collapse:collapse; border:none; width:100%; max-width:620px; margin:0 auto;">
+        <tr>
+          <td style="vertical-align:top; padding-right:16px;">
+            ${stepsABlen.map(s=>`<p>${s}</p>`).join('')}
+          </td>
+          <td style="vertical-align:top; padding-left:16px;">
+            ${stepsAClen.map(s=>`<p>${s}</p>`).join('')}
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin-top:.6rem;"><strong>3. Produit scalaire</strong></p>
+      ${stepsPS.map(s=>`<p>${s}</p>`).join('')}
+
+      <p style="margin-top:.6rem;"><strong>4. Cosinus de l’angle \\(\\widehat{BAC}\\)</strong></p>
+      ${stepsCOS.map(s=>`<p>${s}</p>`).join('')}
+
+      <p style="margin-top:.6rem;"><strong>5. Mesure de l’angle \\(\\widehat{BAC}\\)</strong></p>
+      ${stepsANG.map(s=>`<p>${s}</p>`).join('')}
+
+      <p style="margin-top:.6rem;"><strong>6. Triangle rectangle en \\(A\\)&nbsp;?</strong></p>
+      <p>${concl}</p>
+    `;
+
+    typesetAll(res);
+  },
+
+  reset(host){
+    ['ab_x','ab_y','ac_x','ac_y','ab_len','ac_len','ps_abac','cos_bac','ang_bac'].forEach(id=>{
+      const inp = host.querySelector('#'+id);
+      if(inp) inp.value = '';
+    });
+    ['tick_ab','tick_ac','tick_ablen','tick_aclen','tick_ps','tick_cos','tick_ang'].forEach(id=>{
+      const el = host.querySelector('#'+id);
+      if(el) el.className = 'tick nu';
+    });
+    const fb  = host.querySelector('#fb');
+    const res = host.querySelector('#res');
+    if(fb)  fb.textContent = '';
+    if(res) res.innerHTML  = '';
+  }
+};
+
 
 
 /* ————— Registre & UI ————— */
-const REGISTRY=[ex1, ex2, ex3];
+const REGISTRY = [ex1, ex2, ex3, ex4];
 window.REGISTRY = REGISTRY;
 
 (function waitExoPDF(){

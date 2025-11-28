@@ -897,7 +897,7 @@ const ex1 = {
   const res = host.querySelector('#res');
   if (!res) return;
 
-  const { AB, AC, BC, angleA, angleB, angleC, askedAngles } = st;
+  const { AB, AC, BC, angleA, angleB, angleC, askedAngles, angleDeg } = st;
 
   // — 1) Côté inconnu —
   const unknown = st.unknown || 'BC';
@@ -949,7 +949,7 @@ const ex1 = {
   const AC2 = AC*AC;
   const BC2 = BC*BC;
 
-  // données pour l’angle ang1 (Al-Kashi) + VALEURS NUMÉRIQUES
+  // données pour l’angle ang1 (Al-Kashi)
   let oppName, o1Name, o2Name, numcos, dencos;
   let oppVal,  o1Val,  o2Val;
 
@@ -969,25 +969,24 @@ const ex1 = {
     numcos = AC2 + BC2 - AB2;
     dencos = 2 * AC * BC;
   }
-// fraction irréductible pour cos
-const g = gcd(numcos, dencos);
-let numRed = numcos / g;
-let denRed = dencos / g;
 
-// gestion du signe : si numRed < 0, on met le signe devant la fraction
-let fracRedTex = '';
-if (g > 1) {
-  if (numRed < 0) {
-    fracRedTex = ` = -\\dfrac{${Math.abs(numRed)}}{${denRed}}`;
-  } else {
-    fracRedTex = ` = \\dfrac{${numRed}}{${denRed}}`;
+  // fraction irréductible pour cos
+  const g = gcd(numcos, dencos);
+  let numRed = numcos / g;
+  let denRed = dencos / g;
+
+  // gestion du signe : si numRed < 0, on met le signe devant la fraction
+  let fracRedTex = '';
+  if (g > 1) {
+    if (numRed < 0) {
+      fracRedTex = ` = -\\dfrac{${Math.abs(numRed)}}{${denRed}}`;
+    } else {
+      fracRedTex = ` = \\dfrac{${numRed}}{${denRed}}`;
+    }
   }
-}
 
-	
   const cos1_exact = numcos / dencos;
   const cos1_num = Math.round(cos1_exact * 1000) / 1000;
-
   const eqCos = (Math.abs(cos1_exact - cos1_num) < 1e-10) ? '=' : '\\approx';
 
   const A1_exact = Math.acos(Math.max(-1, Math.min(1, cos1_exact))) * 180 / Math.PI;
@@ -997,6 +996,13 @@ if (g > 1) {
   const A2_exact = 180 - knownVal - A1_exact;
   const isExact2 = (Math.abs(A2_exact - A2val) < 1e-8);
   const sym2 = isExact2 ? '=' : '\\approx';
+
+  // ✨ Remarque Pythagore si l’angle utilisé dans la question 1 est droit (90°)
+  const remarkPyth = (angleDeg === 90)
+    ? `<br><span style="font-style:italic">
+        Remarque&nbsp;: comme le triangle est rectangle en \\(${knownVertex}\\), on aurait aussi pu utiliser le théorème de Pythagore pour calculer \\(${uName}\\).
+       </span>`
+    : '';
 
   res.innerHTML = `
     <ol style="padding-left:1.1rem;">
@@ -1015,10 +1021,8 @@ if (g > 1) {
         \\)<br>
         \\(
           ${uName}^2 = ${u2}\\)<br>
-   
-          \\(${uName} = ${uVal}\\) cm
-        
-		
+        \\(${uName} = ${uVal}\\) cm
+        ${remarkPyth}
       </li>
 
       <li style="margin-bottom:.6rem;">
@@ -1027,12 +1031,12 @@ if (g > 1) {
         \\(
           ${oppName}^2 = ${o1Name}^2 + ${o2Name}^2 - 2\\times ${o1Name}\\times ${o2Name}\\times \\cos(${ang1Tex})
         \\)
-  <br>
+        <br>
         \\(\\cos(${ang1Tex})= \\dfrac{${o1Name}^2 + ${o2Name}^2 - ${oppName}^2}{2\\times ${o1Name}\\times ${o2Name}}\\)<br>
-         \\(\\cos(${ang1Tex}) = \\dfrac{${o1Val}^2 + ${o2Val}^2 - ${oppVal}^2}{2\\times ${o1Val}\\times ${o2Val}}\\)<br>
-         \\(\\cos(${ang1Tex}) = \\dfrac{${numcos}}{${dencos}}\\)<br>
-		 \\(\\cos(${ang1Tex})${fracRedTex}\\)<br><br>
-    
+        \\(\\cos(${ang1Tex}) = \\dfrac{${o1Val}^2 + ${o2Val}^2 - ${oppVal}^2}{2\\times ${o1Val}\\times ${o2Val}}\\)<br>
+        \\(\\cos(${ang1Tex}) = \\dfrac{${numcos}}{${dencos}}\\)<br>
+        \\(\\cos(${ang1Tex})${fracRedTex}\\)<br><br>
+
         On en déduit, au degré près :<br>
         \\(
           ${ang1Tex} ${sym1} ${formatNumber(A1val)}^{\\circ}
@@ -1044,8 +1048,8 @@ if (g > 1) {
         \\)<br>
         On a donc :<br>
         \\(${ang2Tex}${sym2} 180^{\\circ} - ${knownTex} - ${ang1Tex}\\)<br>
-         \\(${ang2Tex} ${sym2} 180^{\\circ} - ${formatNumber(knownVal)}^{\\circ} - ${formatNumber(A1val)}^{\\circ}\\)<br>
-         \\( ${ang2Tex}${sym2} ${formatNumber(A2val)}^{\\circ}\\)<br>
+        \\(${ang2Tex} ${sym2} 180^{\\circ} - ${formatNumber(knownVal)}^{\\circ} - ${formatNumber(A1val)}^{\\circ}\\)<br>
+        \\( ${ang2Tex}${sym2} ${formatNumber(A2val)}^{\\circ}\\)<br>
       </li>
     </ol>
   `;
@@ -1075,8 +1079,8 @@ if (g > 1) {
 Chaque contexte fixe :
 - knownVertex : sommet où l’angle est connu (A, B ou C)
 - unknown     : côté opposé à cet angle (celui qu’on calcule en Q1)
-- lenMin,lenMax : ordre de grandeur cohérent pour les longueurs
-- angleMin,angleMax : type d’angle réaliste (aigu / obtus)
+- lenMin,lenMax : ordre de grandeur cohérent pour les longueurs (en mètres)
+- angleMin,angleMax : type d’angle réaliste (aigu / obtus) pour la situation
 - askAngles   : liste des sommets possibles pour l’angle demandé en Q2
 - intro       : description précise de la situation
 - q1Text      : question contextualisée pour Q1
@@ -1086,8 +1090,8 @@ const ALKASHI_CONTEXTS = [
     id:'champ_cloture',
     knownVertex:'B',
     unknown:'AC',               // distance entre deux bornes du champ
-    lenMin:40, lenMax:120,
-    angleMin:40, angleMax:130,
+    lenMin:40, lenMax:120,      // côté de champ de l’ordre de quelques dizaines de mètres
+    angleMin:60, angleMax:120,  // angle de coin de champ, plutôt ni trop aigu ni trop plat
     askAngles:['A','C'],
     intro:`Un agriculteur veut clôturer un champ dont les coins sont notés \\(A\\), \\(B\\) et \\(C\\). 
     Deux côtés de la clôture partent du coin \\(B\\), vers \\(A\\) et vers \\(C\\).`,
@@ -1097,8 +1101,8 @@ const ALKASHI_CONTEXTS = [
     id:'riviere_pont',
     knownVertex:'A',
     unknown:'BC',               // largeur entre deux points de rives
-    lenMin:60, lenMax:160,
-    angleMin:25, angleMax:90,
+    lenMin:30, lenMax:150,      // distances franchissables par un pont
+    angleMin:20, angleMax:80,   // deux points de rive vus depuis A, pas à l’opposé
     askAngles:['B','C'],
     intro:`On étudie la largeur d'une rivière. 
     Depuis un point d'observation \\(A\\) sur une berge, on repère deux points \\(B\\) et \\(C\\) situés en face sur l'autre rive.`,
@@ -1108,8 +1112,8 @@ const ALKASHI_CONTEXTS = [
     id:'grimpe_falaise',
     knownVertex:'B',
     unknown:'AC',               // distance entre prises
-    lenMin:10, lenMax:35,
-    angleMin:30, angleMax:120,
+    lenMin:5, lenMax:25,        // prises sur une même voie ou deux voisines
+    angleMin:30, angleMax:120,  // voies ni trop alignées ni complètement opposées
     askAngles:['A','C'],
     intro:`Sur une paroi d'escalade, un assureur est placé au point \\(B\\) au pied de la paroi. 
     Un grimpeur peut atteindre deux prises notées \\(A\\) et \\(C\\) grâce à deux voies distinctes partant de \\(B\\).`,
@@ -1119,8 +1123,8 @@ const ALKASHI_CONTEXTS = [
     id:'pylones_elec',
     knownVertex:'A',
     unknown:'BC',               // distance directe entre pylônes
-    lenMin:80, lenMax:200,
-    angleMin:40, angleMax:140,
+    lenMin:120, lenMax:260,     // entre deux grands pylônes
+    angleMin:30, angleMax:130,  // lignes partant d’un même pylône
     askAngles:['B','C'],
     intro:`Trois pylônes électriques sont installés en \\(A\\), \\(B\\) et \\(C\\). 
     Les lignes partant de \\(A\\) rejoignent les pylônes \\(B\\) et \\(C\\).`,
@@ -1130,8 +1134,8 @@ const ALKASHI_CONTEXTS = [
     id:'camping_tentes',
     knownVertex:'A',
     unknown:'BC',               // distance entre deux tentes
-    lenMin:15, lenMax:50,
-    angleMin:30, angleMax:110,
+    lenMin:5, lenMax:25,        // emplacements de camping
+    angleMin:30, angleMax:120,
     askAngles:['B','C'],
     intro:`Dans un camping, trois tentes sont installées aux emplacements \\(A\\), \\(B\\) et \\(C\\). 
     Les tentes \\(B\\) et \\(C\\) sont visibles depuis \\(A\\).`,
@@ -1141,8 +1145,8 @@ const ALKASHI_CONTEXTS = [
     id:'navigation_mer',
     knownVertex:'A',
     unknown:'BC',               // distance entre deux balises au large
-    lenMin:80, lenMax:220,
-    angleMin:30, angleMax:120,
+    lenMin:80, lenMax:220,      // repères en mer
+    angleMin:20, angleMax:120,  // directions depuis le bateau
     askAngles:['B','C'],
     intro:`En mer, un bateau se trouve au point \\(A\\). 
     Il repère deux balises \\(B\\) et \\(C\\) au large, sous deux directions différentes.`,
@@ -1152,8 +1156,8 @@ const ALKASHI_CONTEXTS = [
     id:'parc_attractions',
     knownVertex:'A',
     unknown:'BC',               // distance entre deux manèges
-    lenMin:40, lenMax:120,
-    angleMin:35, angleMax:130,
+    lenMin:30, lenMax:120,      // taille d’un parc
+    angleMin:40, angleMax:120,
     askAngles:['B','C'],
     intro:`Dans un parc d'attractions, l'entrée principale est située en \\(A\\). 
     Deux manèges très fréquentés sont placés en \\(B\\) et \\(C\\).`,
@@ -1163,8 +1167,8 @@ const ALKASHI_CONTEXTS = [
     id:'topographie_colline',
     knownVertex:'C',
     unknown:'AB',               // distance entre deux points sur la crête
-    lenMin:50, lenMax:150,
-    angleMin:30, angleMax:120,
+    lenMin:50, lenMax:150,      // points de crête séparés
+    angleMin:30, angleMax:130,
     askAngles:['A','B'],
     intro:`Lors d'un relevé topographique sur une colline, on place une station de mesure en \\(C\\). 
     Deux points remarquables situés sur la crête sont notés \\(A\\) et \\(B\\).`,
@@ -1174,8 +1178,8 @@ const ALKASHI_CONTEXTS = [
     id:'plage_drapeaux',
     knownVertex:'A',
     unknown:'BC',               // distance entre drapeaux
-    lenMin:30, lenMax:90,
-    angleMin:30, angleMax:110,
+    lenMin:20, lenMax:80,       // largeur d’une zone de baignade
+    angleMin:20, angleMax:80,   // deux drapeaux le long de la plage vus depuis le poste
     askAngles:['B','C'],
     intro:`Sur une plage, un poste de secours est situé en \\(A\\). 
     Deux drapeaux \\(B\\) et \\(C\\) délimitent une zone de baignade surveillée.`,
@@ -1185,26 +1189,128 @@ const ALKASHI_CONTEXTS = [
     id:'parc_urbain_bancs',
     knownVertex:'B',
     unknown:'AC',               // distance entre deux bancs
-    lenMin:20, lenMax:70,
-    angleMin:40, angleMax:130,
+    lenMin:10, lenMax:30,       // bancs dans un même secteur
+    angleMin:40, angleMax:140,  // allées qui se croisent
     askAngles:['A','C'],
     intro:`Dans un parc urbain, un carrefour piéton est situé en \\(B\\). 
     Deux bancs sont placés en \\(A\\) et \\(C\\) le long de deux allées différentes.`,
     q1Text:`Calculer la distance entre les deux bancs \\(A\\) et \\(C\\), c'est-à-dire la longueur \\(AC\\).`
   },
   {
-  id:'eclairage_projecteurs',
-  knownVertex:'C',
-  unknown:'AB',
-  lenMin:15, lenMax:70,
-  angleMin:35, angleMax:120,
-  askAngles:['A','B'],
-  intro:`Dans une salle de spectacle, deux projecteurs sont placés en \\(A\\) et \\(B\\). 
+    id:'eclairage_projecteurs',
+    knownVertex:'C',
+    unknown:'AB',
+    lenMin:5, lenMax:25,        // distance entre projecteurs en salle
+    angleMin:20, angleMax:90,   // faisceaux plus ou moins écartés
+    askAngles:['A','B'],
+    intro:`Dans une salle de spectacle, deux projecteurs sont placés en \\(A\\) et \\(B\\). 
   Un régisseur se tient en \\(C\\) et mesure l'angle entre les directions des deux projecteurs pour calibrer la lumière.`,
-  q1Text:`Déterminer la distance séparant les projecteurs \\(A\\) et \\(B\\), c’est-à-dire la longueur \\(AB\\).`
-}
-
+    q1Text:`Déterminer la distance séparant les projecteurs \\(A\\) et \\(B\\), c’est-à-dire la longueur \\(AB\\).`
+  },
+  {
+    id:'electricite_triangulation',
+    knownVertex:'C',
+    unknown:'AB',
+    lenMin:120, lenMax:260,     // grandes portées entre pylônes
+    angleMin:30, angleMax:120,
+    askAngles:['A','B'],
+    intro:`Dans une zone vallonnée, trois pylônes électriques \\(A\\), \\(B\\) et \\(C\\) servent de points de triangulation pour tracer une nouvelle ligne haute tension. 
+  Depuis le pylône \\(C\\), on mesure les directions des pylônes \\(A\\) et \\(B\\).`,
+    q1Text:`Déterminer la distance qui sépare les pylônes \\(A\\) et \\(B\\), c’est-à-dire la longueur \\(AB\\).`
+  },
+  {
+    id:'billard_rebond',
+    knownVertex:'A',
+    unknown:'BC',
+    lenMin:0.5, lenMax:2.5,     // réalisme billard : ~0,5 m à ~2,5 m
+    angleMin:30, angleMax:150,  // trajectoires ni colinéaires ni trop plates
+    askAngles:['B','C'],
+    intro:`Sur une table de billard, un joueur place sa bille blanche en \\(A\\). 
+  Il vise un point \\(B\\) sur la bande, puis la bille doit atteindre une bille rouge placée en \\(C\\). 
+  Les directions \\(AB\\) et \\(AC\\) forment un certain angle mesuré par le joueur.`,
+    q1Text:`Déterminer la distance entre le point d’impact \\(B\\) et la bille rouge \\(C\\), c’est-à-dire la longueur \\(BC\\).`
+  },
+  {
+    id:'ingenierie_lampadaire',
+    knownVertex:'B',
+    unknown:'AC',
+    lenMin:15, lenMax:40,       // bornes lumineuses d’un même carrefour / zone
+    angleMin:40, angleMax:120,
+    askAngles:['A','C'],
+    intro:`Dans un projet d’aménagement urbain, deux bornes lumineuses sont déjà placées en \\(A\\) et \\(C\\). 
+  Un technicien se positionne en \\(B\\) et mesure les directions vers \\(A\\) et \\(C\\) pour déterminer l’emplacement exact d’un troisième lampadaire.`,
+    q1Text:`Calculer la distance entre les bornes \\(A\\) et \\(C\\), c’est-à-dire la longueur \\(AC\\).`
+  },
+  {
+    id:'drone_photographie',
+    knownVertex:'A',
+    unknown:'BC',
+    lenMin:50, lenMax:200,      // repères au sol vus depuis un drone
+    angleMin:20, angleMax:120,
+    askAngles:['B','C'],
+    intro:`Un drone placé en \\(A\\) photographie deux repères au sol notés \\(B\\) et \\(C\\). 
+  Le logiciel du drone connaît les distances \\(AB\\) et \\(AC\\), ainsi que l’angle entre les deux directions.`,
+    q1Text:`Déterminer la distance séparant les points \\(B\\) et \\(C\\), c’est-à-dire la longueur \\(BC\\).`
+  },
+  {
+    id:'parcours_sportif_balises',
+    knownVertex:'B',
+    unknown:'AC',
+    lenMin:20, lenMax:60,       // balises d’un même atelier
+    angleMin:40, angleMax:120,
+    askAngles:['A','C'],
+    intro:`Dans un parcours sportif, une balise principale est placée en \\(B\\). 
+  Deux autres balises \\(A\\) et \\(C\\) doivent être reliées pour former un triangle d’épreuve. 
+  Depuis \\(B\\), on connaît les longueurs \\(AB\\) et \\(BC\\) ainsi que l’angle entre ces deux segments.`,
+    q1Text:`Calculer la distance entre les balises \\(A\\) et \\(C\\), c’est-à-dire la longueur \\(AC\\).`
+  },
+  {
+    id:'marine_phare',
+    knownVertex:'C',
+    unknown:'AB',
+    lenMin:200, lenMax:700,     // navires suffisamment éloignés
+    angleMin:15, angleMax:120,
+    askAngles:['A','B'],
+    intro:`En mer, un officier en poste au point \\(C\\) observe deux navires \\(A\\) et \\(B\\). 
+  Il connaît leurs distances par rapport à \\(C\\) et mesure l’angle entre les deux directions.`,
+    q1Text:`Déterminer la distance entre les navires \\(A\\) et \\(B\\), c’est-à-dire la longueur \\(AB\\).`
+  },
+  {
+    id:'autodrome_cameras',
+    knownVertex:'A',
+    unknown:'BC',
+    lenMin:30, lenMax:120,      // virages vus depuis une caméra fixe
+    angleMin:15, angleMax:90,
+    askAngles:['B','C'],
+    intro:`Sur un autodrome, une caméra haute vitesse est placée en \\(A\\). 
+  Deux virages \\(B\\) et \\(C\\) sont dans son champ de vision, sous un angle mesuré.`,
+    q1Text:`Calculer la distance entre les deux virages \\(B\\) et \\(C\\), c’est-à-dire la longueur \\(BC\\).`
+  },
+  {
+    id:'foret_cartographie',
+    knownVertex:'B',
+    unknown:'AC',
+    lenMin:20, lenMax:70,       // arbres remarquables dans une même zone
+    angleMin:30, angleMax:125,
+    askAngles:['A','C'],
+    intro:`Lors d’un relevé en forêt, un géomètre se positionne en \\(B\\). 
+  Il repère deux arbres remarquables en \\(A\\) et \\(C\\), et mesure l’angle formé par les directions.`,
+    q1Text:`Déterminer la distance séparant les deux arbres \\(A\\) et \\(C\\), c’est-à-dire la longueur \\(AC\\).`
+  },
+  {
+    id:'velo_parcours',
+    knownVertex:'A',
+    unknown:'BC',
+    lenMin:10, lenMax:40,       // portions de circuit visibles
+    angleMin:20, angleMax:120,
+    askAngles:['B','C'],
+    intro:`Un cycliste au point \\(A\\) observe deux points du circuit notés \\(B\\) et \\(C\\). 
+  Les distances \\(AB\\) et \\(AC\\) ont été mesurées à l’aide d’un télémètre.`,
+    q1Text:`Calculer la distance entre les deux points \\(B\\) et \\(C\\), c’est-à-dire la longueur \\(BC\\).`
+  }
 ];
+
+
 
 function getAlKashiContext(id){
   return ALKASHI_CONTEXTS.find(c=>c.id===id) || ALKASHI_CONTEXTS[0];
@@ -1343,12 +1449,13 @@ const ex2 = {
           <p>${ctx.intro}</p>
           <p>
             On modélise la situation par un triangle \\(ABC\\) tel que :<br>
-            \\(${g1Name} = ${Math.round(g1Val)}\\) m, 
-            \\(${g2Name} = ${Math.round(g2Val)}\\) m et
-            \\(${angleName} = ${angleDeg}^{\\circ}.\\)
+\\(${g1Name} = ${formatNumber(g1Val)}\\) m, 
+\\(${g2Name} = ${formatNumber(g2Val)}\\) m et
+\\(${angleName} = ${angleDeg}^{\\circ}.\\)
+
           </p>
 
-          <p><strong>1)</strong> ${ctx.q1Text} Donner une valeur arrondie à l’unité près.</p>
+          <p><strong>1)</strong> ${ctx.q1Text} Donner une valeur arrondie à 0,01 près.</p>
 
           <p class="pdf-hide">
             \\(${unknown} =\\)
@@ -1514,6 +1621,20 @@ const ex2 = {
     }
 const o1Valar  = Math.round(o1Val);
 const o2Valar  = Math.round(o2Val);
+
+// petit helper : arrondi à 0,01 près
+const rnd2 = x => Math.round(x * 100) / 100;
+
+// versions "affichage" des longueurs, arrondies à 0,01 puis passées en virgule
+const ABtex  = formatNumber(rnd2(AB));
+const ACtex  = formatNumber(rnd2(AC));
+const BCtex  = formatNumber(rnd2(BC));
+
+const o1Tex  = formatNumber(rnd2(o1Val));
+const o2Tex  = formatNumber(rnd2(o2Val));
+const oppTex = formatNumber(rnd2(oppVal));
+
+
     const g = gcd(numcos, dencos);
     let numRed = numcos / g;
     let denRed = dencos / g;
@@ -1561,16 +1682,14 @@ const o2Valar  = Math.round(o2Val);
           \\(
             ${uName} \\approx ${formatNumber(uR)}\\text{ m}
           \\)<br>
-          En arrondissant à l’unité près : 
-          \\(
-            ${uName} \\approx ${uInt}\\text{ m}.
-          \\)
+
+ 
         </li>
 
         <li style="margin-bottom:.6rem;">
-          On connaît maintenant les trois côtés du triangle : 
-          \\(AB=${Math.round(AB)}\\) m, \\(AC=${Math.round(AC)}\\) m et \\(BC=${Math.round(BC)}\\) m.<br>
-          On applique à nouveau le théorème d'Al-Kashi pour l’angle \\(${askedTex}\\) :<br>
+  On connaît maintenant les trois côtés du triangle : 
+\\(AB=${ABtex}\\) m, \\(AC=${ACtex}\\) m et \\(BC=${BCtex}\\) m.<br>
+On applique à nouveau le théorème d'Al-Kashi pour l’angle \\(${askedTex}\\) :<br>
           \\(
             ${oppName}^2 = ${o1Name}^2 + ${o2Name}^2
               - 2\\times ${o1Name}\\times ${o2Name}\\times \\cos(${askedTex})
@@ -1581,7 +1700,7 @@ const o2Valar  = Math.round(o2Val);
           \\)<br>
           \\(
             \\cos(${askedTex}) =
-            \\dfrac{${o1Valar}^2 + ${o2Valar}^2 - ${oppVal}^2}{2\\times ${o1Valar}\\times ${o2Valar}}
+  \\dfrac{${o1Tex}^2 + ${o2Tex}^2 - ${oppTex}^2}{2\\times ${o1Tex}\\times ${o2Tex}}
           \\)<br>
 <br>
 

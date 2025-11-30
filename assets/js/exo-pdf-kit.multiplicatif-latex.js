@@ -936,6 +936,238 @@ ul.no-bullet{
   height:auto;
 }
 
+  .tbl-solution td.fcc-total,
+  .tbl-solution td.ecc-total{
+    background:#e0e0e0;
+  }
+
+
+  /* ===== Diagrammes avec axes + grille ===== */
+
+  .chart-block{
+    margin:.6rem 0 1.1rem;
+  }
+  .chart-title{
+    font-size:.9rem;
+    font-style:italic;
+    margin:0 0 .25rem 0;
+  }
+
+  .chart-axes{
+    position:relative;
+    padding:8px 32px 30px 45px;   /* place pour les labels */
+    border:1px solid #000;
+  }
+  .chart-inner{
+    position:relative;
+    height:200px;
+    border-left:2px solid #000;
+    border-bottom:2px solid #000;
+  background-image:
+    linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+    linear-gradient(to top,   #e5e5e5 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--grid-cols, 10)) 100%,   /* colonnes en % → 1 carreau par unité */
+    100% 20px;                                /* hauteur fixe des carreaux (20 px) */
+  background-position:left bottom;
+    overflow:hidden;
+  }
+
+  .chart-y-ticks{
+    position:absolute;
+    left:-6px;
+    top:0;
+    bottom:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    font-size:.7rem;
+    transform:translateX(-100%);
+  }
+  .chart-y-ticks div{
+    transform:translateY(50%);
+  }
+
+  .chart-x-label{
+    margin-top:3px;
+    font-size:.8rem;
+    text-align:center;
+  }
+
+  /* Bâtons (quantitatif discret) */
+
+.chart-bars-row{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  top:0;
+  display:flex;
+  align-items:flex-end;   /* les barres viennent s’appuyer tout en bas */
+  padding:0 6px;          /* plus de padding en bas : elles touchent l’axe */
+  box-sizing:border-box;
+}
+
+  .chart-bar-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+  }
+  .chart-bar{
+    width:20%;
+    background:#2f7ed8;
+    border:1px solid #1b4f8c;
+  }
+  .chart-bar-x{
+    margin-top:4px;
+    font-size:.8rem;
+  }
+
+  /* Histogramme (quantitatif continu) */
+
+  .chart-hist-bar{
+    position:absolute;
+    bottom:0;
+    border:1px solid #1b4f8c;
+    background:#2f7ed8;
+  }
+  .chart-hist-x-labels{
+    margin-top:4px;
+    font-size:.8rem;
+    text-align:center;
+  }
+  .chart-hist-x-labels span{
+    margin:0 .35rem;
+  }
+
+  /* Diagramme circulaire (qualitatif) */
+
+  .chart-pie-wrap{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:center;
+    margin:.6rem 0 1rem;
+  }
+  .chart-pie{
+    width:180px;
+    aspect-ratio:1;
+    border-radius:50%;
+    border:1px solid #000;
+  }
+  .chart-pie-legend{
+    flex:1;
+    min-width:220px;
+    font-size:.9rem;
+  }
+  .chart-pie-legend ul{
+    margin:.25rem 0 0 1rem;
+    padding:0;
+  }
+  .chart-pie-legend li{
+    list-style:none;
+    margin:2px 0;
+  }
+  .pie-dot{
+    display:inline-block;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+
+  /* Label vertical de l’axe des ordonnées */
+  .chart-y-label{
+    position:absolute;
+    left:-24px;
+    top:50%;
+    transform:translate(-50%,-50%) rotate(-90deg);
+    font-size:.75rem;
+    font-weight:600;
+  }
+
+  /* Effectif écrit au-dessus des bâtons (diagramme en bâtons) */
+  .chart-bar-label{
+    font-size:.75rem;
+    margin-bottom:2px;
+  }
+
+  /* Effectif écrit dans les rectangles (histogramme) */
+  .chart-hist-bar-label{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-size:.75rem;
+    padding:1px 3px;
+    border-radius:3px;
+    background:rgba(255,255,255,.75);
+  }
+
+/* LIGNES VERTICALES (aux bornes des classes) */
+.chart-hist-grid-v{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+  pointer-events:none;
+}
+.chart-hist-grid-v .vline{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:#e0e0e0;   /* gris léger, comme la grille horizontale */
+}
+
+/* GRADUATIONS DES BORNES SOUS L’AXE DES ABSCISSES */
+.chart-hist-x-ticks{
+  position:relative;
+  height:22px;          /* espace pour les nombres */
+  font-size:.75rem;
+}
+.chart-hist-x-ticks span{
+  position:absolute;
+  bottom:0;             /* nombre bien sous l’axe */
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+.chart-hist-x-ticks span::before{
+  content:'';
+  position:absolute;
+  top:-6px;             /* le trait remonte jusqu’à l’axe */
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:6px;
+  border-left:1px solid #000;
+}
+
+
+
+
+  .chart-bars-x-row{
+    display:flex;
+    margin-top:4px;
+    font-size:.8rem;
+  }
+  .chart-bars-x-row span{
+    flex:1;
+    text-align:center;
+  }
+
+/* Variante sans quadrillage + plus serré pour le diagramme en bâtons (exo 1) */
+.chart-inner-nogrid{
+  background:none;               /* plus de quadrillage */
+  background-image:none;
+  background-size:auto;
+}
+
+
 </style>
 
 <style>

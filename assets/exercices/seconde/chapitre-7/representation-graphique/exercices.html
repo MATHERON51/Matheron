@@ -1,12 +1,2059 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exercices — Chapitre 7 — Représentation graphique</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:24px}.muted{color:#666}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde – Statistiques - Effectifs et fréquences</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.45rem 0 0 .15rem;padding:.45rem .6rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:var(--ok); }
+  .tick.ko::after{ content:'✗'; color:var(--ko); }
+
+  table.pdf-tbl{
+    border-collapse: separate;
+    border-spacing: 0;
+    border:none;
+    margin:.5rem 0;
+    width:100%;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border:none;
+    padding:4px 6px;
+    text-align:center;
+    vertical-align:middle;
+  }
+  table.pdf-tbl th{
+    background:#f3f3f6;
+    font-weight:600;
+  }
+  table.pdf-tbl tr:first-child > * { border-top:1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom:1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right:1.5px solid #000; }
+
+  table.pdfb input[type="text"]{
+    width:100%;
+    max-width:90px;
+    padding:4px 6px;
+    border:1px solid #ddd;
+    border-radius:6px;
+    text-align:center;
+    font-size:.95rem;
+  }
+  /* Ligne horizontale entre toutes les lignes du tableau */
+  table.pdf-tbl tbody tr + tr > *{
+    border-top:1px solid #000;
+  }
+  .tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
+  .tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
+  .tbl th{background:#f7f7f7}
+
+  .q-block{margin-top:.6rem}
+  .q-block p{margin:.25rem 0}
+  .q-block input[type="text"]{
+    width:160px;
+    max-width:60%;
+    padding:4px 6px;
+    border:1px solid #ddd;
+    border-radius:6px;
+    text-align:center;
+  }
+
+  @media screen { .screen-only{display:block!important} .print-only{display:none!important} }
+  @media print  { .screen-only{display:none!important} .print-only{display:block!important} }
+
+  /* === Bordures opt-in pour certains tableaux (PDF uniquement) === */
+  table.pdfb{ border-collapse: collapse; }
+  table.pdfb, table.pdfb th, table.pdfb td{
+    border: 1px solid #000;
+    padding: 4px 6px;
+    vertical-align: top;
+  }
+  /* Tableaux "plein largeur" pour le PDF, uniquement si .pdfb est présente */
+  table.pdfb{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.pdfb, table.pdfb th, table.pdfb td{
+    border: 1px solid #000;
+    padding: 6px 8px;
+    vertical-align: top;
+    white-space: normal;
+    word-break: break-word;
+  }
+  /* PDF : même respiration pour la colonne 3 des tableaux de corrigé */
+  table.pdfb.corrige td:nth-child(3),
+  table.pdfb.corrige th:nth-child(3){
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .tbl-solution td.fcc-total{
+    background:#e0e0e0;
+  }
+
+  /* ===== Diagrammes avec axes + grille ===== */
+
+  .chart-block{
+    margin:.6rem 0 1.1rem;
+  }
+  .chart-title{
+    font-size:.9rem;
+    font-style:italic;
+    margin:0 0 .25rem 0;
+  }
+
+  .chart-axes{
+    position:relative;
+    padding:8px 32px 30px 45px;   /* place pour les labels */
+    border:1px solid #000;
+  }
+  .chart-inner{
+    position:relative;
+    height:200px;
+    border-left:2px solid #000;
+    border-bottom:2px solid #000;
+  background-image:
+    linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+    linear-gradient(to top,   #e5e5e5 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--grid-cols, 10)) 100%,   /* colonnes en % → 1 carreau par unité */
+    100% 20px;                                /* hauteur fixe des carreaux (20 px) */
+  background-position:left bottom;
+    overflow:hidden;
+  }
+
+  .chart-y-ticks{
+    position:absolute;
+    left:-6px;
+    top:0;
+    bottom:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    font-size:.7rem;
+    transform:translateX(-100%);
+  }
+  .chart-y-ticks div{
+    transform:translateY(50%);
+  }
+
+  .chart-x-label{
+    margin-top:3px;
+    font-size:.8rem;
+    text-align:center;
+  }
+
+  /* Bâtons (quantitatif discret) */
+
+.chart-bars-row{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  top:0;
+  display:flex;
+  align-items:flex-end;   /* les barres viennent s’appuyer tout en bas */
+  padding:0 6px;          /* plus de padding en bas : elles touchent l’axe */
+  box-sizing:border-box;
+}
+
+  .chart-bar-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+  }
+  .chart-bar{
+    width:20%;
+    background:#2f7ed8;
+    border:1px solid #1b4f8c;
+  }
+  .chart-bar-x{
+    margin-top:4px;
+    font-size:.8rem;
+  }
+
+  /* Histogramme (quantitatif continu) */
+
+  .chart-hist-bar{
+    position:absolute;
+    bottom:0;
+    border:1px solid #1b4f8c;
+    background:#2f7ed8;
+  }
+  .chart-hist-x-labels{
+    margin-top:4px;
+    font-size:.8rem;
+    text-align:center;
+  }
+  .chart-hist-x-labels span{
+    margin:0 .35rem;
+  }
+
+  /* Diagramme circulaire (qualitatif) */
+
+  .chart-pie-wrap{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:center;
+    margin:.6rem 0 1rem;
+  }
+  .chart-pie{
+    width:180px;
+    aspect-ratio:1;
+    border-radius:50%;
+    border:1px solid #000;
+  }
+  .chart-pie-legend{
+    flex:1;
+    min-width:220px;
+    font-size:.9rem;
+  }
+  .chart-pie-legend ul{
+    margin:.25rem 0 0 1rem;
+    padding:0;
+  }
+  .chart-pie-legend li{
+    list-style:none;
+    margin:2px 0;
+  }
+  .pie-dot{
+    display:inline-block;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+
+  /* Label vertical de l’axe des ordonnées */
+  .chart-y-label{
+    position:absolute;
+    left:-24px;
+    top:50%;
+    transform:translate(-50%,-50%) rotate(-90deg);
+    font-size:.75rem;
+    font-weight:600;
+  }
+
+  /* Effectif écrit au-dessus des bâtons (diagramme en bâtons) */
+  .chart-bar-label{
+    font-size:.75rem;
+    margin-bottom:2px;
+  }
+
+  /* Effectif écrit dans les rectangles (histogramme) */
+  .chart-hist-bar-label{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-size:.75rem;
+    padding:1px 3px;
+    border-radius:3px;
+    background:rgba(255,255,255,.75);
+  }
+
+/* LIGNES VERTICALES (aux bornes des classes) */
+.chart-hist-grid-v{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+  pointer-events:none;
+}
+.chart-hist-grid-v .vline{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:#e0e0e0;   /* gris léger, comme la grille horizontale */
+}
+
+/* GRADUATIONS DES BORNES SOUS L’AXE DES ABSCISSES */
+.chart-hist-x-ticks{
+  position:relative;
+  height:22px;          /* espace pour les nombres */
+  font-size:.75rem;
+}
+.chart-hist-x-ticks span{
+  position:absolute;
+  bottom:0;             /* nombre bien sous l’axe */
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+.chart-hist-x-ticks span::before{
+  content:'';
+  position:absolute;
+  top:-6px;             /* le trait remonte jusqu’à l’axe */
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:6px;
+  border-left:1px solid #000;
+}
+
+
+
+
+  .chart-bars-x-row{
+    display:flex;
+    margin-top:4px;
+    font-size:.8rem;
+  }
+  .chart-bars-x-row span{
+    flex:1;
+    text-align:center;
+  }
+
+/* Variante sans quadrillage + plus serré pour le diagramme en bâtons (exo 1) */
+.chart-inner-nogrid{
+  background:none;               /* plus de quadrillage */
+  background-image:none;
+  background-size:auto;
+}
+
+
+
+
+</style>
+
+<script>
+  // MathJax pour d'éventuels LaTeX simples
+  window.MathJax={
+    tex:{inlineMath:[['\\(','\\)'],['$','$']],processEscapes:true},
+    chtml:{matchFontHeight:false},
+    startup:{typeset:true}
+  };
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+<script src='../../../../js/algebra-eval-patch.js' defer></script>
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
 </head>
 <body>
-  <h1>Seconde – Chapitre 7 — Représentation graphique</h1>
-  <p class="muted">La page d’exercices pour ce thème n’est pas encore prête. Placez votre fichier ici : <code>exercices.html</code>.</p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Statistiques : Effectifs, fréquences et FCC</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Pour les fréquences, saisir un <strong>décimal</strong> (ex. <code>0,12</code> ou <code>0.12</code>) ou une <strong>fraction</strong> (ex. <code>3/25</code>).</li>
+        <li>On n’écrit pas le symbole <code>%</code> : la fréquence décimale <code>0,24</code> correspond par exemple à <code>24&nbsp;%</code>.</li>
+        <li>La somme des fréquences vaut 1 ; la dernière FCC vaut toujours 1.</li>
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+
+/* ====== Utils simples ====== */
+const $ = (sel,root=document)=>root.querySelector(sel);
+let scoreOK=0, scoreTot=0;
+function updateScore(){ $("#score").textContent = scoreOK+" / "+scoreTot; }
+
+function ensureTickAfter(el){
+  if(!el) return null;
+  let s = el.nextElementSibling;
+  if (s && s.classList && s.classList.contains('tick')) return s;
+  s = document.createElement('span');
+  s.className = 'tick nu';
+  el.insertAdjacentElement('afterend', s);
+  return s;
+}
+function setTick(el, state){
+  if(!el) return;
+  ensureTickAfter(el).className = 'tick '+state;
+}
+function clearTicks(root){
+  root.querySelectorAll('.tick').forEach(t=>t.className='tick nu');
+}
+
+/* nombre aléatoire entier */
+const rint = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+
+/* === Gestion globale du mode de fréquences par exercice === */
+const FREQ_MODE_BY_EXO = {};   // ex.id -> 'arrondi' | 'calc'
+function getFreqModeFor(defId){
+  return FREQ_MODE_BY_EXO[defId] || 'arrondi';
+}
+
+/* Générer des effectifs "calculables"
+   - total ∈ {100, 200}
+   - tous les effectifs pairs
+   - bien répartis (min 2 par case, pas de case énorme)
+*/
+function genCalcEffectifs(n){
+  const totals = [100,200];
+  const total = choice(totals);
+  const eff = new Array(n).fill(2);     // au moins 2 par modalité
+  let remaining = total - 2*n;          // reste à répartir, pair
+
+  const maxPerCell = total/2;           // borne haute pour éviter un gros pic
+
+  while(remaining > 0){
+    const i = rint(0,n-1);
+    if(eff[i] < maxPerCell){
+      eff[i] += 2;
+      remaining -= 2;
+    }
+  }
+  return {eff,total};
+}
+
+/* parse numérique tolérant (décimal FR/US + fractions) */
+function parseNumber(str){
+  if(str==null) return NaN;
+  let s = String(str).trim();
+  if(!s) return NaN;
+  s = s.replace(/\u2212/g,'-').replace(/,/g,'.');
+  if(/^[+-]?\d+\s*\/\s*[+-]?\d+$/.test(s)){
+    const [p,q] = s.split('/').map(x=>Number(x));
+    if(!q) return NaN;
+    return p/q;
+  }
+  const n = Number(s);
+  return isFinite(n) ? n : NaN;
+}
+function approxEqual(a,b,eps=1e-2){
+  if(!isFinite(a) || !isFinite(b)) return false;
+  return Math.abs(a-b)<=eps;
+}
+function fmtFreq(x){
+  if(!isFinite(x)) return '';
+  const r = Math.round(x*100)/100;      // 2 décimales max
+  return String(r).replace('.',',');
+}
+function normalizeStr(s){
+  return String(s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/[^a-z0-9]+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function isCaracAnswerOk(rawValue, expectedLabel, altLabel){
+  if(!rawValue) return false;
+  const ans = normalizeStr(rawValue);
+  if(!ans) return false;
+
+  const exp = normalizeStr(expectedLabel || '');
+  const alt = normalizeStr(altLabel || '');
+
+  // 1) égalité exacte avec le texte officiel
+  if(ans === exp || (alt && ans === alt)) return true;
+
+  // 2) réponse plus courte du type "nombre de ...":
+  //    on accepte si la réponse est un sous-ensemble significatif
+  //    du libellé (ou l'inverse)
+  const minLen = 4;
+  if(ans.length >= minLen){
+    if(exp.includes(ans) || (alt && alt.includes(ans))) return true;
+  }
+  if(exp.length >= minLen && ans.includes(exp)) return true;
+  if(alt && alt.length >= minLen && ans.includes(alt)) return true;
+
+  // 3) Fallback : au moins deux mots importants en commun
+  const base = (exp + ' ' + alt).trim();
+  const baseWords = new Set(
+    base.split(/\s+/).filter(w => w.length >= 3)
+  );
+  const ansWords = ans.split(/\s+/).filter(w => w.length >= 3);
+
+  let common = 0;
+  for(const w of ansWords){
+    if(baseWords.has(w)) common++;
+  }
+  if(common >= 2) return true;
+
+  // cas d’un seul mot significatif qui matche (ex : "taille")
+  if(ansWords.length === 1 && baseWords.has(ansWords[0])) return true;
+
+  return false;
+}
+
+function typeset(root){
+  if(window.MathJax && MathJax.typesetPromise){
+    MathJax.typesetPromise(root ? [root] : undefined).catch(()=>{});
+  }
+}
+
+/* === Petits générateurs de diagrammes === */
+function buildBarChartHTML(labels, eff, opts={}){
+  if(!labels || !eff || !labels.length) return '';
+  const maxEff = Math.max(...eff);
+  const denom = maxEff > 0 ? maxEff : 1;
+  const unitLabel = opts.unitLabel || 'Effectif';
+  let cols = '';
+  for(let i=0;i<labels.length;i++){
+    const hPct = (eff[i]/denom)*100;
+    cols += `
+      <div class="bar-col">
+        <div class="bar-val">${eff[i]}</div>
+        <div class="bar-bar" style="height:${hPct}%"></div>
+        <div class="bar-label">${labels[i]}</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="chart-title">${unitLabel}</div>
+    <div class="bar-chart">
+      ${cols}
+    </div>
+  `;
+}
+
+function buildPieHTML(categories, eff, total){
+  if(!categories || !eff || !categories.length || !total) return '';
+  const colors = ['#4f46e5','#16a34a','#f97316','#e11d48','#0ea5e9','#a855f7'];
+  let angleSum = 0;
+  const segs = [];
+  for(let i=0;i<categories.length;i++){
+    let angle = Math.round(eff[i]/total*360);
+    if(i === categories.length-1){
+      angle = 360 - angleSum; // force la fermeture
+    }
+    const start = angleSum;
+    const end   = angleSum + angle;
+    angleSum    = end;
+    segs.push({cat:categories[i],start,end,angle,color:colors[i%colors.length]});
+  }
+  const gradient = segs.map(s=>`${s.color} ${s.start}deg ${s.end}deg`).join(', ');
+  const legendRows = segs.map(s=>`
+    <div class="pie-leg-row">
+      <span class="pie-color" style="background:${s.color}"></span>
+      <span>${s.cat} — angle : ${s.angle}°</span>
+    </div>
+  `).join('');
+  return `
+    <div class="pie-wrap">
+      <div class="pie" style="background: conic-gradient(${gradient});"></div>
+      <div class="pie-legend">
+        ${legendRows}
+      </div>
+    </div>
+  `;
+}
+
+/* sélecteur interne : fréquence arrondie / calculable */
+function attachFreqModeSelector(host){
+  const sel = host.querySelector('select[data-freq-mode]');
+  if(!sel) return;
+  const defId = host.dataset.active;
+  if(!defId) return;
+
+  sel.value = getFreqModeFor(defId);
+
+  sel.onchange = ()=>{
+    FREQ_MODE_BY_EXO[defId] = sel.value;       // on mémorise le mode
+    const def = getDefById(defId);
+    const st  = def.gen();                     // regénère avec ce mode
+    host.dataset.state = JSON.stringify(st);
+    def.render(host,st);
+    try{
+      if(window.MathKbd?.attachAllInputs){
+        MathKbd.attachAllInputs(host);
+      }
+    }catch(_){}
+  };
+}
+
+/* ====== Aide pour la population étudiée ====== */
+const POP_RULES = [
+  { keyword:'jeunes',    label:'les jeunes de 16 à 25 ans' },
+  { keyword:'lyceens',   label:'les lycéens' },
+  { keyword:'eleves',    label:'les élèves' },
+  { keyword:'lycéens',   label:'les lycéens' },
+  { keyword:'élèves',    label:'les élèves' },
+
+  { keyword:'patients',  label:'les patients' },
+  { keyword:'patient',   label:'le patient suivi' },
+
+  { keyword:'clients',   label:'les clients' },
+  { keyword:'abonnes',   label:'les abonnés' },
+  { keyword:'abonnés',   label:'les abonnés' },
+  { keyword:'adherents', label:'les adhérents' },
+  { keyword:'adhérents', label:'les adhérents' },
+
+  { keyword:'familles',  label:'les familles' },
+  { keyword:'licencies', label:'les licenciés' },
+  { keyword:'licenciés', label:'les licenciés' },
+  { keyword:'membres',   label:'les membres' },
+  { keyword:'personnes', label:'les personnes interrogées' },
+
+  { keyword:'lapins',    label:'les lapins de l’élevage' },
+  { keyword:'voitures',  label:'les voitures contrôlées' },
+  { keyword:'bagages',   label:'les bagages enregistrés' },
+
+  { keyword:'eleve',     label:'l’élève suivi' },
+  { keyword:'élève',     label:'l’élève suivi' }
+];
+
+function getPopRuleFromIntro(intro){
+  const plain = normalizeStr(intro);
+  for(const rule of POP_RULES){
+    const key = normalizeStr(rule.keyword);
+    if(!key) continue;
+    if (plain.includes(key)) return rule;
+    if (key.endsWith('s')) {
+      const sing = key.slice(0,-1);
+      if (plain.includes(sing)) return rule;
+    }
+  }
+  return null;
+}
+
+function getPopulationLabel(intro){
+  const r = getPopRuleFromIntro(intro);
+  if (r) return r.label;
+  return 'la population décrite dans l’énoncé';
+}
+
+function checkPopulationAnswer(inputValue,intro){
+  const ans = normalizeStr(inputValue);
+  if (!ans) return null;
+
+  const r = getPopRuleFromIntro(intro);
+  if (r) {
+    const key = normalizeStr(r.keyword || r.label);
+    return ans.includes(key);
+  }
+
+  const plainIntro = normalizeStr(intro);
+  const wordsIntro = new Set(plainIntro.split(/\s+/));
+  const wordsAns   = ans.split(/\s+/);
+  const hasCommon  = wordsAns.some(w => wordsIntro.has(w));
+
+  return hasCommon;
+}
+
+
+function isExactRatio(num, den){
+  // vrai si num/den donne un pourcentage entier (2 décimales max pour la fréquence)
+  if(!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return false;
+  return (num * 100) % den === 0;   // équivaut à : num/den = k/100
+}
+
+/* ====== Contextes ====== */
+
+/* 20 contextes quantitatif discret */
+const CTX_QDISCRET = [
+  {intro:`Une société de prêt-à-porter étudie le <strong>nombre de jeans achetés en un an</strong> par des jeunes de 16 à 25 ans.`, varName:`nombre de jeans achetés`, xLabel:`Nombre de jeans achetés`, min:0, max:6},
+  {intro:`Un cinéma fait une enquête sur le <strong>nombre de séances vues en un mois</strong> par des lycéens.`, varName:`nombre de séances de cinéma vues en un mois`, xLabel:`Nombre de séances`, min:0, max:6},
+  {intro:`Un professeur de mathématiques s’intéresse au <strong>nombre d’exercices de maths faits par semaine</strong> par ses élèves.`, varName:`nombre d’exercices faits par semaine`, xLabel:`Nombre d’exercices`, min:0, max:7},
+  {intro:`Un club de sport étudie le <strong>nombre d’entraînements hebdomadaires</strong> de ses adhérents.`, varName:`nombre d’entraînements par semaine`, xLabel:`Nombre d’entraînements`, min:0, max:5},
+  {intro:`Une médiathèque observe le <strong>nombre de livres empruntés en un trimestre</strong> par ses abonnés.`, varName:`nombre de livres empruntés en un trimestre`, xLabel:`Nombre de livres`, min:0, max:6},
+  {intro:`Un lycée étudie le <strong>nombre de correspondants par messages instantanés</strong> qu’ont les élèves chaque jour.`, varName:`nombre de correspondants par jour`, xLabel:`Nombre de correspondants`, min:0, max:5},
+  {intro:`Une agence de voyage étudie le <strong>nombre de voyages à l’étranger effectués en 3 ans</strong> par des familles.`, varName:`nombre de voyages à l’étranger en 3 ans`, xLabel:`Nombre de voyages`, min:0, max:4},
+  {intro:`Un club de lecture compte le <strong>nombre de réunions auxquelles participent les membres dans le mois</strong>.`, varName:`nombre de réunions de lecture dans le mois`, xLabel:`Nombre de réunions`, min:0, max:6},
+  {intro:`Une association sportive étudie le <strong>nombre de compétitions auxquelles participent les licenciés dans l’année</strong>.`, varName:`nombre de compétitions dans l’année`, xLabel:`Nombre de compétitions`, min:0, max:7},
+  {intro:`Une salle de jeux vidéo observe le <strong>nombre de visites par mois</strong> de ses abonnés.`, varName:`nombre de visites de la salle par mois`, xLabel:`Nombre de visites`, min:0, max:6},
+  {intro:`Une auto-école observe le <strong>nombre de leçons de conduite suivies par semaine</strong> par ses élèves.`, varName:`nombre de leçons de conduite par semaine`, xLabel:`Nombre de leçons`, min:0, max:5},
+  {intro:`Un club de natation étudie le <strong>nombre de fois où les adhérents vont à la piscine par semaine</strong>.`, varName:`nombre de séances de piscine par semaine`, xLabel:`Nombre de séances`, min:0, max:6},
+  {intro:`Une plateforme de streaming étudie le <strong>nombre de séries différentes regardées dans le mois</strong> par ses abonnés.`, varName:`nombre de séries regardées dans le mois`, xLabel:`Nombre de séries`, min:0, max:7},
+  {intro:`Un lycée étudie le <strong>nombre de clubs ou activités périscolaires</strong> auxquels participent les élèves.`, varName:`nombre de clubs ou activités périscolaires suivis`, xLabel:`Nombre d’activités`, min:0, max:5},
+  {intro:`Un magasin de sport s’intéresse au <strong>nombre de paires de chaussures de sport possédées</strong> par ses clients.`, varName:`nombre de paires de chaussures de sport`, xLabel:`Nombre de paires`, min:0, max:6},
+  {intro:`Une bibliothèque scolaire compte le <strong>nombre de fois où les élèves viennent travailler sur place dans le mois</strong>.`, varName:`nombre de visites au CDI dans le mois`, xLabel:`Nombre de visites`, min:0, max:6},
+  {intro:`Un coach scolaire relève le <strong>nombre de séances de révision organisées chaque semaine</strong> par ses élèves.`, varName:`nombre de séances de révision par semaine`, xLabel:`Nombre de séances`, min:0, max:5},
+  {intro:`Une association de musique observe le <strong>nombre de concerts assistés dans l’année</strong> par ses adhérents.`, varName:`nombre de concerts vus dans l’année`, xLabel:`Nombre de concerts`, min:0, max:6},
+  {intro:`Une école de danse étudie le <strong>nombre de cours suivis par semaine</strong> par ses élèves.`, varName:`nombre de cours de danse par semaine`, xLabel:`Nombre de cours`, min:0, max:5},
+  {intro:`Un club de randonnée observe le <strong>nombre de sorties effectuées dans le trimestre</strong> par ses membres.`, varName:`nombre de sorties de randonnée dans le trimestre`, xLabel:`Nombre de sorties`, min:0, max:7}
+];
+
+/* 20 contextes qualitatif */
+const CTX_QUALI = [
+  {intro:`Voici un sondage concernant le <strong>moyen de transport</strong> utilisé par les élèves pour venir au lycée.`, varName:`moyen de transport`, categories:['à pied','en vélo','en bus','dans la voiture des parents']},
+  {intro:`On interroge une classe sur leur <strong>boisson préférée au petit-déjeuner</strong>.`, varName:`boisson préférée au petit-déjeuner`, categories:['lait','café','thé','jus de fruits']},
+  {intro:`Un club sportif demande aux licenciés leur <strong>sport préféré à pratiquer</strong>.`, varName:`sport préféré`, categories:['football','basket-ball','tennis','natation']},
+  {intro:`Une enquête porte sur le <strong>réseau social le plus utilisé</strong> par les élèves.`, varName:`réseau social le plus utilisé`, categories:['Instagram','TikTok','Snapchat','Autre']},
+  {intro:`On interroge des élèves sur leur <strong>matière préférée</strong> au lycée.`, varName:`matière préférée`, categories:['Mathématiques','Français','Histoire-Géographie','EPS']},
+  {intro:`Une cantine scolaire demande aux élèves leur <strong>plat préféré</strong>.`, varName:`plat préféré`, categories:['pâtes','pizza','poisson','salade']},
+  {intro:`Une bibliothèque interroge des lycéens sur leur <strong>type de livre préféré</strong>.`, varName:`type de livre préféré`, categories:['roman','manga','BD','documentaire']},
+  {intro:`Un sondage porte sur le <strong>mode de logement</strong> des élèves.`, varName:`mode de logement`, categories:['chez les parents','en internat','en colocation','autre']},
+  {intro:`On interroge des élèves sur leur <strong>activité principale après les cours</strong>.`, varName:`activité principale après les cours`, categories:['devoirs','sport','écrans','sorties entre amis']},
+  {intro:`Une association culturelle demande aux élèves leur <strong>type de film préféré</strong>.`, varName:`type de film préféré`, categories:['comédie','action','science-fiction','animation']},
+  {intro:`On demande aux élèves leur <strong>animal de compagnie préféré</strong>.`, varName:`animal de compagnie préféré`, categories:['chien','chat','rongeur','aucun']},
+  {intro:`Un sondage porte sur le <strong>repas préféré de la journée</strong>.`, varName:`repas préféré de la journée`, categories:['petit-déjeuner','déjeuner','goûter','dîner']},
+  {intro:`Une association étudie le <strong>type de musique le plus écouté</strong> par les élèves.`, varName:`type de musique le plus écouté`, categories:['rap','pop','rock','classique']},
+  {intro:`On interroge des élèves sur leur <strong>moment préféré de la semaine</strong>.`, varName:`moment préféré de la semaine`, categories:['début de semaine','milieu de semaine','vendredi','week-end']},
+  {intro:`Un sondage porte sur la <strong>façon de réviser préférée</strong> des élèves.`, varName:`façon de réviser préférée`, categories:['seul','en groupe','avec un professeur','je ne révise pas']},
+  {intro:`On demande aux élèves par quel <strong>moyen de communication</strong> ils contactent le plus leurs amis.`, varName:`moyen de communication principal`, categories:['messages','appels','réseaux sociaux','en face à face']},
+  {intro:`Une enquête porte sur la <strong>langue vivante préférée</strong> parmi celles étudiées au lycée.`, varName:`langue vivante préférée`, categories:['anglais','espagnol','allemand','autre']},
+  {intro:`On interroge des élèves sur leur <strong>moment préféré de la journée</strong>.`, varName:`moment préféré de la journée`, categories:['matin','après-midi','soir','nuit']},
+  {intro:`Une étude porte sur le <strong>type de support utilisé pour lire</strong>.`, varName:`support de lecture préféré`, categories:['livre papier','tablette','téléphone','ordinateur']},
+  {intro:`On demande à des lycéens quel est leur <strong>mode de travail préféré en classe</strong>.`, varName:`mode de travail préféré en classe`, categories:['seul','en binôme','en petits groupes','en classe entière']},
+];
+
+/* 20 contextes quantitatif continu */
+const CTX_QCONTINU = [
+  {intro:`Le taux de calcium dans le sang d’un patient (en mg/L) est surveillé chaque jour pendant deux mois.`, varName:`taux de calcium dans le sang`, unit:`mg/L`, min:70, max:120, step:10},
+  {intro:`On mesure chaque jour la <strong>température extérieure maximale</strong> (en °C) pendant un mois d’hiver.`, varName:`température maximale extérieure`, unit:`°C`, min:-5, max:15, step:5},
+  {intro:`Un professeur note la <strong>durée de révision quotidienne</strong> (en minutes) d’un élève pendant 6 semaines.`, varName:`durée de révision quotidienne`, unit:`minutes`, min:0, max:180, step:30},
+  {intro:`On mesure la <strong>durée d’appel téléphonique</strong> (en minutes) de clients dans une journée.`, varName:`durée d’appel téléphonique`, unit:`minutes`, min:0, max:30, step:5},
+  {intro:`Dans une salle de sport, on relève la <strong>durée d’un entraînement</strong> (en minutes) pour plusieurs adhérents.`, varName:`durée d’un entraînement`, unit:`minutes`, min:30, max:120, step:15},
+  {intro:`Un laboratoire mesure la <strong>glycémie à jeun</strong> (en mg/dL) de patients.`, varName:`glycémie à jeun`, unit:`mg/dL`, min:60, max:140, step:20},
+  {intro:`Un radar enregistre la <strong>vitesse de voitures</strong> (en km/h) sur une portion de route limitée à 90 km/h.`, varName:`vitesse de voitures`, unit:`km/h`, min:40, max:120, step:10},
+  {intro:`On mesure la <strong>taille d’élèves</strong> (en cm) d’une classe de seconde.`, varName:`taille des élèves`, unit:`cm`, min:140, max:200, step:10},
+  {intro:`Un éleveur note le <strong>poids de lapins</strong> (en kg) dans son élevage.`, varName:`poids de lapins`, unit:`kg`, min:1, max:6, step:1},
+  {intro:`Une station météo mesure la <strong>quantité de pluie tombée</strong> (en mm) chaque jour pendant 2 mois.`, varName:`quantité de pluie tombée`, unit:`mm`, min:0, max:50, step:10},
+  {intro:`On mesure la <strong>durée de trajet domicile–lycée</strong> (en minutes) d’élèves.`, varName:`durée du trajet domicile–lycée`, unit:`minutes`, min:0, max:60, step:10},
+  {intro:`Un cardiologue relève la <strong>fréquence cardiaque au repos</strong> (en battements par minute) de patients.`, varName:`fréquence cardiaque au repos`, unit:`bpm`, min:40, max:100, step:10},
+  {intro:`Un fabricant mesure la <strong>masse de barres de chocolat</strong> (en g).`, varName:`masse de barres de chocolat`, unit:`g`, min:80, max:140, step:10},
+  {intro:`On mesure la <strong>consommation électrique quotidienne</strong> d’un logement (en kWh) sur deux mois.`, varName:`consommation électrique quotidienne`, unit:`kWh`, min:4, max:16, step:2},
+  {intro:`Une compagnie aérienne relève le <strong>poids des bagages en soute</strong> (en kg) sur un vol.`, varName:`poids des bagages en soute`, unit:`kg`, min:5, max:30, step:5},
+  {intro:`On mesure la <strong>durée de visionnage de vidéos</strong> (en minutes) sur une plateforme en ligne.`, varName:`durée de visionnage d’une vidéo`, unit:`minutes`, min:0, max:50, step:10},
+  {intro:`Un médecin suit la <strong>température d’un patient</strong> (en °C) toutes les 6 heures.`, varName:`température du patient`, unit:`°C`, min:35, max:41, step:1},
+  {intro:`Une entreprise mesure le <strong>temps de traitement</strong> (en secondes) d’un programme informatique.`, varName:`temps de traitement d’un programme`, unit:`secondes`, min:0, max:10, step:2},
+  {intro:`On mesure la <strong>distance parcourue lors d’un footing</strong> (en km) pour plusieurs personnes.`, varName:`distance parcourue lors d’un footing`, unit:`km`, min:0, max:20, step:4},
+  {intro:`Une étude note le <strong>temps passé chaque jour sur les écrans</strong> (en heures) par des lycéens.`, varName:`temps passé sur les écrans par jour`, unit:`heures`, min:0, max:8, step:1}
+];
+
+/* ====== Génération de tableaux fréquences/FCC ====== */
+function pickInnerIndex(n){
+  const cand = [];
+  for(let i=0;i<n;i++){
+    if(i>=2 && i<=n-3) cand.push(i);
+  }
+  if(cand.length) return choice(cand);
+
+  const cand2 = [];
+  for(let i=1;i<=n-2;i++) cand2.push(i);
+  if(cand2.length) return choice(cand2);
+
+  return 0;
+}
+
+function genEffectifsFromMinMax(minVal,maxVal,mode){
+  const values=[];
+  for(let v=minVal; v<=maxVal; v++) values.push(v);
+  const n = values.length;
+
+  let eff = [];
+  let tot = 0;
+
+  if(mode === 'calc'){
+    const r = genCalcEffectifs(n);
+    eff = r.eff;
+    tot = r.total;
+  }else{
+    for(let i=0;i<n;i++){
+      const e = rint(5,80);
+      eff.push(e); tot+=e;
+    }
+  }
+  return {values, eff, total:tot};
+}
+
+function genEffectifsFromLabels(labels,mode){
+  const n = labels.length;
+  let eff = [];
+  let tot = 0;
+
+  if(mode === 'calc'){
+    const r = genCalcEffectifs(n);
+    eff = r.eff;
+    tot = r.total;
+  }else{
+    for(let i=0;i<n;i++){
+      const e = rint(5,60);
+      eff.push(e); tot+=e;
+    }
+  }
+  return {eff, total:tot};
+}
+
+// Génération spéciale pour l'exercice 2 (qualitatif) :
+// - effectifs entiers
+// - angles entiers (sans arrondi)
+function genQualiEffectifsWithIntegerAngles(n, mode){
+  let total, eff;
+
+  if(mode === 'calc'){
+    // On garde les totaux "propres" pour les fréquences : 100 ou 200
+    // Pour avoir des angles entiers, il suffit que tous les effectifs soient multiples de 5.
+    const totals = [100, 200];
+    total = choice(totals);
+
+    // On part de 5 individus par modalité (multiples de 5)
+    eff = new Array(n).fill(5);
+    let remaining = total - 5*n;   // multiple de 5
+
+    while(remaining > 0){
+      const i = rint(0, n-1);
+      // limite pour éviter un effectif délirant sur une seule modalité
+      if(eff[i] < 55){
+        eff[i] += 5;
+        remaining -= 5;
+      }
+    }
+  }else{
+    // Mode "arrondi" : on choisit un total qui DIVISE 360
+    // pour que 360/total soit entier (angles entiers pour tout entier eff)
+    const possibleTotals = [60, 72, 90, 120, 180, 240, 360];
+    total = choice(possibleTotals);
+
+    // Composition aléatoire de 'total' en n entiers ≥ 1
+    eff = new Array(n).fill(1);
+    let remaining = total - n;
+
+    while(remaining > 0){
+      const i = rint(0, n-1);
+      eff[i] += 1;
+      remaining -= 1;
+    }
+  }
+
+  // Angles : 360 * eff_i / total — ce sont des entiers par construction
+  const angles = eff.map(e => Math.round(360 * e / total));
+
+  return { eff, total, angles };
+}
+
+
+
+function genFreqAndFCC(eff,total){
+  const n = eff.length;
+  const freqRaw = eff.map(e=>e/total);
+  const freq = new Array(n);
+  let sum = 0;
+  for(let i=0;i<n;i++){
+    if(i<n-1){
+      const r = Math.round(freqRaw[i]*100)/100;
+      freq[i]=r;
+      sum+=r;
+    }else{
+      freq[i] = Math.round((1-sum)*100)/100;
+    }
+  }
+  const fcc = new Array(n);
+  let c = 0;
+  for(let i=0;i<n;i++){
+    c += freq[i];
+    if(i<n-1) fcc[i] = Math.round(c*100)/100;
+    else fcc[i] = 1;
+  }
+  return {freq,fcc};
+}
+
+/* ====== Exercice 1 : quantitatif discret (diagramme en bâtons) ====== */
+const ex1 = {
+  id:'stat_qdiscret',
+  title:'Caractère quantitatif discret',
+  gen(){
+    const ctx = choice(CTX_QDISCRET);
+    const freqMode = getFreqModeFor(this.id);
+    const base = genEffectifsFromMinMax(ctx.min, ctx.max, freqMode);
+    const ff  = genFreqAndFCC(base.eff, base.total);
+    const n = base.values.length;
+
+    const idxFreq = pickInnerIndex(n);
+    const idxFCC  = pickInnerIndex(n);
+
+    return {
+      kind:'qdiscret',
+      ctx,
+      values: base.values,
+      eff: base.eff,
+      total: base.total,
+      freq: ff.freq,
+      fcc: ff.fcc,
+      qFreqIndex: idxFreq,
+      qFCCIndex: idxFCC,
+      freqMode
+    };
+  },
+  render(host,st){
+    const ctx = st.ctx;
+    const n   = st.values.length;
+
+    // --- Diagramme en bâtons ---
+    const maxEff = Math.max(...st.eff);
+    const steps = 4;
+    const ticks = [];
+    for(let k=0;k<=steps;k++){
+      const v = Math.round(maxEff * k/steps);
+      // on met dans l'ordre décroissant pour affichage de haut en bas
+      ticks.unshift(v);
+    }
+    const ticksHTML = ticks.map(v=>`<div>${v}</div>`).join('');
+
+       const Hpx = 180;
+    const scale = maxEff ? Hpx/maxEff : 0;
+
+    // barres seulement (plus de valeur x dans la colonne)
+    let barsHTML = '';
+    for(let i=0;i<n;i++){
+      const h = st.eff[i]*scale;
+      barsHTML += `
+        <div class="chart-bar-col">
+          <div class="chart-bar-label">${st.eff[i]}</div>
+          <div class="chart-bar" style="height:${h}px"></div>
+        </div>`;
+    }
+
+    // valeurs de x dans une rangée séparée, sous l’axe
+    let xRow = '';
+    for(let i=0;i<n;i++){
+      xRow += `<span>${st.values[i]}</span>`;
+    }
+
+    const chartHTML = `
+      <div class="chart-block">
+        <p class="chart-title">Diagramme en bâtons représentant le ${ctx.varName} (effectifs en ordonnée).</p>
+        <div class="chart-axes chart-axes-tight">
+          <div class="chart-inner chart-inner-nogrid">
+            <div class="chart-y-ticks">${ticksHTML}</div>
+            <div class="chart-bars-row">
+              ${barsHTML}
+            </div>
+          </div>
+          <div class="chart-y-label">Effectif</div>
+          <div class="chart-bars-x-row">${xRow}</div>
+          <div class="chart-x-label">${ctx.xLabel}</div>
+        </div>
+      </div>`;
+
+
+
+
+    // --- Tableau à compléter : effectifs + fréquences ---
+    let thVals='', tdEff='', tdFreq='';
+    for(let i=0;i<n;i++){
+      thVals += `<th>${st.values[i]}</th>`;
+      tdEff  += `<td><input type="text" data-role="eff" data-i="${i}"></td>`;
+      tdFreq += `<td><input type="text" data-role="freq" data-i="${i}"></td>`;
+    }
+    thVals += `<th>Total</th>`;
+    tdEff  += `<td><input type="text" data-role="effTot"></td>`;
+    tdFreq += `<td><input type="text" data-role="freqTot"></td>`;
+
+    const vFreq = st.values[st.qFreqIndex];
+    const vFCC  = st.values[st.qFCCIndex];
+
+    host.innerHTML = `
+
+      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
+        <label><strong>Mode de fréquences :</strong>
+          <select data-freq-mode>
+            <option value="arrondi">Fréquences arrondies</option>
+            <option value="calc">Fréquences calculables</option>
+          </select>
+        </label>
+      </p>
+
+      <p>${ctx.intro}</p>
+
+      ${chartHTML}
+
+      <p><em>À partir du diagramme en bâtons ci-dessus, compléter le tableau suivant :</em></p>
+
+      <table class="tbl-solution pdfb">
+        <thead>
+          <tr>
+            <th>${ctx.xLabel}</th>
+            ${thVals}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Effectif</td>
+            ${tdEff}
+          </tr>
+          <tr>
+            <td>Fréquence</td>
+            ${tdFreq}
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="q-block">
+        <p><strong>1.</strong> Donner la population étudiée, le caractère étudié ainsi que son type (quantitatif discret, quantitatif continu ou qualitatif).</p>
+        <p>Population étudiée : <input type="text" id="q1-pop"></p>
+        <p>Caractère étudié : <input type="text" id="q1-carac"></p>
+        <p>Type de caractère : <input type="text" id="q1-type"></p>
+
+        <p><strong>2.</strong> Compléter la ligne des effectifs puis calculer les fréquences (valeurs décimales) en respectant la somme 1.</p>
+        <p><strong>3.</strong> Quelle est la fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> ? 
+        <input type="text" id="q1-freq"></p>
+
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    attachFreqModeSelector(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0;
+
+    // Q1 population
+    const popInp = $('#q1-pop',host);
+    if(popInp){
+      const val = popInp.value.trim();
+      if(!val){
+        setTick(popInp,'nu');
+      }else{
+        const good = checkPopulationAnswer(val, st.ctx.intro);
+        tot++;
+        if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
+      }
+    }
+
+    // Q1 caractère
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.xLabel);
+        tot++;
+        if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+
+    // Q1 type
+    const typeInp = $('#q1-type',host);
+    if(typeInp){
+      const raw = typeInp.value.trim();
+      if(!raw){
+        setTick(typeInp,'nu');
+      }else{
+        const norm = normalizeStr(raw);
+        const exp = normalizeStr('quantitatif discret');
+        tot++;
+        if(norm === exp){ ok++; setTick(typeInp,'ok'); } else setTick(typeInp,'ko');
+      }
+    }
+
+    const n = st.values.length;
+
+    // effectifs
+    host.querySelectorAll('input[data-role="eff"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v, st.eff[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const effTot = host.querySelector('input[data-role="effTot"]');
+    if(effTot){
+      const s = effTot.value.trim();
+      if(!s){
+        setTick(effTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v, st.total)){ ok++; setTick(effTot,'ok'); } else setTick(effTot,'ko');
+      }
+    }
+
+    // fréquences
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v, st.freq[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const fTot = host.querySelector('input[data-role="freqTot"]');
+    if(fTot){
+      const s = fTot.value.trim();
+      if(!s){
+        setTick(fTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v,1)){ ok++; setTick(fTot,'ok'); } else setTick(fTot,'ko');
+      }
+    }
+
+    // Q3 fréquence d’une valeur
+    const q1 = $('#q1-freq',host);
+    if(q1){
+      const s = q1.value.trim();
+      if(!s){
+        setTick(q1,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.freq[st.qFreqIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q1,'ok'); } else setTick(q1,'ko');
+      }
+    }
+
+    // Q4 proportion <= vFCC (somme des fréquences)
+    const q2 = $('#q1-fcc',host);
+    if(q2){
+      const s = q2.value.trim();
+      if(!s){
+        setTick(q2,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.fcc[st.qFCCIndex];   // déjà cumulé
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q2,'ok'); } else setTick(q2,'ko');
+      }
+    }
+
+    return {ok,total:tot};
+  },
+solution(host,st){
+  // On n'écrit plus rien dans les <input> :
+  // on affiche seulement le corrigé détaillé dans le bloc .steps
+
+  const html = this.printSolutionHTML(st);
+  host.querySelectorAll('.steps').forEach(s=>{ s.innerHTML = html; });
+  typeset(host);
+},
+
+  printSolutionHTML(st){
+    const ctx   = st.ctx;
+    const n     = st.values.length;
+    const vFreq = st.values[st.qFreqIndex];
+    const vFCC  = st.values[st.qFCCIndex];
+
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'quantitatif discret';
+
+    const isCalc = st.freqMode === 'calc';
+
+    const expFreq = st.values.map((v,i)=>{
+      const dec  = fmtFreq(st.freq[i]);
+      const pct  = Math.round(st.freq[i]*100);
+      const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
+      const sign = exactHere ? '=' : '\\approx';
+      return `\\(f(${v}) =  \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct} \\)%`;
+    });
+
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
+    const approxWordQ3 = exactQ3 ? '' : ' environ';
+
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
+    const approxWordQ4 = isCalc ? '' : ' environ';
+
+    let hHead = `<tr><th>${st.ctx.xLabel}</th>`;
+    let rowEff  = `<tr><td>Effectif</td>`;
+    let rowFreq = `<tr><td>Fréquence</td>`;
+    for(let i=0;i<n;i++){
+      hHead  += `<th>${st.values[i]}</th>`;
+      rowEff += `<td>${st.eff[i]}</td>`;
+      rowFreq+= `<td>${fmtFreq(st.freq[i])}</td>`;
+    }
+    hHead  += `<th>Total</th></tr>`;
+    rowEff += `<td>${st.total}</td></tr>`;
+    rowFreq+= `<td>${fmtFreq(1)}</td></tr>`;
+
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowEff}${rowFreq}</tbody>
+      </table>
+    `;
+
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
+
+      <div class="step"><strong>Lecture du diagramme et calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
+
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
+
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
+
+ `;
+  },
+  reset(host){
+    host.querySelectorAll('input[type="text"]').forEach(i=>i.value='');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s=>s.innerHTML='');
+  }
+};
+
+
+
+/* ====== Exercice 2 : qualitatif (diagramme circulaire) ====== */
+const ex2 = {
+  id:'stat_qualitatif',
+  title:'Caractère qualitatif',
+  gen(){
+    const ctx = choice(CTX_QUALI);
+    const freqMode = getFreqModeFor(this.id);
+    const n = ctx.categories.length;
+
+    // Génération spéciale : effectifs + total + angles entiers
+    const effData = genQualiEffectifsWithIntegerAngles(n, freqMode);
+
+    const ff = genFreqAndFCC(effData.eff, effData.total);
+
+    const idxFreq = pickInnerIndex(n);
+    const idxFCC  = pickInnerIndex(n);
+
+    return {
+      kind:'qualitatif',
+      ctx,
+      categories: ctx.categories,
+      eff: effData.eff,
+      total: effData.total,
+      freq: ff.freq,
+      fcc: ff.fcc,
+      qFreqIndex: idxFreq,
+      qFCCIndex: idxFCC,
+      freqMode,
+      angles: effData.angles   // ⬅️ angles entiers stockés ici
+    };
+  },
+
+
+  render(host,st){
+    const ctx = st.ctx;
+    const n   = st.categories.length;
+
+    // --- diagramme circulaire + angles ---
+    const colors = ['#4e79a7','#f28e2b','#e15759','#76b7b2'];
+    let acc = 0;
+    let stops = [];
+    let legend = '';
+    for(let i=0;i<n;i++){
+      const angle = st.angles[i];
+      const start = acc;
+      const end   = acc + angle;
+      acc = end;
+      const col = colors[i%colors.length];
+      stops.push(`${col} ${start}deg ${end}deg`);
+      legend += `<li><span class="pie-dot" style="background:${col}"></span>${st.categories[i]} : angle ${angle}&deg;</li>`;
+    }
+
+    const pieBg = stops.join(', ');
+
+    const pieHTML = `
+      <div class="chart-pie-wrap">
+        <div class="chart-pie" style="background: conic-gradient(${pieBg});"></div>
+        <div class="chart-pie-legend">
+          <p>Diagramme circulaire du <em>${ctx.varName}</em> pour un total de <strong>${st.total}</strong> individus.</p>
+          <p>Les angles au centre sont :</p>
+          <ul>${legend}</ul>
+        </div>
+      </div>`;
+
+    // --- tableau eff + fréq ---
+      let thVals='', tdAngle='', tdEff='', tdFreq='';
+    for(let i=0;i<n;i++){
+      thVals   += `<th>${st.categories[i]}</th>`;
+      tdAngle  += `<td>${st.angles[i]}&deg;</td>`;
+      tdEff    += `<td><input type="text" data-role="eff" data-i="${i}"></td>`;
+      tdFreq   += `<td><input type="text" data-role="freq" data-i="${i}"></td>`;
+    }
+    thVals   += `<th>Total</th>`;
+    tdAngle  += `<td>360&deg;</td>`;
+    tdEff    += `<td><input type="text" data-role="effTot"></td>`;
+    tdFreq   += `<td><input type="text" data-role="freqTot"></td>`;
+
+
+    const cFreq = st.categories[st.qFreqIndex];
+    const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+
+    host.innerHTML = `
+
+      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
+        <label><strong>Mode de fréquences :</strong>
+          <select data-freq-mode>
+            <option value="arrondi">Fréquences arrondies</option>
+            <option value="calc">Fréquences calculables</option>
+          </select>
+        </label>
+      </p>
+
+      <p>${ctx.intro}</p>
+
+      ${pieHTML}
+
+      <p><em>À partir du diagramme circulaire, compléter le tableau suivant :</em></p>
+
+      <table class="tbl-solution pdfb">
+        <thead>
+          <tr>
+            <th>${ctx.varName}</th>
+            ${thVals}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Angle au centre</td>
+            ${tdAngle}
+          </tr>
+          <tr>
+            <td>Effectif</td>
+            ${tdEff}
+          </tr>
+          <tr>
+            <td>Fréquence</td>
+            ${tdFreq}
+          </tr>
+        </tbody>
+
+      </table>
+
+      <div class="q-block">
+        <p><strong>1.</strong> Donner la population étudiée, le caractère étudié ainsi que son type (quantitatif discret, quantitatif continu ou qualitatif).</p>
+        <p>Population étudiée : <input type="text" id="q1-pop"></p>
+        <p>Caractère étudié : <input type="text" id="q1-carac"></p>
+        <p>Type de caractère : <input type="text" id="q1-type"></p>
+
+        <p><strong>2.</strong> Compléter la ligne des effectifs puis calculer les fréquences à partir du diagramme.</p>
+        <p><strong>3.</strong> Quelle est la fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> ? 
+        <input type="text" id="q2-freq"></p>
+
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    attachFreqModeSelector(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0;
+
+    const popInp = $('#q1-pop',host);
+    if(popInp){
+      const val = popInp.value.trim();
+      if(!val){
+        setTick(popInp,'nu');
+      }else{
+        const good = checkPopulationAnswer(val, st.ctx.intro);
+        tot++;
+        if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
+      }
+    }
+
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.varName);
+        tot++;
+        if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+
+    const typeInp = $('#q1-type',host);
+    if(typeInp){
+      const raw = typeInp.value.trim();
+      if(!raw){
+        setTick(typeInp,'nu');
+      }else{
+        const norm = normalizeStr(raw);
+        const exp = normalizeStr('qualitatif');
+        tot++;
+        if(norm === exp){ ok++; setTick(typeInp,'ok'); } else setTick(typeInp,'ko');
+      }
+    }
+
+    const n = st.categories.length;
+
+    // effectifs
+    host.querySelectorAll('input[data-role="eff"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v, st.eff[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const effTot = host.querySelector('input[data-role="effTot"]');
+    if(effTot){
+      const s = effTot.value.trim();
+      if(!s){
+        setTick(effTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v, st.total)){ ok++; setTick(effTot,'ok'); } else setTick(effTot,'ko');
+      }
+    }
+
+    // fréquences
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v,st.freq[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const fTot = host.querySelector('input[data-role="freqTot"]');
+    if(fTot){
+      const s = fTot.value.trim();
+      if(!s){
+        setTick(fTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v,1)){ ok++; setTick(fTot,'ok'); } else setTick(fTot,'ko');
+      }
+    }
+
+    const q1 = $('#q2-freq',host);
+    if(q1){
+      const s = q1.value.trim();
+      if(!s){
+        setTick(q1,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.freq[st.qFreqIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q1,'ok'); } else setTick(q1,'ko');
+      }
+    }
+
+    const q2 = $('#q2-fcc',host);
+    if(q2){
+      const s = q2.value.trim();
+      if(!s){
+        setTick(q2,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.fcc[st.qFCCIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q2,'ok'); } else setTick(q2,'ko');
+      }
+    }
+
+    return {ok,total:tot};
+  },
+ solution(host,st){
+  // Même principe : aucune modification des inputs,
+  // uniquement l'affichage du corrigé détaillé.
+
+  const html = this.printSolutionHTML(st);
+  host.querySelectorAll('.steps').forEach(s=> s.innerHTML = html);
+  typeset(host);
+},
+
+  printSolutionHTML(st){
+    const ctx   = st.ctx;
+    const n     = st.categories.length;
+    const cFreq = st.categories[st.qFreqIndex];
+    const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'qualitatif';
+
+    const isCalc = st.freqMode === 'calc';
+
+    const expFreq = st.categories.map((c,i)=>{
+      const dec  = fmtFreq(st.freq[i]);
+      const pct  = Math.round(st.freq[i]*100);
+      const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
+      const sign = exactHere ? '=' : '\\approx';
+      return `Pour « ${c} » : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct}\\) %.`;
+    });
+
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
+    const approxWordQ3 = exactQ3 ? '' : ' environ';
+
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
+    const approxWordQ4 = isCalc ? '' : ' environ';
+
+        let hHead  = `<tr><th>${st.ctx.varName}</th>`;
+    let rowAng = `<tr><td>Angle au centre</td>`;
+    let rowEff = `<tr><td>Effectif</td>`;
+    let rowFreq= `<tr><td>Fréquence</td>`;
+    for(let i=0;i<n;i++){
+      hHead  += `<th>${st.categories[i]}</th>`;
+      rowAng += `<td>${st.angles[i]}&deg;</td>`;
+      rowEff += `<td>${st.eff[i]}</td>`;
+      rowFreq+= `<td>${fmtFreq(st.freq[i])}</td>`;
+    }
+    hHead  += `<th>Total</th></tr>`;
+    rowAng += `<td>360&deg;</td></tr>`;
+    rowEff += `<td>${st.total}</td></tr>`;
+    rowFreq+= `<td>${fmtFreq(1)}</td></tr>`;
+
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowAng}${rowEff}${rowFreq}</tbody>
+      </table>
+    `;
+
+
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
+
+      <div class="step"><strong>Lecture du diagramme et calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
+
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
+
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
+
+ `;
+  },
+  reset(host){
+    host.querySelectorAll('input[type="text"]').forEach(i=>i.value='');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s=>s.innerHTML='');
+  }
+};
+
+
+
+/* ====== Exercice 3 : quantitatif continu (histogramme) ====== */
+const ex3 = {
+  id:'stat_qcontinu',
+  title:'Caractère quantitatif continu',
+  gen(){
+    const ctx = choice(CTX_QCONTINU);
+    const intervals = [];
+    for(let a=ctx.min; a<ctx.max; a+=ctx.step){
+      intervals.push({a,b:a+ctx.step});
+    }
+    const freqMode = getFreqModeFor(this.id);
+    const effData = genEffectifsFromLabels(intervals, freqMode);
+    const ff = genFreqAndFCC(effData.eff, effData.total);
+    const n = intervals.length;
+
+    const idxFreq = pickInnerIndex(n);
+    const idxFCC  = pickInnerIndex(n);
+
+    return {
+      kind:'qcontinu',
+      ctx,
+      intervals,
+      eff: effData.eff,
+      total: effData.total,
+      freq: ff.freq,
+      fcc: ff.fcc,
+      qFreqIndex: idxFreq,
+      qFCCIndex: idxFCC,
+      freqMode
+    };
+  },
+  render(host,st){
+    const ctx = st.ctx;
+    const n   = st.intervals.length;
+
+    // --- histogramme : aire = effectif ---
+    const fullRange = ctx.max - ctx.min;
+    const densities = st.intervals.map((I,i)=> st.eff[i]/(I.b-I.a));
+    const maxD = Math.max(...densities);
+    const steps = 4;
+    const ticks = [];
+    for(let k=0;k<=steps;k++){
+      const v = Math.round(maxD * k/steps);
+      ticks.unshift(v);
+    }
+    const ticksHTML = ticks.map(v=>`<div>${v}</div>`).join('');
+
+        const Hpx = 180;
+    const scale = maxD ? Hpx/maxD : 0;
+    let barsHTML = '';
+    for(let i=0;i<n;i++){
+      const I = st.intervals[i];
+      const density = densities[i];
+      const h = density*scale;
+      const left = fullRange ? 100*(I.a-ctx.min)/fullRange : 0;
+      const width = fullRange ? 100*(I.b-I.a)/fullRange : (100/n);
+      barsHTML += `
+        <div class="chart-hist-bar"
+             style="left:${left}%;width:${width}%;height:${h}px">
+          <div class="chart-hist-bar-label">${st.eff[i]}</div>
+        </div>`;
+    }
+
+
+// Lignes verticales aux bornes (4, 6, 8, ...)
+let gridV = '';
+for(let a = ctx.min; a <= ctx.max; a += ctx.step){
+  const left = fullRange ? 100 * (a - ctx.min) / fullRange : 0;
+  gridV += `<div class="vline" style="left:${left}%"></div>`;
+}
+
+// Graduations numériques sous l’axe
+let xTicks = '';
+for(let a = ctx.min; a <= ctx.max; a += ctx.step){
+  const left = fullRange ? 100 * (a - ctx.min) / fullRange : 0;
+  xTicks += `<span style="left:${left}%">${a}</span>`;
+}
+
+
+const chartHTML = `
+  <div class="chart-block">
+    <p class="chart-title">Histogramme représentant ${ctx.varName} (${ctx.unit}). L’aire de chaque rectangle est égale à l’effectif de la classe.</p>
+    <div class="chart-axes">
+<div class="chart-inner" style="--grid-cols:${fullRange}">
+        <div class="chart-y-ticks">${ticksHTML}</div>
+        ${barsHTML}
+      </div>
+      <div class="chart-y-label">Densité<br>(aire = effectif)</div>
+      <div class="chart-hist-x-ticks">
+        ${xTicks}
+      </div>
+      <div class="chart-x-label">${ctx.varName} (${ctx.unit})</div>
+    </div>
+  </div>`;
+
+
+
+
+
+
+
+    // --- tableau eff + fréq ---
+    let thVals='', tdEff='', tdFreq='';
+    for(let i=0;i<n;i++){
+      const I = st.intervals[i];
+      thVals += `<th>[${I.a} ; ${I.b}[</th>`;
+      tdEff  += `<td><input type="text" data-role="eff" data-i="${i}"></td>`;
+      tdFreq += `<td><input type="text" data-role="freq" data-i="${i}"></td>`;
+    }
+    thVals += `<th>Total</th>`;
+    tdEff  += `<td><input type="text" data-role="effTot"></td>`;
+    tdFreq += `<td><input type="text" data-role="freqTot"></td>`;
+
+    const Iq = st.intervals[st.qFreqIndex];
+    const Jq = st.intervals[st.qFCCIndex];
+
+    host.innerHTML = `
+
+      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
+        <label><strong>Mode de fréquences :</strong>
+          <select data-freq-mode>
+            <option value="arrondi">Fréquences arrondies</option>
+            <option value="calc">Fréquences calculables</option>
+          </select>
+        </label>
+      </p>
+
+      <p>${ctx.intro}</p>
+
+      ${chartHTML}
+
+      <p><em>À partir de l’histogramme, compléter le tableau suivant :</em></p>
+
+      <table class="tbl-solution pdfb">
+        <thead>
+          <tr>
+            <th>${ctx.varName} (${ctx.unit})</th>
+            ${thVals}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nombre d’observations</td>
+            ${tdEff}
+          </tr>
+          <tr>
+            <td>Fréquence</td>
+            ${tdFreq}
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="q-block">
+        <p><strong>1.</strong> Donner la population étudiée, le caractère étudié ainsi que son type (quantitatif discret, quantitatif continu ou qualitatif).</p>
+        <p>Population étudiée : <input type="text" id="q1-pop"></p>
+        <p>Caractère étudié : <input type="text" id="q1-carac"></p>
+        <p>Type de caractère : <input type="text" id="q1-type"></p>
+
+        <p><strong>2.</strong> Compléter la ligne des nombres d’observations puis calculer les fréquences (valeurs décimales).</p>
+        <p><strong>3.</strong> Quelle est la fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} ? 
+        <input type="text" id="q3-freq"></p>
+
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    attachFreqModeSelector(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0;
+
+    const popInp = $('#q1-pop',host);
+    if(popInp){
+      const val = popInp.value.trim();
+      if(!val){
+        setTick(popInp,'nu');
+      }else{
+        const good = checkPopulationAnswer(val, st.ctx.intro);
+        tot++;
+        if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
+      }
+    }
+
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.varName);
+        tot++;
+        if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+
+    const typeInp = $('#q1-type',host);
+    if(typeInp){
+      const raw = typeInp.value.trim();
+      if(!raw){
+        setTick(typeInp,'nu');
+      }else{
+        const norm = normalizeStr(raw);
+        const exp = normalizeStr('quantitatif continu');
+        tot++;
+        if(norm === exp){ ok++; setTick(typeInp,'ok'); } else setTick(typeInp,'ko');
+      }
+    }
+
+    const n = st.intervals.length;
+
+    // effectifs
+    host.querySelectorAll('input[data-role="eff"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v, st.eff[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const effTot = host.querySelector('input[data-role="effTot"]');
+    if(effTot){
+      const s = effTot.value.trim();
+      if(!s){
+        setTick(effTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v, st.total)){ ok++; setTick(effTot,'ok'); } else setTick(effTot,'ko');
+      }
+    }
+
+    // fréquences
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v, st.freq[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const fTot = host.querySelector('input[data-role="freqTot"]');
+    if(fTot){
+      const s = fTot.value.trim();
+      if(!s){
+        setTick(fTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v,1)){ ok++; setTick(fTot,'ok'); } else setTick(fTot,'ko');
+      }
+    }
+
+    const q1 = $('#q3-freq',host);
+    if(q1){
+      const s = q1.value.trim();
+      if(!s){
+        setTick(q1,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.freq[st.qFreqIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q1,'ok'); } else setTick(q1,'ko');
+      }
+    }
+
+    const q2 = $('#q3-fcc',host);
+    if(q2){
+      const s = q2.value.trim();
+      if(!s){
+        setTick(q2,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.fcc[st.qFCCIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q2,'ok'); } else setTick(q2,'ko');
+      }
+    }
+
+    return {ok,total:tot};
+  },
+solution(host,st){
+  // On laisse les réponses de l'élève intactes
+  // et on affiche le corrigé dans .steps
+
+  const html = this.printSolutionHTML(st);
+  host.querySelectorAll('.steps').forEach(s=> s.innerHTML = html);
+  typeset(host);
+},
+
+  printSolutionHTML(st){
+    const ctx = st.ctx;
+    const n   = st.intervals.length;
+    const Iq  = st.intervals[st.qFreqIndex];
+    const Jq  = st.intervals[st.qFCCIndex];
+
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'quantitatif continu';
+
+    const isCalc = st.freqMode === 'calc';
+
+    const expFreq = st.intervals.map((I,i)=>{
+      const dec  = fmtFreq(st.freq[i]);
+      const pct  = Math.round(st.freq[i]*100);
+      const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
+      const sign = exactHere ? '=' : '\\approx';
+      return `Pour la classe [${I.a};${I.b}[ : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct}\\) %.`;
+    });
+
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
+    const approxWordQ3 = exactQ3 ? '' : ' environ';
+
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
+    const approxWordQ4 = isCalc ? '' : ' environ';
+
+    let hHead = `<tr><th>${st.ctx.varName} (${st.ctx.unit})</th>`;
+    let rowEff  = `<tr><td>Nombre d’observations</td>`;
+    let rowFreq = `<tr><td>Fréquence</td>`;
+    for(let i=0;i<n;i++){
+      const I = st.intervals[i];
+      hHead  += `<th>[${I.a} ; ${I.b}[</th>`;
+      rowEff += `<td>${st.eff[i]}</td>`;
+      rowFreq+= `<td>${fmtFreq(st.freq[i])}</td>`;
+    }
+    hHead  += `<th>Total</th></tr>`;
+    rowEff += `<td>${st.total}</td></tr>`;
+    rowFreq+= `<td>${fmtFreq(1)}</td></tr>`;
+
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowEff}${rowFreq}</tbody>
+      </table>
+    `;
+
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
+
+      <div class="step"><strong>Lecture de l’histogramme et calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
+
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
+
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
+
+ `;
+  },
+  reset(host){
+    host.querySelectorAll('input[type="text"]').forEach(i=>i.value='');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s=>s.innerHTML='');
+  }
+};
+
+
+
+
+/* ====== Registre & navigation ====== */
+const REGISTRY = [ex1,ex2,ex3];
+window.REGISTRY = REGISTRY;
+
+function getDefById(id){
+  return REGISTRY.find(d=>d.id===id)||REGISTRY[0];
+}
+
+function buildOne(){
+  const def  = getDefById($("#exo-select").value);
+  const host = $("#host");
+  const st   = def.gen();                 // lit le mode courant dans FREQ_MODE_BY_EXO
+  host.dataset.active = def.id;
+  host.dataset.state  = JSON.stringify(st);
+  def.render(host,st);
+  try{
+    if(window.MathKbd?.attachAllInputs){
+      MathKbd.attachAllInputs(host);
+    }
+  }catch(_){}
+}
+
+function checkAll(){
+  const def  = getDefById($("#exo-select").value);
+  const host = $("#host");
+  const st   = JSON.parse(host.dataset.state||'{}');
+  const r    = def.correct(host,st)||{ok:0,total:0};
+  scoreOK = r.ok;
+  scoreTot = r.total;
+  updateScore();
+}
+function showSolution(){
+  const def  = getDefById($("#exo-select").value);
+  const host = $("#host");
+  const st   = JSON.parse(host.dataset.state||'{}');
+  def.solution(host,st);
+}
+function resetAll(){
+  const def  = getDefById($("#exo-select").value);
+  const host = $("#host");
+  def.reset(host);
+  scoreOK = 0;
+  scoreTot = 0;
+  updateScore();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    checkAll();
+  }
+});
+
+/* init sélecteur + PDF */
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: 'Seconde – Statistiques : Effectifs et fréquences',
+      mountAfterSelector: '.card.small',
+      beforeRender(def, st, isSolution){
+        if (isSolution && typeof def.printSolutionHTML === 'function') {
+          return { solution: def.printSolutionHTML(st) };
+        }
+        return null;
+      }
+    });
+  } else {
+    setTimeout(waitExoPDF, 80);
+  }
+})();
+
+})();
+</script>
+
+
 </body>
 </html>

@@ -62,13 +62,14 @@
     text-align:center;
     font-size:.95rem;
   }
-  /* Ligne horizontale entre toutes les lignes du tableau */
-  table.pdf-tbl tbody tr + tr > *{
-    border-top:1px solid #000;
-  }
-  .tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
-  .tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
-  .tbl th{background:#f7f7f7}
+/* Ligne horizontale entre toutes les lignes du tableau */
+table.pdf-tbl tbody tr + tr > *{
+  border-top:1px solid #000;
+}
+.tbl{border-collapse:collapse;width:100%;max-width:760px;margin:.25rem 0}
+.tbl th,.tbl td{border:1px solid #ddd;padding:6px 8px;text-align:center}
+.tbl th{background:#f7f7f7}
+
 
   .q-block{margin-top:.6rem}
   .q-block p{margin:.25rem 0}
@@ -84,36 +85,38 @@
   @media screen { .screen-only{display:block!important} .print-only{display:none!important} }
   @media print  { .screen-only{display:none!important} .print-only{display:block!important} }
 
-  /* === Bordures opt-in pour certains tableaux (PDF uniquement) === */
-  table.pdfb{ border-collapse: collapse; }
-  table.pdfb, table.pdfb th, table.pdfb td{
-    border: 1px solid #000;
-    padding: 4px 6px;
-    vertical-align: top;
-  }
-  /* Tableaux "plein largeur" pour le PDF, uniquement si .pdfb est présente */
-  table.pdfb{
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-  table.pdfb, table.pdfb th, table.pdfb td{
-    border: 1px solid #000;
-    padding: 6px 8px;
-    vertical-align: top;
-    white-space: normal;
-    word-break: break-word;
-  }
-  /* PDF : même respiration pour la colonne 3 des tableaux de corrigé */
-  table.pdfb.corrige td:nth-child(3),
-  table.pdfb.corrige th:nth-child(3){
-    padding-left: 12px;
-    padding-right: 12px;
-  }
+/* === Bordures opt-in pour certains tableaux (PDF uniquement) === */
+table.pdfb{ border-collapse: collapse; }
+table.pdfb, table.pdfb th, table.pdfb td{
+  border: 1px solid #000;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+/* Tableaux "plein largeur" pour le PDF, uniquement si .pdfb est présente */
+table.pdfb{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;          /* répartit la largeur sur toute la page */
+}
+table.pdfb, table.pdfb th, table.pdfb td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: top;
+  white-space: normal;          /* pour que le contenu aille à la ligne */
+  word-break: break-word;
+}
+/* PDF : même respiration pour la colonne 3 des tableaux de corrigé */
+table.pdfb.corrige td:nth-child(3),
+table.pdfb.corrige th:nth-child(3){
+  padding-left: 12px;
+  padding-right: 12px;
+}
 
-  .tbl-solution td.fcc-total{
-    background:#e0e0e0;
-  }
+.tbl-solution td.fcc-total{
+  background:#e0e0e0;
+}
+
+
 </style>
 
 <script>
@@ -191,41 +194,32 @@ function clearTicks(root){
 const rint = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice = arr => arr[Math.floor(Math.random()*arr.length)];
 
-/* === Gestion globale du mode de fréquences par exercice === */
-const FREQ_MODE_BY_EXO = {};   // ex.id -> 'arrondi' | 'calc'
-function getFreqModeFor(defId){
-  return FREQ_MODE_BY_EXO[defId] || 'arrondi';
-}
-
-/* Générer des effectifs "calculables"
-   - total ∈ {100, 200}
-   - tous les effectifs pairs
-   - bien répartis (min 2 par case, pas de case énorme)
-*/
-function genCalcEffectifs(n){
-  const totals = [100,200];
-  const total = choice(totals);
-  const eff = new Array(n).fill(2);     // au moins 2 par modalité
-  let remaining = total - 2*n;          // reste à répartir, pair
-
-  const maxPerCell = total/2;           // borne haute pour éviter un gros pic
-
-  while(remaining > 0){
-    const i = rint(0,n-1);
-    if(eff[i] < maxPerCell){
-      eff[i] += 2;
-      remaining -= 2;
-    }
+function pickInnerIndex(n){
+  // on évite si possible les 2 premières et 2 dernières cases
+  const cand = [];
+  for(let i=0;i<n;i++){
+    if(i>=2 && i<=n-3) cand.push(i);
   }
-  return {eff,total};
+  if(cand.length) return choice(cand);
+
+  // sinon, on évite au moins les extrêmes
+  const cand2 = [];
+  for(let i=1;i<=n-2;i++) cand2.push(i);
+  if(cand2.length) return choice(cand2);
+
+  // cas vraiment dégénéré (quasi impossible ici)
+  return 0;
 }
+
+
 
 /* parse numérique tolérant (décimal FR/US + fractions) */
 function parseNumber(str){
   if(str==null) return NaN;
   let s = String(str).trim();
   if(!s) return NaN;
-  s = s.replace(/\u2212/g,'-').replace(/,/g,'.');
+  s = s.replace(/\u2212/g,'-').replace(/,/g,'.'); // signe −, virgule
+  // fraction simple a/b
   if(/^[+-]?\d+\s*\/\s*[+-]?\d+$/.test(s)){
     const [p,q] = s.split('/').map(x=>Number(x));
     if(!q) return NaN;
@@ -240,60 +234,18 @@ function approxEqual(a,b,eps=1e-2){
 }
 function fmtFreq(x){
   if(!isFinite(x)) return '';
-  const r = Math.round(x*100)/100;      // 2 décimales max
+  const r = Math.round(x*100)/100;
   return String(r).replace('.',',');
 }
 function normalizeStr(s){
   return String(s||'')
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/<[^>]+>/g,' ')
-    .replace(/[^a-z0-9]+/g,' ')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // accents
+    .replace(/<[^>]+>/g,' ')                           // balises HTML
+    .replace(/[^a-z0-9]+/g,' ')                        // tout le reste -> espace
     .replace(/\s+/g,' ')
     .trim();
 }
-
-function isCaracAnswerOk(rawValue, expectedLabel, altLabel){
-  if(!rawValue) return false;
-  const ans = normalizeStr(rawValue);
-  if(!ans) return false;
-
-  const exp = normalizeStr(expectedLabel || '');
-  const alt = normalizeStr(altLabel || '');
-
-  // 1) égalité exacte avec le texte officiel
-  if(ans === exp || (alt && ans === alt)) return true;
-
-  // 2) réponse plus courte du type "nombre de ...":
-  //    on accepte si la réponse est un sous-ensemble significatif
-  //    du libellé (ou l'inverse)
-  const minLen = 4;
-  if(ans.length >= minLen){
-    if(exp.includes(ans) || (alt && alt.includes(ans))) return true;
-  }
-  if(exp.length >= minLen && ans.includes(exp)) return true;
-  if(alt && alt.length >= minLen && ans.includes(alt)) return true;
-
-  // 3) Fallback : au moins deux mots importants en commun
-  const base = (exp + ' ' + alt).trim();
-  const baseWords = new Set(
-    base.split(/\s+/).filter(w => w.length >= 3)
-  );
-  const ansWords = ans.split(/\s+/).filter(w => w.length >= 3);
-
-  let common = 0;
-  for(const w of ansWords){
-    if(baseWords.has(w)) common++;
-  }
-  if(common >= 2) return true;
-
-  // cas d’un seul mot significatif qui matche (ex : "taille")
-  if(ansWords.length === 1 && baseWords.has(ansWords[0])) return true;
-
-  return false;
-}
-
-
 
 function typeset(root){
   if(window.MathJax && MathJax.typesetPromise){
@@ -301,35 +253,13 @@ function typeset(root){
   }
 }
 
-/* sélecteur interne : fréquence arrondie / calculable */
-function attachFreqModeSelector(host){
-  const sel = host.querySelector('select[data-freq-mode]');
-  if(!sel) return;
-  const defId = host.dataset.active;
-  if(!defId) return;
-
-  sel.value = getFreqModeFor(defId);
-
-  sel.onchange = ()=>{
-    FREQ_MODE_BY_EXO[defId] = sel.value;       // on mémorise le mode
-    const def = getDefById(defId);
-    const st  = def.gen();                     // regénère avec ce mode
-    host.dataset.state = JSON.stringify(st);
-    def.render(host,st);
-    try{
-      if(window.MathKbd?.attachAllInputs){
-        MathKbd.attachAllInputs(host);
-      }
-    }catch(_){}
-  };
-}
-
-/* ====== Aide pour la population étudiée ====== */
+/* ====== Aide pour la population étudiée (jamais "individus de l'étude") ====== */
 const POP_RULES = [
+  // On ne se base plus sur "match" mais sur un mot-clé présent dans l’intro
   { keyword:'jeunes',    label:'les jeunes de 16 à 25 ans' },
   { keyword:'lyceens',   label:'les lycéens' },
   { keyword:'eleves',    label:'les élèves' },
-  { keyword:'lycéens',   label:'les lycéens' },
+  { keyword:'lycéens',   label:'les lycéens' }, // au cas où, même si normalisé
   { keyword:'élèves',    label:'les élèves' },
 
   { keyword:'patients',  label:'les patients' },
@@ -347,19 +277,23 @@ const POP_RULES = [
   { keyword:'membres',   label:'les membres' },
   { keyword:'personnes', label:'les personnes interrogées' },
 
+  // Q-continu : animaux / objets
   { keyword:'lapins',    label:'les lapins de l’élevage' },
   { keyword:'voitures',  label:'les voitures contrôlées' },
   { keyword:'bagages',   label:'les bagages enregistrés' },
 
+  // cas "élève unique" → on garde élève comme population
   { keyword:'eleve',     label:'l’élève suivi' },
   { keyword:'élève',     label:'l’élève suivi' }
 ];
 
 function getPopRuleFromIntro(intro){
-  const plain = normalizeStr(intro);
+  const plain = normalizeStr(intro);       // texte "plat" sans accents
   for(const rule of POP_RULES){
     const key = normalizeStr(rule.keyword);
     if(!key) continue;
+
+    // on teste le mot-clé, puis sa version singulier si elle finit par "s"
     if (plain.includes(key)) return rule;
     if (key.endsWith('s')) {
       const sing = key.slice(0,-1);
@@ -372,19 +306,24 @@ function getPopRuleFromIntro(intro){
 function getPopulationLabel(intro){
   const r = getPopRuleFromIntro(intro);
   if (r) return r.label;
+
+  // Fallback "propre" : plus jamais "les individus de l’étude"
   return 'la population décrite dans l’énoncé';
 }
 
 function checkPopulationAnswer(inputValue,intro){
   const ans = normalizeStr(inputValue);
-  if (!ans) return null;
+  if (!ans) return null; // on ne compte pas si vide
 
   const r = getPopRuleFromIntro(intro);
   if (r) {
     const key = normalizeStr(r.keyword || r.label);
+    // on exige que la réponse contienne le mot-clé
     return ans.includes(key);
   }
 
+  // Fallback : on demande au moins que la réponse reprenne un mot "important"
+  // de l’intro → on regarde si un des mots de la réponse apparaît dans l’intro.
   const plainIntro = normalizeStr(intro);
   const wordsIntro = new Set(plainIntro.split(/\s+/));
   const wordsAns   = ans.split(/\s+/);
@@ -393,12 +332,6 @@ function checkPopulationAnswer(inputValue,intro){
   return hasCommon;
 }
 
-
-function isExactRatio(num, den){
-  // vrai si num/den donne un pourcentage entier (2 décimales max pour la fréquence)
-  if(!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return false;
-  return (num * 100) % den === 0;   // équivaut à : num/den = k/100
-}
 
 /* ====== Contextes ====== */
 
@@ -475,59 +408,28 @@ const CTX_QCONTINU = [
 ];
 
 /* ====== Génération de tableaux fréquences/FCC ====== */
-function pickInnerIndex(n){
-  const cand = [];
-  for(let i=0;i<n;i++){
-    if(i>=2 && i<=n-3) cand.push(i);
-  }
-  if(cand.length) return choice(cand);
-
-  const cand2 = [];
-  for(let i=1;i<=n-2;i++) cand2.push(i);
-  if(cand2.length) return choice(cand2);
-
-  return 0;
-}
-
-function genEffectifsFromMinMax(minVal,maxVal,mode){
+function genEffectifsFromMinMax(minVal,maxVal){
   const values=[];
   for(let v=minVal; v<=maxVal; v++) values.push(v);
   const n = values.length;
-
-  let eff = [];
+  const eff = [];
   let tot = 0;
-
-  if(mode === 'calc'){
-    const r = genCalcEffectifs(n);
-    eff = r.eff;
-    tot = r.total;
-  }else{
-    for(let i=0;i<n;i++){
-      const e = rint(5,80);
-      eff.push(e); tot+=e;
-    }
+  for(let i=0;i<n;i++){
+    const e = rint(5,80);
+    eff.push(e); tot+=e;
   }
   return {values, eff, total:tot};
 }
-
-function genEffectifsFromLabels(labels,mode){
+function genEffectifsFromLabels(labels){
   const n = labels.length;
-  let eff = [];
+  const eff = [];
   let tot = 0;
-
-  if(mode === 'calc'){
-    const r = genCalcEffectifs(n);
-    eff = r.eff;
-    tot = r.total;
-  }else{
-    for(let i=0;i<n;i++){
-      const e = rint(5,60);
-      eff.push(e); tot+=e;
-    }
+  for(let i=0;i<n;i++){
+    const e = rint(5,60);
+    eff.push(e); tot+=e;
   }
   return {eff, total:tot};
 }
-
 function genFreqAndFCC(eff,total){
   const n = eff.length;
   const freqRaw = eff.map(e=>e/total);
@@ -558,8 +460,7 @@ const ex1 = {
   title:'Caractère quantitatif discret',
   gen(){
     const ctx = choice(CTX_QDISCRET);
-    const freqMode = getFreqModeFor(this.id);    // 'arrondi' ou 'calc'
-    const base = genEffectifsFromMinMax(ctx.min, ctx.max, freqMode);
+    const base = genEffectifsFromMinMax(ctx.min, ctx.max);
     const ff  = genFreqAndFCC(base.eff, base.total);
     const n = base.values.length;
 
@@ -575,8 +476,7 @@ const ex1 = {
       freq: ff.freq,
       fcc: ff.fcc,
       qFreqIndex: idxFreq,
-      qFCCIndex: idxFCC,
-      freqMode
+      qFCCIndex: idxFCC
     };
   },
   render(host,st){
@@ -595,23 +495,15 @@ const ex1 = {
     thVals += `<th>Total</th>`;
     tdEff  += `<td><input type="text" data-role="effTot"></td>`;
     tdFreq += `<td><input type="text" data-role="freqTot"></td>`;
+    // case FCC totale grisées, sans nombre à écrire :
     tdFCC  += `<td class="fcc-total"></td>`;
 
     const vFreq = st.values[st.qFreqIndex];
     const vFCC  = st.values[st.qFCCIndex];
 
     host.innerHTML = `
-
-      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
-        <label><strong>Mode de fréquences :</strong>
-          <select data-freq-mode>
-            <option value="arrondi">Fréquences arrondies</option>
-            <option value="calc">Fréquences calculables</option>
-          </select>
-        </label>
-      </p>
-
       <p>${ctx.intro}</p>
+      <p>On a relevé, pour chaque valeur possible du caractère <em>${ctx.varName}</em>, le nombre d’individus correspondants.</p>
 
       <table class="tbl-solution pdfb">
         <thead>
@@ -653,11 +545,11 @@ const ex1 = {
       <div class="steps print-only"></div>
     `;
     clearTicks(host);
-    attachFreqModeSelector(host);
   },
   correct(host,st){
     let ok=0, tot=0;
 
+    // Q1 : population
     const popInp = $('#q1-pop',host);
     if(popInp){
       const val = popInp.value.trim();
@@ -669,20 +561,20 @@ const ex1 = {
         if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
       }
     }
-// Q1 : caractère
-const caracInp = $('#q1-carac',host);
-if(caracInp){
-  const val = caracInp.value.trim();
-  if(!val){
-    setTick(caracInp,'nu');
-  }else{
-    // ici on accepte soit le texte "officiel", soit un libellé plus court du tableau (ctx.xLabel)
-    const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.xLabel);
-    tot++;
-    if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
-  }
-}
-
+    // Q1 : caractère
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const ans = normalizeStr(val);
+        const exp = normalizeStr(st.ctx.varName);
+        tot++;
+        if(ans === exp){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+    // Q1 : type
     const typeInp = $('#q1-type',host);
     if(typeInp){
       const raw = typeInp.value.trim();
@@ -698,6 +590,7 @@ if(caracInp){
 
     const n = st.values.length;
 
+    // fréquences
     host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
       const s = inp.value.trim();
       if(!s){
@@ -722,6 +615,7 @@ if(caracInp){
       }
     }
 
+    // FCC (sans total)
     host.querySelectorAll('input[data-role="fcc"]').forEach(inp=>{
       const s = inp.value.trim();
       if(!s){
@@ -735,6 +629,7 @@ if(caracInp){
       else setTick(inp,'ko');
     });
 
+    // effectif total
     const effTotInp = host.querySelector('input[data-role="effTot"]');
     if(effTotInp){
       const s = effTotInp.value.trim();
@@ -747,6 +642,7 @@ if(caracInp){
       }
     }
 
+    // Q3 : fréquence
     const q1 = $('#q1-freq',host);
     if(q1){
       const s = q1.value.trim();
@@ -760,6 +656,7 @@ if(caracInp){
       }
     }
 
+    // Q4 : proportion via FCC
     const q2 = $('#q1-fcc',host);
     if(q2){
       const s = q2.value.trim();
@@ -775,94 +672,109 @@ if(caracInp){
 
     return {ok,total:tot};
   },
-  solution(host,st){
+    solution(host,st){
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'quantitatif discret';
 
+    // on remplit les inputs pour l’élève (écran)
+    const popInp = $('#q1-pop',host);
+    if(popInp) popInp.value = popSol;
+    const caracInp = $('#q1-carac',host);
+    if(caracInp) caracInp.value = caracSol;
+    const typeInp = $('#q1-type',host);
+    if(typeInp) typeInp.value = typeSol;
 
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.freq[i]);
+    });
+    const fTotInp = host.querySelector('input[data-role="freqTot"]');
+    if(fTotInp) fTotInp.value = fmtFreq(1);
+
+    host.querySelectorAll('input[data-role="fcc"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.fcc[i]);
+    });
+
+    const effTotInp = host.querySelector('input[data-role="effTot"]');
+    if(effTotInp) effTotInp.value = st.total;
+
+    $('#q1-freq',host).value = fmtFreq(st.freq[st.qFreqIndex]);
+    $('#q1-fcc',host).value  = fmtFreq(st.fcc[st.qFCCIndex]);
+
+    // bloc explicatif (utilisé aussi par le PDF)
     const html = this.printSolutionHTML(st);
     host.querySelectorAll('.steps').forEach(s=>{ s.innerHTML = html; });
     typeset(host);
   },
 
-printSolutionHTML(st){
-  const ctx   = st.ctx;
-  const n     = st.values.length;
-  const vFreq = st.values[st.qFreqIndex];
-  const vFCC  = st.values[st.qFCCIndex];
+  printSolutionHTML(st){
+    const ctx   = st.ctx;
+    const n     = st.values.length;
+    const vFreq = st.values[st.qFreqIndex];
+    const vFCC  = st.values[st.qFCCIndex];
 
-  const popSol   = getPopulationLabel(st.ctx.intro);
-  const caracSol = st.ctx.varName;
-  const typeSol  = 'quantitatif discret';
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'quantitatif discret';
 
-  const isCalc = st.freqMode === 'calc';
+    // explications des fréquences + %
+    const expFreq = st.values.map((v,i)=>{
+      const dec = fmtFreq(st.freq[i]);
+      const pct = Math.round(st.freq[i]*100);
+      return `\\(f(${v}) =  \\dfrac{${st.eff[i]}}{${st.total}} \\approx ${dec} \\), soit \\(${pct} \\)%.`;
+    });
 
-  // --- bloc "calcul des fréquences" ---
-  const expFreq = st.values.map((v,i)=>{
-    const dec  = fmtFreq(st.freq[i]);
-    const pct  = Math.round(st.freq[i]*100);
-    const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
-    const sign = exactHere ? '=' : '\\approx';
-    return `\\(f(${v}) =  \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct} \\)%.`;
-  });
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
 
-  // --- Q3/Q4 : décider si c'est exact ou approximatif ---
-  const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
-  const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    // tableau complété
+    let hHead = `<tr><th>${st.ctx.xLabel}</th>`;
+    for(let i=0;i<n;i++) hHead += `<th>${st.values[i]}</th>`;
+    hHead += `<th>Total</th></tr>`;
 
-  const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
-  const approxWordQ3 = exactQ3 ? '' : ' environ';
+    let rowEff  = `<tr><td>Effectif</td>`;
+    let rowFreq = `<tr><td>Fréquence</td>`;
+    let rowFCC  = `<tr><td>FCC</td>`;
+    for(let i=0;i<n;i++){
+      rowEff  += `<td>${st.eff[i]}</td>`;
+      rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
+      rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
+    }
+    rowEff  += `<td>${st.total}</td></tr>`;
+    rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
+    rowFCC  += `<td class="fcc-total"></td></tr>`;
 
-  const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
-  const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
+      </table>
+    `;
 
-  const cumEffQ4 = st.eff.slice(0, st.qFCCIndex+1).reduce((a,b)=>a+b,0);
-  const exactQ4 = isCalc || isExactRatio(cumEffQ4, st.total);
-  const approxWordQ4 = exactQ4 ? '' : ' environ';
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
 
-  // --- tableau complété ---
-  let hHead = `<tr><th>${st.ctx.xLabel}</th>`;
-  for(let i=0;i<n;i++) hHead += `<th>${st.values[i]}</th>`;
-  hHead += `<th>Total</th></tr>`;
+      <div class="step"><strong>Calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
 
-  let rowEff  = `<tr><td>Effectif</td>`;
-  let rowFreq = `<tr><td>Fréquence</td>`;
-  let rowFCC  = `<tr><td>FCC</td>`;
-  for(let i=0;i<n;i++){
-    rowEff  += `<td>${st.eff[i]}</td>`;
-    rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
-    rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
-  }
-  rowEff  += `<td>${st.total}</td></tr>`;
-  rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
-  rowFCC  += `<td class="fcc-total"></td></tr>`;
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
 
-  const tblHtml = `
-    <table class="tbl-solution pdfb">
-      <thead>${hHead}</thead>
-      <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
-    </table>
-  `;
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> vaut \\(${decQ3}\\), soit \\(${pctQ3} \\) %.</div>
 
-  return `
-    <div class="step"><strong>Réponse à la question 1 :</strong><br>
-    Population étudiée : ${popSol}.<br>
-    Caractère étudié : ${caracSol}.<br>
-    Type : ${typeSol}.</div>
-
-    <div class="step"><strong>Calcul des fréquences :</strong></div>
-    <div class="step">${expFreq.join('<br>')}</div>
-
-    <div class="step"><strong>Réponse à la question 2 :</strong><br>
-    On obtient le tableau complété suivant :</div>
-    <div class="step">${tblHtml}</div>
-
-    <div class="step"><strong>Réponse à la question 3 :</strong><br>
-    La fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3} \\) %.</div>
-
-    <div class="step"><strong>Réponse à la question 4 :</strong><br>
-    La proportion d’individus pour lesquels le <em>${ctx.varName}</em> est inférieure ou égale à <strong>${vFCC}</strong> vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
-  `;
-},
-
+      <div class="step"><strong>Réponse à la question 4 :</strong><br>
+      La proportion d’individus pour lesquels le <em>${ctx.varName}</em> est inférieure ou égale à <strong>${vFCC}</strong> vaut \\(${decQ4}\\), soit environ \\(${pctQ4}\\) %.</div>
+    `;
+  },
 
 
   reset(host){
@@ -879,8 +791,7 @@ const ex2 = {
   title:'Caractère qualitatif',
   gen(){
     const ctx = choice(CTX_QUALI);
-    const freqMode = getFreqModeFor(this.id);
-    const effData = genEffectifsFromLabels(ctx.categories, freqMode);
+    const effData = genEffectifsFromLabels(ctx.categories);
     const ff = genFreqAndFCC(effData.eff, effData.total);
     const n = ctx.categories.length;
 
@@ -896,8 +807,7 @@ const ex2 = {
       freq: ff.freq,
       fcc: ff.fcc,
       qFreqIndex: idxFreq,
-      qFCCIndex: idxFCC,
-      freqMode
+      qFCCIndex: idxFCC
     };
   },
   render(host,st){
@@ -919,17 +829,8 @@ const ex2 = {
     const upTo  = st.categories.slice(0, st.qFCCIndex+1);
 
     host.innerHTML = `
-
-      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
-        <label><strong>Mode de fréquences :</strong>
-          <select data-freq-mode>
-            <option value="arrondi">Fréquences arrondies</option>
-            <option value="calc">Fréquences calculables</option>
-          </select>
-        </label>
-      </p>
-
       <p>${ctx.intro}</p>
+      <p>On obtient les effectifs suivants en fonction du <em>${ctx.varName}</em> :</p>
 
       <table class="tbl-solution pdfb">
         <thead>
@@ -971,11 +872,11 @@ const ex2 = {
       <div class="steps print-only"></div>
     `;
     clearTicks(host);
-    attachFreqModeSelector(host);
   },
   correct(host,st){
     let ok=0, tot=0;
 
+    // Q1 population
     const popInp = $('#q1-pop',host);
     if(popInp){
       const val = popInp.value.trim();
@@ -987,19 +888,20 @@ const ex2 = {
         if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
       }
     }
-// Q1 caractère
-const caracInp = $('#q1-carac',host);
-if(caracInp){
-  const val = caracInp.value.trim();
-  if(!val){
-    setTick(caracInp,'nu');
-  }else{
-    const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.varName);
-    tot++;
-    if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
-  }
-}
-
+    // Q1 caractère
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const ans = normalizeStr(val);
+        const exp = normalizeStr(st.ctx.varName);
+        tot++;
+        if(ans === exp){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+    // Q1 type
     const typeInp = $('#q1-type',host);
     if(typeInp){
       const raw = typeInp.value.trim();
@@ -1093,88 +995,108 @@ if(caracInp){
     return {ok,total:tot};
   },
   solution(host,st){
-   
+      const ctx = st.ctx;
+    const cFreq = st.categories[st.qFreqIndex];
+    const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+	
+    const popSol = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol = 'qualitatif';
 
-    const html = this.printSolutionHTML(st);
+    const popInp = $('#q1-pop',host);
+    if(popInp) popInp.value = popSol;
+    const caracInp = $('#q1-carac',host);
+    if(caracInp) caracInp.value = caracSol;
+    const typeInp = $('#q1-type',host);
+    if(typeInp) typeInp.value = typeSol;
+
+    const n = st.categories.length;
+
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.freq[i]);
+    });
+    const fTot=host.querySelector('input[data-role="freqTot"]');
+    if(fTot) fTot.value = fmtFreq(1);
+    host.querySelectorAll('input[data-role="fcc"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.fcc[i]);
+    });
+    const effTotInp = host.querySelector('input[data-role="effTot"]');
+    if(effTotInp) effTotInp.value = st.total;
+
+    $('#q2-freq',host).value = fmtFreq(st.freq[st.qFreqIndex]);
+    $('#q2-fcc',host).value  = fmtFreq(st.fcc[st.qFCCIndex]);
+
+     const html = this.printSolutionHTML(st);
     host.querySelectorAll('.steps').forEach(s=>s.innerHTML=html);
     typeset(host);
   },
 
-printSolutionHTML(st){
-  const ctx   = st.ctx;
-  const n     = st.categories.length;
-  const cFreq = st.categories[st.qFreqIndex];
-  const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+  printSolutionHTML(st){
+    const ctx   = st.ctx;
+    const n     = st.categories.length;
+    const cFreq = st.categories[st.qFreqIndex];
+    const upTo  = st.categories.slice(0, st.qFCCIndex+1);
 
-  const popSol   = getPopulationLabel(st.ctx.intro);
-  const caracSol = st.ctx.varName;
-  const typeSol  = 'qualitatif';
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'qualitatif';
 
-  const isCalc = st.freqMode === 'calc';
+    const expFreq = st.categories.map((c,i)=>{
+      const dec = fmtFreq(st.freq[i]);
+      const pct = Math.round(st.freq[i]*100);
+      return `Pour « ${c} » : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} \\approx ${dec} \\), soit \\(${pct}\\) %.`;
+    });
 
-  const expFreq = st.categories.map((c,i)=>{
-    const dec  = fmtFreq(st.freq[i]);
-    const pct  = Math.round(st.freq[i]*100);
-    const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
-    const sign = exactHere ? '=' : '\\approx';
-    return `Pour « ${c} » : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct}\\) %.`;
-  });
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
 
-  const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
-  const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
-  const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
-  const approxWordQ3 = exactQ3 ? '' : ' environ';
+    let hHead = `<tr><th>${st.ctx.varName}</th>`;
+    for(let i=0;i<n;i++) hHead += `<th>${st.categories[i]}</th>`;
+    hHead += `<th>Total</th></tr>`;
 
-  const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
-  const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
-  const cumEffQ4 = st.eff.slice(0, st.qFCCIndex+1).reduce((a,b)=>a+b,0);
-  const exactQ4 = isCalc || isExactRatio(cumEffQ4, st.total);
-  const approxWordQ4 = exactQ4 ? '' : ' environ';
+    let rowEff  = `<tr><td>Effectif</td>`;
+    let rowFreq = `<tr><td>Fréquence</td>`;
+    let rowFCC  = `<tr><td>FCC</td>`;
+    for(let i=0;i<n;i++){
+      rowEff  += `<td>${st.eff[i]}</td>`;
+      rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
+      rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
+    }
+    rowEff  += `<td>${st.total}</td></tr>`;
+    rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
+    rowFCC  += `<td class="fcc-total"></td></tr>`;
 
-  let hHead = `<tr><th>${st.ctx.varName}</th>`;
-  for(let i=0;i<n;i++) hHead += `<th>${st.categories[i]}</th>`;
-  hHead += `<th>Total</th></tr>`;
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
+      </table>
+    `;
 
-  let rowEff  = `<tr><td>Effectif</td>`;
-  let rowFreq = `<tr><td>Fréquence</td>`;
-  let rowFCC  = `<tr><td>FCC</td>`;
-  for(let i=0;i<n;i++){
-    rowEff  += `<td>${st.eff[i]}</td>`;
-    rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
-    rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
-  }
-  rowEff  += `<td>${st.total}</td></tr>`;
-  rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
-  rowFCC  += `<td class="fcc-total"></td></tr>`;
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
 
-  const tblHtml = `
-    <table class="tbl-solution pdfb">
-      <thead>${hHead}</thead>
-      <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
-    </table>
-  `;
+      <div class="step"><strong>Calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
 
-  return `
-    <div class="step"><strong>Réponse à la question 1 :</strong><br>
-    Population étudiée : ${popSol}.<br>
-    Caractère étudié : ${caracSol}.<br>
-    Type : ${typeSol}.</div>
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
 
-    <div class="step"><strong>Calcul des fréquences :</strong></div>
-    <div class="step">${expFreq.join('<br>')}</div>
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> vaut \\(${decQ3}\\), soit \\(${pctQ3}\\) %.</div>
 
-    <div class="step"><strong>Réponse à la question 2 :</strong><br>
-    On obtient le tableau complété suivant :</div>
-    <div class="step">${tblHtml}</div>
-
-    <div class="step"><strong>Réponse à la question 3 :</strong><br>
-    La fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
-
-    <div class="step"><strong>Réponse à la question 4 :</strong><br>
-    La fréquence des individus dont le <em>${ctx.varName}</em> appartient à l’un des cas suivants : <strong>${upTo.join(', ')}</strong> vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
-  `;
-},
-
+      <div class="step"><strong>Réponse à la question 4 :</strong><br>
+      La fréquence des individus dont le <em>${ctx.varName}</em> appartient à l’un des cas suivants : <strong>${upTo.join(', ')}</strong> vaut \\(${decQ4}\\), soit environ \\(${pctQ4}\\) %.</div>
+    `;
+  },
 
 
   reset(host){
@@ -1195,8 +1117,7 @@ const ex3 = {
     for(let a=ctx.min; a<ctx.max; a+=ctx.step){
       intervals.push({a,b:a+ctx.step});
     }
-    const freqMode = getFreqModeFor(this.id);
-    const effData = genEffectifsFromLabels(intervals, freqMode);
+    const effData = genEffectifsFromLabels(intervals);
     const ff = genFreqAndFCC(effData.eff, effData.total);
     const n = intervals.length;
 
@@ -1212,8 +1133,7 @@ const ex3 = {
       freq: ff.freq,
       fcc: ff.fcc,
       qFreqIndex: idxFreq,
-      qFCCIndex: idxFCC,
-      freqMode
+      qFCCIndex: idxFCC
     };
   },
   render(host,st){
@@ -1236,17 +1156,8 @@ const ex3 = {
     const Jq = st.intervals[st.qFCCIndex];
 
     host.innerHTML = `
-
-      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
-        <label><strong>Mode de fréquences :</strong>
-          <select data-freq-mode>
-            <option value="arrondi">Fréquences arrondies</option>
-            <option value="calc">Fréquences calculables</option>
-          </select>
-        </label>
-      </p>
-
       <p>${ctx.intro}</p>
+      <p>On regroupe les valeurs du caractère <em>${ctx.varName}</em> (en ${ctx.unit}) par classes d’amplitude régulière :</p>
 
       <table class="tbl-solution pdfb">
         <thead>
@@ -1288,11 +1199,11 @@ const ex3 = {
       <div class="steps print-only"></div>
     `;
     clearTicks(host);
-    attachFreqModeSelector(host);
   },
   correct(host,st){
     let ok=0, tot=0;
 
+    // Q1 population
     const popInp = $('#q1-pop',host);
     if(popInp){
       const val = popInp.value.trim();
@@ -1304,19 +1215,20 @@ const ex3 = {
         if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
       }
     }
-// Q1 caractère
-const caracInp = $('#q1-carac',host);
-if(caracInp){
-  const val = caracInp.value.trim();
-  if(!val){
-    setTick(caracInp,'nu');
-  }else{
-    const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.varName);
-    tot++;
-    if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
-  }
-}
-
+    // Q1 caractère
+    const caracInp = $('#q1-carac',host);
+    if(caracInp){
+      const val = caracInp.value.trim();
+      if(!val){
+        setTick(caracInp,'nu');
+      }else{
+        const ans = normalizeStr(val);
+        const exp = normalizeStr(st.ctx.varName);
+        tot++;
+        if(ans === exp){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+      }
+    }
+    // Q1 type
     const typeInp = $('#q1-type',host);
     if(typeInp){
       const raw = typeInp.value.trim();
@@ -1410,91 +1322,111 @@ if(caracInp){
     return {ok,total:tot};
   },
   solution(host,st){
-   
+      const ctx = st.ctx;
+    const Iq = st.intervals[st.qFreqIndex];
+    const Jq = st.intervals[st.qFCCIndex];
+	
+    const popSol = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol = 'quantitatif continu';
 
-    const html = this.printSolutionHTML(st);
+    const popInp = $('#q1-pop',host);
+    if(popInp) popInp.value = popSol;
+    const caracInp = $('#q1-carac',host);
+    if(caracInp) caracInp.value = caracSol;
+    const typeInp = $('#q1-type',host);
+    if(typeInp) typeInp.value = typeSol;
+
+    const n = st.intervals.length;
+
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.freq[i]);
+    });
+    const fTot = host.querySelector('input[data-role="freqTot"]');
+    if(fTot) fTot.value = fmtFreq(1);
+    host.querySelectorAll('input[data-role="fcc"]').forEach(inp=>{
+      const i = Number(inp.dataset.i);
+      inp.value = fmtFreq(st.fcc[i]);
+    });
+    const effTotInp = host.querySelector('input[data-role="effTot"]');
+    if(effTotInp) effTotInp.value = st.total;
+
+    $('#q3-freq',host).value = fmtFreq(st.freq[st.qFreqIndex]);
+    $('#q3-fcc',host).value  = fmtFreq(st.fcc[st.qFCCIndex]);
+
+       const html = this.printSolutionHTML(st);
     host.querySelectorAll('.steps').forEach(s=>s.innerHTML=html);
     typeset(host);
   },
 
-printSolutionHTML(st){
-  const ctx = st.ctx;
-  const n   = st.intervals.length;
-  const Iq  = st.intervals[st.qFreqIndex];
-  const Jq  = st.intervals[st.qFCCIndex];
+  printSolutionHTML(st){
+    const ctx = st.ctx;
+    const n   = st.intervals.length;
+    const Iq  = st.intervals[st.qFreqIndex];
+    const Jq  = st.intervals[st.qFCCIndex];
 
-  const popSol   = getPopulationLabel(st.ctx.intro);
-  const caracSol = st.ctx.varName;
-  const typeSol  = 'quantitatif continu';
+    const popSol   = getPopulationLabel(st.ctx.intro);
+    const caracSol = st.ctx.varName;
+    const typeSol  = 'quantitatif continu';
 
-  const isCalc = st.freqMode === 'calc';
+    const expFreq = st.intervals.map((I,i)=>{
+      const dec = fmtFreq(st.freq[i]);
+      const pct = Math.round(st.freq[i]*100);
+      return `Pour la classe [${I.a};${I.b}[ : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} \\approx ${dec} \\), soit \\(${pct}\\) %.`;
+    });
 
-  const expFreq = st.intervals.map((I,i)=>{
-    const dec  = fmtFreq(st.freq[i]);
-    const pct  = Math.round(st.freq[i]*100);
-    const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
-    const sign = exactHere ? '=' : '\\approx';
-    return `Pour la classe [${I.a};${I.b}[ : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct}\\) %.`;
-  });
+    const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+    const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+    const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+    const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
 
-  const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
-  const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
-  const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
-  const approxWordQ3 = exactQ3 ? '' : ' environ';
+    let hHead = `<tr><th>${st.ctx.varName} (${st.ctx.unit})</th>`;
+    for(let i=0;i<n;i++){
+      const I = st.intervals[i];
+      hHead += `<th>[${I.a} ; ${I.b}[</th>`;
+    }
+    hHead += `<th>Total</th></tr>`;
 
-  const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
-  const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
-  const cumEffQ4 = st.eff.slice(0, st.qFCCIndex+1).reduce((a,b)=>a+b,0);
-  const exactQ4 = isCalc || isExactRatio(cumEffQ4, st.total);
-  const approxWordQ4 = exactQ4 ? '' : ' environ';
+    let rowEff  = `<tr><td>Nombre d’observations</td>`;
+    let rowFreq = `<tr><td>Fréquence</td>`;
+    let rowFCC  = `<tr><td>FCC</td>`;
+    for(let i=0;i<n;i++){
+      rowEff  += `<td>${st.eff[i]}</td>`;
+      rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
+      rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
+    }
+    rowEff  += `<td>${st.total}</td></tr>`;
+    rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
+    rowFCC  += `<td class="fcc-total"></td></tr>`;
 
-  let hHead = `<tr><th>${st.ctx.varName} (${st.ctx.unit})</th>`;
-  for(let i=0;i<n;i++){
-    const I = st.intervals[i];
-    hHead += `<th>[${I.a} ; ${I.b}[</th>`;
-  }
-  hHead += `<th>Total</th></tr>`;
+    const tblHtml = `
+      <table class="tbl-solution pdfb">
+        <thead>${hHead}</thead>
+        <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
+      </table>
+    `;
 
-  let rowEff  = `<tr><td>Nombre d’observations</td>`;
-  let rowFreq = `<tr><td>Fréquence</td>`;
-  let rowFCC  = `<tr><td>FCC</td>`;
-  for(let i=0;i<n;i++){
-    rowEff  += `<td>${st.eff[i]}</td>`;
-    rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
-    rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
-  }
-  rowEff  += `<td>${st.total}</td></tr>`;
-  rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
-  rowFCC  += `<td class="fcc-total"></td></tr>`;
+    return `
+      <div class="step"><strong>Réponse à la question 1 :</strong><br>
+      Population étudiée : ${popSol}.<br>
+      Caractère étudié : ${caracSol}.<br>
+      Type : ${typeSol}.</div>
 
-  const tblHtml = `
-    <table class="tbl-solution pdfb">
-      <thead>${hHead}</thead>
-      <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
-    </table>
-  `;
+      <div class="step"><strong>Calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
 
-  return `
-    <div class="step"><strong>Réponse à la question 1 :</strong><br>
-    Population étudiée : ${popSol}.<br>
-    Caractère étudié : ${caracSol}.<br>
-    Type : ${typeSol}.</div>
+      <div class="step"><strong>Réponse à la question 2 :</strong><br>
+      On obtient le tableau complété suivant :</div>
+      <div class="step">${tblHtml}</div>
 
-    <div class="step"><strong>Calcul des fréquences :</strong></div>
-    <div class="step">${expFreq.join('<br>')}</div>
+      <div class="step"><strong>Réponse à la question 3 :</strong><br>
+      La fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} vaut \\(${decQ3}\\), soit \\(${pctQ3}\\) %.</div>
 
-    <div class="step"><strong>Réponse à la question 2 :</strong><br>
-    On obtient le tableau complété suivant :</div>
-    <div class="step">${tblHtml}</div>
-
-    <div class="step"><strong>Réponse à la question 3 :</strong><br>
-    La fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
-
-    <div class="step"><strong>Réponse à la question 4 :</strong><br>
-    La proportion d’observations pour lesquelles <em>${ctx.varName}</em> est strictement inférieure à <strong>${Jq.b}</strong> ${ctx.unit} vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
-  `;
-},
-
+      <div class="step"><strong>Réponse à la question 4 :</strong><br>
+      La proportion d’observations pour lesquelles <em>${ctx.varName}</em> est strictement inférieure à <strong>${Jq.b}</strong> ${ctx.unit} vaut \\(${decQ4}\\), soit environ \\(${pctQ4}\\) %.</div>
+    `;
+  },
 
 
   reset(host){
@@ -1516,7 +1448,7 @@ function getDefById(id){
 function buildOne(){
   const def  = getDefById($("#exo-select").value);
   const host = $("#host");
-  const st   = def.gen();                 // lit le mode courant dans FREQ_MODE_BY_EXO
+  const st   = def.gen();
   host.dataset.active = def.id;
   host.dataset.state  = JSON.stringify(st);
   def.render(host,st);
@@ -1567,7 +1499,6 @@ document.addEventListener('keydown',e=>{
   $("#btn-check").onclick=checkAll;
   $("#btn-solution").onclick=showSolution;
   $("#btn-reset").onclick=resetAll;
-
   sel.value = REGISTRY[0].id;
   buildOne();
 })();
@@ -1577,10 +1508,13 @@ document.addEventListener('keydown',e=>{
     ExoPDF.init({
       title: 'Seconde – Statistiques : Effectifs et fréquences',
       mountAfterSelector: '.card.small',
+
+      // ➜ On force le kit à utiliser printSolutionHTML(s)
       beforeRender(def, st, isSolution){
         if (isSolution && typeof def.printSolutionHTML === 'function') {
           return { solution: def.printSolutionHTML(st) };
         }
+        // sinon comportement normal
         return null;
       }
     });

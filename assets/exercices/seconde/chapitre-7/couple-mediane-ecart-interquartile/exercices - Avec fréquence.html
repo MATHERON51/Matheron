@@ -891,35 +891,26 @@ function genEffectifsFromLabels(labels,mode){
 
 function genFreqAndFCC(eff,total){
   const n = eff.length;
-
-  // 1) Fréquences simples : on garde ta logique actuelle (arrondies à 10^-2),
-  //    c'est surtout utilisé pour les réponses de fréquence.
-  const freqRaw = eff.map(e => e/total);
+  const freqRaw = eff.map(e=>e/total);
   const freq = new Array(n);
   let sum = 0;
   for(let i=0;i<n;i++){
-    if(i < n-1){
-      const r = Math.round(freqRaw[i]*100)/100;  // 2 décimales
-      freq[i] = r;
-      sum += r;
+    if(i<n-1){
+      const r = Math.round(freqRaw[i]*100)/100;
+      freq[i]=r;
+      sum+=r;
     }else{
-      // dernière fréquence ajustée pour que la somme fasse bien 1
-      freq[i] = Math.round((1 - sum)*100)/100;
+      freq[i] = Math.round((1-sum)*100)/100;
     }
   }
-
-  // 2) ECC exacts (en effectifs)
-  const eccCounts = computeECC(eff);
-
-  // 3) FCC à partir des ECC / N, arrondies à 10^-2 (soit 1 %)
   const fcc = new Array(n);
-  for(let i=0;i<n-1;i++){
-    const p = eccCounts[i] / total;          // proportion exacte
-    fcc[i] = Math.round(p*100)/100;          // au % près
+  let c = 0;
+  for(let i=0;i<n;i++){
+    c += freq[i];
+    if(i<n-1) fcc[i] = Math.round(c*100)/100;
+    else fcc[i] = 1;
   }
-  fcc[n-1] = 1;                              // la dernière FCC vaut toujours 1
-
-  return {freq, fcc};
+  return {freq,fcc};
 }
 
 
@@ -1132,13 +1123,13 @@ const ex7 = {
 
       <div class="q-block">
         <p><strong>1.</strong> Déterminer la <strong>médiane</strong> de cette série de valeurs.</p>
-        <p class="pdf-hide">Médiane : <input type="text" id="ex7-med"></p>
+        <p>Médiane : <input type="text" id="ex7-med"></p>
 
         <p><strong>2.</strong> Déterminer le <strong>1<sup>er</sup> quartile</strong> de cette série.</p>
-        <p class="pdf-hide">1<sup>er</sup> quartile : <input type="text" id="ex7-q1"></p>
+        <p>1<sup>er</sup> quartile : <input type="text" id="ex7-q1"></p>
 
         <p><strong>3.</strong> Déterminer le <strong>3<sup>e</sup> quartile</strong> de cette série.</p>
-        <p class="pdf-hide">3<sup>e</sup> quartile : <input type="text" id="ex7-q3"></p>
+        <p>3<sup>e</sup> quartile : <input type="text" id="ex7-q3"></p>
       </div>
 
       <div class="steps screen-only"></div>
@@ -1413,6 +1404,10 @@ const ex1 = {
             ${tdEff}
           </tr>
           <tr>
+            <td>Fréquence (en %)</td>
+            ${tdFreq}
+          </tr>
+          <tr>
             <td>ECC</td>
             ${tdECC}
           </tr>
@@ -1429,7 +1424,7 @@ const ex1 = {
         <p>Caractère étudié : <input type="text" id="q1-carac"></p>
         <p>Type de caractère : <input type="text" id="q1-type"></p>
 
-        <p><strong>2.</strong> Compléter la ligne des effectifs cumulés croissants (ECC) et la ligne des fréquences cumulées croissantes (FCC, en %).</p>
+        <p><strong>2.</strong> Compléter la ligne des fréquences (en %) puis la ligne des effectifs cumulés croissants (ECC) et la ligne des fréquences cumulées croissantes (FCC, en %).</p>
         <p><strong>3.</strong> Quelle est la fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> ? 
         <input type="text" id="q1-freq"></p>
         <p><strong>4.</strong> Déterminer la proportion d’individus pour lesquels le <em>${ctx.varName}</em> est inférieure ou égale à <strong>${vFCC}</strong>. 
@@ -1437,7 +1432,7 @@ const ex1 = {
         <p><strong>5.</strong> Calculer la moyenne du <em>${ctx.varName}</em> (au centième près). 
         <input type="text" id="q1-moy"></p>
         <p><strong>6.</strong> À l’aide des FCC, déterminer le 1<sup>er</sup> quartile, la médiane et le 3<sup>e</sup> quartile de la série.</p>
-        <p class="pdf-hide">
+        <p>
           \\(Q_1 =\\) <input type="text" id="q1-q1" style="width:60px">
           &nbsp;&nbsp; \\(M_e =\\) <input type="text" id="q1-med" style="width:60px">
           &nbsp;&nbsp; \\(Q_3 =\\) <input type="text" id="q1-q3" style="width:60px">
@@ -1690,11 +1685,6 @@ printSolutionHTML(st){
   const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
   const approxWordQ3 = exactQ3 ? '' : ' environ';
 
-  const effQ3 = st.eff[st.qFreqIndex];
-  const signFreqQ3 = exactQ3 ? '=' : '\\approx';
-
-
-
   const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
   const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
 
@@ -1781,19 +1771,15 @@ printSolutionHTML(st){
     Caractère étudié : ${caracSol}.<br>
     Type : ${typeSol}.</div>
 
-
+    <div class="step"><strong>Calcul des fréquences :</strong></div>
+    <div class="step">${expFreq.join('<br>')}</div>
 
     <div class="step"><strong>Réponse à la question 2 :</strong><br>
     On obtient le tableau complété suivant :</div>
     <div class="step">${tblHtml}</div>
 
     <div class="step"><strong>Réponse à la question 3 :</strong><br>
-    La fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> est donnée par :<br>
-    \\[
-      f(${vFreq}) = \\dfrac{${effQ3}}{${st.total}} ${signFreqQ3} ${decQ3}
-    \\]
-    soit${approxWordQ3} \\(${pctQ3}\\)%.
-    </div>
+    La fréquence des individus pour lesquels le <em>${ctx.varName}</em> est égal à <strong>${vFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3} \\) %.</div>
 
     <div class="step"><strong>Réponse à la question 4 :</strong><br>
     La proportion d’individus pour lesquels le <em>${ctx.varName}</em> est inférieure ou égale à <strong>${vFCC}</strong> vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
@@ -1820,6 +1806,316 @@ printSolutionHTML(st){
 };
 
 
+/* ====== Exercice 2 : qualitatif ====== */
+const ex2 = {
+  id:'stat_qualitatif',
+  title:'Caractère qualitatif',
+  gen(){
+    const ctx = choice(CTX_QUALI);
+    const freqMode = getFreqModeFor(this.id);
+    const effData = genEffectifsFromLabels(ctx.categories, freqMode);
+    const ff = genFreqAndFCC(effData.eff, effData.total);
+    const n = ctx.categories.length;
+
+    const idxFreq = pickInnerIndex(n);
+    const idxFCC  = pickInnerIndex(n);
+
+    return {
+      kind:'qualitatif',
+      ctx,
+      categories: ctx.categories,
+      eff: effData.eff,
+      total: effData.total,
+      freq: ff.freq,
+      fcc: ff.fcc,
+      qFreqIndex: idxFreq,
+      qFCCIndex: idxFCC,
+      freqMode
+    };
+  },
+  render(host,st){
+    const ctx = st.ctx;
+    const n = st.categories.length;
+    let thVals='', tdEff='', tdFreq='', tdFCC='';
+    for(let i=0;i<n;i++){
+      thVals += `<th>${st.categories[i]}</th>`;
+      tdEff  += `<td>${st.eff[i]}</td>`;
+      tdFreq += `<td><input type="text" data-role="freq" data-i="${i}"></td>`;
+      tdFCC  += `<td><input type="text" data-role="fcc" data-i="${i}"></td>`;
+    }
+    thVals += `<th>Total</th>`;
+    tdEff  += `<td><input type="text" data-role="effTot"></td>`;
+    tdFreq += `<td><input type="text" data-role="freqTot"></td>`;
+    tdFCC  += `<td class="fcc-total"></td>`;
+
+    const cFreq = st.categories[st.qFreqIndex];
+    const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+
+    host.innerHTML = `
+
+      <p class="screen-only" style="margin:.3rem 0 .6rem 0">
+        <label><strong>Mode de fréquences :</strong>
+          <select data-freq-mode>
+            <option value="arrondi">Fréquences arrondies</option>
+            <option value="calc">Fréquences calculables</option>
+          </select>
+        </label>
+      </p>
+
+      <p>${ctx.intro}</p>
+
+      <table class="tbl-solution pdfb">
+        <thead>
+          <tr>
+            <th>${ctx.varName}</th>
+            ${thVals}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Effectif</td>
+            ${tdEff}
+          </tr>
+          <tr>
+            <td>Fréquence</td>
+            ${tdFreq}
+          </tr>
+          <tr>
+            <td>FCC</td>
+            ${tdFCC}
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="q-block">
+        <p><strong>1.</strong> Donner la population étudiée, le caractère étudié ainsi que son type (quantitatif discret, quantitatif continu ou qualitatif).</p>
+        <p>Population étudiée : <input type="text" id="q1-pop"></p>
+        <p>Caractère étudié : <input type="text" id="q1-carac"></p>
+        <p>Type de caractère : <input type="text" id="q1-type"></p>
+
+        <p><strong>2.</strong> Compléter la ligne des fréquences puis la ligne des fréquences cumulées croissantes (FCC).</p>
+        <p><strong>3.</strong> Quelle est la fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> ? 
+        <input type="text" id="q2-freq"></p>
+        <p><strong>4.</strong> Déterminer la fréquence des individus dont le <em>${ctx.varName}</em> appartient à l’un des cas suivants : <strong>${upTo.join(', ')}</strong>. 
+        <input type="text" id="q2-fcc"></p>
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    attachFreqModeSelector(host);typeset(host);
+  },
+  correct(host,st){
+    let ok=0, tot=0;
+
+    const popInp = $('#q1-pop',host);
+    if(popInp){
+      const val = popInp.value.trim();
+      if(!val){
+        setTick(popInp,'nu');
+      }else{
+        const good = checkPopulationAnswer(val, st.ctx.intro);
+        tot++;
+        if(good){ ok++; setTick(popInp,'ok'); } else setTick(popInp,'ko');
+      }
+    }
+// Q1 caractère
+const caracInp = $('#q1-carac',host);
+if(caracInp){
+  const val = caracInp.value.trim();
+  if(!val){
+    setTick(caracInp,'nu');
+  }else{
+    const good = isCaracAnswerOk(val, st.ctx.varName, st.ctx.varName);
+    tot++;
+    if(good){ ok++; setTick(caracInp,'ok'); } else setTick(caracInp,'ko');
+  }
+}
+
+    const typeInp = $('#q1-type',host);
+    if(typeInp){
+      const raw = typeInp.value.trim();
+      if(!raw){
+        setTick(typeInp,'nu');
+      }else{
+        const norm = normalizeStr(raw);
+        const exp = normalizeStr('qualitatif');
+        tot++;
+        if(norm === exp){ ok++; setTick(typeInp,'ok'); } else setTick(typeInp,'ko');
+      }
+    }
+
+    const n = st.categories.length;
+
+    host.querySelectorAll('input[data-role="freq"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v,st.freq[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+    const fTot = host.querySelector('input[data-role="freqTot"]');
+    if(fTot){
+      const s = fTot.value.trim();
+      if(!s){
+        setTick(fTot,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v,1)){ ok++; setTick(fTot,'ok'); } else setTick(fTot,'ko');
+      }
+    }
+
+    host.querySelectorAll('input[data-role="fcc"]').forEach(inp=>{
+      const s = inp.value.trim();
+      if(!s){
+        setTick(inp,'nu');
+        return;
+      }
+      const i = Number(inp.dataset.i);
+      const v = parseNumber(s);
+      tot++;
+      if(approxEqual(v,st.fcc[i])){ ok++; setTick(inp,'ok'); }
+      else setTick(inp,'ko');
+    });
+
+    const effTotInp = host.querySelector('input[data-role="effTot"]');
+    if(effTotInp){
+      const s = effTotInp.value.trim();
+      if(!s){
+        setTick(effTotInp,'nu');
+      }else{
+        const v = parseNumber(s);
+        tot++;
+        if(approxEqual(v,st.total)){ ok++; setTick(effTotInp,'ok'); } else setTick(effTotInp,'ko');
+      }
+    }
+
+    const q1 = $('#q2-freq',host);
+    if(q1){
+      const s = q1.value.trim();
+      if(!s){
+        setTick(q1,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.freq[st.qFreqIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q1,'ok'); } else setTick(q1,'ko');
+      }
+    }
+
+    const q2 = $('#q2-fcc',host);
+    if(q2){
+      const s = q2.value.trim();
+      if(!s){
+        setTick(q2,'nu');
+      }else{
+        const v = parseNumber(s);
+        const exp = st.fcc[st.qFCCIndex];
+        tot++;
+        if(approxEqual(v,exp)){ ok++; setTick(q2,'ok'); } else setTick(q2,'ko');
+      }
+    }
+
+    return {ok,total:tot};
+  },
+  solution(host,st){
+   
+
+    const html = this.printSolutionHTML(st);
+    host.querySelectorAll('.steps').forEach(s=>s.innerHTML=html);
+    typeset(host);
+  },
+
+printSolutionHTML(st){
+  const ctx   = st.ctx;
+  const n     = st.categories.length;
+  const cFreq = st.categories[st.qFreqIndex];
+  const upTo  = st.categories.slice(0, st.qFCCIndex+1);
+
+  const popSol   = getPopulationLabel(st.ctx.intro);
+  const caracSol = st.ctx.varName;
+  const typeSol  = 'qualitatif';
+
+  const isCalc = st.freqMode === 'calc';
+
+  const expFreq = st.categories.map((c,i)=>{
+    const dec  = fmtFreq(st.freq[i]);
+    const pct  = Math.round(st.freq[i]*100);
+    const exactHere = isCalc || isExactRatio(st.eff[i], st.total);
+    const sign = exactHere ? '=' : '\\approx';
+    return `Pour « ${c} » : \\( f = \\dfrac{${st.eff[i]}}{${st.total}} ${sign} ${dec} \\), soit \\(${pct}\\) %.`;
+  });
+
+  const decQ3 = fmtFreq(st.freq[st.qFreqIndex]);
+  const pctQ3 = Math.round(st.freq[st.qFreqIndex]*100);
+  const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
+  const approxWordQ3 = exactQ3 ? '' : ' environ';
+
+  const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
+  const pctQ4 = Math.round(st.fcc[st.qFCCIndex]*100);
+  const cumEffQ4 = st.eff.slice(0, st.qFCCIndex+1).reduce((a,b)=>a+b,0);
+  const exactQ4 = isCalc || isExactRatio(cumEffQ4, st.total);
+  const approxWordQ4 = exactQ4 ? '' : ' environ';
+
+  let hHead = `<tr><th>${st.ctx.varName}</th>`;
+  for(let i=0;i<n;i++) hHead += `<th>${st.categories[i]}</th>`;
+  hHead += `<th>Total</th></tr>`;
+
+  let rowEff  = `<tr><td>Effectif</td>`;
+  let rowFreq = `<tr><td>Fréquence</td>`;
+  let rowFCC  = `<tr><td>FCC</td>`;
+  for(let i=0;i<n;i++){
+    rowEff  += `<td>${st.eff[i]}</td>`;
+    rowFreq += `<td>${fmtFreq(st.freq[i])}</td>`;
+    rowFCC  += `<td>${fmtFreq(st.fcc[i])}</td>`;
+  }
+  rowEff  += `<td>${st.total}</td></tr>`;
+  rowFreq += `<td>${fmtFreq(1)}</td></tr>`;
+  rowFCC  += `<td class="fcc-total"></td></tr>`;
+
+  const tblHtml = `
+    <table class="tbl-solution pdfb">
+      <thead>${hHead}</thead>
+      <tbody>${rowEff}${rowFreq}${rowFCC}</tbody>
+    </table>
+  `;
+
+  return `
+    <div class="step"><strong>Réponse à la question 1 :</strong><br>
+    Population étudiée : ${popSol}.<br>
+    Caractère étudié : ${caracSol}.<br>
+    Type : ${typeSol}.</div>
+
+    <div class="step"><strong>Calcul des fréquences :</strong></div>
+    <div class="step">${expFreq.join('<br>')}</div>
+
+    <div class="step"><strong>Réponse à la question 2 :</strong><br>
+    On obtient le tableau complété suivant :</div>
+    <div class="step">${tblHtml}</div>
+
+    <div class="step"><strong>Réponse à la question 3 :</strong><br>
+    La fréquence des individus dont le <em>${ctx.varName}</em> est <strong>${cFreq}</strong> vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
+
+    <div class="step"><strong>Réponse à la question 4 :</strong><br>
+    La fréquence des individus dont le <em>${ctx.varName}</em> appartient à l’un des cas suivants : <strong>${upTo.join(', ')}</strong> vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
+  `;
+},
+
+
+
+  reset(host){
+    host.querySelectorAll('input[type="text"]').forEach(i=>i.value='');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s=>s.innerHTML='');
+  }
+};
 
 
 const ex3 = {
@@ -1939,6 +2235,10 @@ const ex3 = {
             ${tdECC}
           </tr>
           <tr>
+            <td>Fréquence (%)</td>
+            ${tdFreq}
+          </tr>
+          <tr>
             <td>FCC (%)</td>
             ${tdFCC}
           </tr>
@@ -1951,7 +2251,7 @@ const ex3 = {
         <p>Caractère étudié : <input type="text" id="q1-carac"></p>
         <p>Type de caractère : <input type="text" id="q1-type"></p>
 
-        <p><strong>2.</strong> Compléter la ligne des effectifs cumulés croissants (ECC) et la ligne des fréquences cumulées croissantes (FCC, en %).</p>
+        <p><strong>2.</strong> Compléter la ligne des effectifs cumulés croissants (ECC), puis la ligne des fréquences (en %) et enfin la ligne des fréquences cumulées croissantes (FCC, en %).</p>
 
         <p><strong>3.</strong> Quelle est la fréquence (en %) correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} ? 
         <input type="text" id="q3-freq"></p>
@@ -1965,7 +2265,7 @@ const ex3 = {
         <p><strong>6. a)</strong> Sur un repère, tracer la <strong>courbe des fréquences cumulées croissantes</strong> (en %).</p>
 
         <p><strong>b)</strong> À l’aide de cette courbe, estimer la <strong>médiane</strong> \\(M_e\\) ainsi que le <strong>1<sup>er</sup> quartile</strong> \\(Q_1\\) et le <strong>3<sup>e</sup> quartile</strong> \\(Q_3\\) du caractère étudié.</p>
-        <p class="pdf-hide">Médiane \\(M_e\\) : <input type="text" id="q3-med"> &nbsp;
+        <p>Médiane \\(M_e\\) : <input type="text" id="q3-med"> &nbsp;
            \\(Q_1\\) : <input type="text" id="q3-q1"> &nbsp;
            \\(Q_3\\) : <input type="text" id="q3-q3"></p>
       </div>
@@ -2196,10 +2496,6 @@ const ex3 = {
     const exactQ3 = isCalc || isExactRatio(st.eff[st.qFreqIndex], st.total);
     const approxWordQ3 = exactQ3 ? '' : ' environ';
 
-    const effQ3 = st.eff[st.qFreqIndex];
-    const signFreqQ3 = exactQ3 ? '=' : '\\approx';
-
-
     const decQ4 = fmtFreq(st.fcc[st.qFCCIndex]);
     const pctQ4 = fmtPct(st.fcc[st.qFCCIndex]);
     const cumEffQ4 = st.ecc[st.qFCCIndex];
@@ -2260,21 +2556,15 @@ const svgN = buildFCCCurveSVG(st);
       Caractère étudié : ${caracSol}.<br>
       Type : ${typeSol}.</div>
 
-
+      <div class="step"><strong>Calcul des fréquences :</strong></div>
+      <div class="step">${expFreq.join('<br>')}</div>
 
       <div class="step"><strong>Réponse à la question 2 :</strong><br>
       On obtient le tableau complété suivant (ECC, fréquences et FCC en %) :</div>
       <div class="step">${tblHtml}</div>
 
       <div class="step"><strong>Réponse à la question 3 :</strong><br>
-      La fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre 
-      <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} est donnée par :<br>
-      \\[
-        f_{[${Iq.a};${Iq.b}[}
-        = \\dfrac{${effQ3}}{${st.total}} ${signFreqQ3} ${decQ3}
-      \\]
-      soit${approxWordQ3} \\(${pctQ3}\\)%.
-      </div>
+      La fréquence correspondant à une valeur de <em>${ctx.varName}</em> comprise entre <strong>${Iq.a}</strong> et <strong>${Iq.b}</strong> ${ctx.unit} vaut \\(${decQ3}\\), soit${approxWordQ3} \\(${pctQ3}\\) %.</div>
 
       <div class="step"><strong>Réponse à la question 4 :</strong><br>
       La proportion d’observations pour lesquelles <em>${ctx.varName}</em> est strictement inférieure à <strong>${Jq.b}</strong> ${ctx.unit} vaut \\(${decQ4}\\), soit${approxWordQ4} \\(${pctQ4}\\) %.</div>
@@ -2318,314 +2608,759 @@ const svgN = buildFCCCurveSVG(st);
 };
 
 
-const ex4 = {
- id: "stat_comp_boxplots",
- title: "Comparer deux séries – Diagrammes en boîtes",
+const PATTERNS_QDISCRET = [
+  // N = 30
+  { N:30, A:[2, 6,14, 6, 2], B:[6, 4,10, 4, 6] },
+  // N = 32
+  { N:32, A:[2, 7,14, 7, 2], B:[6, 5,10, 5, 6] },
+  // N = 36
+  { N:36, A:[3, 7,16, 7, 3], B:[7, 5,12, 5, 7] },
+  // N = 40
+  { N:40, A:[3, 9,16, 9, 3], B:[7, 7,12, 7, 7] }
+];
 
-gen() {
-    // Génère une série autour d'une médiane de base
-    function genSerie(baseMed) {
-      const med = baseMed + rint(-1, 1);          // médiane proche de baseMed
-      const q1  = med - rint(1, 4);
-      const q3  = med + rint(1, 4);
-      const xmin = q1 - rint(1, 4);
-      const xmax = q3 + rint(1, 4);
-      return { xmin, q1, med, q3, xmax };
-    }
 
-    let A, B, eiqA, eiqB;
+const ex5 = {
+  id: 'stat_comp_qdiscret',
+  title: 'Comparer deux séries – Quantitatif discret',
 
-    for (let attempt = 0; attempt < 200; attempt++) {
-      const baseMed = rint(8, 18);  // médiane "commune" de départ
+  gen() {
+    // valeurs entières centrées sur m : (m-2, m-1, m, m+1, m+2)
+    const m = rint(5, 20);
+    const values = [m - 2, m - 1, m, m + 1, m + 2];
 
-      A = genSerie(baseMed);
-      B = genSerie(baseMed);
+    let lastState = null;
 
-      eiqA = A.q3 - A.q1;
-      eiqB = B.q3 - B.q1;
+    for (let attempt = 0; attempt < 400; attempt++) {
+      // --- 1) Choix d’un total commun N ---
+      const N = rint(25, 70);
+      const minEff = 3;
+      const maxEff = Math.floor(N / 2);
 
-      // médianes proches, mais IQR différents
-      if (Math.abs(A.med - B.med) <= 1 && Math.abs(eiqA - eiqB) >= 1) {
-        const eA = A.xmax - A.xmin;
-        const eB = B.xmax - B.xmin;
-        return {
-          kind: "boxplots",
-          A, B,
-          eiqA, eiqB,
-          eA, eB
-        };
+      // --- 2) Construire effA non symétrique mais "équilibré" ---
+      let effA = null;
+
+      for (let innerA = 0; innerA < 400; innerA++) {
+        const base = Math.floor(N / 5);
+        const di = [];
+        let sumD = 0;
+
+        // on choisit d0..d3 et on impose d4 pour avoir somme(di)=0
+        for (let i = 0; i < 4; i++) {
+          const d = rint(-4, 4);
+          di.push(d);
+          sumD += d;
+        }
+        di.push(-sumD); // assure somme(di) = 0
+
+        const candidate = di.map(d => base + d);
+        const totCheck = candidate.reduce((S, e) => S + e, 0);
+        if (totCheck !== N) continue;
+
+        const minA = Math.min(...candidate);
+        const maxA = Math.max(...candidate);
+
+        // pas de case ridiculement petite ou gigantesque
+        if (minA < minEff || maxA > maxEff) continue;
+        // vraie variation interne
+        if (maxA - minA < 4) continue;
+        // éviter un monstre
+        if (maxA / minA > 3) continue;
+
+        effA = candidate;
+        break;
+      }
+
+      if (!effA) continue;
+
+      // --- 3) Déterminer effB : même N et même moyenne ---
+      const S1 = effA.reduce((S, n_i, i) => S + n_i * values[i], 0); // somme pondérée => moyenne_A = S1/N
+
+      let effB = null;
+
+      for (let innerB = 0; innerB < 800; innerB++) {
+        // on va choisir b0, b1, b2 puis calculer b3, b4
+        const b0 = rint(minEff, maxEff);
+        const b1 = rint(minEff, maxEff);
+        const b2 = rint(minEff, maxEff);
+
+        const S0p = N - (b0 + b1 + b2); // reste à répartir sur b3, b4
+        if (S0p < 2 * minEff || S0p > 2 * maxEff) continue;
+
+        const S1p = S1 - (b0 * values[0] + b1 * values[1] + b2 * values[2]);
+
+        // Résolution du système :
+        // b3 + b4 = S0p
+        // b3*v3 + b4*v4 = S1p
+        const v3 = values[3];
+        const v4 = values[4];
+
+        const denom = (v3 - v4);
+        if (denom === 0) continue;
+
+        const b3 = (S1p - S0p * v4) / denom;
+        const b4 = S0p - b3;
+
+        if (!Number.isInteger(b3) || !Number.isInteger(b4)) continue;
+        if (b3 < minEff || b3 > maxEff || b4 < minEff || b4 > maxEff) continue;
+
+        const candidateB = [b0, b1, b2, b3, b4];
+
+        const minB = Math.min(...candidateB);
+        const maxB = Math.max(...candidateB);
+        if (maxB - minB < 4) continue;
+        if (maxB / minB > 3) continue;
+
+        // éviter une série B trop proche de A
+        let diffCount3 = 0;
+        let l1 = 0;
+        for (let i = 0; i < 5; i++) {
+          const d = Math.abs(candidateB[i] - effA[i]);
+          l1 += d;
+          if (d >= 3) diffCount3++;
+        }
+        if (diffCount3 < 3) continue;     // au moins 3 cases vraiment différentes
+        if (l1 < N * 0.4) continue;       // profil global différent
+
+        effB = candidateB;
+        break;
+      }
+
+      if (!effB) continue;
+
+      // --- 4) Calcul des stats ---
+      const arrA = [];
+      const arrB = [];
+      for (let i = 0; i < values.length; i++) {
+        for (let k = 0; k < effA[i]; k++) arrA.push(values[i]);
+        for (let k = 0; k < effB[i]; k++) arrB.push(values[i]);
+      }
+
+      const sumA = arrA.reduce((S, x) => S + x, 0);
+      const sumB = arrB.reduce((S, x) => S + x, 0);
+
+      const meanA = sumA / N;
+      const meanB = sumB / N;
+
+      const sigmaA = Math.sqrt(arrA.reduce((S, x) => S + (x - meanA) ** 2, 0) / N);
+      const sigmaB = Math.sqrt(arrB.reduce((S, x) => S + (x - meanB) ** 2, 0) / N);
+
+      const state = {
+        values,
+        effA,
+        effB,
+        sumA,
+        sumB,
+        totA: N,
+        totB: N,
+        meanA,
+        meanB,
+        sigmaA,
+        sigmaB
+      };
+      lastState = state;
+
+      // on veut des écarts-types vraiment différents
+      if (Math.abs(sigmaA - sigmaB) > 0.7) {
+        return state;
       }
     }
 
-    // fallback au cas où (très improbable)
-    A = genSerie(12);
-    B = genSerie(12);
-    eiqA = A.q3 - A.q1;
-    eiqB = B.q3 - B.q1;
-    const eA = A.xmax - A.xmin;
-    const eB = B.xmax - B.xmin;
-    return { kind: "boxplots", A, B, eiqA, eiqB, eA, eB };
+    // fallback (au cas où les critères sont trop stricts)
+    return lastState;
   },
 
-buildBoxplotsSVG(st){
-  const A = st.A;
-  const B = st.B;
+  render(host, st) {
+    const n = st.values.length;
+    let head = '<th>Valeur du caractère (u)</th>';
+    let rowA = '<td>Effectif série A</td>';
+    let rowB = '<td>Effectif série B</td>';
 
-  // bornes communes pour l’axe
-  const rawMin = Math.min(A.xmin, B.xmin);
-  const rawMax = Math.max(A.xmax, B.xmax);
+    for (let i = 0; i < n; i++) {
+      head += `<th>${st.values[i]}</th>`;
+      rowA += `<td>${st.effA[i]}</td>`;
+      rowB += `<td>${st.effB[i]}</td>`;
+    }
 
-  const axisMin = Math.floor(rawMin);
-  const axisMax = Math.ceil(rawMax);
+    host.innerHTML = `
+      <p>On étudie un même caractère quantitatif discret dans deux séries statistiques, notées A et B. 
+      Pour chaque valeur du caractère, le tableau ci-dessous donne l’effectif correspondant dans chaque série.</p>
 
-  const W = 520, H = 150;
-  const marginL = 60, marginR = 20, marginT = 15, marginB = 35;
-  const axisY = H - marginB;
-  const plotW = W - marginL - marginR;
+      <table class="tbl-solution pdfb">
+        <thead><tr>${head}</tr></thead>
+        <tbody>
+          <tr>${rowA}</tr>
+          <tr>${rowB}</tr>
+        </tbody>
+      </table>
 
-  function xScale(x){
-    const L = axisMax - axisMin || 1;
-    return marginL + (x - axisMin) * plotW / L;
+      <p><strong>Écarts-types :</strong> σ<sub>A</sub> = ${fmtFreq(st.sigmaA)}, 
+      σ<sub>B</sub> = ${fmtFreq(st.sigmaB)}</p>
+
+      <div class="q-block">
+        <p><strong>1.</strong> Calculer la moyenne de la série A. 
+        <input type="text" id="mA"></p>
+
+        <p><strong>2.</strong> Calculer la moyenne de la série B. 
+        <input type="text" id="mB"></p>
+
+        <p><strong>3.</strong> Comparer les deux séries (niveau moyen et dispersion).<br>
+
+
+
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    typeset(host);
+  },
+
+  correct(host, st) {
+    let ok = 0, tot = 0;
+
+    const inpA = $('#mA', host);
+    const inpB = $('#mB', host);
+
+    // moyenne A
+    if (inpA) {
+      const raw = inpA.value.trim();
+      if (!raw) {
+        setTick(inpA, 'nu');
+      } else {
+        const v = parseNumber(raw);
+        tot++;
+        if (approxEqual(v, st.meanA)) { ok++; setTick(inpA, 'ok'); }
+        else setTick(inpA, 'ko');
+      }
+    }
+
+    // moyenne B
+    if (inpB) {
+      const raw = inpB.value.trim();
+      if (!raw) {
+        setTick(inpB, 'nu');
+      } else {
+        const v = parseNumber(raw);
+        tot++;
+        if (approxEqual(v, st.meanB)) { ok++; setTick(inpB, 'ok'); }
+        else setTick(inpB, 'ko');
+      }
+    }
+
+    // comparaison rédigée non notée
+    const cmp = $('#cmp', host);
+    if (cmp) setTick(cmp, 'nu');
+
+    return { ok, total: tot };
+  },
+
+  solution(host, st) {
+    const html = this.printSolutionHTML(st);
+    host.querySelectorAll('.steps').forEach(s => { s.innerHTML = html; });
+    typeset(host);
+  },
+
+printSolutionHTML(st) {
+  const mA = fmtFreq(st.meanA);
+  const mB = fmtFreq(st.meanB);
+  const sA = fmtFreq(st.sigmaA);
+  const sB = fmtFreq(st.sigmaB);
+
+  // Sommes par x_i * n_i (moyennes)
+  const termsA = st.values.map((x, i) => `${x}\\times ${st.effA[i]}`).join(' + ');
+  const termsB = st.values.map((x, i) => `${x}\\times ${st.effB[i]}`).join(' + ');
+
+  const sumA = st.sumA ?? st.values.reduce((S, x, i) => S + x * st.effA[i], 0);
+  const sumB = st.sumB ?? st.values.reduce((S, x, i) => S + x * st.effB[i], 0);
+  const totA = st.totA ?? st.effA.reduce((S, e) => S + e, 0);
+  const totB = st.totB ?? st.effB.reduce((S, e) => S + e, 0);
+
+  const signA = isExactRatio(sumA, totA) ? '=' : '\\approx';
+  const signB = isExactRatio(sumB, totB) ? '=' : '\\approx';
+
+  // --- Écarts-types (numérateur détaillé) ---
+  const termsSigmaA = st.values
+    .map((x, i) => `(${x}-${mA})^2\\times ${st.effA[i]}`)
+    .join(' + ');
+  const termsSigmaB = st.values
+    .map((x, i) => `(${x}-${mB})^2\\times ${st.effB[i]}`)
+    .join(' + ');
+
+  const numSigmaA = st.values.reduce(
+    (S, x, i) => S + (x - st.meanA) ** 2 * st.effA[i],
+    0
+  );
+  const numSigmaB = st.values.reduce(
+    (S, x, i) => S + (x - st.meanB) ** 2 * st.effB[i],
+    0
+  );
+
+  const numSigmaAtex = fmtFreq(numSigmaA);
+  const numSigmaBtex = fmtFreq(numSigmaB);
+
+  // --- Comparaison des moyennes ---
+  let meanComment;
+  const eps = 1e-6;
+
+  if (Math.abs(st.meanA - st.meanB) < eps) {
+    meanComment =
+      `Les deux séries ont la <strong>même moyenne</strong>, égale à \\(${mA}\\). 
+      Le <strong>niveau moyen</strong> est donc identique.`;
+  } else if (st.meanA > st.meanB) {
+    meanComment =
+      `La série A a une <strong>moyenne plus élevée</strong> que la série B :
+       \\(\\bar{x}_A \\approx ${mA}\\) contre \\(\\bar{x}_B \\approx ${mB}\\).`;
+  } else {
+    meanComment =
+      `La série B a une <strong>moyenne plus élevée</strong> que la série A :
+       \\(\\bar{x}_B \\approx ${mB}\\) contre \\(\\bar{x}_A \\approx ${mA}\\).`;
   }
 
-  // hauteurs des deux boxplots
-  const yA = axisY - 45;
-  const yB = axisY - 15;
-  const boxH = 14;
-
-  function boxElements(data, y){
-    const { xmin, q1, med, q3, xmax } = data;
-    const yTop  = y - boxH/2;
-    const yBot  = y + boxH/2;
-    const xMin  = xScale(xmin);
-    const xQ1   = xScale(q1);
-    const xMed  = xScale(med);
-    const xQ3   = xScale(q3);
-    const xMax  = xScale(xmax);
-
-    return `
-      <!-- segment min-max -->
-      <line x1="${xMin}" y1="${y}" x2="${xMax}" y2="${y}" stroke="#000" />
-      <!-- moustaches -->
-      <line x1="${xMin}" y1="${yTop}" x2="${xMin}" y2="${yBot}" stroke="#000" />
-      <line x1="${xMax}" y1="${yTop}" x2="${xMax}" y2="${yBot}" stroke="#000" />
-      <!-- boîte interquartile -->
-      <rect x="${xQ1}" y="${yTop}" width="${xQ3 - xQ1}" height="${boxH}"
-            fill="none" stroke="#000" stroke-width="1.5" />
-      <!-- Q1 et Q3 (traits verticaux) -->
-      <line x1="${xQ1}" y1="${yTop}" x2="${xQ1}" y2="${yBot}" stroke="#000" />
-      <line x1="${xQ3}" y1="${yTop}" x2="${xQ3}" y2="${yBot}" stroke="#000" />
-      <!-- médiane -->
-      <line x1="${xMed}" y1="${yTop}" x2="${xMed}" y2="${yBot}" stroke="#000" stroke-width="2" />
-    `;
-  }
-
-  // graduations entières de 1 en 1
-  let ticks = '';
-  for(let k = axisMin; k <= axisMax; k++){
-    const X = xScale(k);
-    ticks += `
-      <line x1="${X}" y1="${axisY}" x2="${X}" y2="${axisY+5}" stroke="#000" />
-      <text x="${X}" y="${axisY+18}" font-size="10" text-anchor="middle">${k}</text>
-    `;
+  // --- Comparaison des dispersions ---
+  let sigmaComment;
+  if (Math.abs(st.sigmaA - st.sigmaB) < eps) {
+    sigmaComment =
+      `Les deux séries ont des écarts-types très proches (σ ≈ ${sA}).<br>
+       La dispersion autour de la moyenne est similaire.`;
+  } else if (st.sigmaA > st.sigmaB) {
+    sigmaComment =
+      `L’écart-type de la série A est plus grand que celui de la série B 
+       (σ<sub>A</sub> \\(\\approx ${sA}\\), σ<sub>B</sub> \\(\\approx ${sB}\\)).<br>
+       Les valeurs de <strong>A</strong> sont donc plus dispersées autour de la moyenne, 
+       et la moyenne de A est moins représentative.`;
+  } else {
+    sigmaComment =
+      `L’écart-type de la série B est plus grand que celui de la série A 
+       (σ<sub>B</sub> \\(\\approx ${sB}\\), σ<sub>A</sub> \\(\\approx ${sA}\\)).<br>
+       Les valeurs de <strong>B</strong> sont donc plus dispersées autour de la moyenne, 
+       et la moyenne de B est moins représentative.`;
   }
 
   return `
-    <svg viewBox="0 0 ${W} ${H}" class="stat-boxplots">
-      <!-- axe commun -->
-      <line x1="${marginL}" y1="${axisY}" x2="${W-marginR}" y2="${axisY}" stroke="#000" />
+    <div class="step"><strong>Calcul de la moyenne de la série A :</strong><br>
+    On note \\(\\bar{x}_A\\) la moyenne de la série A.<br>
+    \\[
+      \\bar{x}_A
+      = \\dfrac{${termsA}}{${totA}}
+      = \\dfrac{${sumA}}{${totA}}
+      ${signA} ${mA}
+    \\]
+    </div>
 
-      ${ticks}
+    <div class="step"><strong>Calcul de la moyenne de la série B :</strong><br>
+    On note \\(\\bar{x}_B\\) la moyenne de la série B.<br>
+    \\[
+      \\bar{x}_B
+      = \\dfrac{${termsB}}{${totB}}
+      = \\dfrac{${sumB}}{${totB}}
+      ${signB} ${mB}
+    \\]
+    </div>
 
-      <!-- étiquettes des groupes -->
-      <text x="${marginL-10}" y="${yA+3}" font-size="11" text-anchor="end">Série A</text>
-      <text x="${marginL-10}" y="${yB+3}" font-size="11" text-anchor="end">Série B</text>
+    <div class="step"><strong>Calcul de l’écart-type de la série A :</strong><br>
+    On note \\(V_A\\) la variance et \\(\\sigma_A\\) l'écart-type de la série \\(A\\) et on utilise la formule : 
+    \\[
+      V_A = \\dfrac{1}{${totA}} \\sum_i (x_i-\\bar{x}_A)^2\\,n_i
+    \\]
+    Ici :<br>
+    \\[
+      \\sum_i (x_i-\\bar{x}_A)^2\\,n_i
+      = ${termsSigmaA}
+      \\approx ${numSigmaAtex}
+    \\]
+    donc<br>
+    \\[
+      \\sigma_A
+	  =\\sqrt{V_A}
+      = \\sqrt{\\dfrac{${numSigmaAtex}}{${totA}}}
+      \\approx ${sA}
+    \\]
+    </div>
 
-      <!-- boxplots -->
-      ${boxElements(A, yA)}
-      ${boxElements(B, yB)}
-    </svg>
+    <div class="step"><strong>Calcul de l’écart-type de la série B :</strong><br>
+	    On note \\(V_B\\) la variance et \\(\\sigma_B\\) l'écart-type de la série \\(B\\) et on utilise la formule : 
+
+    \\[
+      V_B = \\dfrac{1}{${totB}} \\sum_i (x_i-\\bar{x}_B)^2\\,n_i
+    \\]
+    Ici :<br>
+    \\[
+      \\sum_i (x_i-\\bar{x}_B)^2\\,n_i
+      = ${termsSigmaB}
+      \\approx ${numSigmaBtex}
+    \\]
+    donc<br>
+    \\[
+      \\sigma_B
+	  	  =\\sqrt{V_B}
+      = \\sqrt{\\dfrac{${numSigmaBtex}}{${totB}}}
+      \\approx ${sB}
+    \\]
+    </div>
+
+    <div class="step"><strong>Comparaison des moyennes :</strong><br>
+    ${meanComment}
+    </div>
+
+    <div class="step"><strong>Comparaison des dispersions :</strong><br>
+    ${sigmaComment}
+    </div>
+
+
   `;
 },
 
 
- render(host, st) {
-  host.innerHTML = `
-    <p>On donne ci-dessous les diagrammes en boîtes de deux groupes de données, notés A et B, tracés sur la même droite graduée.</p>
-
-    ${this.buildBoxplotsSVG(st)}
-
-    <div class="q-block">
-      <p><strong>1.</strong> Lire sur les diagrammes la médiane de la série A puis de la série B.</p>
-      <p class="pdf-hide">Médiane A : <input type="text" id="medA"> &nbsp;
-         Médiane B : <input type="text" id="medB"></p>
-
-      <p><strong>2.</strong> Calculer puis comparer les écarts interquartiles des deux séries.</p>
-      <p class="pdf-hide">Écart interquartile A : <input type="text" id="eiqA"> &nbsp;
-         Écart interquartile B : <input type="text" id="eiqB"></p>
-<p><strong>3.</strong> Lire l’étendue des deux séries.</p>
-<p class="pdf-hide">Étendue A : <input type="text" id="eA"> &nbsp;
-   Étendue B : <input type="text" id="eB"></p>
-
-      <p><strong>4.</strong> Comparer les deux séries en termes de 
-      <strong>niveau central</strong> (médiane) et de <strong>dispersion</strong> (écart interquartile).</p>
-    </div>
-
-    <div class="steps screen-only"></div>
-    <div class="steps print-only"></div>
-  `;
-  clearTicks(host);
-}
-,
-
- correct(host, st) {
-   let ok = 0, tot = 0;
-
-   function check(id, expected) {
-     const inp = $(id, host);
-     if (!inp) return;
-     const raw = inp.value.trim();
-     if (!raw) { setTick(inp, 'nu'); return; }
-     const v = parseNumber(raw);
-     tot++;
-     if (approxEqual(v, expected)) { ok++; setTick(inp, 'ok'); }
-     else setTick(inp, 'ko');
-   }
-
-   check("#medA", st.A.med);
-   check("#medB", st.B.med);
-   check("#eiqA", st.eiqA);
-   check("#eiqB", st.eiqB);
-check("#eA", st.eA);
-check("#eB", st.eB);
-
-   const cmp = $("#cmp", host);
-   if (cmp) setTick(cmp, "nu"); // non noté
-
-   return { ok, total: tot };
- },
-
- solution(host, st) {
-   host.querySelectorAll('.steps').forEach(s => s.innerHTML = this.printSolutionHTML(st));
-   typeset(host);
- },
-
- printSolutionHTML(st) {
-    const A = st.A, B = st.B;
-    const eA = st.eA ?? (A.xmax - A.xmin);
-    const eB = st.eB ?? (B.xmax - B.xmin);
-
-    const medComment =
-      A.med === B.med
-        ? `Les deux groupes ont la <strong>même médiane</strong> (\\(${A.med}\\)) : leur niveau central est identique.`
-        : (A.med > B.med
-           ? `La médiane du groupe A est légèrement plus grande que celle du groupe B (\\(${A.med}\\) contre \\(${B.med}\\)) : le niveau central de A est un peu plus élevé.`
-           : `La médiane du groupe B est légèrement plus grande que celle du groupe A (\\(${B.med}\\) contre \\(${A.med}\\)) : le niveau central de B est un peu plus élevé.`);
-
-    let eiqComment;
-    if (st.eiqA > st.eiqB) {
-      eiqComment = `L’écart interquartile du groupe A est plus grand (\\(${st.eiqA}\\)) que celui du groupe B (\\(${st.eiqB}\\)) : les valeurs de A sont plus dispersées au centre de la série.`;
-    } else if (st.eiqA < st.eiqB) {
-      eiqComment = `L’écart interquartile du groupe B est plus grand (\\(${st.eiqB}\\)) que celui du groupe A (\\(${st.eiqA}\\)) : les valeurs de B sont plus dispersées au centre de la série.`;
-    } else {
-      eiqComment = `Les deux groupes ont le même écart interquartile (\\(${st.eiqA}\\)) : la dispersion au centre est comparable.`;
-    }
-
-    let extComment;
-    if (eA > eB) {
-      extComment = `L’étendue de A vaut \\(e_A = ${eA}\\), 
-      et celle de B vaut \\(e_B = ${eB}\\).<br>
-      L’étendue plus grande pour A montre que les <strong>valeurs extrêmes</strong> y sont plus éloignées : globalement, la série A est plus étalée.`;
-    } else if (eA < eB) {
-      extComment = `L’étendue de A vaut \\(e_A = ${eA}\\) et celle de B vaut \\(e_B = ${eB}\\).<br>
-      L’étendue plus grande pour B montre que les <strong>valeurs extrêmes</strong> y sont plus éloignées : globalement, la série B est plus étalée.`;
-    } else {
-      extComment = `Les deux groupes ont la même étendue \\(e_A = e_B = ${eA}\\) : les valeurs extrêmes sont réparties sur la même longueur de diagramme.`;
-    }
-
-    return `
-      <div class="step"><strong>1. Lecture des médianes :</strong><br>
-        Pour la série A : la médiane lue sur le diagramme est \\(M_{e} = ${A.med}\\).<br>
-        Pour la série B : la médiane lue sur le diagramme est \\(M_{e} = ${B.med}\\).
-      </div>
-
-      <div class="step"><strong>2. Écarts interquartiles :</strong><br>
-        Pour la série A : \\(Q_{1} = ${A.q1}\\), \\(Q_{3} = ${A.q3}\\) donc<br>
-        \\[
-          E_Q = Q_{3} - Q_{1} = ${A.q3} - ${A.q1} = ${st.eiqA}
-        \\]<br>
-        Pour la série B : \\(Q_{1} = ${B.q1}\\), \\(Q_{3} = ${B.q3}\\) donc<br>
-        \\[
-          E_Q = Q_{3} - Q_{1} = ${B.q3} - ${B.q1} = ${st.eiqB}
-        \\]
-      </div>
-
-      <div class="step"><strong>3. Valeurs extrêmes et étendue :</strong><br>
-        Série A : \\(x_{\\min} = ${A.xmin}\\), \\(x_{\\max} = ${A.xmax}\\), donc étendue<br>
-        \\[
-          e_A = x_{\\max} - x_{\\min} = ${A.xmax} - ${A.xmin} = ${eA}
-        \\]<br>
-        Série B : \\(x_{\\min} = ${B.xmin}\\), \\(x_{\\max} = ${B.xmax}\\), donc étendue<br>
-        \\[
-          e_B = x_{\\max} - x_{\\min} = ${B.xmax} - ${B.xmin} = ${eB}
-        \\]<br><br>
-        ${extComment}
-      </div>
-
-<div class="step"><strong>4. Comparaison globale :</strong><br>
-
-  <!-- Niveau central -->
-  ${medComment}<br><br>
-
-  <!-- Dispersion centrale -->
-  ${eiqComment}<br><br>
-
-  <!-- Dispersion globale -->
-  ${
-    st.eA > st.eB
-      ? `L’étendue de A (${st.eA}) est plus grande que celle de B (${st.eB}).`
-      : st.eA < st.eB
-        ? `L’étendue de B (${st.eB}) est plus grande que celle de A (${st.eA}).`
-        : `Les deux étendues sont identiques (${st.eA}).`
+  reset(host) {
+    host.querySelectorAll('input,textarea').forEach(i => i.value = '');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s => s.innerHTML = '');
   }
-  <br><br>
-
-  <!-- Conclusion homogène / hétérogène -->
-  ${
-    (st.eiqA + st.eA) < (st.eiqB + st.eB)
-      ? `👉 <strong>La série A est plus homogène (plus régulière)</strong>,
-         car ses valeurs sont globalement moins dispersées.`
-      : (st.eiqA + st.eA) > (st.eiqB + st.eB)
-        ? `👉 <strong>La série B est plus homogène (plus régulière)</strong>,
-           car ses valeurs sont globalement moins dispersées.`
-        : `👉 <strong>Les deux séries présentent une homogénéité comparable.</strong>`
-  }
-  <br><br>
-
-  ${
-    (st.eiqA + st.eA) > (st.eiqB + st.eB)
-      ? `La série A est donc plus <strong>hétérogène / irrégulière</strong>.`
-      : (st.eiqA + st.eA) < (st.eiqB + st.eB)
-        ? `La série B est donc plus <strong>hétérogène / irrégulière</strong>.`
-        : `Aucune des deux séries n’est significativement plus irrégulière.`
-  }
-
-</div>
-
-    `;
-  },
-
- reset(host) {
-   host.querySelectorAll("input,textarea").forEach(i => i.value = "");
-   clearTicks(host);
-   host.querySelectorAll(".steps").forEach(s => s.innerHTML = "");
- }
 };
 
 
+/* ====== Exercice 6 : Comparer deux séries (quantitatif continu) ====== */
+const PATTERNS_QCONTINU = [
+  // N = 60
+  { N:60, A:[ 4,10,32,10, 4], B:[12, 8,20, 8,12] },
+  // N = 50
+  { N:50, A:[ 3, 8,28, 8, 3], B:[10, 7,16, 7,10] },
+  // N = 72
+  { N:72, A:[ 6,10,40,10, 6], B:[14,10,24,10,14] }
+];
+
+
+
+const ex6 = {
+  id: 'stat_comp_qcontinu',
+  title: 'Comparer deux séries – Quantitatif continu',
+
+  gen() {
+    // 5 classes contiguës [a0;a0+w[, ..., [a0+4w;a0+5w[
+    const k = 5;
+    const a0 = 0;
+    const width = 10;
+    const classes = [];
+    for (let i = 0; i < k; i++) {
+      classes.push({ a: a0 + i * width, b: a0 + (i + 1) * width });
+    }
+    const centers = classes.map(I => (I.a + I.b) / 2); // 5,15,25,35,45
+
+    let lastState = null;
+
+    for (let attempt = 0; attempt < 400; attempt++) {
+      // --- 1) Choix d’un total N ---
+      const N = rint(25, 80);
+      const minEff = 3;
+      const maxEff = Math.floor(N / 2);
+
+      // --- 2) Construire effA non symétrique mais équilibré ---
+      let effA = null;
+
+      for (let innerA = 0; innerA < 400; innerA++) {
+        const base = Math.floor(N / 5);
+        const di = [];
+        let sumD = 0;
+
+        for (let i = 0; i < 4; i++) {
+          const d = rint(-4, 4);
+          di.push(d);
+          sumD += d;
+        }
+        di.push(-sumD);
+
+        const candidate = di.map(d => base + d);
+        const totCheck = candidate.reduce((S, e) => S + e, 0);
+        if (totCheck !== N) continue;
+
+        const minA = Math.min(...candidate);
+        const maxA = Math.max(...candidate);
+        if (minA < minEff || maxA > maxEff) continue;
+        if (maxA - minA < 4) continue;
+        if (maxA / minA > 3) continue;
+
+        effA = candidate;
+        break;
+      }
+
+      if (!effA) continue;
+
+      // --- 3) effB : même N et même moyenne (par centres de classes) ---
+      const S1 = effA.reduce((S, n_i, i) => S + n_i * centers[i], 0);
+
+      let effB = null;
+
+      for (let innerB = 0; innerB < 800; innerB++) {
+        const b0 = rint(minEff, maxEff);
+        const b1 = rint(minEff, maxEff);
+        const b2 = rint(minEff, maxEff);
+
+        const S0p = N - (b0 + b1 + b2);
+        if (S0p < 2 * minEff || S0p > 2 * maxEff) continue;
+
+        const S1p = S1 - (b0 * centers[0] + b1 * centers[1] + b2 * centers[2]);
+
+        const v3 = centers[3];
+        const v4 = centers[4];
+        const denom = (v3 - v4);
+        if (denom === 0) continue;
+
+        const b3 = (S1p - S0p * v4) / denom;
+        const b4 = S0p - b3;
+
+        if (!Number.isInteger(b3) || !Number.isInteger(b4)) continue;
+        if (b3 < minEff || b3 > maxEff || b4 < minEff || b4 > maxEff) continue;
+
+        const candidateB = [b0, b1, b2, b3, b4];
+
+        const minB = Math.min(...candidateB);
+        const maxB = Math.max(...candidateB);
+        if (maxB - minB < 4) continue;
+        if (maxB / minB > 3) continue;
+
+        let diffCount3 = 0;
+        let l1 = 0;
+        for (let i = 0; i < 5; i++) {
+          const d = Math.abs(candidateB[i] - effA[i]);
+          l1 += d;
+          if (d >= 3) diffCount3++;
+        }
+        if (diffCount3 < 3) continue;
+        if (l1 < N * 0.4) continue;
+
+        effB = candidateB;
+        break;
+      }
+
+      if (!effB) continue;
+
+      // --- 4) Statistiques (par centres de classes) ---
+      const sumA = centers.reduce((S, c, i) => S + c * effA[i], 0);
+      const sumB = centers.reduce((S, c, i) => S + c * effB[i], 0);
+
+      const meanA = sumA / N;
+      const meanB = sumB / N;
+
+      const sigmaA = Math.sqrt(
+        centers.reduce((S, c, i) => S + effA[i] * (c - meanA) ** 2, 0) / N
+      );
+      const sigmaB = Math.sqrt(
+        centers.reduce((S, c, i) => S + effB[i] * (c - meanB) ** 2, 0) / N
+      );
+
+      const state = {
+        classes,
+        centers,
+        effA,
+        effB,
+        sumA,
+        sumB,
+        totA: N,
+        totB: N,
+        meanA,
+        meanB,
+        sigmaA,
+        sigmaB
+      };
+      lastState = state;
+
+      if (Math.abs(sigmaA - sigmaB) > 0.7) {
+        return state;
+      }
+    }
+
+    return lastState;
+  },
+
+  render(host, st) {
+    let head = `<th>Valeur du caractère (u)</th>`;
+    let rowA = '<td>Effectif série A</td>';
+    let rowB = '<td>Effectif série B</td>';
+
+    for (let i = 0; i < st.classes.length; i++) {
+      const I = st.classes[i];
+      head += `<th>[${I.a} ; ${I.b}[</th>`;
+      rowA += `<td>${st.effA[i]}</td>`;
+      rowB += `<td>${st.effB[i]}</td>`;
+    }
+
+    host.innerHTML = `
+      <p>On étudie un même caractère quantitatif continu dans deux séries statistiques, notées A et B. 
+      Les valeurs ont été regroupées en classes d’amplitude constante, et le tableau ci-dessous indique 
+      pour chaque classe le nombre d’observations dans chaque série.</p>
+
+      <table class="tbl-solution pdfb">
+        <thead><tr>${head}</tr></thead>
+        <tbody>
+          <tr>${rowA}</tr>
+          <tr>${rowB}</tr>
+        </tbody>
+      </table>
+
+      <p><strong>Écarts-types :</strong> σ<sub>A</sub> = ${fmtFreq(st.sigmaA)}, 
+      σ<sub>B</sub> = ${fmtFreq(st.sigmaB)}</p>
+
+      <div class="q-block">
+        <p><strong>1.</strong> En utilisant les centres de classes, calculer la moyenne de la série A. 
+        <input type="text" id="mA"></p>
+
+        <p><strong>2.</strong> En utilisant les centres de classes, calculer la moyenne de la série B. 
+        <input type="text" id="mB"></p>
+
+        <p><strong>3.</strong> Comparer les deux séries (niveau moyen et dispersion).<br>
+
+
+
+      </div>
+
+      <div class="steps screen-only"></div>
+      <div class="steps print-only"></div>
+    `;
+    clearTicks(host);
+    typeset(host);
+  },
+
+  correct(host, st) {
+    let ok = 0, tot = 0;
+
+    const inpA = $('#mA', host);
+    const inpB = $('#mB', host);
+
+    if (inpA) {
+      const raw = inpA.value.trim();
+      if (!raw) {
+        setTick(inpA, 'nu');
+      } else {
+        const v = parseNumber(raw);
+        tot++;
+        if (approxEqual(v, st.meanA)) { ok++; setTick(inpA, 'ok'); }
+        else setTick(inpA, 'ko');
+      }
+    }
+
+    if (inpB) {
+      const raw = inpB.value.trim();
+      if (!raw) {
+        setTick(inpB, 'nu');
+      } else {
+        const v = parseNumber(raw);
+        tot++;
+        if (approxEqual(v, st.meanB)) { ok++; setTick(inpB, 'ok'); }
+        else setTick(inpB, 'ko');
+      }
+    }
+
+    const cmp = $('#cmp', host);
+    if (cmp) setTick(cmp, 'nu');
+
+    return { ok, total: tot };
+  },
+
+  solution(host, st) {
+    const html = this.printSolutionHTML(st);
+    host.querySelectorAll('.steps').forEach(s => { s.innerHTML = html; });
+    typeset(host);
+  },
+
+  printSolutionHTML(st) {
+    const mA = fmtFreq(st.meanA);
+    const mB = fmtFreq(st.meanB);
+    const sA = fmtFreq(st.sigmaA);
+    const sB = fmtFreq(st.sigmaB);
+
+    const centers = st.centers || st.classes.map(I => (I.a + I.b) / 2);
+
+    const termsA = centers.map((c, i) => `${c}\\times ${st.effA[i]}`).join(' + ');
+    const termsB = centers.map((c, i) => `${c}\\times ${st.effB[i]}`).join(' + ');
+
+    const sumA = st.sumA ?? centers.reduce((S, c, i) => S + c * st.effA[i], 0);
+    const sumB = st.sumB ?? centers.reduce((S, c, i) => S + c * st.effB[i], 0);
+    const totA = st.totA ?? st.effA.reduce((S, x) => S + x, 0);
+    const totB = st.totB ?? st.effB.reduce((S, x) => S + x, 0);
+
+    const signA = isExactRatio(sumA, totA) ? '=' : '\\approx';
+    const signB = isExactRatio(sumB, totB) ? '=' : '\\approx';
+
+    const eps = 1e-6;
+
+    let meanComment;
+    if (Math.abs(st.meanA - st.meanB) < eps) {
+      meanComment =
+        `Les deux séries ont la <strong>même moyenne</strong>, égale à \\(${mA}\\). 
+        Le <strong>niveau moyen</strong> est donc identique.`;
+    } else if (st.meanA > st.meanB) {
+      meanComment =
+        `La série A a une <strong>moyenne plus élevée</strong> que la série B :
+         \\(\\bar{x}_A \\approx ${mA}\\) contre \\(\\bar{x}_B \\approx ${mB}\\).`;
+    } else {
+      meanComment =
+        `La série B a une <strong>moyenne plus élevée</strong> que la série A :
+         \\(\\bar{x}_B \\approx ${mB}\\) contre \\(\\bar{x}_A \\approx ${mA}\\).`;
+    }
+
+    let sigmaComment;
+    if (Math.abs(st.sigmaA - st.sigmaB) < eps) {
+      sigmaComment =
+        `Les deux séries ont des écarts-types très proches (σ ≈ ${sA}).<br>
+         La dispersion autour de la moyenne est donc comparable.`;
+    } else if (st.sigmaA > st.sigmaB) {
+      sigmaComment =
+        `L’écart-type de la série A est plus grand que celui de la série B 
+         (σ<sub>A</sub> \\(\\approx ${sA}\\), σ<sub>B</sub> \\(\\approx ${sB}\\)).<br>
+         Les valeurs de <strong>A</strong> sont donc plus dispersées autour de la moyenne, 
+         et la moyenne de A est moins représentative.`;
+    } else {
+      sigmaComment =
+        `L’écart-type de la série B est plus grand que celui de la série A 
+         (σ<sub>B</sub> \\(\\approx ${sB}\\), σ<sub>A</sub> \\(\\approx ${sA}\\)).<br>
+         Les valeurs de <strong>B</strong> sont donc plus dispersées autour de la moyenne, 
+         et la moyenne de B est moins représentative.`;
+    }
+
+    return `
+      <div class="step"><strong>Calcul de la moyenne de la série A (par centres de classes) :</strong><br>
+    On note \\(\\bar{x}_A\\) la moyenne de la série A.<br>
+      \\[
+        \\bar{x}_A
+        = \\dfrac{${termsA}}{${totA}}
+        = \\dfrac{${sumA}}{${totA}}
+        ${signA} ${mA}
+      \\]
+      </div>
+
+      <div class="step"><strong>Calcul de la moyenne de la série B (par centres de classes) :</strong><br>
+         On note \\(\\bar{x}_B\\) la moyenne de la série B.<br>
+
+	 \\[
+        \\bar{x}_B
+        = \\dfrac{${termsB}}{${totB}}
+        = \\dfrac{${sumB}}{${totB}}
+        ${signB} ${mB}
+      \\]
+      </div>
+
+      <div class="step"><strong>Comparaison des moyennes :</strong><br>
+      ${meanComment}
+      </div>
+
+      <div class="step"><strong>Comparaison des dispersions :</strong><br>
+      ${sigmaComment}
+      </div>
+    `;
+  },
+
+  reset(host) {
+    host.querySelectorAll('input,textarea').forEach(i => i.value = '');
+    clearTicks(host);
+    host.querySelectorAll('.steps').forEach(s => s.innerHTML = '');
+  }
+};
+
 
 /* ====== Registre & navigation ====== */
-const REGISTRY = [ex7,ex1,ex3,ex4];
+const REGISTRY = [ex7,ex1,ex3,ex5,ex6];
 window.REGISTRY = REGISTRY;
 
 function getDefById(id){

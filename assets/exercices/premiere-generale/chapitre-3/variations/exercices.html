@@ -167,6 +167,10 @@ function toJSExpr(s){
        .replace(/([a-z])\(/gi,'$1*(')
        .replace(/\)([a-z])/gi,')*$1')
        .replace(/([a-z])([a-z])/gi,'$1*$2');
+	   // Force -n^3 → -(n**3) pour éviter les ambiguïtés JavaScript
+s = s.replace(/^-([a-z0-9(].*)/i, '-($1)');
+
+
   return s;
 }
 function sameExprToFn(expr, fn){
@@ -218,14 +222,33 @@ function normTxt(s){
   return s;
 }
 function normSet(s){
+  s = (s || '').toString();
+
+  // enlève les espaces
   s = s.replace(/\s/g,'');
-  if(/^(n|\u2115)$/.test(s)) return 'N';
-  if(/^(n\*|\u2115\*)$/.test(s)) return 'N*';
-  if(/^(r|\u211d)$/.test(s)) return 'R';
-  if(/^r\+$/.test(s)) return 'R+';
-  if(/^r\+\*$/.test(s)) return 'R+*';
+
+  // unifie les infinis : +∞, ∞, +oo → +oo
+  s = s.replace(/\+?∞/gi, '+oo');
+
+  // ENSEMBLES CLASSIQUES
+  if(/^(n|\u2115)$/i.test(s))        return 'N';
+  if(/^(n\*|\u2115\*)$/i.test(s))    return 'N*';
+  if(/^(r|\u211d)$/i.test(s))        return 'R';
+
+  // R+ : soit "R+", soit un intervalle [0;+oo[
+  if(/^r\+$/i.test(s))               return 'R+';
+  if(/^\[0;\+oo\[$/i.test(s))        return 'R+';
+
+  // R+* : R+*, R*+, R*+? ou un intervalle ]0;+oo[
+  if(/^r\+\*$/i.test(s))             return 'R+*';
+  if(/^r\*\+$/i.test(s))             return 'R+*';
+  if(/^\]0;\+oo\[$/i.test(s))        return 'R+*';
+
+  // on garde tel quel pour d'autres cas éventuels
   return s;
 }
+
+
 
 /* Fractions jolies (numériques) pour la correction */
 function fracHTML(p,q){
@@ -325,52 +348,78 @@ this._obj = pick();
       const o = this._obj;
 
     
-const bloc1 = `
+ const bloc1 = `
   <p>Compléter :  ${kindSel}</p>
 
-<p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>Pour tout entier naturel \\(n\\),, on a :
+  <p>Pour tout entier naturel \\(n\\), on a :
      \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}
      ${mkSelect('e1s0',[['ge0','≥ 0'],['le0','≤ 0'],['eq0','= 0']])}
+     <span id="t_e1_fx1" class="tick"></span>
+     <span id="t_e1_s0" class="tick"></span>
   </p>
 
   <p>
     \\(u_{n+1}\\) ${mkSelect('e1s1',[['ge','≥'],['le','≤'],['eq','=']])} \\(u_n\\).
-    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class',180)} sur ${mkInput('e1_txt_set',80)}.
+    <span id="t_e1_s1" class="tick"></span>
+    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class',180)}
+    <span id="t_e1_class" class="tick"></span>
+    sur ${mkInput('e1_txt_set',80)}.
+    <span id="t_e1_set" class="tick"></span>
     <span id="t_e1_all" class="tick"></span>
   </p>
-    <div class="equ-offscreen" style="display:none">
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
 
 
       const info = o.info||{};
-     const bloc2 = `
-  <p>Compléter :  ${kindSel}</p>
-    <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>Pour tout entier naturel \\(n\\),, on a :
-     \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}.</p>
+     
+   const bloc2 = `
+  <p>Compléter :  ${kindSel}</p>
+
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+
+  <p>Pour tout entier naturel \\(n\\), on a :
+     \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}.
+     <span id="t_e1_fx1_q" class="tick"></span>
+  </p>
 
   <p>Il faut chercher le signe de \\(f\\) définie par
-     \\(f(n)=\\) ${mkInput('e1_fx2',180)}.</p>
-  <p>\\(\\Delta=\\) ${mkInput('e1_D',120)} et \\(a\\) ${mkSelect('e1a',[['gt','>0'],['lt','<0']])}.</p>
-  <p>Ainsi pour tout réel \\(n\\),, \\(f(n)\\) ${mkSelect('e1signF',[['gt','>0'],['lt','<0']])}.</p>
+     \\(f(n)=\\) ${mkInput('e1_fx2',180)}.
+     <span id="t_e1_fx2_q" class="tick"></span>
+  </p>
+  <p>\\(\\Delta=\\) ${mkInput('e1_D',120)}
+     <span id="t_e1_D" class="tick"></span>
+     et \\(a\\) ${mkSelect('e1a',[['gt','>0'],['lt','<0']])}.
+     <span id="t_e1_a" class="tick"></span>
+  </p>
+  <p>Ainsi pour tout réel \\(n\\),, \\(f(n)\\)
+     ${mkSelect('e1signF',[['gt','>0'],['lt','<0']])}.
+     <span id="t_e1_signF" class="tick"></span>
+  </p>
   <p>
-    Donc \\(u_{n+1}\\) ${mkSelect('e1s1b',[['ge','>'],['le','<']])} \\(u_n\\).
-    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class2',180)} sur ${mkInput('e1_txt_set2',80)}.
+    Donc \\(u_{n+1}\\)
+    ${mkSelect('e1s1b',[['ge','>'],['le','<']])} \\(u_n\\).
+    <span id="t_e1_s1b" class="tick"></span>
+    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class2',180)}
+    <span id="t_e1_class2" class="tick"></span>
+    sur ${mkInput('e1_txt_set2',80)}.
+    <span id="t_e1_set2" class="tick"></span>
     <span id="t_e1_all2" class="tick"></span>
   </p>
-    <div class="equ-offscreen" style="display:none">
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
 
 const blocAff = `
   <p>Compléter :  ${kindSel}</p>
@@ -422,49 +471,77 @@ if(selE1){
 
   // blocs d’énoncé SANS <select> (le kit remplacera inputs par des lignes)
   const bloc1 = `
+  <p>Compléter :  ${kindSel}</p>
 
-<p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>Pour tout entier naturel \\(n\\),, on a :
+  <p>Pour tout entier naturel \\(n\\), on a :
      \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}
      ${mkSelect('e1s0',[['ge0','≥ 0'],['le0','≤ 0'],['eq0','= 0']])}
+     <span id="t_e1_fx1" class="tick"></span>
+     <span id="t_e1_s0" class="tick"></span>
   </p>
 
   <p>
     \\(u_{n+1}\\) ${mkSelect('e1s1',[['ge','≥'],['le','≤'],['eq','=']])} \\(u_n\\).
-    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class',180)} sur ${mkInput('e1_txt_set',80)}.
+    <span id="t_e1_s1" class="tick"></span>
+    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class',180)}
+    <span id="t_e1_class" class="tick"></span>
+    sur ${mkInput('e1_txt_set',80)}.
+    <span id="t_e1_set" class="tick"></span>
     <span id="t_e1_all" class="tick"></span>
   </p>
-    <div class="equ-offscreen" style="display:none">
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
 
      
-     const bloc2 = `
-    <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+   const bloc2 = `
+  <p>Compléter :  ${kindSel}</p>
 
-  <p>Pour tout entier naturel \\(n\\),, on a :
-     \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}.</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+
+  <p>Pour tout entier naturel \\(n\\), on a :
+     \\(u_{n+1}-u_n =\\) ${mkInput('e1_fx1',180)}.
+     <span id="t_e1_fx1_q" class="tick"></span>
+  </p>
 
   <p>Il faut chercher le signe de \\(f\\) définie par
-     \\(f(n)=\\) ${mkInput('e1_fx2',180)}.</p>
-  <p>\\(\\Delta=\\) ${mkInput('e1_D',120)} et \\(a\\) ${mkSelect('e1a',[['gt','>0'],['lt','<0']])}.</p>
-  <p>Ainsi pour tout réel \\(n\\),, \\(f(n)\\) ${mkSelect('e1signF',[['gt','>0'],['lt','<0']])}.</p>
+     \\(f(n)=\\) ${mkInput('e1_fx2',180)}.
+     <span id="t_e1_fx2_q" class="tick"></span>
+  </p>
+  <p>\\(\\Delta=\\) ${mkInput('e1_D',120)}
+     <span id="t_e1_D" class="tick"></span>
+     et \\(a\\) ${mkSelect('e1a',[['gt','>0'],['lt','<0']])}.
+     <span id="t_e1_a" class="tick"></span>
+  </p>
+  <p>Ainsi pour tout réel \\(n\\),, \\(f(n)\\)
+     ${mkSelect('e1signF',[['gt','>0'],['lt','<0']])}.
+     <span id="t_e1_signF" class="tick"></span>
+  </p>
   <p>
-    Donc \\(u_{n+1}\\) ${mkSelect('e1s1b',[['ge','>'],['le','<']])} \\(u_n\\).
-    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class2',180)} sur ${mkInput('e1_txt_set2',80)}.
+    Donc \\(u_{n+1}\\)
+    ${mkSelect('e1s1b',[['ge','>'],['le','<']])} \\(u_n\\).
+    <span id="t_e1_s1b" class="tick"></span>
+    Ainsi la suite \\((u_n)\\) est ${mkInput('e1_txt_class2',180)}
+    <span id="t_e1_class2" class="tick"></span>
+    sur ${mkInput('e1_txt_set2',80)}.
+    <span id="t_e1_set2" class="tick"></span>
     <span id="t_e1_all2" class="tick"></span>
   </p>
-    <div class="equ-offscreen" style="display:none">
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_{n+1}=${joinPlus('u_n', o.fLatex)}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
 const blocAff = `
 
@@ -495,7 +572,7 @@ const blocAff = `
   retypeMath(host);
 },
 
-    _expect(){
+ _expect(){
   const o=this._obj, t=o.info.type;
 
   const signOnN = (fn)=>{
@@ -505,17 +582,9 @@ const blocAff = `
     const allEQ0 = vals.every(v => v === 0);
     return { allGE0, allLE0, allEQ0 };
   };
-if (t === 'aff') {
-  return {
-    mode: 'aff',
-    n0: this._obj.info.n0,   // < 0
-    cls: 'croissante',       // m>0 et p>0 ⇒ f(n)=mn+p > 0 pour tout n∈ℕ
-    set: 'N'
-  };
-}
 
-  if(t==='quadneg'){
-    const D=o.info.D, a=o.info.a;
+  if(t === 'quadneg'){
+    const D = o.info.D, a = o.info.a;
     return {
       mode:'quadneg',
       Delta:D,
@@ -525,79 +594,194 @@ if (t === 'aff') {
       cls:(a>0?'croissante':'décroissante'),
       set:'N'
     };
-  }else{
-    const S = signOnN(o.f);
-    let s0, ineq, cls;
-    if(S.allEQ0){ s0='eq0'; ineq='eq'; cls='constante'; }
-    else if(S.allGE0){ s0='ge0'; ineq='ge'; cls='croissante'; }
-    else if(S.allLE0){ s0='le0'; ineq='le'; cls='décroissante'; }
-    else { s0='mix'; ineq=''; cls='ni'; } // (ne devrait pas arriver avec nos familles)
-    return { mode:'basic', s0, ineq, cls, set:'N' };
   }
-}
-,
-    check(host){
-      if(!this._obj) return;
-      const E=this._expect();
-      let ok=true, tot=0, good=0;
 
-      if(E.mode==='basic'){
-  // 6 vérifications : f0, f1, signe, inégalité, nature, ensemble
-  const okfx0 = sameExprToFn(val('e1_fx0'), this._obj.f);
-  const okfx1 = sameExprToFn(val('e1_fx1'), this._obj.f);
-  const ok_s0 = (val('e1s0') && val('e1s0')===E.s0);
-  const ok_s1 = (val('e1s1') && val('e1s1')===E.ineq);
-  const ok_cls = (normTxt(val('e1_txt_class'))===E.cls);
-  const ok_set = (normSet(val('e1_txt_set'))===E.set);
+  // Tous les autres cas (constante, linéaire, affine, n², n³) → mode 'basic'
+  const S = signOnN(o.f);
+  let s0, ineq, cls;
+  if(S.allEQ0){ s0='eq0'; ineq='eq'; cls='constante'; }
+  else if(S.allGE0){ s0='ge0'; ineq='ge'; cls='croissante'; }
+  else if(S.allLE0){ s0='le0'; ineq='le'; cls='décroissante'; }
+  else { s0='mix'; ineq=''; cls='ni'; } // ne devrait pas arriver
+  return { mode:'basic', s0, ineq, cls, set:'N' };
+},
 
-  tickTri($('#t_e1_all',host), okfx0 && okfx1 && ok_s0 && ok_s1 && ok_cls && ok_set);
+check(host){
+  if(!this._obj) return;
+  const E = this._expect();
+  let good = 0, tot = 0;
 
-  const good = [okfx0,okfx1,ok_s0,ok_s1,ok_cls,ok_set].filter(Boolean).length;
-  SCORE=[good,6]; scoreSet(SCORE[0],SCORE[1]);
-}
-else if (E.mode === 'aff') {
-  // si un e1_fx0 existe (selon ta version), on le corrige ; sinon on l’ignore
-  const okfx0 = document.getElementById('e1_fx0')
-    ? sameExprToFn(val('e1_fx0'), this._obj.f)
-    : true;
+  /* ========= CAS BASIC (const, lin, affine, n², n³) ========= */
+  if (E.mode === 'basic') {
+    const v_fx1   = val('e1_fx1');
+    const v_s0    = val('e1s0');
+    const v_s1    = val('e1s1');
+    const v_cls   = normTxt(val('e1_txt_class'));
+    const rawSet  = val('e1_txt_set');
+    const v_set   = normSet(rawSet);
 
-  const okfx1 = sameExprToFn(val('e1_fx1'), this._obj.f);
-  const okineq= (val('e1_ineq_aff') === E.ineq);
-  const okn0  = numEq(val('e1_n0'), E.n0);
-  const okc   = (normTxt(val('e1_txt_class')) === E.cls);
-  const oks   = (normSet(val('e1_txt_set')) === E.set);
+    const hasFx1  = v_fx1 !== '';
+    const hasS0   = !!v_s0;
+    const hasS1   = !!v_s1;
+    const hasCls  = v_cls !== '';
+    const hasSet  = rawSet.trim() !== '';
 
-  const parts = [okfx1, okineq, okn0, okc, oks];
-  if (document.getElementById('e1_fx0')) parts.push(okfx0);
+    const allFilled = hasFx1 && hasS0 && hasS1 && hasCls && hasSet;
 
-  tickTri($('#t_e1_all_aff',host), parts.every(Boolean));
-  const good = parts.filter(Boolean).length;
-  SCORE=[good, parts.length]; scoreSet(SCORE[0], SCORE[1]);
-}
+    // u_{n+1}-u_n
+    if (hasFx1) {
+      const ok = sameExprToFn(v_fx1, this._obj.f);
+      tickTri($('#t_e1_fx1',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e1_fx1',host), null);
+    }
+
+    // signe de la différence (select) → neutre tant que tout n'est pas rempli
+    if (hasS0) {
+      const ok = (v_s0 === E.s0);
+      tickTri($('#t_e1_s0',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e1_s0',host), null);
+    }
+
+    // comparaison u_{n+1} / u_n (select) → idem
+    if (hasS1) {
+      const ok = (v_s1 === E.ineq);
+      tickTri($('#t_e1_s1',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e1_s1',host), null);
+    }
+
+    // nature de la suite
+    if (hasCls) {
+      const target = (E.cls === 'ni'
+        ? 'ni croissante ni décroissante'
+        : E.cls);
+      const ok = (v_cls === normTxt(target));
+      tickTri($('#t_e1_class',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e1_class',host), null);
+    }
+
+    // ensemble
+    if (hasSet) {
+      const ok = (v_set === E.set);
+      tickTri($('#t_e1_set',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e1_set',host), null);
+    }
+
+    // Tick global : seulement quand tout est rempli
+    const expectedBasic = 5; // fx1, s0, s1, class, set
+    if (allFilled) {
+      tickTri($('#t_e1_all',host), good === expectedBasic);
+    } else {
+      tickTri($('#t_e1_all',host), null);
+    }
+
+    SCORE = [good, tot || 1];
+    scoreSet(SCORE[0], SCORE[1]);
+    return;
+  }
+
+  /* ========= CAS QUADNEG (polynôme Δ<0) ========= */
+  if (E.mode === 'quadneg') {
+    const v_fx1    = val('e1_fx1');
+    const v_fx2    = val('e1_fx2');
+    const v_D      = val('e1_D');
+    const v_a      = val('e1a');
+    const v_signF  = val('e1signF');
+    const v_s1b    = val('e1s1b');
+    const v_cls2   = normTxt(val('e1_txt_class2'));
+    const rawSet2  = val('e1_txt_set2');
+    const v_set2   = normSet(rawSet2);
+
+    const hasFx1   = v_fx1 !== '';
+    const hasFx2   = v_fx2 !== '';
+    const hasD     = v_D !== '';
+    const hasA     = !!v_a;
+    const hasSignF = !!v_signF;
+    const hasS1b   = !!v_s1b;
+    const hasCls2  = v_cls2 !== '';
+    const hasSet2  = rawSet2.trim() !== '';
+
+    const allFilled = hasFx1 && hasFx2 && hasD && hasA &&
+                      hasSignF && hasS1b && hasCls2 && hasSet2;
+
+    // u_{n+1}-u_n
+    if (hasFx1) {
+      const ok = sameExprToFn(v_fx1, this._obj.f);
+      tickTri($('#t_e1_fx1_q',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_fx1_q',host), null);
+
+    // f(n)
+    if (hasFx2) {
+      const ok = sameExprToFn(v_fx2, this._obj.f);
+      tickTri($('#t_e1_fx2_q',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_fx2_q',host), null);
+
+    // Δ
+    if (hasD) {
+      const ok = Number(v_D) === E.Delta;
+      tickTri($('#t_e1_D',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_D',host), null);
+
+    // signe de a (select)
+    if (hasA) {
+      const ok = (v_a === E.aSign);
+      tickTri($('#t_e1_a',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_a',host), null);
+
+    // signe de f (select)
+    if (hasSignF) {
+      const ok = (v_signF === E.signF);
+      tickTri($('#t_e1_signF',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_signF',host), null);
+
+    // comparaison u_{n+1} / u_n (select)
+    if (hasS1b) {
+      const ok = (v_s1b === E.ineq);
+      tickTri($('#t_e1_s1b',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_s1b',host), null);
+
+    // nature
+    if (hasCls2) {
+      const ok = (v_cls2 === normTxt(E.cls));
+      tickTri($('#t_e1_class2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_class2',host), null);
+
+    // ensemble
+    if (hasSet2) {
+      const ok = (v_set2 === E.set);
+      tickTri($('#t_e1_set2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e1_set2',host), null);
+
+    const expectedQuad = 8;
+    if (allFilled) {
+      tickTri($('#t_e1_all2',host), good === expectedQuad);
+    } else {
+      tickTri($('#t_e1_all2',host), null);
+    }
+
+    SCORE = [good, tot || 1];
+    scoreSet(SCORE[0], SCORE[1]);
+  }
+},
 
 
-else{
-  // QUADNEG
-  tot+=6;
-  const okD  = val('e1_D') ? (Number(val('e1_D'))===E.Delta) : false;
-  const oka  = val('e1a') ? (val('e1a')===E.aSign) : false;
-  const okf  = val('e1signF') ? (val('e1signF')===E.signF) : false;
-  const oki  = val('e1s1b') ? (val('e1s1b')===E.ineq) : false;
-  const okc  = normTxt(val('e1_txt_class2'))===E.cls;
-  const oks  = normSet(val('e1_txt_set2'))===E.set;
-
-  // nouveaux contrôles : f(n)
-  const okfx1 = sameExprToFn(val('e1_fx1'), this._obj.f);
-  const okfx2 = sameExprToFn(val('e1_fx2'), this._obj.f);
-
-  tickTri($('#t_e1_all2',host), oka && okf && oki && okc && oks && okD && okfx1 && okfx2);
-  const arr = [okD,oka,okf,oki,okc,oks,okfx1,okfx2];
-  const good = arr.filter(Boolean).length;
-  SCORE=[Math.min(good,6),6]; // on borne à 6 pour le score affiché
-  scoreSet(SCORE[0],SCORE[1]);
-}
-
-    },
 solution(host, st){
 	  if(st) this._obj = st;          // <-- important pour le PDF
 
@@ -656,132 +840,184 @@ const kindSel = `<select id="e2-kind" style="margin-left:.3rem">
   <option value="lineaire">linéaire</option>
   <option value="affine">affine</option>
   <option value="carre">carré</option>
-  <option value="inverse">inverse</option>
+  <option value="inverse_n">inverse 1/n</option>
+  <option value="inverse_shift">inverse 1/(n + d)</option>
   <option value="poly2">polynôme du second degré</option>
 </select>`;
 
 
 
+
       const pick = ()=>{
-  const wanted = $('#e2-kind')?.value || loadKind('e2','mix');
-  const k = wanted === 'mix'
-    ? choice(['lineaire','affine','carre','inverse','poly2'])
-    : wanted;
+        const wanted = $('#e2-kind')?.value || loadKind('e2','mix');
+        const k = wanted === 'mix'
+          ? choice(['lineaire','affine','carre','inverse_n','inverse_shift','poly2'])
+          : wanted;
 
-  if(k==='lineaire'){
-    let m=rint(-6,6); if(m===0) m=2;     // m ≠ 0
-    const raw=(m<0?'−':'')+(Math.abs(m)===1?'':'{'+Math.abs(m)+'}')+'n';
-    const fLatex=cleanSigns(raw);
-    return {kind:k, fLatex, params:{m, p:0}};
-  }
+        if(k==='lineaire'){
+          let m=rint(-6,6); if(m===0) m=2;     // m ≠ 0
+          const raw=(m<0?'−':'')+(Math.abs(m)===1?'':'{'+Math.abs(m)+'}')+'n';
+          const fLatex=cleanSigns(raw);
+          return {kind:'lineaire', fLatex, params:{m, p:0}};
+        }
 
-  if(k==='affine'){
-    let m=rint(-6,6); if(m===0) m=2;
-    let p=rint(-6,6); if(p===0) p= rint(1,6); // p ≠ 0 pour distinguer d'un linéaire
-    const raw=(m<0?'−':'')+(Math.abs(m)===1?'':'{'+Math.abs(m)+'}')+'n'+(p>0?' + '+p:' − '+Math.abs(p));
-    const fLatex=cleanSigns(raw);
-    return {kind:k, fLatex, params:{m,p}};
-  }
+        if(k==='affine'){
+          let m=rint(-6,6); if(m===0) m=2;
+          let p=rint(-6,6); if(p===0) p= rint(1,6); // p ≠ 0
+          const raw=(m<0?'−':'')+(Math.abs(m)===1?'':'{'+Math.abs(m)+'}')+'n'
+                    +(p>0?' + '+p:' − '+Math.abs(p));
+          const fLatex=cleanSigns(raw);
+          return {kind:'affine', fLatex, params:{m,p}};
+        }
 
-  if(k==='carre'){
-    return {kind:k, fLatex:'n^2', params:{a:1}};
-  }
+        if(k==='carre'){
+          return {kind:'carre', fLatex:'n^2', params:{a:1}};
+        }
 
-  if(k==='inverse'){
-    const d=rint(0,4); // d=0 -> 1/n ; d>0 -> 1/(n+d)
-    const fLatex = `\\dfrac{1}{n${d?(d>0?' + '+d:' − '+Math.abs(d)):''}}`;
-    return {kind:k, fLatex, params:{d}};
-  }
+        // === Cas inverse 1/n (d=0) ou 1/(n+d) (d≥1) ===
+        if(k==='inverse_n' || k==='inverse_shift'){
+          const d = (k==='inverse_n') ? 0 : rint(1,4);
+          const fLatex = `\\dfrac{1}{n${d?( ' + '+d):''}}`;
+          return {kind:'inverse', fLatex, params:{d}};
+        }
 
- // poly2 — on force alpha = -b/(2a) < 0  ⇔  b et a de même signe, b≠0
-let a = choice([-2,-1,1,2]);
-let b = (a > 0 ? 1 : -1) * rint(1,5);  // b a le même signe que a, donc alpha<0
-let c = rint(-6,6);
-const fl = cleanSigns(`${a===1?'':(a===-1?'−':a+' ')}n^2${
-  b?(b>0?' + '+b+'n':' − '+Math.abs(b)+'n'):''}${
-  c?(c>0?' + '+c:' − '+Math.abs(c)):''}`);
-const alpha = -b/(2*a);  // < 0 garanti
-return {kind:'poly2', fLatex:fl, params:{a,b,c,alpha}};
+        // poly2 — on force alpha = -b/(2a) < 0 ...
+        let a = choice([-2,-1,1,2]);
+        let b = (a > 0 ? 1 : -1) * rint(1,5);
+        let c = rint(-6,6);
+        const fl = cleanSigns(`${a===1?'':(a===-1?'−':a+' ')}n^2${
+          b?(b>0?' + '+b+'n':' − '+Math.abs(b)+'n'):''}${
+          c?(c>0?' + '+c:' − '+Math.abs(c)):''}`);
+        const alpha = -b/(2*a);
+        return {kind:'poly2', fLatex:fl, params:{a,b,c,alpha}};
+      };
 
-};
 
 
 
 this._obj = pick();
       const o=this._obj;
 
-      const bloc_lin = `
+const bloc_lin = `
   <p>Compléter :  ${kindSel}</p>
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono',150)} sur ${mkInput('e2_f_set',80)}
-     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)} sur ${mkInput('e2_u_set',80)}.
-    <span id="t_e2_a" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}
+     <span id="t_e2_fk" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2_f_mono',150)}
+     <span id="t_e2_monoF" class="tick"></span>
+     sur ${mkInput('e2_f_set',80)}
+     <span id="t_e2_setF" class="tick"></span>
+     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}
+     <span id="t_e2_reason" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)}
+     <span id="t_e2_monoU" class="tick"></span>
+     sur ${mkInput('e2_u_set',80)}
+     <span id="t_e2_setU" class="tick"></span>.
+     <span id="t_e2_a" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
 const bloc_aff = `
   <p>Compléter :  ${kindSel}</p>
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono',150)} sur ${mkInput('e2_f_set',80)}
-     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)} sur ${mkInput('e2_u_set',80)}.
-    <span id="t_e2_a" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}
+     <span id="t_e2_fk" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2_f_mono',150)}
+     <span id="t_e2_monoF" class="tick"></span>
+     sur ${mkInput('e2_f_set',80)}
+     <span id="t_e2_setF" class="tick"></span>
+     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}
+     <span id="t_e2_reason" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)}
+     <span id="t_e2_monoU" class="tick"></span>
+     sur ${mkInput('e2_u_set',80)}
+     <span id="t_e2_setU" class="tick"></span>.
+     <span id="t_e2_a" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
 
 
-      const bloc_car = `
+      const artFunc = (o.kind === 'inverse' && o.params?.d > 0) ? 'une' : 'la';
+
+    const bloc_car = `
   <p>Compléter :  ${kindSel}</p>
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est la fonction ${mkInput('e2_f_name',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono2',150)} sur ${mkInput('e2_f_set2',80)}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono2',180)} sur ${mkInput('e2_u_set2',80)}.
-    <span id="t_e2_b" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est ${artFunc} fonction ${mkInput('e2_f_name',120)}.
+     <span id="t_e2_name" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2_f_mono2',150)}
+     <span id="t_e2_monoF2" class="tick"></span>
+     sur ${mkInput('e2_f_set2',80)}
+     <span id="t_e2_setF2" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono2',180)}
+     <span id="t_e2_monoU2" class="tick"></span>
+     sur ${mkInput('e2_u_set2',80)}
+     <span id="t_e2_setU2" class="tick"></span>.
+     <span id="t_e2_b" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
 
       const a=o.params?.a, alpha=o.params?.alpha;
       const bloc_p2 = `
-        <p>Compléter : ${kindSel}</p>
-        <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  <p>Compléter : ${kindSel}</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-        <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2p_kind',180)}.</p>
-        <p>Cette fonction est ${mkInput('e2p_m1',220)} sur ${mkInput('e2p_I1',180)}
-           ${'car'} ${mkInput('e2p_car',120)} et \\(\\alpha=\\) ${mkInput('e2p_alpha',90)}.</p>
-        <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2p_u',220)} sur ${mkInput('e2p_set',80)}.
-          <span id="t_e2_c" class="tick"></span>
-        </p>
-		<div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2p_kind',180)}
+     <span id="t_e2_kind" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2p_m1',220)}
+     <span id="t_e2_m1" class="tick"></span>
+     sur ${mkInput('e2p_I1',180)}
+     <span id="t_e2_I1" class="tick"></span>
+     car ${mkInput('e2p_car',120)}
+     <span id="t_e2_car" class="tick"></span>
+     et \\(\\alpha=\\) ${mkInput('e2p_alpha',90)}
+     <span id="t_e2_alpha" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2p_u',220)}
+     <span id="t_e2_u" class="tick"></span>
+     sur ${mkInput('e2p_set',80)}
+     <span id="t_e2_set" class="tick"></span>.
+     <span id="t_e2_c" class="tick"></span>
+  </p>
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
       let html = `<div class="row" data-kind="e2"><div class="statement">`;
       if(o.kind==='affine') html += bloc_aff;
+	       else if(o.kind==='lineaire') html += bloc_lin;
+
       else if(o.kind==='carre' || o.kind==='inverse') html += bloc_car;
       else html += bloc_p2;
       html += `</div><div id="steps" class="steps" style="display:none"></div></div>`;
@@ -807,70 +1043,119 @@ if(selE2){
   const kindTxt = labelKindE2(o.kind);
 
   const bloc_lin = `
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>Compléter :  ${kindSel}</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono',150)} sur ${mkInput('e2_f_set',80)}
-     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)} sur ${mkInput('e2_u_set',80)}.
-    <span id="t_e2_a" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}
+     <span id="t_e2_fk" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2_f_mono',150)}
+     <span id="t_e2_monoF" class="tick"></span>
+     sur ${mkInput('e2_f_set',80)}
+     <span id="t_e2_setF" class="tick"></span>
+     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}
+     <span id="t_e2_reason" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)}
+     <span id="t_e2_monoU" class="tick"></span>
+     sur ${mkInput('e2_u_set',80)}
+     <span id="t_e2_setU" class="tick"></span>.
+     <span id="t_e2_a" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
 const bloc_aff = `
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>Compléter :  ${kindSel}</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono',150)} sur ${mkInput('e2_f_set',80)}
-     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)} sur ${mkInput('e2_u_set',80)}.
-    <span id="t_e2_a" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2_f_kind',120)}
+     <span id="t_e2_fk" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2_f_mono',150)}
+     <span id="t_e2_monoF" class="tick"></span>
+     sur ${mkInput('e2_f_set',80)}
+     <span id="t_e2_setF" class="tick"></span>
+     car ${mkSelect('e2_reason_m',[['mpos','m>0'],['mneg','m<0'],['mzero','m=0']])}
+     <span id="t_e2_reason" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono',180)}
+     <span id="t_e2_monoU" class="tick"></span>
+     sur ${mkInput('e2_u_set',80)}
+     <span id="t_e2_setU" class="tick"></span>.
+     <span id="t_e2_a" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
 
 
-      const bloc_car = `
-  <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+
+    const artFunc = (o.kind === 'inverse' && o.params?.d > 0) ? 'une' : 'la';
+
+    const bloc_car = `
+  <p>Compléter :  ${kindSel}</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
   <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-  <p>\\(u_n=f(n)\\) où \\(f\\) est la fonction ${mkInput('e2_f_name',120)}.</p>
-  <p>Cette fonction est ${mkInput('e2_f_mono2',150)} sur ${mkInput('e2_f_set2',80)}.</p>
-  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono2',180)} sur ${mkInput('e2_u_set2',80)}.
-    <span id="t_e2_b" class="tick"></span>
+  <p>\\(u_n=f(n)\\) où \\(f\\) est ${artFunc} fonction ${mkInput('e2_f_name',120)}.
+     <span id="t_e2_name" class="tick"></span>.</p>
+  <p>Cette fonction est ${mkInput('e2_f_mono2',150)}
+     <span id="t_e2_monoF2" class="tick"></span>
+     sur ${mkInput('e2_f_set2',80)}
+     <span id="t_e2_setF2" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2_u_mono2',180)}
+     <span id="t_e2_monoU2" class="tick"></span>
+     sur ${mkInput('e2_u_set2',80)}
+     <span id="t_e2_setU2" class="tick"></span>.
+     <span id="t_e2_b" class="tick"></span>
   </p>
   <div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
 
 
       const a=o.params?.a, alpha=o.params?.alpha;
-      const bloc_p2 = `
-        <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+     const bloc_p2 = `
+  <p>Compléter : ${kindSel}</p>
+  <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+  <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
 
-        <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2p_kind',180)}.</p>
-        <p>Cette fonction est ${mkInput('e2p_m1',220)} sur ${mkInput('e2p_I1',180)}
-           ${'car'} ${mkInput('e2p_car',120)} et \\(\\alpha=\\) ${mkInput('e2p_alpha',90)}.</p>
-        <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2p_u',220)} sur ${mkInput('e2p_set',80)}.
-          <span id="t_e2_c" class="tick"></span>
-        </p>
-		<div class="equ-offscreen" style="display:none">
- <p>On considère pour tout eniter naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
-		<p>Donner le sens de variations de la suite \\((u_n)\\)</p>
-                </div>
-		`;
+  <p>\\(u_n=f(n)\\) où \\(f\\) est une fonction ${mkInput('e2p_kind',180)}
+     <span id="t_e2_kind" class="tick"></span>.
+  </p>
+  <p>Cette fonction est ${mkInput('e2p_m1',220)}
+     <span id="t_e2_m1" class="tick"></span>
+     sur ${mkInput('e2p_I1',180)}
+     <span id="t_e2_I1" class="tick"></span>
+     car ${mkInput('e2p_car',120)}
+     <span id="t_e2_car" class="tick"></span>
+     et \\(\\alpha=\\) ${mkInput('e2p_alpha',90)}
+     <span id="t_e2_alpha" class="tick"></span>.
+  </p>
+  <p>Ainsi la suite \\((u_n)\\) est ${mkInput('e2p_u',220)}
+     <span id="t_e2_u" class="tick"></span>
+     sur ${mkInput('e2p_set',80)}
+     <span id="t_e2_set" class="tick"></span>.
+     <span id="t_e2_c" class="tick"></span>
+  </p>
+  <div class="equ-offscreen" style="display:none">
+    <p>On considère pour tout entier naturel \\(n\\), \\(u_n=${o.fLatex}\\).</p>
+    <p>Donner le sens de variations de la suite \\((u_n)\\)</p>
+  </div>
+`;
+
 
   const body =
     o.kind==='lineaire' ? bloc_lin :
@@ -881,89 +1166,365 @@ const bloc_aff = `
   retypeMath(host);
 },
 
-    _expect(){
-      const o=this._obj;
-      if(o.kind==='lineaire'){
-  const m=o.params.m;
-  const fKind='lineaire';
-  const monoF = m>0?'croissante':(m<0?'décroissante':'constante');
-  return {mode:'lineaire', fKind, monoF, setF:'R', reason:(m>0?'mpos':(m<0?'mneg':'mzero')),
-          monoU:monoF, setU:'N' };
-}
-if(o.kind==='affine'){
-  const m=o.params.m, p=o.params.p;
-  const fKind='affine';
-  const monoF = m>0?'croissante':(m<0?'décroissante':'constante');
-  return {mode:'affine', fKind, monoF, setF:'R', reason:(m>0?'mpos':(m<0?'mneg':'mzero')),
-          monoU:monoF, setU:'N' };
-}
-if(o.kind==='carre'){
-  return {mode:'carre', name:'carrée', monoF:'croissante', setF:'R+', reason:'sq',
-          monoU:'croissante', setU:'N'};
-}
-if(o.kind==='inverse'){
-  // d=0 -> 1/n  (suite définie sur N*), d>0 -> 1/(n+d) (définie sur N)
-  const d=o.params.d;
-  return {mode:'inverse', name:'inverse', monoF:'décroissante',
-          setF:(d===0?'R+*':'R+'), reason:'inv',
-          monoU:'décroissante', setU:(d===0?'N*':'N')};
-}
+_expect(){
+  const o=this._obj;
 
-      // poly2 — avec alpha<0, f est monotone sur [0; +∞[
+  // --- fonction linéaire m·n ---
+  if(o.kind==='lineaire'){
+    const m=o.params.m;
+    const fKind='lineaire';
+    const monoF = m>0?'croissante':(m<0?'décroissante':'constante');
+    return {
+      mode:'lineaire',
+      fKind,
+      monoF,
+      setF:'R+',                 // f sur R+  ≡ [0;+oo[
+      reason:(m>0?'mpos':(m<0?'mneg':'mzero')),
+      monoU:monoF,
+      setU:'N'                   // suite sur N
+    };
+  }
+
+  // --- fonction affine m·n + p ---
+  if(o.kind==='affine'){
+    const m=o.params.m, p=o.params.p;
+    const fKind='affine';
+    const monoF = m>0?'croissante':(m<0?'décroissante':'constante');
+    return {
+      mode:'affine',
+      fKind,
+      monoF,
+      setF:'R+',                 // idem
+      reason:(m>0?'mpos':(m<0?'mneg':'mzero')),
+      monoU:monoF,
+      setU:'N'
+    };
+  }
+
+  // --- fonction carrée ---
+  if(o.kind==='carre'){
+    return {
+      mode:'carre',
+      name:'carrée',
+      monoF:'croissante',
+      setF:'R+',                 // R+ ≡ [0;+oo[
+      reason:'sq',
+      monoU:'croissante',
+      setU:'N'
+    };
+  }
+
+  // --- fonction inverse ---
+  if(o.kind==='inverse'){
+    const d=o.params.d;
+
+    if(d===0){
+      // f(x)=1/x : sur ]0;+oo[  ≡ R+*  ; suite sur N*
+      return {
+        mode:'inverse',
+        name:'inverse',
+        monoF:'décroissante',
+        setF:'R+*',              // R+* ≡ ]0;+oo[
+        reason:'inv',
+        monoU:'décroissante',
+        setU:'N*'
+      };
+    }
+
+    // d>0 : f(x)=1/(x+d) : sur [0;+oo[ ≡ R+ ; suite sur N
+    return {
+      mode:'inverse',
+      name:'inverse',
+      monoF:'décroissante',
+      setF:'R+',
+      reason:'inv',
+      monoU:'décroissante',
+      setU:'N'
+    };
+  }
+
+// --- polynôme du second degré ---
 const a = o.params.a, alpha = o.params.alpha;
-const dirStr = (a>0
-  ? 'décroissante sur ]-\\infty;\\alpha] et croissante sur [\\alpha;+\\infty['
-  : 'croissante sur ]-\\infty;\\alpha] et décroissante sur [\\alpha;+\\infty[');
-// ⚠️ On laisse m1/I1 pour le check comme avant (sur R), mais on change la MONOTONIE de la SUITE
+
+// sur R+ : décroissante si a<0, croissante si a>0
+const monoF = (a > 0 ? 'croissante' : 'décroissante');
+
 return {
   mode:'poly2',
-  kind:'polynôme du second degré',
-  m1: dirStr,
-  I1:'\\(\\mathbb{R}\\)',
+  kindLabel:'poly2',          // on ne s’en sert que comme marqueur
+  monoF,                      // décroissante ou croissante
+  setF:'R+',                  // R+ ≡ [0;+oo[
   car:(a>0?'a>0':'a<0'),
-  alpha: alpha,              // < 0
-  u: (a>0 ? 'croissante' : 'décroissante'),  // suite monotone sur N
+  alpha: alpha,               // < 0
+  u:(a>0 ? 'croissante' : 'décroissante'),
   set:'N'
 };
 
-    },
-    check(host){
-      if(!this._obj) return;
-      const E=this._expect(); let good=0, tot=0;
+}
+,
+check(host){
+  if(!this._obj) return;
+  const E = this._expect();
+  let good = 0, tot = 0;
 
-      if(E.mode==='affine'){
-        tot=5;
-        if(val('e2_f_kind')) if(normTxt(val('e2_f_kind'))===E.fKind) good++;
-        if(val('e2_f_mono')) if(normTxt(val('e2_f_mono'))===normTxt(E.monoF)) good++;
-        if(val('e2_f_set')) if(normSet(val('e2_f_set'))===E.setF) good++;
-        if(val('e2_reason_m')) if(val('e2_reason_m')===E.reason) good++;
-        if(val('e2_u_mono')) if(normTxt(val('e2_u_mono'))===normTxt(E.monoU)) good++;
-        if(val('e2_u_set')) if(normSet(val('e2_u_set'))===E.setU) good++;
-        tickTri($('#t_e2_a',host), good>=5);
-        SCORE=[Math.min(good,5),5]; scoreSet(SCORE[0],SCORE[1]);
-      }else if(this._obj.kind==='carre' || this._obj.kind==='inverse'){
-        tot=5;
-        if(val('e2_f_name')) if(normTxt(val('e2_f_name'))===normTxt(E.name)) good++;
-        if(val('e2_f_mono2')) if(normTxt(val('e2_f_mono2'))===normTxt(E.monoF)) good++;
-        if(val('e2_f_set2')) if(normSet(val('e2_f_set2'))===E.setF) good++;
-        if(val('e2_reason_ci')) if(val('e2_reason_ci')===E.reason) good++;
-        if(val('e2_u_mono2')) if(normTxt(val('e2_u_mono2'))===normTxt(E.monoU)) good++;
-        if(val('e2_u_set2')) if(normSet(val('e2_u_set2'))===E.setU) good++;
-        tickTri($('#t_e2_b',host), good>=5);
-        SCORE=[Math.min(good,5),5]; scoreSet(SCORE[0],SCORE[1]);
-      }else{ // poly2
-        tot=5;
-        if(val('e2p_kind')) if(normTxt(val('e2p_kind'))===normTxt(E.kind)) good++;
-        if(val('e2p_m1')) if(normTxt(val('e2p_m1'))===normTxt(E.m1)) good++;
-        if(val('e2p_I1')) if(normTxt(val('e2p_I1'))===normTxt(E.I1)) good++;
-        if(val('e2p_car')) if(normTxt(val('e2p_car'))===normTxt(E.car)) good++;
-        if(val('e2p_alpha')){ const a=parseFloat(val('e2p_alpha').replace(',','.')); if(!isNaN(a) && Math.abs(a-E.alpha)<1e-9) good++; }
-        if(val('e2p_u')) if(normTxt(val('e2p_u'))===normTxt(E.u)) good++;
-        if(val('e2p_set')) if(normSet(val('e2p_set'))===E.set) good++;
-        tickTri($('#t_e2_c',host), good>=5);
-        SCORE=[Math.min(good,5),5]; scoreSet(SCORE[0],SCORE[1]);
-      }
-    },
+  /* ===== LINÉAIRE / AFFINE ===== */
+  if (E.mode === 'lineaire' || E.mode === 'affine') {
+    const v_fk     = normTxt(val('e2_f_kind'));
+    const v_monoF  = normTxt(val('e2_f_mono'));
+    const rawSetF  = val('e2_f_set');
+    const v_setF   = normSet(rawSetF);
+    const v_reason = val('e2_reason_m');
+    const v_monoU  = normTxt(val('e2_u_mono'));
+    const rawSetU  = val('e2_u_set');
+    const v_setU   = normSet(rawSetU);
+
+    const hasFk     = v_fk !== '';
+    const hasMonoF  = v_monoF !== '';
+    const hasSetF   = rawSetF.trim() !== '';
+    const hasReason = !!v_reason;
+    const hasMonoU  = v_monoU !== '';
+    const hasSetU   = rawSetU.trim() !== '';
+
+    const allFilled = hasFk && hasMonoF && hasSetF && hasReason && hasMonoU && hasSetU;
+
+    // f_kind
+    if (hasFk){
+      const ok = (v_fk === E.fKind);
+      tickTri($('#t_e2_fk',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_fk',host), null);
+
+    // f_mono
+    if (hasMonoF){
+      const ok = (v_monoF === normTxt(E.monoF));
+      tickTri($('#t_e2_monoF',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_monoF',host), null);
+
+    // set f
+    if (hasSetF){
+      const ok = (v_setF === E.setF);
+      tickTri($('#t_e2_setF',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_setF',host), null);
+
+    // reason (select) → neutre tant que tout n'est pas rempli
+    if (hasReason){
+      const ok = (v_reason === E.reason);
+      tickTri($('#t_e2_reason',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_reason',host), null);
+
+    // u_mono
+    if (hasMonoU){
+      const ok = (v_monoU === normTxt(E.monoU));
+      tickTri($('#t_e2_monoU',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_monoU',host), null);
+
+    // set u
+    if (hasSetU){
+      const ok = (v_setU === E.setU);
+      tickTri($('#t_e2_setU',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_setU',host), null);
+
+    // tick global
+    if (allFilled){
+      const expected = 6;
+      tickTri($('#t_e2_a',host), good === expected);
+    } else {
+      tickTri($('#t_e2_a',host), null);
+    }
+
+    SCORE = [good, tot || 1];
+    scoreSet(SCORE[0], SCORE[1]);
+    return;
+  }
+
+  /* ===== CARRÉ / INVERSE ===== */
+  if (E.mode === 'carre' || E.mode === 'inverse') {
+    const v_name    = normTxt(val('e2_f_name'));
+    const v_monoF2  = normTxt(val('e2_f_mono2'));
+    const rawSetF2  = val('e2_f_set2');
+    const v_setF2   = normSet(rawSetF2);
+    const v_reason2 = val('e2_reason_ci');
+    const v_monoU2  = normTxt(val('e2_u_mono2'));
+    const rawSetU2  = val('e2_u_set2');
+    const v_setU2   = normSet(rawSetU2);
+
+    const hasName    = v_name !== '';
+    const hasMonoF2  = v_monoF2 !== '';
+    const hasSetF2   = rawSetF2.trim() !== '';
+    const hasReason2 = !!v_reason2;
+    const hasMonoU2  = v_monoU2 !== '';
+    const hasSetU2   = rawSetU2.trim() !== '';
+
+    const allFilled = hasName && hasMonoF2 && hasSetF2 && hasMonoU2 && hasSetU2;
+
+    if (hasName){
+      const ok = (v_name === normTxt(E.name));
+      tickTri($('#t_e2_name',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_name',host), null);
+
+    if (hasMonoF2){
+      const ok = (v_monoF2 === normTxt(E.monoF));
+      tickTri($('#t_e2_monoF2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_monoF2',host), null);
+
+    if (hasSetF2){
+      const ok = (v_setF2 === E.setF);
+      tickTri($('#t_e2_setF2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_setF2',host), null);
+
+    if (hasReason2){
+      const ok = (v_reason2 === E.reason);
+      tickTri($('#t_e2_reason2',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_reason2',host), null);
+
+    if (hasMonoU2){
+      const ok = (v_monoU2 === normTxt(E.monoU));
+      tickTri($('#t_e2_monoU2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_monoU2',host), null);
+
+    if (hasSetU2){
+      const ok = (v_setU2 === E.setU);
+      tickTri($('#t_e2_setU2',host), ok);
+      tot++; if (ok) good++;
+    } else tickTri($('#t_e2_setU2',host), null);
+
+    if (allFilled){
+      const expected = hasReason2 ? 6 : 5;
+      tickTri($('#t_e2_b',host), good === expected);
+    } else {
+      tickTri($('#t_e2_b',host), null);
+    }
+
+    SCORE = [good, tot || 1];
+    scoreSet(SCORE[0], SCORE[1]);
+    return;
+  }
+
+  /* ===== POLYNÔME 2ᵉ DEGRÉ ===== */
+  if (E.mode === 'poly2') {
+    // valeurs brutes
+    const rawKind  = val('e2p_kind');
+    const rawM1    = val('e2p_m1');
+    const rawI1    = val('e2p_I1');
+    const rawCar   = val('e2p_car');
+    const rawAlpha = val('e2p_alpha');
+    const rawU     = val('e2p_u');
+    const rawSet   = val('e2p_set');
+
+    // valeurs normalisées
+    const v_kind = normTxt(rawKind);
+    const v_m1   = normTxt(rawM1);
+    const v_I1   = normSet(rawI1);     // IMPORTANT : on passe par normSet ici
+    const v_car  = normTxt(rawCar);
+    const v_u    = normTxt(rawU);
+    const v_set  = normSet(rawSet);
+
+    const hasKind  = rawKind.trim()  !== '';
+    const hasM1    = rawM1.trim()    !== '';
+    const hasI1    = rawI1.trim()    !== '';
+    const hasCar   = rawCar.trim()   !== '';
+    const hasAlpha = rawAlpha.trim() !== '';
+    const hasU     = rawU.trim()     !== '';
+    const hasSet   = rawSet.trim()   !== '';
+
+    const allFilled = hasKind && hasM1 && hasI1 && hasCar &&
+                      hasAlpha && hasU && hasSet;
+
+    // 1) Type de fonction : accepter plusieurs formulations
+    if (hasKind) {
+      const ok = [
+        'trinome',
+        'polynome du second degre',
+        'polynome 2nd degre',
+        '2nd degre',
+        'second degre'
+      ].includes(v_kind);
+      tickTri($('#t_e2_kind',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_kind',host), null);
+    }
+
+    // 2) Monotonie de f (croissante / décroissante)
+    if (hasM1) {
+      const ok = (v_m1 === normTxt(E.monoF)); // E.monoF = 'croissante' ou 'décroissante'
+      tickTri($('#t_e2_m1',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_m1',host), null);
+    }
+
+    // 3) Intervalle / ensemble de définition de f : R+ ou [0;+oo[
+    if (hasI1) {
+      const ok = (v_I1 === E.setF);           // E.setF doit valoir 'R+'
+      tickTri($('#t_e2_I1',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_I1',host), null);
+    }
+
+    // 4) « car a>0 » ou « car a<0 »
+    if (hasCar) {
+      const ok = (v_car === normTxt(E.car));  // E.car = 'a>0' ou 'a<0'
+      tickTri($('#t_e2_car',host), allFilled ? ok : null);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_car',host), null);
+    }
+
+    // 5) α
+    if (hasAlpha) {
+      const aNum = parseFloat(rawAlpha.replace(',','.'));
+      const ok = (!isNaN(aNum) && Math.abs(aNum - E.alpha) < 1e-9);
+      tickTri($('#t_e2_alpha',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_alpha',host), null);
+    }
+
+    // 6) Monotonie de la suite
+    if (hasU) {
+      const ok = (v_u === normTxt(E.u));      // 'croissante' ou 'décroissante'
+      tickTri($('#t_e2_u',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_u',host), null);
+    }
+
+    // 7) Ensemble de définition de la suite : N
+    if (hasSet) {
+      const ok = (v_set === E.set);           // 'N'
+      tickTri($('#t_e2_set',host), ok);
+      tot++; if (ok) good++;
+    } else {
+      tickTri($('#t_e2_set',host), null);
+    }
+
+    // Tick global : seulement si tout est rempli
+    if (allFilled) {
+      const expected = 7;
+      tickTri($('#t_e2_c',host), good === expected);
+    } else {
+      tickTri($('#t_e2_c',host), null);
+    }
+
+    SCORE = [good, tot || 1];
+    scoreSet(SCORE[0], SCORE[1]);
+  }
+
+},
+
+
 solution(host, st){
 	  if(st) this._obj = st;          // <-- important pour le PDF
 

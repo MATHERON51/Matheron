@@ -191,11 +191,7 @@ table.pdf-tbl.fullgrid td{
         <li>Extremums (tableau) : remplisser dans la saisie du haut si maximum et dans la saisie du bas si minimum.</li>
         <li>Flèches : choisissez ↘ ou ↗.</li>
 		        <li>Extremums (phrase) : Si l'extremum est atteint plusieurs fois, écrire une liste. Exemple : -3;2</li>
-        <li><b>Réponse attendue dans l'exercice 3:</b> écrire l’ensemble des solutions sous forme
-        d’intervalle(s), par exemple :
-        <div style="margin-top:4px;margin-left:10px">
-           [-2;2] ou ]-oo;-4]U[4;+oo[.
-        </div></li>
+
       </ul>
     </div>
 
@@ -1435,21 +1431,17 @@ const ex3 = {
   title: "Inéquations du type x^2 … (lecture graphique)",
 
   /* ========= 1. Génération de l’énoncé ========= */
-    gen() {
-    // valeurs possibles pour x² (on autorise des carrés parfaits ET des non-carrés)
-    const MAX_LVL = 30;
-    const POS = [];
-    for (let n = 1; n <= MAX_LVL; n++) POS.push(n);
-
+  gen() {
+    // carrés parfaits
+    const SQ = [1, 4, 9, 16, 25, 36, 64, 100,121,144];
     const kind = choice(["inside", "outside", "between"]);
     const data = { kind };
 
     if (kind === "inside") {
-      // 0 < x² ≤ c ou 0 ≤ x² < c etc.
-      const basePool = POS.filter(n => n >= 1 && n <= 25);
-      const c = choice(basePool);            // pas forcément carré parfait
-      const strict0 = Math.random() < 0.5;   // 0 < x² ou 0 ≤ x²
-      const strictC = Math.random() < 0.5;   // < c ou ≤ c
+      // 0 < x² ≤ c ou 0 ≤ x² < c etc. (comme ton a.)
+      const c = choice(SQ.slice(0, 6));     // 1 → 36
+      const strict0 = Math.random() < 0.5;  // 0 < x² ou 0 ≤ x²
+      const strictC = Math.random() < 0.5;  // < c ou ≤ c
       data.c = c;
       data.strict0 = strict0;
       data.strictC = strictC;
@@ -1458,21 +1450,19 @@ const ex3 = {
       const sC = strictC ? "<" : "\\le";
       data.ineqTex = `0 ${s0} x^2 ${sC} ${c}`;
     } else if (kind === "outside") {
-      // x² ≥ c ou x² > c
-      const basePool = POS.filter(n => n >= 2); // on évite juste 1 pour ne pas être trop "petit"
-      const c = choice(basePool);
+      // x² ≥ c ou x² > c (comme c. et d.)
+      const c = choice(SQ.slice(1));
       const strict = Math.random() < 0.5;
       data.c = c;
       data.strict = strict;
       data.ineqTex = strict ? `x^2 > ${c}` : `x^2 \\ge ${c}`;
     } else {
-      // a ≤ x² ≤ b ou variantes
-      let a, b;
-      do {
-        a = choice(POS);
-        b = choice(POS);
-      } while (a === b);
-      if (a > b) [a, b] = [b, a];
+      // a ≤ x² ≤ b ou variantes (comme b.)
+      let i = rint(0, 3);
+      let j = rint(i + 1, i + 3);
+      j = Math.min(j, SQ.length - 1);
+      const a = SQ[i];
+      const b = SQ[j];
 
       const pattern = choice([
         "closed",      // a ≤ x² ≤ b
@@ -1491,7 +1481,6 @@ const ex3 = {
       data.ineqTex = `${a} ${sL} x^2 ${sR} ${b}`;
     }
 
-    // racines pour la solution (même si non entières)
     if (data.c != null) {
       data.root = Math.sqrt(data.c);
     }
@@ -1671,7 +1660,7 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
   }
 
   else { // BETWEEN a ≤ x² ≤ b
-    const yA = 180; // pour a
+    const yA = 140; // pour a
     const yB = 110; // pour b
 
     dashH(yA);
@@ -1726,9 +1715,13 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
       </div>
 
       <div style="margin-top:.6rem">
-
+        <b>Réponse attendue :</b> écrire l’ensemble des solutions sous forme
+        d’intervalle(s), par exemple :
+        <div style="margin-top:4px;margin-left:10px">
+          \\(x \\in [-2;2]\\) ou \\(x \\in ]-10;-4] \\cup [4;10[\\).
+        </div>
         <div style="margin-top:.4rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-          <span>Ensemble des solutions : \\(S =\\)</span>
+          <span>Ensemble des solutions : \\(x \\in\\)</span>
           <input class="ineq-set" type="text"
                  style="width:230px;max-width:90%;text-align:center">
           <span class="tick nu"></span>
@@ -1760,92 +1753,42 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
 
     /* ---------- 1) Parseur d'intervalles ---------- */
 
-           function parseIntervals(txt) {
+    function parseIntervals(txt) {
       if (!txt) return null;
 
       let s = txt.trim();
 
-      // normalisation globale
+      // normalisation
       s = s
         .replace(/\s+/g, "")       // espaces
         .replace(/\u2212/g, "-")   // − -> -
         .replace(/∞/g, "oo")       // ∞ -> oo
         .replace(/\\,/g, "")       // éventuels \,
-        .replace(/\\;/g, "");      // éventuels \;
-
+        .replace(/\\;/g, "")       // éventuels \;
+      ;
       s = s.replace(/∪/gi, "U").replace(/u/g, "U");
 
       const parts = s.split(/U+/).filter(Boolean);
       if (!parts.length) return null;
 
-      // ----- parse des bornes (nombre, rac, sqrt, √, ±oo) -----
       const parseBound = (t) => {
         if (!t) return NaN;
-        t = t.trim().replace(/\u2212/g, "-");
-
-        // infinis
-        let low = t.toLowerCase().replace(/,/g, ".");
-        if (low === "-oo" || low === "-inf") return -Infinity;
-        if (low === "oo" || low === "inf" || low === "+oo" || low === "+inf") return +Infinity;
-
-        // signe
-        let sign = 1;
-        if (t[0] === "+") {
-          t = t.slice(1);
-        } else if (t[0] === "-") {
-          sign = -1;
-          t = t.slice(1);
-        }
-
-        let core = t.trim().replace(/\u2212/g, "-");
-        let coreLower = core.toLowerCase().replace(/,/g, ".");
-
-        // rac -> sqrt, √ -> sqrt(
-        coreLower = coreLower.replace(/^rac\(/, "sqrt(").replace(/√/g, "sqrt(");
-
-        // cas sqrt(...)
-        if (coreLower.startsWith("sqrt")) {
-          // tolère "sqrt13" → "sqrt(13)"
-          if (!coreLower.includes("(")) coreLower = coreLower.replace(/^sqrt/, "sqrt(") + ")";
-          if (!coreLower.endsWith(")")) coreLower += ")";
-
-          if (coreLower.startsWith("sqrt(") && coreLower.endsWith(")")) {
-            const inside = coreLower.slice(5, -1);
-            let base;
-            if (inside.includes("/")) {
-              const [na, da] = inside.split("/");
-              const n = Number(na), d = Number(da);
-              if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
-              base = n / d;
-            } else {
-              base = Number(inside);
-              if (Number.isNaN(base)) return NaN;
-            }
-            if (base < 0) return NaN;
-            return sign * Math.sqrt(base);
-          }
-        }
-
-        // nombre "simple"
-        const v = Number(coreLower);
-        return Number.isFinite(v) ? sign * v : NaN;
+        t = t.toLowerCase().replace(/,/g, ".");
+        if (t === "-oo" || t === "-inf") return -Infinity;
+        if (t === "oo" || t === "inf")   return +Infinity;
+        if (t === "+oo" || t === "+inf") return +Infinity;
+        const v = Number(t);
+        return Number.isFinite(v) ? v : NaN;
       };
 
       const intervals = [];
 
       for (const part of parts) {
-        if (part.length < 4) return null;
+        // [a;b] , ]a;b[ , (a;b) ...  ;  séparateur ; ou ,
+        const m = part.match(/^([\[\]\(\)])([^;,\[\]\(\)]+)[;,]([^;\[\]\(\)]+)([\[\]\(\)])$/);
+        if (!m) return null;
 
-        const L = part[0];
-        const R = part[part.length - 1];
-        if (!"[]()".includes(L) || !"[]()".includes(R)) return null;
-
-        const inside = part.slice(1, -1);
-        const sepIdx = inside.indexOf(";") >= 0 ? inside.indexOf(";") : inside.indexOf(",");
-        if (sepIdx < 0) return null;
-
-        const aStr = inside.slice(0, sepIdx);
-        const bStr = inside.slice(sepIdx + 1);
+        let [, L, aStr, bStr, R] = m;
 
         const a = parseBound(aStr);
         const b = parseBound(bStr);
@@ -1861,7 +1804,7 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
         intervals.push({ a, b, openL, openR });
       }
 
-      // tri pour comparer indépendamment de l'ordre de saisie
+      // Tri par borne gauche pour comparer sans se soucier de l'ordre saisi
       intervals.sort((u, v) => {
         if (u.a === v.a) {
           if (u.b === v.b) return 0;
@@ -1872,8 +1815,6 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
 
       return intervals;
     }
-
-
 
     /* ---------- 2) Ensemble attendu en fonction du cas ---------- */
 
@@ -2011,7 +1952,7 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
 
   /* ========= 5. Solution : même dessin mais avec parabole remplie ========= */
 
-   solution(host, st) {
+  solution(host, st) {
     const sqrtTex = n => {
       const r = Math.sqrt(n);
       return Number.isInteger(r) ? String(r) : `\\sqrt{${n}}`;
@@ -2019,14 +1960,12 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
 
     const kind = st.kind;
 
-    // 1) Graphe interactif : on remplace la parabole vierge par la version "corrigée"
     const gHost = host.querySelector('.ineq-g');
     if (gHost) {
       gHost.innerHTML = "";
-      gHost.appendChild(this.buildSketch(st, true)); // parabole remplie avec zones
+      gHost.appendChild(this.buildSketch(st, true)); // parabole remplie
     }
 
-    // 2) Texte + graphe corrigé dans le bloc de solution (pour le PDF)
     let solTex = "";
 
     if (kind === "inside") {
@@ -2043,7 +1982,7 @@ const yC = yAx - 50;  // par exemple toujours 50px au-dessus du sommet
 0 ${s0} x^2 ${sC} ${c}
 \\iff -${rT} ${st.strictC ? "<" : "\\le"} x ${st.strictC ? "<" : "\\le"} ${rT}
 \\]
-L’ensemble des solutions est donc : \\(${Itex}\\).
+Donc \\(x\\) appartient à l’intervalle \\(${Itex}\\).
 `;
       } else {
         // 0 < x² …  ⇒ trou en 0 (réunion de deux intervalles)
@@ -2054,7 +1993,7 @@ L’ensemble des solutions est donc : \\(${Itex}\\).
 0 ${s0} x^2 ${sC} ${c}
 \\iff x \\neq 0 \\;\\text{et}\\; ${ (st.strictC ? `|x| < ${rT}` : `|x| \\le ${rT}`) }
 \\]
-L’ensemble des solutions est donc :
+Donc l’ensemble des solutions est
 \\(${I1} \\cup ${I2}\\).
 `;
       }
@@ -2106,10 +2045,11 @@ L’ensemble des solutions est donc
 \\[
 ${a} ${sL} x^2 ${sR} ${b}
 \\]
-L’ensemble des solutions est donc :
-\\(
- ${I1} \\cup ${I2}.
-\\)
+Graphiquement, on lit les quatre abscisses limites \\(-${rB}\\), \\(-${rA}\\),
+\\(${rA}\\) et \\(${rB}\\). On obtient :
+\\[
+\\mathcal{S} = ${I1} \\cup ${I2}.
+\\]
 `;
     }
 
@@ -2117,26 +2057,17 @@ L’ensemble des solutions est donc :
     if (box) {
       box.innerHTML = `
         <div class="step">
-
+          La zone colorée correspond aux points de la parabole \\(y=x^2\\)
+          qui vérifient l’inéquation. On en lit les abscisses extrêmes
+          pour écrire l’ensemble des solutions.
         </div>
         <div class="step" style="margin-top:.4rem">
-          <!-- Graphe corrigé pour la solution / le PDF -->
-          <div class="graph" style="margin-bottom:.5rem">
-            <div class="ineq-sol-graph"></div>
-          </div>
           ${solTex}
         </div>
       `;
-
-      // On insère une copie de la parabole corrigée dans la zone "solution"
-      const solG = box.querySelector('.ineq-sol-graph');
-      if (solG) {
-        solG.appendChild(this.buildSketch(st, true));
-      }
     }
     typesetAll(box);
   },
-
 
   /* ========= 6. Reset ========= */
 

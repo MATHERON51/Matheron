@@ -1168,6 +1168,20 @@ ul.no-bullet{
 }
 
 
+/* Variante "grille complète" pour les tableaux d'images f(x) */
+table.pdf-tbl.fullgrid{
+  border-collapse:collapse;
+  border-spacing:0;
+}
+
+table.pdf-tbl.fullgrid th,
+table.pdf-tbl.fullgrid td{
+  border:1.5px solid #000;      /* toutes les bordures visibles */
+  padding:8px 10px;
+}
+
+
+
 </style>
 
 <style>

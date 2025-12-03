@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Seconde – Fonction carré - Équations - Encadrement – Inéquations</title>
+<title>Seconde – Fonction cube</title>
 
 <link rel="stylesheet" href="../../../../css/math-kbd.css">
 <link rel="stylesheet" href="../../../../css/espace-latex.css">
@@ -169,7 +169,7 @@ table.pdf-tbl.fullgrid td{
 </head>
 <body>
   <div class="header">
-    <h1 style="margin:0;font-size:1.1rem">Seconde – Fonction carré - Équations - Encadrement – Inéquations</h1>
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Fonction cube</h1>
   </div>
 
   <div class="wrap">
@@ -191,11 +191,7 @@ table.pdf-tbl.fullgrid td{
         <li>Extremums (tableau) : remplisser dans la saisie du haut si maximum et dans la saisie du bas si minimum.</li>
         <li>Flèches : choisissez ↘ ou ↗.</li>
 		        <li>Extremums (phrase) : Si l'extremum est atteint plusieurs fois, écrire une liste. Exemple : -3;2</li>
-        <li><b>Réponse attendue dans l'exercice 3:</b> écrire l’ensemble des solutions sous forme
-        d’intervalle(s), par exemple :
-        <div style="margin-top:4px;margin-left:10px">
-           [-2;2] ou ]-oo;-4]U[4;+oo[.
-        </div></li>
+
       </ul>
     </div>
 
@@ -726,408 +722,458 @@ return {
 }
 
 
-const ex1 = {
-  id: "equations_carre",
-  title: "Résoudre des équations du type x^2 = a",
 
-  // petits helpers de mise en forme
-  fmtAx2(a){
-    if (a === 1)  return "x^2";
-    if (a === -1) return "-x^2";
-    return `${a}x^2`;
-  },
-  fmtAx(a){
-    if (a === 1)  return "x";
-    if (a === -1) return "-x";
-    return `${a}x`;
-  },
-  fmtSignedConst(b){
-    if (b > 0)  return `+ ${b}`;
-    if (b < 0)  return `- ${-b}`;
-    return "";             // 0 -> rien
-  },
-  fmtAxPlusB(a,b){
-    const ax = this.fmtAx(a);
-    const sc = this.fmtSignedConst(b);
-    return sc ? `${ax} ${sc}` : ax;
+
+
+
+const ex1 = {
+  id: "images_fonction_carree",
+  title: "Images par la fonction carré",
+
+  // petite fraction irréductible
+  randFracCoprime() {
+    const gcd = (a,b)=>{
+      a=Math.abs(a); b=Math.abs(b);
+      while (b){ const t=b; b=a%b; a=t; }
+      return a;
+    };
+    while (true) {
+      const num = rint(1,9);
+      const den = rint(2,9);
+      if (gcd(num,den) === 1) return {num,den};
+    }
   },
 
   gen() {
-    const gcd = (a,b)=>{
-      a = Math.abs(a); b = Math.abs(b);
-      while (b){ const t=b; b=a%b; a=t; }
-      return a || 1;
-    };
-    const isSquare = n => {
-      const r = Math.round(Math.sqrt(n));
-      return r*r === n;
-    };
+    const items = [];
 
-    // 1) x² = a positif (parfois carré parfait, parfois non)
-    let aPos;
-    if (Math.random() < 0.5) {
-      const m = rint(1,9);         // carré parfait
-      aPos = m*m;
-    } else {
-      do {                         // non parfait
-        aPos = rint(2,30);
-      } while (isSquare(aPos));
-    }
+    // 1) Fraction positive
+    const fp = this.randFracCoprime();
+    items.push({
+      kind:"fracPos",
+      latex:`\\dfrac{${fp.num}}{${fp.den}}`,
+      num:fp.num,
+      den:fp.den,
+      val:(fp.num*fp.num)/(fp.den*fp.den),
+      ansTex:`\\dfrac{${fp.num*fp.num}}{${fp.den*fp.den}}`
+    });
 
-    // 2) x² = a négatif
-    const aNeg = -rint(1,10);
+    // 2) Fraction négative
+    const fn = this.randFracCoprime();
+    items.push({
+      kind:"fracNeg",
+      latex:`-\\dfrac{${fn.num}}{${fn.den}}`,
+      num:fn.num,
+      den:fn.den,
+      val:(fn.num*fn.num)/(fn.den*fn.den),   // image > 0
+      ansTex:`\\dfrac{${fn.num*fn.num}}{${fn.den*fn.den}}`
+    });
 
-    // 3) ax² + b = c  → x² = (p²)/(q²) avec p,q premiers entre eux
-    let p3,q3;
-    do {
-      p3 = rint(1,6);
-      q3 = rint(2,8);
-    } while (gcd(p3,q3) !== 1);
-    const num3 = p3*p3;      // numérateur de k
-    const den3 = q3*q3;      // dénominateur de k
-    const m3   = rint(1,3);  // facteur pour a
-    const a3   = m3 * den3;  // a multiple de q²
-    let b3;
-    do {                     // b ≠ 0 pour éviter "+0"
-      b3 = rint(-8,8);
-    } while (b3 === 0);
-    const c3   = b3 + m3*num3;  // pour avoir x² = num3/den3
+    // 3) Entier négatif
+    const k = rint(2,12);
+    items.push({
+      kind:"entNeg",
+      latex:`-${k}`,
+      k,
+      val:k*k,
+      ansTex:`${k*k}`
+    });
 
-    // Latex propre pour a3 x^2 + b3 = c3
-    const left3 = `${this.fmtAx2(a3)} ${this.fmtSignedConst(b3)}`.trim();
+// 4) racine(a) : a√b
+const a = rint(2,9);
+const b = rint(2,15);
 
-    // 4) (ax + b)² = k avec k>0
-    const a4  = rint(1,4);
-    let b4;
-    do { b4 = rint(-5,5); } while (b4 === 0);
-    const p4  = rint(1,6);           // √k
-    const k4  = p4*p4;               // k
-    const inner4 = this.fmtAxPlusB(a4,b4);
+items.push({
+  kind: "rac",
+  latex: `${a}\\sqrt{${b}}`,
+  a,                    // <-- on stocke a
+  b,                    // <-- on stocke b
+  val: a * a * b,       // valeur numérique de l'image
+  ansTex: `${a*a*b}`    // forme finale attendue
+});
 
-    const items = [
-      { eqType:"x2_pos",  latex:`x^2 = ${aPos}`, a: aPos },
-      { eqType:"x2_neg",  latex:`x^2 = ${aNeg}`, a: aNeg },
-      { eqType:"ax2_lin", latex:`${left3} = ${c3}`, a:a3, b:b3, c:c3, p:p3, q:q3, num:num3, den:den3 },
-      { eqType:"axp_b_sq", latex:`(${inner4})^2 = ${k4}`, a:a4, b:b4, k:k4, p:p4 }
-    ];
+    // 5) puissance de 10
+    const exps = [-3,-2,-1,1,2,3];      // on évite 0 pour que ce soit intéressant
+    const e = choice(exps);
+    items.push({
+      kind:"pow10",
+      latex:`10^{${e}}`,
+      exp:e,
+      powExp:2*e,
+      val:10**(2*e),
+      ansTex:`10^{${2*e}}`
+    });
 
+    // 6) somme / différence avec racine (identité remarquable)
+    const A = rint(1,4);
+    const B = rint(2,7);
+    const sign = choice(["+","-"]); // a ± √b
+    const txt = `${A}${sign}\\sqrt{${B}}`;
+    const cst = A*A + B;
+    const cross = 2*A;
+    const main = (sign==="+")
+      ? `${cst} + ${cross}\\sqrt{${B}}`
+      : `${cst} - ${cross}\\sqrt{${B}}`;
+    const alt  = (sign==="+")
+      ? `${A*A} + ${B} + ${cross}\\sqrt{${B}}`
+      : `${A*A} + ${B} - ${cross}\\sqrt{${B}}`;
+
+    items.push({
+      kind:"idR",
+      latex:txt,
+      A,B,sign,
+      ansList:[main,alt],
+      ansTex:main
+    });
+
+    // Mélange de l’ordre des 6 nombres
     items.sort(()=>Math.random()-0.5);
+
     return { items };
   },
 
   render(host, st) {
     host.innerHTML = `
-      <div>
-        Résoudre dans \\(\\mathbb{R}\\) les équations suivantes.<br>
-        <em>Écrire les solutions sous forme de liste séparée par un point-virgule.</em><br>
-        Exemples : \\(-3;3\\) ou \\(-\\dfrac{2}{5};\\dfrac{2}{5}\\).<br>
-        <em>S’il n’y a aucune solution réelle, écrire \\(\\varnothing\\) ou « aucun ».</em>
-      </div>
-
-      <div class="var-wrap" style="margin-top:.5rem">
-        <table class="pdf-tbl fullgrid" style="width:100%;max-width:700px">
-          <thead>
-            <tr>
-              <th>Équation</th>
-              <th>Solution(s) réelle(s)</th>
-            </tr>
-          </thead>
+      <div>Calculer l’image des nombres suivants par la fonction carré \\(f(x)=x^2\\) :</div>
+      <div class="var-wrap">
+        <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
           <tbody>
-            ${st.items.map((it,i)=>`
+            ${[0,1].map(row => `
               <tr>
-                <td style="width:40%">\\(${it.latex}\\)</td>
-                <td>
-                  <input class="solx" data-i="${i}" type="text"
-                         style="width:95%;max-width:280px;text-align:center">
-                  <span class="tick nu"></span>
-                </td>
+                ${[0,1,2].map(col => {
+                  const idx = 3*row+col;
+                  const it = st.items[idx];
+                  return `
+                  <td style="width:33%;vertical-align:top;padding:8px 10px">
+                    <div>\\(${it.latex} :\\)</div>
+                    <div style="margin-top:10px">
+                      <input class="img" data-i="${idx}" type="text"
+                             style="width:90%;max-width:180px;text-align:center">
+                      <span class="tick nu"></span>
+                    </div>
+                  </td>`;
+                }).join('')}
               </tr>
-            `).join("")}
+            `).join('')}
           </tbody>
         </table>
       </div>
-
-      <div id="res" class="steps small" style="margin-top:.6rem"></div>
+      <div id="res" class="steps small"></div>
     `;
-    host.querySelectorAll('input.solx').forEach(ensureTickAfter);
+    host.querySelectorAll('input.img').forEach(ensureTickAfter);
     typesetAll(host);
   },
 
   correct(host, st) {
-    const norm = s => (s || "")
+    const normBasic = s => (s||"")
       .trim()
-      .replace(/\u2212/g,"-")
-      .replace(/,/g,".")
-      .replace(/\s+/g,"")
-      .replace(/rac/gi,"sqrt")
-      .replace(/√/g,"sqrt");
+      .replace(/\u2212/g,"-")       // moins unicode → '-'
+      .replace(/,/g,".")            // virgule → point
+      .replace(/\s+/g,"");          // supprime les espaces
 
-    const parseValue = raw => {
-      let s = norm(raw);
+    // nombre / fraction / sqrt(...) avec rac / √
+    const parseNumRoot = s => {
+      s = (s || "").trim();
       if (!s) return NaN;
 
+      // normalisation de base
+      s = s
+        .replace(/\u2212/g,"-")     // moins unicode
+        .replace(/,/g,".")          // virgule → point
+        .replace(/\s+/g,"")         // espaces
+        .replace(/rac/gi,"sqrt")    // rac(...) → sqrt(...)
+        .replace(/√/g,"sqrt");      // racine unicode → sqrt
+
       let sign = 1;
-      if (s[0] === "+") {
+      if (s[0] === '+') {
         s = s.slice(1);
-      } else if (s[0] === "-") {
+      } else if (s[0] === '-') {
         sign = -1;
         s = s.slice(1);
       }
 
+      // forme ±sqrt(...)
       if (s.startsWith("sqrt(") && s.endsWith(")")) {
-        let inside = s.slice(5,-1);
+        let inside = s.slice(5, -1);  // contenu des parenthèses
+
         let base;
         if (inside.includes("/")) {
-          const [na,da] = inside.split("/");
+          const [na, da] = inside.split("/");
           const n = Number(na), d = Number(da);
           if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
-          base = n/d;
+          base = n / d;
         } else {
           base = Number(inside);
           if (Number.isNaN(base)) return NaN;
         }
-        if (base < 0) return NaN;
+        if (base < 0) return NaN;  // on évite sqrt de négatif
         return sign * Math.sqrt(base);
       }
 
+      // sinon : nombre / fraction classique
       if (s.includes("/")) {
-        const [na,da] = s.split("/");
+        const [na, da] = s.split("/");
         const n = Number(na), d = Number(da);
-        if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
-        return sign * (n/d);
+        if (!d) return NaN;
+        return n / d;
       }
-
       const x = Number(s);
-      return Number.isNaN(x) ? NaN : sign * x;
+      return Number.isNaN(x) ? NaN : x;
     };
 
-    const parseListValues = raw => {
-      const parts = (raw || "")
-        .replace(/,/g,";")
-        .split(";")
-        .map(t => t.trim())
-        .filter(t => t !== "");
-      if (!parts.length) return null;
-      const vals = [];
-      for (const t of parts) {
-        const v = parseValue(t);
-        if (Number.isNaN(v)) return null;
-        vals.push(v);
-      }
-      return vals;
-    };
+    // normalisation "symbolique" pour les expressions du type 14+6√5
+    const normalizeRootStr = s => normBasic(s)
+      .toLowerCase()
+      .replace(/rac/gi,"sqrt")      // rac → sqrt
+      .replace(/√/g,"sqrt")        // racine unicode → sqrt
+      .replace(/\\sqrt\{/g,"sqrt(") // \sqrt{5} → sqrt(5
+      .replace(/\}/g,"")           // enlève la } finale
+      .replace(/\*/g,"");          // tolère 6*sqrt(5)
 
-    let ok = 0, tot = 0;
+    let ok = 0, tot = 0;   // tot = seulement les champs REMPLIS
 
     st.items.forEach((it,i)=>{
-      const inp = host.querySelector(`input.solx[data-i="${i}"]`);
-      if (!inp) return;
-      const raw = inp.value.trim();
+      const inp = host.querySelector(`input.img[data-i="${i}"]`);
+      const raw = inp.value;
+      const v = normBasic(raw);
 
-      if (!raw) {
+      if (!v) {
+        // champ vide → tick neutre, pas compté
         setTick(inp,"nu");
         return;
       }
 
       tot++;
 
-      const eqType = it.eqType;
       let good = false;
-      const EPS = 1e-6;
 
-      if (eqType === "x2_neg") {
-        const s = raw.toLowerCase().replace(/\s+/g,"");
-        if (
-          s === "∅" || s === "ø" ||
-          s === "vide" || s === "rien" ||
-          s.includes("aucun") || s.includes("aucune") ||
-          s.includes("pasd")
-        ) {
-          good = true;
+      if (it.kind === "fracPos" || it.kind === "fracNeg" ||
+          it.kind === "entNeg"  || it.kind === "rac") {
+        const val = parseNumRoot(raw);
+        if (!Number.isNaN(val)) {
+          good = Math.abs(val - it.val) < 1e-9;
         }
-      } else if (eqType === "x2_pos") {
-        const a = it.a;
-        const vals = parseListValues(raw);
-        if (vals && vals.length === 2) {
-          const v1 = vals[0], v2 = vals[1];
-          const ok1 = Math.abs(v1*v1 - a) < EPS;
-          const ok2 = Math.abs(v2*v2 - a) < EPS;
-          const opp = Math.sign(v1) === -Math.sign(v2) && Math.abs(v1) > EPS && Math.abs(v2) > EPS;
-          if (ok1 && ok2 && opp) good = true;
+      } else if (it.kind === "pow10") {
+        // soit nombre (avec éventuellement sqrt), soit écriture 10^k
+        const val = parseNumRoot(raw);
+        if (!Number.isNaN(val)) {
+          good = Math.abs(val - it.val) < 1e-9;
+        } else {
+          const w = normBasic(raw);
+          if (w.startsWith("10^")) {
+            let kStr = w.slice(3);
+            if (kStr.startsWith("{") && kStr.endsWith("}")) {
+              kStr = kStr.slice(1,-1);
+            }
+            const k = Number(kStr);
+            if (Number.isInteger(k)) good = (k === it.powExp);
+          }
         }
-      } else if (eqType === "ax2_lin") {
-        const {a,b,c} = it;
-        const vals = parseListValues(raw);
-        if (vals && vals.length === 2) {
-          const v1 = vals[0], v2 = vals[1];
-          const ok1 = Math.abs(a*v1*v1 + b - c) < EPS;
-          const ok2 = Math.abs(a*v2*v2 + b - c) < EPS;
-          const opp = Math.sign(v1) === -Math.sign(v2) && Math.abs(v1) > EPS && Math.abs(v2) > EPS;
-          if (ok1 && ok2 && opp) good = true;
+      } else if (it.kind === "idR") {
+        // Normalisation spéciale pour a + b√c
+        const normId = s => (s || "")
+          .trim()
+          .replace(/\u2212/g, "-")        // moins unicode
+          .replace(/,/g, ".")             // virgule
+          .replace(/\s+/g, "")            // espaces
+          .toLowerCase()
+          .replace(/rac/gi, "√")          // rac(...) -> √(...)
+          .replace(/\\sqrt\{([^}]*)\}/g, "√$1") // \sqrt{7} -> √7
+          .replace(/\\sqrt/g, "√")        // \sqrt7 -> √7
+          .replace(/√\(/g, "√")           // √(7) -> √7
+          .replace(/\)/g, "")             // enlève parenthèses restantes
+          .replace(/\*/g, "");            // tolère 2*√7
+
+        // Parse une expression du type constante + coeff * √(rad)
+        // en (constant, coef, rad). Retourne null si ça ne colle pas.
+        function parseAplusBrootC(raw) {
+          let s = normId(raw);
+          if (!s) return null;
+
+          // on transforme les "-" internes en "+-" pour pouvoir splitter sur "+"
+          if (s.startsWith("-")) {
+            s = "-" + s.slice(1).replace(/-/g, "+-");
+          } else {
+            s = s.replace(/-/g, "+-");
+          }
+
+          const terms = [];
+          let cur = "";
+          for (let i = 0; i < s.length; i++) {
+            const ch = s[i];
+            if (ch === "+" && i > 0) {
+              terms.push(cur);
+              cur = "";
+            } else {
+              cur += ch;
+            }
+          }
+          if (cur) terms.push(cur);
+
+          let rad = null;
+          let coef = 0;
+          let constant = 0;
+
+          for (const t0 of terms) {
+            const t = t0;
+            if (!t) continue;
+
+            if (t.includes("√")) {
+              const parts = t.split("√");
+              let aStr = parts[0];
+              const cStr = parts[1];
+
+              if (aStr === "" || aStr === "+") aStr = "1";
+              if (aStr === "-") aStr = "-1";
+
+              const a = Number(aStr);
+              const c = Number(cStr);
+              if (!Number.isFinite(a) || !Number.isFinite(c)) return null;
+
+              if (rad === null) rad = c;
+              else if (Math.abs(rad - c) > 1e-9) return null; // deux racines différentes → on refuse
+
+              coef += a;
+            } else {
+              const k = Number(t);
+              if (!Number.isFinite(k)) return null;
+              constant += k;
+            }
+          }
+
+          if (rad === null) return null;  // pas de √ → on refuse
+          return { constant, coef, rad };
         }
-      } else if (eqType === "axp_b_sq") {
-        const {a,b,k} = it;
-        const vals = parseListValues(raw);
-        if (vals && vals.length === 2) {
-          const v1 = vals[0], v2 = vals[1];
-          const ok1 = Math.abs((a*v1 + b)**2 - k) < EPS;
-          const ok2 = Math.abs((a*v2 + b)**2 - k) < EPS;
-          const diff = Math.abs(v1 - v2) > EPS;
-          if (ok1 && ok2 && diff) good = true;
+
+        const parsed = parseAplusBrootC(raw);
+
+        if (!parsed) {
+          good = false;
+        } else {
+          const A = it.A;
+          const B = it.B;
+          const expectedConst = A * A + B;
+          const expectedCoef  = (it.sign === "+") ? 2 * A : -2 * A;
+
+          good =
+            Math.abs(parsed.rad      - B)           < 1e-9 &&
+            Math.abs(parsed.constant - expectedConst) < 1e-9 &&
+            Math.abs(parsed.coef     - expectedCoef)  < 1e-9;
         }
       }
+
+
+
 
       setTick(inp, good ? "ok" : "ko");
       if (good) ok++;
     });
 
-    const box = $("#res",host);
-    if (box) {
-      box.innerHTML = `
-        <div class="step">
-          Chaque ligne correctement résolue rapporte un point. Pour les équations avec \\(x^2\\) ou \\((ax+b)^2\\),
-          il fallait trouver toutes les solutions réelles. Si le second membre est négatif, il n'y a aucune solution réelle.
-        </div>
-      `;
-    }
-
+    $("#res",host).textContent = "";
     return { ok, total: tot };
   },
 
+
+
   solution(host, st) {
-    const gcd = (a,b)=>{
-      a=Math.abs(a); b=Math.abs(b);
-      while (b){ const t=b; b=a%b; a=t; }
-      return a||1;
-    };
-    const fracTex = (num,den) => {
-      if (den === 0) return "\\text{indéfini}";
-      let n=num, d=den;
-      const g = gcd(n,d);
-      n /= g; d /= g;
-      const sign = (d<0 ? -1 : 1);
-      n *= sign; d *= sign;
-      if (d === 1) return `${n}`;
-      if (d === -1) return `${-n}`;
-      return `\\dfrac{${n}}{${d}}`;
-    };
+    const box = $("#res",host);
 
     const solTex = it => {
-      const eqType = it.eqType;
-
-      if (eqType === "x2_pos") {
-        const a = it.a;
-        const r = Math.sqrt(a);
-        const isPerf = Number.isInteger(r);
-        if (isPerf) {
-          const m = r;
-          return `
-\\[
-\\begin{aligned}
-x^2 &= ${a} \\\\
-x &= -\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}} \\\\
-x &= -${m} \\quad \\text{ou} \\quad x = ${m}\\\\
-S=\\left\\{ -${m};${m}\\right\\}
-\\end{aligned}
-\\]`;
-        }
+      if (it.kind === "fracPos" || it.kind === "fracNeg") {
+        const n = it.num, d = it.den;
+        const N = n*n, D = d*d;
+        const arg = (it.kind==="fracPos")
+          ? `\\dfrac{${n}}{${d}}`
+          : `-\\dfrac{${n}}{${d}}`;
         return `
 \\[
 \\begin{aligned}
-x^2 &= ${a} \\\\
-x &= -\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}}\\\\
-S=\\left\\{ -\\sqrt{${a}};\\sqrt{${a}}\\right\\}
+f\\left(${arg}\\right) &= \\left(${arg}\\right)^2\\\\
+&= \\dfrac{${n}^2}{${d}^2}\\\\
+&= \\dfrac{${N}}{${D}}
 \\end{aligned}
 \\]`;
       }
 
-      if (eqType === "x2_neg") {
-        const a = it.a;
-        return `
-\\[
-x^2 = ${a}
-\\]
-n'admet <b>aucune solution réelle</b>, car le carré d'un nombre réel est toujours positif ou nul.
-<br> \\(S=\\emptyset\\)
-`;
-      }
-
-      if (eqType === "ax2_lin") {
-        const {a,b,c,num,den,p,q} = it;
-        const left1 = `${ex1.fmtAx2(a)} ${ex1.fmtSignedConst(b)}`.trim();
-        const rhs1  = c - b;   // on évite "7-(-5)" → on met directement 12
+      if (it.kind === "entNeg") {
+        const k = it.k;
         return `
 \\[
 \\begin{aligned}
-${left1} &= ${c} \\\\
-${ex1.fmtAx2(a)} &= ${rhs1} \\\\
-x^2 &= \\dfrac{${rhs1}}{${a}} \\\\
-x^2 &= \\dfrac{${num}}{${den}} \\\\
-x &= -\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}} \\\\
-x &= -\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}\\\\
-S=\\left\\{ -\\dfrac{${p}}{${q}};\\dfrac{${p}}{${q}}\\right\\}
+f(-${k}) &= (-${k})^2\\\\
+&= ${k}^2\\\\
+&= ${k*k}
 \\end{aligned}
 \\]`;
       }
 
-if (eqType === "axp_b_sq") {
-  const {a,b,k,p} = it;
-  const inner = ex1.fmtAxPlusB(a,b);
-  const x1Tex = fracTex(-b-p,a);
-  const x2Tex = fracTex(-b+p,a);
-  const diff1 = -p - b;
-  const diff2 =  p - b;
-
-  if (a === 1) {
-    // CAS PARTICULIER a = 1 : pas de ligne "1x = ..."
-    return `
-\\[
-\\begin{aligned}
-(${inner})^2 &= ${k} \\\\
-${inner} &= -\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}} \\\\
-${inner} &= -${p} \\quad \\text{ou} \\quad ${inner} = ${p} \\\\
-x &= ${diff1} \\quad \\text{ou} \\quad x = ${diff2} \\\\
-S=\\left\\{ ${x1Tex};${x2Tex} \\right\\}
-\\end{aligned}
-\\]`;
-  }
-
-  // CAS GÉNÉRAL a ≠ 1 : on garde la ligne "ax = ..."
+if (it.kind === "rac") {
+  const a = it.a, b = it.b;
   return `
 \\[
 \\begin{aligned}
-(${inner})^2 &= ${k} \\\\
-${inner} &= -\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}} \\\\
-${inner} &= -${p} \\quad \\text{ou} \\quad ${inner} = ${p} \\\\
-${a}x &= ${diff1}\\quad \\text{ou} \\quad ${a}x = ${diff2}\\\\
-x &= ${x1Tex} \\quad \\text{ou} \\quad x = ${x2Tex}\\\\
-S=\\left\\{ ${x1Tex};${x2Tex} \\right\\}
+f\\left(${a}\\sqrt{${b}}\\right)
+&= \\left(${a}\\sqrt{${b}}\\right)^2\\\\
+&= ${a}^2 \\times (\\sqrt{${b}})^2\\\\
+&= ${a*a} \\times ${b}\\\\
+&= ${a*a*b}
 \\end{aligned}
 \\]`;
 }
 
 
+      if (it.kind === "pow10") {
+        const e = it.exp;
+        const e2 = it.powExp;
+        return `
+\\[
+\\begin{aligned}
+f\\left(10^{${e}}\\right) &= \\left(10^{${e}}\\right)^2\\\\
+&= 10^{${e}\\times 2}\\\\
+&= 10^{${e2}}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "idR") {
+        const A = it.A, B = it.B;
+        const pm = it.sign === "+" ? "+" : "-";
+        const pmWord = it.sign === "+" ? "+" : "-";
+        const cross = 2*A;
+        const cst1 = A*A;
+        const cst2 = A*A + B;
+        const arg = `${A}${pm}\\sqrt{${B}}`;
+        return `
+\\[
+\\begin{aligned}
+f\\left(${arg}\\right) &= \\left(${arg}\\right)^2\\\\
+&= ${A}^2 ${pmWord} 2 \\times ${A} \\times \\sqrt{${B}} + (\\sqrt{${B}})^2\\\\
+&= ${cst1} ${pmWord} ${cross}\\sqrt{${B}} + ${B}\\\\
+&= ${cst2} ${pmWord} ${cross}\\sqrt{${B}}
+\\end{aligned}
+\\]`;
+      }
+
       return "";
     };
 
-    const box = $("#res",host);
+    const cells = idx => {
+      const it = st.items[idx];
+      return `
+<td style="vertical-align:top;padding:8px 10px">
+  <div style="margin-top:6px">${solTex(it)}</div>
+</td>`;
+    };
+
     box.innerHTML = `
-      <table class="pdf-tbl fullgrid" style="width:100%;max-width:780px">
-        <thead>
-          <tr>
-            <th>Équation</th>
-            <th>Correction</th>
-          </tr>
-        </thead>
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
         <tbody>
-          ${st.items.map(it => `
-            <tr>
-              <td style="width:35%">\\(${it.latex}\\)</td>
-              <td style="vertical-align:top;padding:6px 10px">
-                ${solTex(it)}
-              </td>
-            </tr>
-          `).join("")}
+          <tr>
+            ${cells(0)}${cells(1)}${cells(2)}
+          </tr>
+          <tr>
+            ${cells(3)}${cells(4)}${cells(5)}
+          </tr>
         </tbody>
       </table>
     `;
@@ -1137,14 +1183,12 @@ S=\\left\\{ ${x1Tex};${x2Tex} \\right\\}
   reset(host) {
     const box = $("#res",host);
     if (box) box.textContent = "";
-    host.querySelectorAll("input.solx").forEach(inp => {
+    host.querySelectorAll("input.img").forEach(inp => {
       inp.value = "";
       setTick(inp,"nu");
     });
   }
 };
-
-
 
 const ex2 = {
   id: "var_carre_interval",
@@ -1412,7 +1456,7 @@ const ex2 = {
         le minimum de \\(f\\) vaut \\(${minVal}\\) et le maximum vaut \\(${maxVal}\\).<br>
         On en déduit l'encadrement :
         \\[
-          \\forall x \\in ${Itex},\\quad ${minVal} \\le x^2 \\le ${maxVal}.
+          \\forall x \\in ${Itex},\\quad ${minVal} \\le f(x) \\le ${maxVal}.
         \\]
       </div>
     `;
@@ -1430,7 +1474,310 @@ const ex2 = {
   }
 };
 
+
+
+
+
+
 const ex3 = {
+  id: "antecedents_carre",
+  title: "Antécédents par la fonction carré",
+
+  gen() {
+    const gcd = (a,b)=>{
+      a = Math.abs(a); b = Math.abs(b);
+      while(b){ const t=b; b=a%b; a=t; }
+      return a || 1;
+    };
+    const isSquare = n => {
+      const r = Math.round(Math.sqrt(n));
+      return r*r === n;
+    };
+
+    // 1) carré parfait entier
+    const m = rint(1, 8);
+    const intPerfVal = m*m;
+
+    // 2) carré non parfait
+    let n;
+    do {
+      n = rint(2, 20);
+    } while (isSquare(n));
+
+    // 3) carré parfait fraction : (p/q)^2
+    let p,q;
+    do {
+      p = rint(1, 6);
+      q = rint(2, 8);
+    } while (gcd(p,q) !== 1);
+    const fracPerfVal = (p*p)/(q*q);
+
+    // 4) nombre négatif
+    const negVal = -rint(1, 10);
+
+    const items = [
+      { kind:"intPerfect",  y:intPerfVal,   latex:`${intPerfVal}` },
+      { kind:"nonPerfect",  y:n,           latex:`${n}` },
+      { kind:"fracPerfect", y:fracPerfVal, p, q,        latex:`\\dfrac{${p*p}}{${q*q}}` },
+      { kind:"negative",    y:negVal,      latex:`${negVal}` }
+    ];
+
+    // mélange des lignes
+    items.sort(()=>Math.random()-0.5);
+
+    return { items };
+  },
+
+  render(host, st) {
+    host.innerHTML = `
+      <div>
+        On considère la fonction carré \\(f(x)=x^2\\). Pour chacun des nombres suivants, 
+        donner l’ensemble de ses antécédents réels par \\(f\\).<br>
+        <em>Si plusieurs antécédents, les écrire sous la forme d’une liste séparée par un point-virgule, par exemple :</em>
+        \\(-3;3\\).<br>
+        <em>S’il n’y a aucun antécédent réel, écrire \\(\\varnothing\\) ou « aucun ».</em>
+      </div>
+
+      <div class="var-wrap" style="margin-top:.5rem">
+        <table class="pdf-tbl fullgrid" style="width:100%;max-width:650px">
+          <thead>
+            <tr>
+              <th>Nombre \\(y\\)</th>
+              <th>Antécédent(s) réel(s) par \\(f(x)=x^2\\)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${st.items.map((it,i)=>`
+              <tr>
+                <td style="width:35%">\\(${it.latex}\\)</td>
+                <td>
+                  <input class="ante" data-i="${i}" type="text"
+                         style="width:95%;max-width:280px;text-align:center">
+                  <span class="tick nu"></span>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="res" class="steps small" style="margin-top:.6rem"></div>
+    `;
+
+    host.querySelectorAll('input.ante').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+  correct(host, st) {
+    const norm = s => (s || "")
+      .trim()
+      .replace(/\u2212/g,"-")   // moins unicode
+      .replace(/,/g,".")        // virgule → point
+      .replace(/\s+/g,"");      // espaces
+
+    // parse un nombre avec éventuellement sqrt / rac / √
+    const parseValue = raw => {
+      let s = (raw||"").trim();
+      if (!s) return NaN;
+
+      s = s
+        .replace(/\u2212/g,"-")
+        .replace(/,/g,".")
+        .replace(/\s+/g,"")
+        .replace(/rac/gi,"sqrt")
+        .replace(/√/g,"sqrt");
+
+      let sign = 1;
+      if (s[0] === "+") {
+        s = s.slice(1);
+      } else if (s[0] === "-") {
+        sign = -1;
+        s = s.slice(1);
+      }
+
+      if (s.startsWith("sqrt(") && s.endsWith(")")) {
+        let inside = s.slice(5,-1);
+        let base;
+        if (inside.includes("/")) {
+          const [na,da] = inside.split("/");
+          const n = Number(na), d = Number(da);
+          if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+          base = n/d;
+        } else {
+          base = Number(inside);
+          if (Number.isNaN(base)) return NaN;
+        }
+        if (base < 0) return NaN;
+        return sign * Math.sqrt(base);
+      }
+
+      if (s.includes("/")) {
+        const [na,da] = s.split("/");
+        const n = Number(na), d = Number(da);
+        if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+        return sign * (n/d);
+      }
+
+      const x = Number(s);
+      return Number.isNaN(x) ? NaN : sign * x;
+    };
+
+    const parseListValues = raw => {
+      const parts = (raw || "")
+        .replace(/,/g,";")
+        .split(";")
+        .map(t => t.trim())
+        .filter(t => t !== "");
+      if (!parts.length) return null;
+      const vals = [];
+      for (const t of parts) {
+        const v = parseValue(t);
+        if (Number.isNaN(v)) return null;
+        vals.push(v);
+      }
+      return vals;
+    };
+
+    let ok = 0, tot = 0;
+
+    st.items.forEach((it,i)=>{
+      const inp = host.querySelector(`input.ante[data-i="${i}"]`);
+      if (!inp) return;
+      const raw = inp.value;
+      const trimmed = raw.trim();
+
+      if (!trimmed) {
+        setTick(inp,"nu");
+        return;
+      }
+
+      tot++;
+
+      let good = false;
+
+      if (it.kind === "negative") {
+        const s = trimmed.toLowerCase().replace(/\s+/g,"");
+        if (
+          s === "∅" || s === "ø" ||
+          s === "vide" || s === "rien" ||
+          s.includes("aucun") || s.includes("aucune") ||
+          s.includes("pasd")   // "pas d'..."
+        ) {
+          good = true;
+        }
+      } else {
+        const y = it.y;
+        const vals = parseListValues(raw);
+        if (vals && vals.length === 2) {
+          const v1 = vals[0], v2 = vals[1];
+          const eps = 1e-6;
+          const ok1 = Math.abs(v1*v1 - y) < eps;
+          const ok2 = Math.abs(v2*v2 - y) < eps;
+          const opp = Math.sign(v1) === -Math.sign(v2) && Math.abs(v1) > eps && Math.abs(v2) > eps;
+          if (ok1 && ok2 && opp) good = true;
+        }
+      }
+
+      setTick(inp, good ? "ok" : "ko");
+      if (good) ok++;
+    });
+
+    const box = $("#res",host);
+    if (box) {
+      box.innerHTML = `
+        <div class="step">
+         </div>
+      `;
+    }
+
+    return { ok, total: tot };
+  },
+
+  solution(host, st) {
+    const box = $("#res",host);
+
+    const solTex = it => {
+      const y = it.y;
+      if (it.kind === "intPerfect") {
+        const m = Math.round(Math.sqrt(y));
+        return `
+\\[
+\\begin{aligned}
+x^2 &= ${y} \\\\
+x &= -\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}} \\\\
+x &= -${m} \\quad \\text{ou} \\quad x = ${m}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "nonPerfect") {
+        return `
+\\[
+\\begin{aligned}
+x^2 &= ${y} \\\\
+x &= -\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}}.
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "fracPerfect") {
+        const p = it.p, q = it.q;
+        const num = p*p, den = q*q;
+        return `
+\\[
+\\begin{aligned}
+x^2 &= \\dfrac{${num}}{${den}} \\\\
+x &= -\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}} \\\\
+    &= -\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}.
+\\end{aligned}
+\\]`;
+      }
+
+      // négatif
+      return `
+\\[
+x^2 = ${y}
+\\]
+n'admet <b>aucune solution réelle</b>, car le carré d'un nombre réel est toujours positif ou nul.
+Il n’y a donc <b>aucun antécédent réel</b> de \\(${y}\\) par la fonction carré.`;
+    };
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
+        <thead>
+          <tr>
+            <th>Nombre \\(y\\)</th>
+            <th>Correction</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${st.items.map(it => `
+            <tr>
+              <td style="width:30%">\\(${it.latex}\\)</td>
+              <td style="vertical-align:top;padding:6px 10px">
+                ${solTex(it)}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    typesetAll(box);
+  },
+
+  reset(host) {
+    const box = $("#res",host);
+    if (box) box.textContent = "";
+    host.querySelectorAll("input.ante").forEach(inp => {
+      inp.value = "";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+const ex4 = {
   id: "ineq_x2_graph",
   title: "Inéquations du type x^2 … (lecture graphique)",
 
@@ -2153,17 +2500,14 @@ L’ensemble des solutions est donc :
   }
 };
 
-
-
-
 /* ————— Registre & UI ————— */
-const REGISTRY=[ex1,ex2,ex3];
+const REGISTRY=[ex1,ex2,ex3,ex4];
 window.REGISTRY = REGISTRY; // pour le kit PDF
 
 (function waitExoPDF(){
   if (window.ExoPDF && typeof ExoPDF.init === 'function') {
     ExoPDF.init({
-      title: 'Seconde – Fonction carré - Équations - Encadrement – Inéquations',
+      title: 'Seconde – Fonction cube',
       mountAfterSelector: '.card.small',
     });
   } else {

@@ -1,12 +1,1810 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exercices — Chapitre 8 — Fonction cube</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:24px}.muted{color:#666}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde – Fonction cube</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* mini tableaux “PDF-like” (cadre extérieur) */
+  table.pdf-tbl{
+    border-collapse: separate; border-spacing: 0; border: none; margin:.4rem 0;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border: none; padding: 4px 6px; text-align: center; vertical-align: middle;
+  }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* variation table (interactive) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.grid{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  .g-ax{stroke:#000;stroke-width:1.4}
+  .g-grid{stroke:#a78bfa22}
+  .g-curve{stroke:#111;stroke-width:2.2;fill:none}
+  .g-pt{fill:#111}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  
+  /* Tableau de variations : uniquement le cadre + séparations x/f et labels */
+table.var.frame-only{
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table.var.frame-only th,
+table.var.frame-only td{
+  border: none;
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cadre extérieur */
+table.var.frame-only tr:first-child > * { border-top:    1.5px solid #000; }
+table.var.frame-only tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var.frame-only tr > *:first-child { border-left:   1.5px solid #000; }
+table.var.frame-only tr > *:last-child  { border-right:  1.5px solid #000; }
+
+/* Séparation verticale après la 1re colonne (labels x / f) */
+table.var.frame-only tbody tr > *:first-child { border-right: 1.5px solid #000; }
+
+/* Séparation horizontale entre la ligne x et la ligne f */
+table.var.frame-only tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+
+/* cellule flèche pleine hauteur */
+table.var.frame-only td.bigsel{ padding:0 }
+
+/* le select occupe 100% et centre la flèche */
+table.var.frame-only td.bigsel select{
+  display:block;
+  width:100%;
+  height:100%;
+  border:1;
+  background:transparent;
+  padding:0;
+  margin:0;
+  text-align:center;
+  text-align-last:center;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+}
+table.var.frame-only td.bigsel option{ font-size:inherit; line-height:inherit; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;
+  font-weight: 400;
+  line-height: 1;
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+
+/* Variante "grille complète" pour les tableaux d'images f(x) */
+table.pdf-tbl.fullgrid{
+  border-collapse:collapse;
+  border-spacing:0;
+}
+
+table.pdf-tbl.fullgrid th,
+table.pdf-tbl.fullgrid td{
+  border:1.5px solid #000;
+  padding:8px 10px;
+}
+.graph svg.grid{
+  width:100%;
+  height:auto;
+}
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
 </head>
 <body>
-  <h1>Seconde – Chapitre 8 — Fonction cube</h1>
-  <p class="muted">La page d’exercices pour ce thème n’est pas encore prête. Placez votre fichier ici : <code>exercices.html</code>.</p>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Fonction cube</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Flèches : choisissez ↘ ou ↗.</li>
+		        <li>Pour racine cubique, il faut écrire rac3(a)</li>
+
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+
+/* ————— Utils ————— */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+const UMIN='−';
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+s+' \\)';}
+function ensureTickAfter(el){ let s=el?.nextElementSibling; if(!s||!s.classList?.contains('tick')){ s=document.createElement('span'); s.className='tick nu'; el.insertAdjacentElement('afterend',s);} return s; }
+function setTick(el, state){ if(!el) return; ensureTickAfter(el).className='tick '+state; }
+function typesetAll(root){ const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{}); if(MathJax?.startup?.promise){ MathJax.startup.promise.then(run);} else { const t=setInterval(()=>{ if(MathJax?.typesetPromise){ clearInterval(t); run(); }},60);} }
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+/* === EXERCICE 1 – Images par la fonction cube === */
+
+const ex1 = {
+  id: "images_fonction_cube",
+  title: "Images par la fonction cube",
+
+  randFracCoprime() {
+    const gcd = (a,b)=>{
+      a=Math.abs(a); b=Math.abs(b);
+      while (b){ const t=b; b=a%b; a=t; }
+      return a;
+    };
+    while (true) {
+      const num = rint(1,9);
+      const den = rint(2,9);
+      if (gcd(num,den) === 1) return {num,den};
+    }
+  },
+
+  gen() {
+    const items = [];
+
+    // 1) Entier positif
+    const n1 = rint(1,9);
+    items.push({
+      kind:"intPos",
+      latex:`${n1}`,
+      x:n1,
+      val:n1**3
+    });
+
+    // 2) Entier négatif
+    const n2 = rint(1,9);
+    items.push({
+      kind:"intNeg",
+      latex:`-${n2}`,
+      x:-n2,
+      val:-(n2**3)
+    });
+
+    // 3) Fraction positive
+    const fp = this.randFracCoprime();
+    items.push({
+      kind:"fracPos",
+      latex:`\\dfrac{${fp.num}}{${fp.den}}`,
+      num:fp.num,
+      den:fp.den,
+      val:(fp.num**3)/(fp.den**3),
+      num3:fp.num**3,
+      den3:fp.den**3
+    });
+
+    // 4) Fraction négative
+    const fn = this.randFracCoprime();
+    items.push({
+      kind:"fracNeg",
+      latex:`-\\dfrac{${fn.num}}{${fn.den}}`,
+      num:fn.num,
+      den:fn.den,
+      val:-(fn.num**3)/(fn.den**3),
+      num3:fn.num**3,
+      den3:fn.den**3
+    });
+
+    // 5) puissance de 10
+    const exps = [-5,-4,-3,-2,-1,2,3,4,5];
+    const e = choice(exps);
+    items.push({
+      kind:"pow10",
+      latex:`10^{${e}}`,
+      exp:e,
+      powExp:3*e,
+      val:10**(3*e)
+    });
+
+// 6) racine simple √a, avec a NON carré parfait
+const isSquare = n => {
+  const r = Math.round(Math.sqrt(n));
+  return r * r === n;
+};
+
+let a;
+do {
+  a = rint(2,30);
+} while (isSquare(a));   // on refuse 4, 9, etc.
+
+items.push({
+  kind: "sqrt",
+  latex: `\\sqrt{${a}}`,
+  a,
+  val: a * Math.sqrt(a),      // (√a)^3 = a√a
+  ansTex: `${a}\\sqrt{${a}}`
+});
+
+
+    items.sort(()=>Math.random()-0.5);
+    return { items };
+  },
+
+  render(host, st) {
+    host.innerHTML = `
+      <div>Calculer l’image des nombres suivants par la fonction cube \\(f(x)=x^3\\) :</div>
+      <div class="var-wrap">
+        <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
+          <tbody>
+            ${[0,1].map(row => `
+              <tr>
+                ${[0,1,2].map(col => {
+                  const idx = 3*row+col;
+                  const it = st.items[idx];
+                  return `
+                  <td style="width:33%;vertical-align:top;padding:8px 10px">
+                    <div>\\(${it.latex} :\\)</div>
+                    <div style="margin-top:10px">
+                      <input class="img" data-i="${idx}" type="text"
+                             style="width:90%;max-width:180px;text-align:center">
+                      <span class="tick nu"></span>
+                    </div>
+                  </td>`;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div id="res" class="steps small"></div>
+    `;
+    host.querySelectorAll('input.img').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+correct(host, st) {
+  const normBasic = s => (s || "")
+    .trim()
+    .replace(/\u2212/g,"-")   // moins unicode → '-'
+    .replace(/,/g,".")        // virgule → point
+    .replace(/\s+/g,"");      // supprime les espaces
+
+  // Parse un nombre, une fraction, ou k·sqrt(a) écrit avec rac / √ / \sqrt
+  const parseVal = raw => {
+    let s = (raw || "").trim();
+    if (!s) return NaN;
+
+    // normalisation globale
+    s = normBasic(s);
+
+    // unifier toutes les notations racine → sqrt(...)
+    s = s
+      .replace(/rac\(/gi, "sqrt(")             // rac(6) -> sqrt(6)
+      .replace(/√\(/g, "sqrt(")               // √(6)  -> sqrt(6)
+      .replace(/√(\d+)/g, "sqrt($1)")         // √6    -> sqrt(6)
+      .replace(/\\sqrt\{([^}]*)\}/g, "sqrt($1)") // \sqrt{6} -> sqrt(6)
+      .replace(/\\sqrt([^({ ]+)/g, "sqrt($1)")   // \sqrt6   -> sqrt(6)
+      .replace(/\\sqrt\(/g, "sqrt(");         // \sqrt(6)  -> sqrt(6)
+
+    // signe global
+    let sign = 1;
+    if (s[0] === "+") {
+      s = s.slice(1);
+    } else if (s[0] === "-") {
+      sign = -1;
+      s = s.slice(1);
+    }
+
+    // ----- cas k*sqrt(a) ou k sqrt(a) ou sqrt(a) -----
+    // ex : "6rac(6)" → "6sqrt(6)"
+    let m = s.match(/^(\d+(?:\.\d+)?)?\*?sqrt\((.+)\)$/);
+    if (m) {
+      const coefStr   = m[1];
+      const insideStr = m[2];
+
+      const coef = coefStr ? Number(coefStr) : 1;
+      if (Number.isNaN(coef)) return NaN;
+
+      let base;
+      if (insideStr.includes("/")) {
+        const [na, da] = insideStr.split("/");
+        const n = Number(na), d = Number(da);
+        if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+        base = n / d;
+      } else {
+        base = Number(insideStr);
+        if (Number.isNaN(base)) return NaN;
+      }
+      if (base < 0) return NaN;
+      return sign * coef * Math.sqrt(base);
+    }
+
+    // ----- sinon : fraction classique a/b -----
+    if (s.includes("/")) {
+      const [na, da] = s.split("/");
+      const n = Number(na), d = Number(da);
+      if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+      return sign * (n / d);
+    }
+
+    // ----- sinon : nombre simple -----
+    const x = Number(s);
+    return Number.isNaN(x) ? NaN : sign * x;
+  };
+
+  let ok = 0, tot = 0;
+
+  st.items.forEach((it,i)=>{
+    const inp = host.querySelector(`input.img[data-i="${i}"]`);
+    if (!inp) return;
+    const raw = inp.value;
+    const v   = normBasic(raw);
+
+    if (!v) {
+      setTick(inp,"nu");
+      return;
+    }
+    tot++;
+
+    let good = false;
+
+    // Tous les cas "classiques" : on compare juste la valeur de f(x)
+    if (it.kind === "intPos" || it.kind === "intNeg" ||
+        it.kind === "fracPos" || it.kind === "fracNeg" ||
+        it.kind === "sqrt") {
+
+      const val = parseVal(raw);   // gère aussi 6rac(6) pour le sqrt
+      if (!Number.isNaN(val)) {
+        good = Math.abs(val - it.val) < 1e-9;
+      }
+
+    } else if (it.kind === "pow10") {
+      // soit valeur numérique, soit écriture 10^k
+      const val = parseVal(raw);
+      if (!Number.isNaN(val)) {
+        good = Math.abs(val - it.val) < 1e-9;
+      }
+
+      if (!good) {
+        const w = normBasic(raw);
+        if (w.startsWith("10^")) {
+          let kStr = w.slice(3);
+          if (kStr.startsWith("{") && kStr.endsWith("}")) {
+            kStr = kStr.slice(1,-1);
+          }
+          const k = Number(kStr);
+          if (Number.isInteger(k)) {
+            good = (k === it.powExp);
+          }
+        }
+      }
+    }
+
+    setTick(inp, good ? "ok" : "ko");
+    if (good) ok++;
+  });
+
+  $("#res",host).textContent = "";
+  return { ok, total: tot };
+},
+
+
+  solution(host, st) {
+    const box = $("#res",host);
+
+    const solTex = it => {
+      if (it.kind === "intPos" || it.kind==="dec") {
+        const x = it.x;
+        const xDisplay = String(x).replace("-", UMIN);
+        const val = it.val;
+        return `
+\\[
+\\begin{aligned}
+f\\left(${xDisplay}\\right) &=${xDisplay}^3\\\\
+&= ${val}
+\\end{aligned}
+\\]`;
+      }
+
+
+if (it.kind === "intNeg" ) {
+const x = it.x;
+const xn=-x
+        const val = it.val;
+  return `
+\\[
+\\begin{aligned}
+f\\left(${x}\\right) &= \\left(${x}\\right)^3\\\\
+&= -${xn}^3\\\\
+&= ${val}
+\\end{aligned}
+\\]`;
+}
+
+if (it.kind === "fracPos") {
+  const n = it.num, d = it.den;
+  const N = n**3, D = d**3;
+  return `
+\\[
+\\begin{aligned}
+f\\left(\\dfrac{${n}}{${d}}\\right)
+&= \\left(\\dfrac{${n}}{${d}}\\right)^3\\\\
+&= \\dfrac{${n}^3}{${d}^3}\\\\
+&= \\dfrac{${N}}{${D}}
+\\end{aligned}
+\\]`;
+}
+
+if (it.kind === "fracNeg") {
+  const n = it.num, d = it.den;
+  const N = n**3, D = d**3;
+  return `
+\\[
+\\begin{aligned}
+f\\left(-\\dfrac{${n}}{${d}}\\right)
+&= \\left(-\\dfrac{${n}}{${d}}\\right)^3\\\\
+&= -\\dfrac{${n}^3}{${d}^3}\\\\
+&= -\\dfrac{${N}}{${D}}
+\\end{aligned}
+\\]`;
+}
+if (it.kind === "sqrt") {
+  const a = it.a;
+  return `
+\\[
+\\begin{aligned}
+f\\left(\\sqrt{${a}}\\right)
+&= (\\sqrt{${a}})^3\\\\
+&= ${a}\\sqrt{${a}}
+\\end{aligned}
+\\]`;
+}
+
+
+      if (it.kind === "pow10") {
+        const e = it.exp;
+        const e3 = it.powExp;
+        return `
+\\[
+\\begin{aligned}
+f\\left(10^{${e}}\\right) &= \\left(10^{${e}}\\right)^3\\\\
+&= 10^{${e}\\times 3}\\\\
+&= 10^{${e3}}
+\\end{aligned}
+\\]`;
+      }
+      return "";
+    };
+
+    const cells = idx => {
+      const it = st.items[idx];
+      return `
+<td style="vertical-align:top;padding:8px 10px">
+  <div style="margin-top:6px">${solTex(it)}</div>
+</td>`;
+    };
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+        <tbody>
+          <tr>
+            ${cells(0)}${cells(1)}${cells(2)}
+          </tr>
+          <tr>
+            ${cells(3)}${cells(4)}${cells(5)}
+          </tr>
+        </tbody>
+      </table>
+    `;
+    typesetAll(box);
+  },
+
+  reset(host) {
+    const box = $("#res",host);
+    if (box) box.textContent = "";
+    host.querySelectorAll("input.img").forEach(inp => {
+      inp.value = "";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+const ex2 = {
+  id: "var_carre_interval",
+  title: "Tableau de variations de la fonction cube sur un intervalle",
+
+  gen() {
+    // On garde la même répartition des types d'intervalle,
+    // mais pour f(x)=x^3 tout est strictement croissant.
+    const r = Math.random();
+    let type, a, b;
+
+    if (r < 0.3) {
+      // [a;b] entièrement positif
+      type = "pos";
+      a = rint(1, 5);
+      b = rint(a + 1, Math.min(a + 4, 9));
+    } else if (r < 0.6) {
+      // [a;b] entièrement négatif
+      type = "neg";
+      const A = rint(1, 5);
+      const B = rint(A + 1, Math.min(A + 4, 9));
+      b = -A;
+      a = -B; // a < b < 0
+    } else {
+      // [a;b] contenant 0
+      type = "zero";
+      do {
+        a = -rint(1, 6);
+        b =  rint(1, 6);
+      } while (a >= b); // on veut juste a<b
+    }
+
+    const fa = a * a * a;
+    const fb = b * b * b;
+
+    return { type, a, b, fa, fb };
+  },
+
+  render(host, st) {
+    const { a, b } = st;
+    const Itex = `[${a}\\,;\\,${b}]`;
+
+    // Toujours 2 colonnes x : a, b et UNE seule flèche entre les deux
+    const colsX = [a, null, b]; // null = colonne flèche
+
+const rowX = `
+  <tr>
+    <th>\\(x\\)</th>
+    ${colsX.map((x, idx, arr) => {
+      if (x === null) return `<td></td>`;
+      const isLeft  = idx === 0;
+      const isRight = idx === arr.length - 1;
+      const align = isLeft ? 'left' : (isRight ? 'right' : 'center');
+      const pad   = isLeft
+        ? 'padding-left:10px;'
+        : (isRight ? 'padding-right:10px;' : '');
+      return `<td style="text-align:${align};${pad}">\\(${x}\\)</td>`;
+    }).join("")}
+  </tr>`;
+
+
+    const rowF = `
+      <tr>
+        <th>\\(f\\)</th>
+        ${colsX.map((x, idx) => {
+          if (x === null) {
+            // colonne flèche UNIQUE
+            return `
+              <td class="bigsel">
+                <select class="dir" data-i="${idx}"
+                        style="display:block;width:100%;height:100%">
+                  <option value=""></option>
+                  <option>↘</option>
+                  <option>↗</option>
+                </select>
+              </td>`;
+          }
+          // colonne valeur avec 2 lignes max/min comme dans l'exo 1
+          // Pour f(x)=x^3, sur [a;b] avec a<b : min en a, max en b.
+          const y = x * x * x;
+          const isLeft = (x === a);
+          return `
+            <td>
+              <div class="ycol" style="display:flex;flex-direction:column;gap:6px;align-items:center">
+                <input class="ymax" data-x="${x}" type="text"
+                       style="width:80px;text-align:center"
+                       placeholder="">
+                <input class="ymin" data-x="${x}" type="text"
+                       style="width:80px;text-align:center"
+                       placeholder="">
+              </div>
+            </td>`;
+        }).join("")}
+      </tr>`;
+
+    host.innerHTML = `
+      <div><b>1.</b> Donner le <b>tableau de variations</b> de la fonction cube définie par : \\(f(x)=x^3\\) sur \\(${Itex}\\).</div>
+
+      <div class="var-wrap" style="margin-top:.5rem">
+          <table class="pdf-tbl pdf-hide">
+            <thead>${rowX}</thead>
+            <tbody>
+              ${rowF}
+            </tbody>
+          </table>
+      </div>
+
+      <div style="margin-top:.6rem">
+        <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">
+          <label><b>2.</b> En déduire un <b>encadrement</b> de \\(f(x)=x^3\\) sur \\(${Itex}\\) :</label>
+        </div>
+        <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">
+          <span>Pour tout \\(x\\in ${Itex}\\),</span>
+          <input class="qEncMin" type="text" style="width:90px;text-align:center">
+          <span>\\(\\le x^3 \\le\\)</span>
+          <input class="qEncMax" type="text" style="width:90px;text-align:center">
+          <span class="tick nu"></span>
+          <span class="tick nu"></span>
+        </div>
+      </div>
+
+      <div id="res" class="steps small" style="margin-top:.6rem"></div>
+    `;
+
+    host.querySelectorAll(
+      'input.ymax,input.ymin,input.qEncMin,input.qEncMax,select.dir'
+    ).forEach(ensureTickAfter);
+
+    typesetAll(host);
+  },
+
+   correct(host, st) {
+    const { a, b } = st;
+
+    const norm = s => (s || "").trim().replace(/\u2212/g, "-").replace(/,/g, ".");
+    const num  = s => {
+      const v = Number(norm(s));
+      return Number.isFinite(v) ? v : null;
+    };
+
+    // f(x)=x^3 est strictement croissante : min=f(a), max=f(b) (avec a<b)
+    const minVal = a * a * a;
+    const maxVal = b * b * b;
+
+    let ok = 0, tot = 0;
+
+    const checkNumInput = (inp, expected) => {
+      if (!inp) return;
+      const v = inp.value.trim();
+      if (!v) {
+        // champ vide : pas sanctionné, pas compté
+        setTick(inp, "nu");
+        return;
+      }
+      tot++;
+      const n = num(v);
+      const good = (n !== null && Math.abs(n - expected) < 1e-9);
+      setTick(inp, good ? "ok" : "ko");
+      if (good) ok++;
+    };
+
+    /* === 1) Encadrement en bas === */
+    const iMin = host.querySelector('.qEncMin');
+    const iMax = host.querySelector('.qEncMax');
+    checkNumInput(iMin, minVal);
+    checkNumInput(iMax, maxVal);
+
+    /* === 2) Flèche ↗ dans la ligne f === */
+    const selDir = host.querySelector('select.dir');
+    if (selDir) {
+      const v = selDir.value.trim();
+      if (!v) {
+        // rien choisi → pas sanctionné, pas compté
+        setTick(selDir, "nu");
+      } else {
+        tot++;
+        const good = (v === "↗");
+        setTick(selDir, good ? "ok" : "ko");
+        if (good) ok++;
+      }
+    }
+
+    /* === 3) Valeurs du tableau de variations === */
+    const ymaxA = host.querySelector(`input.ymax[data-x="${a}"]`);
+    const yminA = host.querySelector(`input.ymin[data-x="${a}"]`);
+    const ymaxB = host.querySelector(`input.ymax[data-x="${b}"]`);
+    const yminB = host.querySelector(`input.ymin[data-x="${b}"]`);
+
+    // En x = a : min en bas = f(a)
+    checkNumInput(yminA, minVal);
+    // si l'élève écrit quelque chose en haut, on vérifie aussi, sinon "nu"
+    checkNumInput(ymaxA, minVal);
+
+    // En x = b : max en haut = f(b)
+    checkNumInput(ymaxB, maxVal);
+    // si l'élève écrit quelque chose en bas, on vérifie, sinon "nu"
+    checkNumInput(yminB, maxVal);
+
+    return { ok, total: tot };
+  },
+
+
+  solution(host, st) {
+    const { a, b } = st;
+    const Itex = `[${a}\\,;\\,${b}]`;
+
+    // valeurs de f aux bornes
+    const fa = a * a * a;
+    const fb = b * b * b;
+
+    // Tableau : min en a (en bas), max en b (en haut), UNE flèche ↗
+const rowX = `
+  <tr>
+    <th>\\(x\\)</th>
+    <td style="text-align:left;padding-left:10px">\\(${a}\\)</td>
+    <td></td>
+    <td style="text-align:right;padding-right:10px">\\(${b}\\)</td>
+  </tr>`;
+
+
+    const rowF = `
+      <tr>
+        <th>\\(f\\)</th>
+        <td>
+          <div style="text-align:center">&nbsp;</div>
+          <div style="height:6px"></div>
+          <div style="text-align:center">\\(${fa}\\)</div>
+        </td>
+        <td>↗</td>
+        <td>
+          <div style="text-align:center">\\(${fb}\\)</div>
+          <div style="height:6px"></div>
+          <div style="text-align:center">&nbsp;</div>
+        </td>
+      </tr>`;
+
+    const box = $("#res",host);
+    box.innerHTML = `
+      <div class="step">
+        <b>1.</b> Tableau de variations de la fonction cube définie par : \\(f(x)=x^3\\) sur \\(${Itex}\\) :
+        <div class="var-wrap" style="margin-top:.4rem">
+          <table class="pdf-tbl">
+            <thead>${rowX}</thead>
+            <tbody>
+              ${rowF}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="step" style="margin-top:6px">
+        <b>2.</b> La fonction cube est strictement croissante sur tout \\(\\mathbb{R}\\).<br>
+        Sur l’intervalle \\(${Itex}\\) avec \\(${a} < ${b}\\), on a donc :
+        \\(f(${a}) = ${fa}\\)  est le minimum, et  \\(f(${b}) = ${fb} \\) est le maximum.<br>
+
+        On en déduit l'encadrement :
+        \\[
+          \\forall x \\in ${Itex},\\quad ${fa} \\le  x^3 \\le ${fb}.
+        \\]
+      </div>
+    `;
+    typesetAll(box);
+  },
+
+  reset(host) {
+    const box = $("#res",host);
+    if (box) box.textContent = "";
+    host.querySelectorAll("input.ymax,input.ymin,input.qEncMin,input.qEncMax,select.dir")
+        .forEach(el => {
+          if (el.tagName === "INPUT") el.value = "";
+          setTick(el,"nu");
+        });
+  }
+};
+
+
+
+/* === EXERCICE 3 – Antécédents par la fonction cube === */
+
+const ex3 = {
+  id: "antecedents_cube",
+  title: "Antécédents par la fonction cube",
+
+  gen() {
+    const gcd = (a,b)=>{
+      a = Math.abs(a); b = Math.abs(b);
+      while(b){ const t=b; b=a%b; a=t; }
+      return a || 1;
+    };
+
+    // 1) cube parfait entier positif
+    const m1 = rint(1, 10);
+    const intPosVal = m1**3;
+
+    // 2) cube parfait entier négatif
+    const m2 = rint(1,10);
+    const intNegVal = -(m2**3);
+
+    // 3) cube parfait fraction positif : (p/q)^3
+    let p,q;
+    do {
+      p = rint(1,8);
+      q = rint(2,8);
+    } while (gcd(p,q) !== 1);
+    const fracPosVal = (p**3)/(q**3);
+
+    // 4) cube parfait fraction négatif
+    let p2,q2;
+    do {
+      p2 = rint(1,5);
+      q2 = rint(2,7);
+    } while (gcd(p2,q2) !== 1);
+    const fracNegVal = -(p2**3)/(q2**3);
+
+// 5) nombre non simplifiable (pas cube parfait)
+let c;
+do {
+  c = rint(2, 60);
+} while (Math.cbrt(c) % 1 === 0); // on évite les cubes parfaits
+
+
+
+
+
+    const items = [
+      { kind:"intPos",  y:intPosVal,   root:m1,    latex:`${intPosVal}` },
+      { kind:"intNeg",  y:intNegVal,   root:-m2,   latex:`${intNegVal}` },
+      { kind:"fracPos", y:fracPosVal,  rootNum:p, rootDen:q,
+        latex:`\\dfrac{${p**3}}{${q**3}}` },
+      { kind:"fracNeg", y:fracNegVal,  rootNum:-p2, rootDen:q2,
+        latex:`-\\dfrac{${p2**3}}{${q2**3}}` },
+		{
+  kind: "nonCube",
+  y: c,
+  latex: `${c}`
+}
+    ];
+
+    items.sort(()=>Math.random()-0.5);
+    return { items };
+  },
+
+  render(host, st) {
+    host.innerHTML = `
+      <div>
+        On considère la fonction cube \\(f(x)=x^3\\). Pour chacun des nombres suivants, 
+        donner <b>un antécédent réel</b> par \\(f\\). (Il est unique.)<br>
+        <em>On écrira un seul nombre réel (entier ou fraction).</em>
+      </div>
+
+      <div class="var-wrap" style="margin-top:.5rem">
+        <table class="pdf-tbl fullgrid" style="width:100%;max-width:650px">
+          <thead>
+            <tr>
+              <th>Nombre \\(y\\)</th>
+              <th>Antécédent réel par \\(f(x)=x^3\\)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${st.items.map((it,i)=>`
+              <tr>
+                <td style="width:35%">\\(${it.latex}\\)</td>
+                <td>
+                  <input class="ante" data-i="${i}" type="text"
+                         style="width:95%;max-width:280px;text-align:center">
+                  <span class="tick nu"></span>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="res" class="steps small" style="margin-top:.6rem"></div>
+    `;
+
+    host.querySelectorAll('input.ante').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+correct(host, st) {
+  const norm = s => (s || "")
+    .trim()
+    .replace(/\u2212/g,"-")   // moins unicode → "-"
+    .replace(/,/g,".")        // virgule → point
+    .replace(/\s+/g,"");      // supprime espaces
+
+  const parseValue = raw => {
+    let s = (raw || "").trim();
+    if (!s) return NaN;
+
+    // normalisation de base
+    s = norm(s);
+
+    // si l'élève écrit "a;b", on ne garde que le premier terme
+    if (s.includes(";")) {
+      s = s.split(";")[0];
+    }
+
+    // gestion du signe global
+    let sign = 1;
+    if (s[0] === "+") {
+      s = s.slice(1);
+    } else if (s[0] === "-") {
+      sign = -1;
+      s = s.slice(1);
+    }
+
+    // ----- cas racine cubique : rac3(...) -----
+    // exemples acceptés : rac3(2), rac3(5/4), rac3(7.5)
+    if (/^rac3/i.test(s)) {
+      let inside = s.replace(/^rac3/i, "");
+      // rac3(2) → "(2)" puis 2
+      if (inside.startsWith("(") && inside.endsWith(")")) {
+        inside = inside.slice(1, -1);
+      }
+      inside = norm(inside);
+
+      let base;
+      if (inside.includes("/")) {
+        const [na, da] = inside.split("/");
+        const n = Number(na), d = Number(da);
+        if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+        base = n / d;
+      } else {
+        base = Number(inside);
+        if (Number.isNaN(base)) return NaN;
+      }
+      return sign * Math.cbrt(base);
+    }
+
+    // ----- fraction classique a/b -----
+    if (s.includes("/")) {
+      const [na, da] = s.split("/");
+      const n = Number(na), d = Number(da);
+      if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+      return sign * (n / d);
+    }
+
+    // ----- nombre "simple" -----
+    const x = Number(s);
+    return Number.isNaN(x) ? NaN : sign * x;
+  };
+
+  let ok = 0, tot = 0;
+
+  st.items.forEach((it,i)=>{
+    const inp = host.querySelector(`input.ante[data-i="${i}"]`);
+    if (!inp) return;
+    const raw = inp.value.trim();
+
+    if (!raw) {
+      setTick(inp,"nu");
+      return;
+    }
+
+    tot++;
+    let good = false;
+    const v = parseValue(raw);
+    if (!Number.isNaN(v)) {
+      const y = it.y;
+      const eps = 1e-6;
+      // antécédent pour f(x)=x^3 → x^3 = y
+      good = Math.abs(v*v*v - y) < eps;
+    }
+
+    setTick(inp, good ? "ok" : "ko");
+    if (good) ok++;
+  });
+
+  const box = $("#res",host);
+  if (box) {
+    box.innerHTML = `
+      <div class="step">
+      </div>
+    `;
+  }
+
+  return { ok, total: tot };
+},
+
+
+  solution(host, st) {
+    const box = $("#res",host);
+
+    const solTex = it => {
+      const y = it.y;
+      if (it.kind === "intPos") {
+        const r = it.root;
+        return `
+\\[
+\\begin{aligned}
+x^3 &= ${y} \\\\
+x &= \\sqrt[3]{${y}} \\\\
+x &= ${r}
+\\end{aligned}
+\\]`;
+      }
+
+if (it.kind === "intNeg") {
+        const r = it.root;
+		const yn=-y
+        return `
+\\[
+\\begin{aligned}
+x^3 &= ${y} \\\\
+x &= -\\sqrt[3]{${yn}} \\\\
+x &= ${r}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "fracPos") {
+        const num = Math.abs(it.rootNum);
+        const den = it.rootDen;
+        const sign = it.rootNum < 0 ? "-" : "";
+        const num3 = num**3;
+        const den3 = den**3;
+        return `
+\\[
+\\begin{aligned}
+x^3 &= \\dfrac{${sign? "-" : ""}${num3}}{${den3}} \\\\
+x &= \\sqrt[3]{\\dfrac{${sign? "-" : ""}${num3}}{${den3}}} \\\\
+    x&= ${sign}\\dfrac{${num}}{${den}}
+\\end{aligned}
+\\]`;
+      }
+	  
+      if (it.kind === "fracNeg") {
+        const num = Math.abs(it.rootNum);
+        const den = it.rootDen;
+        const sign = it.rootNum < 0 ? "-" : "";
+        const num3 = num**3;
+        const den3 = den**3;
+		const num3n=-num3
+        return `
+\\[
+\\begin{aligned}
+x^3 &= -\\dfrac{${num3}}{${den3}} \\\\
+x &= -\\sqrt[3]{\\dfrac{${num3}}{${den3}}} \\\\
+    x&= ${sign}\\dfrac{${num}}{${den}}
+\\end{aligned}
+\\]`;
+      }	  
+	  
+if (it.kind === "nonCube") {
+  const y = it.y;
+  return `
+\\[
+\\begin{aligned}
+x^3 &= ${y} \\\\
+x &= \\sqrt[3]{${y}}
+\\end{aligned}
+\\]`;
+}
+
+	  
+      return "";
+    };
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
+        <thead>
+          <tr>
+            <th>Nombre \\(y\\)</th>
+            <th>Correction</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${st.items.map(it => `
+            <tr>
+              <td style="width:30%">\\(${it.latex}\\)</td>
+              <td style="vertical-align:top;padding:6px 10px">
+                ${solTex(it)}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    typesetAll(box);
+  },
+
+  reset(host) {
+    const box = $("#res",host);
+    if (box) box.textContent = "";
+    host.querySelectorAll("input.ante").forEach(inp => {
+      inp.value = "";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+/* === EXERCICE 4 – Inéquations du type x^3 … (lecture graphique) === */
+
+const ex4 = {
+  id: "ineq_x3_graph",
+  title: "Inéquations du type x^3 … (lecture graphique)",
+
+ gen() {
+  // 60% : racine cubique entière
+  // 40% : racine cubique non entière
+
+  const cubePerfects = [-1000,-729,-512,-343,-216,-125,-64,-27, -8, -1, 0, 1, 8, 27,64,125,216,343,512,729,1000]; // ∛c entier
+  const nonCubes     = [-10, -9, -7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7, 9, 10];
+
+  const isIntRoot = Math.random() < 0.6; // 60%
+  const c = isIntRoot ? choice(cubePerfects) : choice(nonCubes);
+
+  const rel = choice(["<=","<",">=",">"]);
+
+  let relTex;
+  if (rel === "<=") relTex = "\\le";
+  else if (rel === "<") relTex = "<";
+  else if (rel === ">=") relTex = "\\ge";
+  else relTex = ">";
+
+  return {
+    c,
+    rel,
+    ineqTex: `x^3 ${relTex} ${c}`
+  };
+},
+
+
+  buildSketch(st, showSolution) {
+    const NS  = "http://www.w3.org/2000/svg";
+    const W   = 260;
+    const H   = 260;
+    const m   = 24;          // marge interne
+
+    // Fenêtre "math" : on veut juste une jolie courbe en S
+    const xMin = -2;
+    const xMax =  2;
+    const yMin = -4;
+    const yMax =  4;
+
+    const X = x => m + (x - xMin) / (xMax - xMin) * (W - 2*m);
+    const Y = y => H - m - (y - yMin) / (yMax - yMin) * (H - 2*m);
+
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+    svg.setAttribute("class", "grid");
+
+    const x0 = X(0);
+    const y0 = Y(0);
+    const yTop = Y(4);
+    const yBottom = Y(-4);
+
+    // ===== Axes gris =====
+    const axY = document.createElementNS(NS, "line");
+    axY.setAttribute("x1", x0);
+    axY.setAttribute("x2", x0);
+    axY.setAttribute("y1", yTop);
+    axY.setAttribute("y2", yBottom);
+    axY.setAttribute("stroke", "#555");
+    axY.setAttribute("stroke-width", "1.6");
+    svg.appendChild(axY);
+
+    const axX = document.createElementNS(NS, "line");
+    axX.setAttribute("x1", X(xMin));
+    axX.setAttribute("x2", X(xMax));
+    axX.setAttribute("y1", y0);
+    axX.setAttribute("y2", y0);
+    axX.setAttribute("stroke", "#555");
+    axX.setAttribute("stroke-width", "1.6");
+    svg.appendChild(axX);
+
+    // ===== Belle courbe lisse : y = 0.5 x^3 (forme cube, juste rescalée) =====
+    const yFunc = x => 0.5 * x * x * x;
+
+    const curve = document.createElementNS(NS, "path");
+    const n = 200;
+    let d = "";
+    for (let i = 0; i <= n; i++) {
+      const x = xMin + (xMax - xMin) * i / n;
+      const y = yFunc(x);
+      const Xp = X(x);
+      const Yp = Y(y);
+      d += (i === 0 ? "M " : " L ") + Xp + " " + Yp;
+    }
+    curve.setAttribute("d", d);
+    curve.setAttribute("stroke", "#e11d48");  // rouge
+    curve.setAttribute("stroke-width", "2.3");
+    curve.setAttribute("fill", "none");
+    svg.appendChild(curve);
+
+    // En énoncé : seulement repère + courbe
+    if (!showSolution) return svg;
+
+    const c   = st.c;
+    const rel = st.rel; // "<=", "<", ">=", ">"
+
+    // ===== position "sans échelle" du niveau y = c sur l'axe des ordonnées =====
+    let yCscreen;
+    if (c > 0) {
+      // milieu de la partie POSITIVE de l'axe des ordonnées
+      yCscreen = (yTop + y0) / 2;
+    } else if (c < 0) {
+      // milieu de la partie NÉGATIVE
+      yCscreen = (y0 + yBottom) / 2;
+    } else {
+      // c = 0 : sur l'axe des abscisses
+      yCscreen = y0;
+    }
+
+    // ===== on cherche le x (dans la partie droite ou gauche) tel que la courbe
+    //       coupe l'horizontale de niveau yCscreen =====
+    const findXForYscreen = (targetY, sign) => {
+      let lo = (sign > 0) ? 0 : xMin;
+      let hi = (sign > 0) ? xMax : 0;
+      for (let k = 0; k < 40; k++) {
+        const mid = 0.5 * (lo + hi);
+        const Ys = Y(yFunc(mid));
+        if ((Ys - targetY) * (Y(yFunc(lo)) - targetY) <= 0) {
+          hi = mid;
+        } else {
+          lo = mid;
+        }
+      }
+      return 0.5 * (lo + hi);
+    };
+
+    let xRootWorld;
+    if (c > 0) {
+      xRootWorld = findXForYscreen(yCscreen, +1);
+    } else if (c < 0) {
+      xRootWorld = findXForYscreen(yCscreen, -1);
+    } else {
+      xRootWorld = 0;
+    }
+
+    const xRoot = X(xRootWorld);
+
+    // ===== horizontale (axe des ordonnées → courbe) =====
+    const hSeg = document.createElementNS(NS, "line");
+    hSeg.setAttribute("x1", x0);
+    hSeg.setAttribute("x2", xRoot);
+    hSeg.setAttribute("y1", yCscreen);
+    hSeg.setAttribute("y2", yCscreen);
+    hSeg.setAttribute("stroke", "#2563eb");    // bleu
+    hSeg.setAttribute("stroke-width", "2.2");
+    svg.appendChild(hSeg);
+
+    // ===== verticale (courbe → axe des abscisses) =====
+    const vSeg = document.createElementNS(NS, "line");
+    vSeg.setAttribute("x1", xRoot);
+    vSeg.setAttribute("x2", xRoot);
+    vSeg.setAttribute("y1", yCscreen);
+    vSeg.setAttribute("y2", y0);
+    vSeg.setAttribute("stroke", "#2563eb");    // bleu
+    vSeg.setAttribute("stroke-width", "2.2");
+    svg.appendChild(vSeg);
+
+    // ===== intervalle solution sur l'axe des x =====
+    const segSol = document.createElementNS(NS, "line");
+    let x1s, x2s;
+    if (rel === "<=" || rel === "<") {
+      x1s = X(xMin);
+      x2s = xRoot;
+    } else {
+      x1s = xRoot;
+      x2s = X(xMax);
+    }
+    segSol.setAttribute("x1", x1s);
+    segSol.setAttribute("x2", x2s);
+    segSol.setAttribute("y1", y0);
+    segSol.setAttribute("y2", y0);
+    segSol.setAttribute("stroke", "#16a34a");   // vert comme sur ta fiche
+    segSol.setAttribute("stroke-width", "3");
+    svg.appendChild(segSol);
+
+    // point plein / vide au seuil
+    const dot = document.createElementNS(NS,"circle");
+    dot.setAttribute("cx", xRoot);
+    dot.setAttribute("cy", y0);
+    dot.setAttribute("r", 4);
+    dot.setAttribute("stroke", "#16a34a");
+    dot.setAttribute("stroke-width", "2");
+    dot.setAttribute(
+      "fill",
+      (rel === "<=" || rel === ">=") ? "#16a34a" : "#fff"
+    );
+    svg.appendChild(dot);
+
+    // ===== labels sur les axes =====
+    // label y = c au milieu de la partie pos/neg
+    const ty = document.createElementNS(NS,"text");
+    ty.setAttribute("x", x0 + 4);
+    ty.setAttribute("y", yCscreen - 4);
+    ty.setAttribute("font-size", "11");
+    ty.setAttribute("text-anchor", "start");
+    ty.setAttribute("fill", "#2563eb");
+    ty.textContent = String(c);
+    svg.appendChild(ty);
+
+    // label x = antécédent : entier si cube parfait, sinon ±∛(…)
+    let labelX;
+    if (c === 0) {
+      labelX = "0";
+    } else {
+      const r = Math.round(Math.cbrt(c));
+      if (r * r * r === c) {
+        // cube parfait
+        labelX = String(r);
+      } else {
+        const sign = c < 0 ? "-" : "";
+        labelX = sign + "∛" + Math.abs(c);
+      }
+    }
+
+    const tx = document.createElementNS(NS,"text");
+    tx.setAttribute("x", xRoot+10);
+    tx.setAttribute("y", y0 - 10);
+    tx.setAttribute("font-size", "11");
+    tx.setAttribute("text-anchor", "middle");
+    tx.setAttribute("fill", "#2563eb");
+    tx.textContent = labelX;
+    svg.appendChild(tx);
+
+    return svg;
+  },
+
+
+  render(host, st) {
+    const { ineqTex } = st;
+
+    host.innerHTML = `
+      <div>
+        À l'aide de la représentation graphique de la fonction cube \\(f(x)=x^3\\),
+        déterminer l'<b>ensemble des solutions</b> de l’inéquation suivante.
+      </div>
+
+      <div style="margin-top:.35rem">
+        <b>Inéquation :</b> \\(${ineqTex}\\)
+      </div>
+
+      <div class="graph" style="margin-top:.45rem">
+        <div class="ineq-g"></div>
+      </div>
+
+      <div style="margin-top:.6rem">
+        <div style="margin-top:.4rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+          <span>Ensemble des solutions : \\(S =\\)</span>
+          <input class="ineq-set" type="text"
+                 style="width:230px;max-width:90%;text-align:center">
+          <span class="tick nu"></span>
+        </div>
+      </div>
+
+      <div id="res" class="steps small" style="margin-top:.7rem"></div>
+    `;
+
+    const box = host.querySelector('.ineq-g');
+    box.appendChild(this.buildSketch(st, false));
+
+    host.querySelectorAll('input.ineq-set').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+correct(host, st) {
+  const inp = host.querySelector('.ineq-set');
+  const tickEl = inp ? ensureTickAfter(inp) : null;
+  const raw = (inp?.value || "").trim();
+
+  if (!raw) {
+    if (tickEl) tickEl.className = "tick nu";
+    return { ok: 0, total: 0 };
+  }
+
+  function parseIntervals(txt) {
+    if (!txt) return null;
+
+    let s = txt.trim();
+    s = s
+      .replace(/\s+/g, "")
+      .replace(/\u2212/g, "-")
+      .replace(/∞/g, "oo")
+      .replace(/\\,/g, "")
+      .replace(/\\;/g, "");
+
+    // unions : U, u, ∪
+    s = s.replace(/∪/gi, "U").replace(/u/g, "U");
+
+    const parts = s.split(/U+/).filter(Boolean);
+    if (!parts.length) return null;
+
+    const parseBound = (t) => {
+      if (!t) return NaN;
+      t = t.trim().replace(/\u2212/g, "-");
+
+      // infinis
+      let low = t.toLowerCase().replace(/,/g, ".");
+      if (low === "-oo" || low === "-inf") return -Infinity;
+      if (low === "oo" || low === "inf" || low === "+oo" || low === "+inf") return +Infinity;
+
+      // signe global
+      let sign = 1;
+      if (t[0] === "+") {
+        t = t.slice(1);
+      } else if (t[0] === "-") {
+        sign = -1;
+        t = t.slice(1);
+      }
+
+      let core = t.trim().replace(/\u2212/g, "-");
+      let coreLower = core.toLowerCase().replace(/,/g, ".");
+
+      // ----- borne de la forme rac3(…) -----
+      // ex : rac3(3), rac3(5/4)
+      const mRac = coreLower.match(/^rac3\((.+)\)$/);
+      if (mRac) {
+        let inside = mRac[1];
+
+        let base;
+        if (inside.includes("/")) {
+          const [na, da] = inside.split("/");
+          const n = Number(na), d = Number(da);
+          if (!d || Number.isNaN(n) || Number.isNaN(d)) return NaN;
+          base = n / d;
+        } else {
+          base = Number(inside);
+          if (Number.isNaN(base)) return NaN;
+        }
+        return sign * Math.cbrt(base);
+      }
+
+      // ----- nombre simple -----
+      const v = Number(coreLower);
+      return Number.isFinite(v) ? sign * v : NaN;
+    };
+
+    const intervals = [];
+
+    for (const part of parts) {
+      if (part.length < 4) return null;
+
+      const L = part[0];
+      const R = part[part.length - 1];
+      if (!"[]()".includes(L) || !"[]()".includes(R)) return null;
+
+      const inside = part.slice(1, -1);
+      const sepIdx = inside.indexOf(";") >= 0 ? inside.indexOf(";") : inside.indexOf(",");
+      if (sepIdx < 0) return null;
+
+      const aStr = inside.slice(0, sepIdx);
+      const bStr = inside.slice(sepIdx + 1);
+
+      const a = parseBound(aStr);
+      const b = parseBound(bStr);
+      if (Number.isNaN(a) || Number.isNaN(b)) return null;
+
+      if (Number.isFinite(a) && Number.isFinite(b) && a > b + 1e-9) return null;
+
+      // NOTATION FRANÇAISE :
+      //  ]a ; b[  : bornes ouvertes
+      //  [a ; b]  : bornes fermées
+      //
+      // donc :
+      //  L = ']' ou '('  → borne gauche OUVERTE
+      //  L = '['        → borne gauche FERMÉE
+      //  R = '[' ou ')'  → borne droite OUVERTE
+      //  R = ']'        → borne droite FERMÉE
+      const openL = (L === ']' || L === '(');
+      const openR = (R === '[' || R === ')');
+
+      intervals.push({ a, b, openL, openR });
+    }
+
+    intervals.sort((u, v) => {
+      if (u.a === v.a) {
+        if (u.b === v.b) return 0;
+        return u.b < v.b ? -1 : 1;
+      }
+      return u.a < v.a ? -1 : 1;
+    });
+
+    return intervals;
+  }
+
+  const c = st.c;
+  const alpha = Math.cbrt(c);
+
+  const expected = (() => {
+    switch(st.rel){
+      case "<=": // x^3 ≤ c  ⇒ x ≤ ∛c
+        return [{
+          a: -Infinity,
+          b: alpha,
+          openL: true,
+          openR: false
+        }];
+      case "<": // x^3 < c ⇒ x < ∛c
+        return [{
+          a: -Infinity,
+          b: alpha,
+          openL: true,
+          openR: true
+        }];
+      case ">=": // x^3 ≥ c ⇒ x ≥ ∛c
+        return [{
+          a: alpha,
+          b: +Infinity,
+          openL: false,
+          openR: true
+        }];
+      case ">": // x^3 > c
+      default:
+        return [{
+          a: alpha,
+          b: +Infinity,
+          openL: true,
+          openR: true
+        }];
+    }
+  })();
+
+  const got = parseIntervals(raw);
+  let ok = 0, tot = 1;
+  let good = false;
+
+  if (got && got.length === expected.length) {
+    const EPS = 1e-6;
+    const numEq = (x, y) => {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return x === y;
+      return Math.abs(x - y) < EPS;
+    };
+
+    const expSorted = expected.slice().sort((u, v) => {
+      if (u.a === v.a) {
+        if (u.b === v.b) return 0;
+        return u.b < v.b ? -1 : 1;
+      }
+      return u.a < v.a ? -1 : 1;
+    });
+
+    good = true;
+    for (let i = 0; i < got.length; i++) {
+      const g = got[i];
+      const e = expSorted[i];
+      if (!numEq(g.a, e.a) || !numEq(g.b, e.b) ||
+          g.openL !== e.openL || g.openR !== e.openR) {
+        good = false;
+        break;
+      }
+    }
+  }
+
+  if (tickEl) tickEl.className = "tick " + (good ? "ok" : "ko");
+  if (good) ok = 1;
+
+  const box = $("#res", host);
+  if (box) {
+    box.innerHTML = `
+      <div class="step">
+</div>
+    `;
+    typesetAll(box);
+  }
+
+  return { ok, total: tot };
+},
+
+
+  solution(host, st) {
+  const sqrt3Tex = n => {
+    if (n === 0) return "0";
+
+    // si ∛n est entier → on renvoie cet entier
+    const r = Math.round(Math.cbrt(n));
+    if (r * r * r === n) {
+      return String(r);          // ex : 8 → "2", -27 → "-3"
+    }
+
+    // sinon on écrit ±∛(valeur absolue)
+    if (n < 0) return `-\\sqrt[3]{${-n}}`;
+    return `\\sqrt[3]{${n}}`;
+  };
+
+    const c   = st.c;
+    const rel = st.rel;
+    const aTex = sqrt3Tex(c);
+
+    let solTex = "";
+    let Itex   = "";
+
+    if (rel === "<=") {
+      Itex = `]-\\infty;${aTex}]`;
+      solTex = `
+\\[
+x^3 \\le ${c}
+\\iff x \\le ${aTex}
+\\]
+L’ensemble des solutions est donc : \\(${Itex}\\).`;
+    } else if (rel === "<") {
+      Itex = `]-\\infty;${aTex}[`;
+      solTex = `
+\\[
+x^3 < ${c}
+\\iff x < ${aTex}
+\\]
+L’ensemble des solutions est donc : \\(${Itex}\\).`;
+    } else if (rel === ">=") {
+      Itex = `[${aTex};+\\infty[`;
+      solTex = `
+\\[
+x^3 \\ge ${c}
+\\iff x \\ge ${aTex}
+\\]
+L’ensemble des solutions est donc : \\(${Itex}\\).`;
+    } else {
+      Itex = `]${aTex};+\\infty[`;
+      solTex = `
+\\[
+x^3 > ${c}
+\\iff x > ${aTex}
+\\]
+L’ensemble des solutions est donc : \\(${Itex}\\).`;
+    }
+
+    const gHost = host.querySelector('.ineq-g');
+    if (gHost) {
+      gHost.innerHTML = "";
+      gHost.appendChild(this.buildSketch(st, true));
+    }
+
+    const box = $("#res", host);
+    if (box) {
+      box.innerHTML = `
+        <div class="step"></div>
+        <div class="step" style="margin-top:.4rem">
+          <div class="graph" style="margin-bottom:.5rem">
+            <div class="ineq-sol-graph"></div>
+          </div>
+          ${solTex}
+        </div>
+      `;
+
+      const solG = box.querySelector('.ineq-sol-graph');
+      if (solG) {
+        solG.appendChild(this.buildSketch(st, true));
+      }
+    }
+    typesetAll(box);
+  },
+
+  reset(host) {
+    const box = $("#res", host);
+    if (box) box.textContent = "";
+    const inp = host.querySelector('.ineq-set');
+    if (inp) {
+      inp.value = "";
+      setTick(inp, "nu");
+    }
+    const gHost = host.querySelector('.ineq-g');
+    if (gHost) gHost.innerHTML = "";
+  }
+};
+
+
+/* ————— Registre & UI ————— */
+const REGISTRY=[ex1,ex2,ex3,ex4];
+window.REGISTRY = REGISTRY; // pour le kit PDF
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: 'Seconde – Fonction cube',
+      mountAfterSelector: '.card.small',
+    });
+  } else {
+    setTimeout(waitExoPDF, 50);
+  }
+})();
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st)||{ok:0,total:0};
+  scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkAll(); } });
+
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+})();
+</script>
 </body>
 </html>

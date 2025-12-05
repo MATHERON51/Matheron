@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde – Propriétés de la racine carrée</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* mini tableaux “PDF-like” (cadre extérieur) */
+  table.pdf-tbl{
+    border-collapse: separate; border-spacing: 0; border: none; margin:.4rem 0;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border: none; padding: 4px 6px; text-align: center; vertical-align: middle;
+  }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* variation table (interactive) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.grid{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  .g-ax{stroke:#000;stroke-width:1.4}
+  .g-grid{stroke:#a78bfa22}
+  .g-curve{stroke:#111;stroke-width:2.2;fill:none}
+  .g-pt{fill:#111}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  
+  /* Tableau de variations : uniquement le cadre + séparations x/f et labels */
+table.var.frame-only{
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table.var.frame-only th,
+table.var.frame-only td{
+  border: none;                 /* pas de bordures intérieures */
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cadre extérieur */
+table.var.frame-only tr:first-child > * { border-top:    1.5px solid #000; }
+table.var.frame-only tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var.frame-only tr > *:first-child { border-left:   1.5px solid #000; }
+table.var.frame-only tr > *:last-child  { border-right:  1.5px solid #000; }
+
+/* Séparation verticale après la 1re colonne (labels x / f) */
+table.var.frame-only tbody tr > *:first-child { border-right: 1.5px solid #000; }
+
+/* Séparation horizontale entre la ligne x et la ligne f */
+table.var.frame-only tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+
+/* cellule flèche pleine hauteur */
+table.var.frame-only td.bigsel{ padding:0 }
+
+/* le select occupe 100% et centre la flèche */
+table.var.frame-only td.bigsel select{
+  display:block;
+  width:100%;
+  height:100%;
+  border:1;
+  background:transparent;
+  padding:0;
+  margin:0;
+  text-align:center;         /* Chrome/Edge */
+  text-align-last:center;    /* Firefox */
+  appearance:none;           /* enlève le chevron natif */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+}
+table.var.frame-only td.bigsel option{ font-size:inherit; line-height:inherit; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+
+/* Variante "grille complète" pour les tableaux d'images f(x) */
+table.pdf-tbl.fullgrid{
+  border-collapse:collapse;
+  border-spacing:0;
+}
+
+table.pdf-tbl.fullgrid th,
+table.pdf-tbl.fullgrid td{
+  border:1.5px solid #000;      /* toutes les bordures visibles */
+  padding:8px 10px;
+}
+.graph svg.grid{
+  width:100%;
+  height:auto;
+}
+
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Propriétés de la racine carrée</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- même emplacement que dans ton modèle -->
+
+<script>
+(function(){
+'use strict';
+
+/* ————— Utils ————— */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+const UMIN='−';
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+s+' \\)';}
+function ensureTickAfter(el){
+  let s=el?.nextElementSibling;
+  if(!s||!s.classList?.contains('tick')){
+    s=document.createElement('span');
+    s.className='tick nu';
+    el.insertAdjacentElement('afterend',s);
+  }
+  return s;
+}
+function setTick(el, state){
+  if(!el) return;
+  ensureTickAfter(el).className='tick '+state;
+}
+function typesetAll(root){
+  const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{});
+  if(MathJax?.startup?.promise){
+    MathJax.startup.promise.then(run);
+  }else{
+    const t=setInterval(()=>{
+      if(MathJax?.typesetPromise){ clearInterval(t); run(); }
+    },60);
+  }
+}
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+// ----- Mélange simple (Fisher–Yates) -----
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ----- Parse d'une saisie de type a^n -----
+function parsePowInput(raw){
+  if(raw == null) return null;
+  let s = String(raw).trim();
+  if(!s) return null;
+
+  // on enlève les espaces et on normalise le moins Unicode
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/−/g,'-');
+  s = s.replace(/²/g, '^2');
+
+
+  let m;
+
+  // 1) base entre parenthèses : (-3)^2, (10)^-3, etc.
+  m = s.match(/^\(([+-]?\d+)\)\^\(?([+-]?\d+)\)?$/);
+  if(m){
+    const base = parseInt(m[1],10);
+    const exp  = parseInt(m[2],10);
+    if(!Number.isFinite(base) || !Number.isFinite(exp)) return null;
+    return { base, exp, hasParensBase:true };
+  }
+
+  // 2) base sans parenthèses : 5^3, 10^-2, -3^3, -3^2, etc.
+  m = s.match(/^([+-]?\d+)\^\(?([+-]?\d+)\)?$/);
+  if(!m) return null;
+
+  const base = parseInt(m[1],10);
+  const exp  = parseInt(m[2],10);
+  if(!Number.isFinite(base) || !Number.isFinite(exp)) return null;
+
+  return { base, exp, hasParensBase:false };
+}
+
+
+
+// m + n écrit proprement
+function texSum(m,n){
+  const s1 = String(m);
+  const sign = (n >= 0) ? "+" : "-";
+  const s2 = String(Math.abs(n));
+  return s1 + sign + s2;     // ex : 3-2, -3+5, -3-2
+}
+
+// m - n écrit proprement
+function texDiff(m,n){
+  const s1 = String(m);
+  const sign = (n >= 0) ? "-" : "+";
+  const s2 = String(Math.abs(n));
+  return s1 + sign + s2;     // ex : 3-2, -3-5, -3+2
+}
+
+// cas mix 1 : m + n - p
+function texMix1(m,n,p){
+  const s1 = String(m);
+  const s2 = (n >= 0 ? "+" : "-") + Math.abs(n);
+  const s3 = (p >= 0 ? "-" : "+") + Math.abs(p);
+  return s1 + s2 + s3;       // ex : 3+2-5, -3+4-2, 3-2+5...
+}
+
+// cas mix 2 : m - n - p
+function texMix2(m,n,p){
+  const s1 = String(m);
+  const s2 = (n >= 0 ? "-" : "+") + Math.abs(n);
+  const s3 = (p >= 0 ? "-" : "+") + Math.abs(p);
+  return s1 + s2 + s3;       // ex : 3-2-5, -3-4-2, 3+2+5...
+}
+
+function texProd(m,n){
+  const fmt = x => x < 0 ? `(${x})` : `${x}`;
+  return `${fmt(m)}\\times${fmt(n)}`;   // ex : (-2)\times(-3)
+}
+
+function texFinalExponent(a, n){
+  if(n === 1){
+    // dernière ligne : on écrit simplement a, même si a<0
+    return `\\\\ &= ${a}`;
+  }
+  if(n === 0){
+    // a^0 = 1
+    return `\\\\ &= 1`;
+  }
+  return "";
+}
+
+function texOddNegExtra(base, n){
+  // base négative ET exposant impair ⇒ on veut une ligne supplémentaire = -a^n (sans parenthèses)
+  if(base < 0 && Math.abs(n) % 2 === 1){
+    const a = Math.abs(base);
+    return `\\\\ &= -${a}^{${n}}`;
+  }
+  return "";
+}
+
+function texEvenNegExtra(base, n){
+  // base négative ET exposant pair NON NUL ⇒ on veut une ligne avec (-1)^n × a^n
+  if(base < 0 && n !== 0 && Math.abs(n) % 2 === 0){
+    const a = Math.abs(base);
+    return `\\\\ &= ${a}^{${n}}`;
+  }
+  return "";
+}
+
+
+/* ————————————————————————————————————————
+   EXERCICE 3 : Propriétés de la racine carrée
+   ———————————————————————————————————————— */
+const ex1 = {
+  id: "racines_carrees_props",
+  title: "Propriétés de la racine carrée",
+
+  // entier positif >=2
+  rp(min=2,max=12){ return rint(min,max); },
+
+  // carré parfait
+  sq(n){ return n*n; },
+
+
+  // test "carré parfait"
+  isSquare(n){
+    const r = Math.round(Math.sqrt(n));
+    return r*r === n;
+  },
+
+
+  genItem(kind){
+    // 1) √(a²) = a
+    if(kind === "rac_a2"){
+      const a = this.rp();
+      const N = this.sq(a); // parfait carré
+      return {
+        kind,
+        latex: `\\sqrt{${N}}`,
+        ans: `${a}`,
+        steps: [
+          `\\sqrt{${N}}`,
+		  `= \\sqrt{${a}\\times${a}}`,
+          `= ${a}`
+        ]
+      };
+    }
+
+    // 2) √(a² b²) = √(a²)√(b²) = ab
+    if(kind === "rac_a2b2"){
+      const a = this.rp();
+      let b;
+      do { b = this.rp(); } while (b === a);
+      const A = this.sq(a);
+      const B = this.sq(b);
+      return {
+        kind,
+        latex: `\\sqrt{${A}\\times${B}}`,
+        ans: `${a*b}`,
+        steps: [
+          `\\sqrt{${A}\\times${B}} `,
+		  `= \\sqrt{${A}}\\times\\sqrt{${B}}`,
+          `= ${a}\\times${b}`,
+          `= ${a*b}`
+        ]
+      };
+    }
+
+    // 3) √(a² / b²) = √(a²)/√(b²) = a/b
+    if(kind === "rac_a2_sur_b2"){
+      const a = this.rp();
+      let b;
+      do { b = this.rp(); } while (b === a);
+      const A = this.sq(a);
+      const B = this.sq(b);
+      return {
+        kind,
+        latex: `\\sqrt{\\dfrac{${A}}{${B}}}`,
+        ans: `\\dfrac{${a}}{${b}}`,
+        steps: [
+          `\\sqrt{\\dfrac{${A}}{${B}}} `,
+		  `=\\dfrac{\\sqrt{${A}}}{\\sqrt{${B}}}`,
+          `= \\dfrac{${a}}{${b}}`
+        ]
+      };
+    }
+
+    // 4) √(a² k) = a√k  (ex : √490 = √49×10 = √49×√10 = 7√10)
+    if(kind === "rac_a2k"){
+      const a = this.rp();
+      let k;
+      do {
+        k = rint(2,10);
+      } while (this.isSquare(k)); // k non carré
+
+      const A = this.sq(a);   // a²
+      const N = A * k;        // nombre sous le radical, ex : 490
+
+      return {
+        kind,
+        latex: `\\sqrt{${N}}`,
+        ans: `${a}\\sqrt{${k}}`,
+        steps: [
+          `\\sqrt{${N}}`,
+          `= \\sqrt{${A}\\times${k}}`,
+          `= \\sqrt{${A}}\\times\\sqrt{${k}}`,
+          `= ${a}\\sqrt{${k}}`
+        ]
+      };
+    }
+
+
+        // 5) 1/√a = √a/a  avec a NON carré parfait
+    if(kind === "inv_rac_a"){
+      let a;
+      do{
+        a = this.rp(2,20);
+      } while (this.isSquare(a));   // on exclut les carrés parfaits
+
+// APRÈS
+return {
+  kind,
+  latex: `\\dfrac{1}{\\sqrt{${a}}}`,
+  // réponse interne en écriture "clavier"
+  ans: `\\sqrt{${a}}/${a}`,
+  steps: [
+    `\\dfrac{1}{\\sqrt{${a}}}`,
+    `= \\dfrac{1}{\\sqrt{${a}}} \\times \\dfrac{\\sqrt{${a}}}{\\sqrt{${a}}}`,
+    `= \\dfrac{\\sqrt{${a}}}{(\\sqrt{${a}})^2}`,
+    `= \\dfrac{\\sqrt{${a}}}{${a}}`
+  ]
+};
+
+    }
+
+
+// 6) 1/(√a ± √b) = (conjugué)/(a − b)
+// avec a,b NON carrés parfaits
+if(kind === "inv_rac_a_m_rac_b"){
+  let a, b;
+  // a non carré parfait
+  do { a = this.rp(2,20); } while (this.isSquare(a));
+  // b non carré parfait, différent de a
+  do { b = this.rp(2,20); } while (b === a || this.isSquare(b));
+
+  // on choisit au hasard le signe du dénominateur : - ou +
+  const denSign  = Math.random() < 0.5 ? '-' : '+';
+  const conjSign = (denSign === '-') ? '+' : '-';
+
+  const denomTex = `\\sqrt{${a}}${denSign}\\sqrt{${b}}`;   // dénominateur de l'énoncé
+  const conjTex  = `\\sqrt{${a}}${conjSign}\\sqrt{${b}}`;   // conjugué
+  const numTex   = conjTex;                                // numérateur après rationalisation
+
+  const denomNum = a - b;               // valeur numérique (peut être 1, -1, autre)
+  const denomSym = `${a}-${b}`;         // forme "a-b"
+
+  const steps = [
+    `\\dfrac{1}{${denomTex}}`,
+    `= \\dfrac{1}{${denomTex}} \\times \\dfrac{${conjTex}}{${conjTex}}`,
+    `= \\dfrac{${numTex}}{(${denomTex})(${conjTex})}`,
+    `= \\dfrac{${numTex}}{(\\sqrt{${a}})^2-(\\sqrt{${b}})^2}`,
+    `= \\dfrac{${numTex}}{${denomSym}}`
+  ];
+
+  let ans;
+
+  if(denomNum === 1){
+    // on montre la simplification vers 1 puis on enlève /1 à la fin
+    steps.push(`= \\dfrac{${numTex}}{1}`);
+    steps.push(`= ${numTex}`);
+    ans = `${numTex}`;
+  } else if(denomNum === -1){
+    // on montre le /-1 puis la ligne avec l'opposé du numérateur
+    const oppTex = (conjSign === '+')
+      ? `-\\sqrt{${a}}-\\sqrt{${b}}`
+      : `-\\sqrt{${a}}+\\sqrt{${b}}`;
+
+    steps.push(`= \\dfrac{${numTex}}{-1}`);
+    steps.push(`= -\\big(${numTex}\\big)`);
+    steps.push(`= ${oppTex}`);
+    ans = oppTex;
+  } else {
+    // cas général : dénominateur quelconque ≠ ±1
+    steps.push(`= \\dfrac{${numTex}}{${denomNum}}`);
+    // réponse interne simplifiée pour le check
+    ans = `${numTex}/${denomNum}`;
+  }
+
+  return {
+    kind,
+    latex: `\\dfrac{1}{${denomTex}}`,
+    ans,
+    steps
+  };
+}
+
+
+
+  },
+
+  gen(){
+    const kinds = [
+      "rac_a2",
+      "rac_a2b2",
+      "rac_a2_sur_b2",
+      "rac_a2k",
+      "inv_rac_a",
+      "inv_rac_a_m_rac_b"
+    ];
+    const items = kinds.map(k => this.genItem(k));
+    return { items };
+  },
+
+  render(host,st){
+    host.innerHTML = `
+      <div>Simplifier les expressions suivantes :</div>
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
+        <tbody>
+          ${[0,1].map(row => `
+            <tr>
+              ${[0,1,2].map(col => {
+                const idx = row*3 + col;
+                const it = st.items[idx];
+                return `
+                  <td style="padding:10px;vertical-align:top;text-align:center">
+                    <div>\\(${String.fromCharCode(65+idx)} = ${it.latex}\\)</div>
+                    <div style="margin-top:10px">
+                      <input class="rac" data-i="${idx}" type="text"
+                             style="width:90%;max-width:180px;text-align:center">
+                      <span class="tick nu"></span>
+                    </div>
+                  </td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div id="res" class="steps small"></div>
+    `;
+    host.querySelectorAll("input.rac").forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+ // normalisation très simple pour le check
+normStr(s){
+  if(!s) return "";
+  s = String(s).trim();
+
+  // enlever espaces, normaliser le moins unicode
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/−/g,'-');
+
+  // rac(…) -> \sqrt{…}
+  s = s.replace(/rac\(([^\(\)]+)\)/g,'\\sqrt{$1}');
+
+  // \dfrac{num}{den} ou \frac{num}{den} -> (num)/(den)
+  s = s.replace(/\\(?:dfrac|frac)\{([^{}]+)\}\{([^{}]+)\}/g,'($1)/($2)');
+
+  // 4*\sqrt{…} -> 4\sqrt{…}
+  s = s.replace(/(\d)\*(\\sqrt)/g,'$1$2');
+
+  // helper pour enlever une paire de parenthèses extérieures
+  const stripParens = t => {
+    if(t.startsWith('(') && t.endsWith(')')){
+      return t.slice(1,-1);
+    }
+    return t;
+  };
+
+  // si on a une fraction, on met tout sous la forme canonique num/den
+  const slash = s.indexOf('/');
+  if(slash !== -1){
+    let num = s.slice(0, slash);
+    let den = s.slice(slash+1);
+
+    num = stripParens(num);
+    den = stripParens(den);
+
+    if(den === '1'){
+      s = num;                 // (X)/1 -> X
+    } else if(den === '-1'){
+      s = '-(' + num + ')';    // (X)/-1 -> -(X)
+    } else {
+      s = num + '/' + den;     // forme canonique
+    }
+  }
+
+  // Développer un signe - devant une somme simple :
+  // -(A+B) -> -A-B
+  s = s.replace(/^-\(([^()]+)\+([^()]+)\)$/,'-$1-$2');
+
+  return s;
+},
+
+
+
+    correct(host,st){
+    let ok = 0, tot = 0;
+    st.items.forEach((it,i)=>{
+      const inp = host.querySelector(`input.rac[data-i="${i}"]`);
+      const val = inp.value;
+      if(!val.trim()){
+        setTick(inp,"nu");
+        return;
+      }
+      tot++;
+      const inNorm  = this.normStr(val);
+      const ansNorm = this.normStr(it.ans);
+
+      const good = inNorm === ansNorm;
+      setTick(inp, good ? "ok" : "ko");
+      if(good) ok++;
+    });
+    return { ok, total: tot };
+  },
+
+
+  solution(host,st){
+    const box = $("#res",host);
+
+    const rowsHtml = [0,1].map(row => `
+      <tr>
+        ${[0,1,2].map(col => {
+          const idx = row*3 + col;
+          const it  = st.items[idx];
+          const lettre = String.fromCharCode(65+idx);
+
+          // on construit les lignes du aligned :
+          // 1ʳᵉ ligne : A &= (1er step)
+          // lignes suivantes :   &= (step suivant)
+          const lines = it.steps.map((s,j)=> {
+            if(j === 0){
+              return `${lettre} &= ${s}`;
+            }else{
+              return `& ${s}`;
+            }
+          }).join(' \\\\ ');
+
+          return `
+            <td style="padding:10px;vertical-align:top">
+              \\[
+              \\begin{aligned}
+              ${lines}
+              \\end{aligned}
+              \\]
+            </td>`;
+        }).join('')}
+      </tr>
+    `).join('');
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    `;
+    typesetAll(box);
+  },
+
+
+  reset(host){
+    const box = $("#res",host);
+    box.textContent = "";
+    host.querySelectorAll("input.rac").forEach(inp=>{
+      inp.value = "";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+
+
+/* ————— Registre & UI ————— */
+const REGISTRY=[ex1];
+window.REGISTRY = REGISTRY; // pour le kit PDF
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: 'Seconde – Propriétés de la racine carrée',
+      mountAfterSelector: '.card.small',
+    });
+  } else {
+    setTimeout(waitExoPDF, 50);
+  }
+})();
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st)||{ok:0,total:0};
+  scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    checkAll();
+  }
+});
+
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seconde – Puissances</title>
+
+<link rel="stylesheet" href="../../../../css/math-kbd.css">
+<link rel="stylesheet" href="../../../../css/espace-latex.css">
+<link rel="stylesheet" href="../../../../css/espace-gras.css">
+<link rel="stylesheet" href="../../../../css/mobile.css">
+
+<style>
+  *{box-sizing:border-box}
+  :root{--ink:#111;--bg:#fafafa;--card:#fff;--line:#e6e6e6;--ok:#11823b;--ko:#b00020}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial}
+  .header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;padding:14px 18px;z-index:5}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  select,input[type="text"]{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+  .btn{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .btn:hover{background:#f6f6f6}
+  .score{margin-left:auto}
+  .steps{margin:.35rem 0 0 .15rem;padding:.35rem .5rem;background:#f2f2f2;border:1px dashed #bbb;border-radius:8px}
+  .step{margin:.2rem 0}
+  .tick{ display:inline-block; min-width:1.15em; text-align:center; margin-left:.35rem; font-weight:700 }
+  .tick.nu::after{ content:''; }
+  .tick.ok::after{ content:'✓'; color:#11823b; }
+  .tick.ko::after{ content:'✗'; color:#b00020; }
+
+  /* mini tableaux “PDF-like” (cadre extérieur) */
+  table.pdf-tbl{
+    border-collapse: separate; border-spacing: 0; border: none; margin:.4rem 0;
+  }
+  table.pdf-tbl th, table.pdf-tbl td{
+    border: none; padding: 4px 6px; text-align: center; vertical-align: middle;
+  }
+  table.pdf-tbl th{ background:#f3f3f6 }
+  table.pdf-tbl tr:first-child > * { border-top:    1.5px solid #000; }
+  table.pdf-tbl tr:last-child  > * { border-bottom: 1.5px solid #000; }
+  table.pdf-tbl tr > *:first-child { border-left:   1.5px solid #000; }
+  table.pdf-tbl tr > *:last-child  { border-right:  1.5px solid #000; }
+  table.pdf-tbl thead tr > *:first-child,
+  table.pdf-tbl tbody tr > *:first-child{ border-right: 1.5px solid #000; }
+
+  /* variation table (interactive) */
+  .var-wrap{display:flex;justify-content:center}
+  table.var{width:max-content;border-collapse:separate;border-spacing:0;margin:.35rem auto}
+  table.var th, table.var td{padding:4px 6px;border:1.5px solid #000}
+  table.var th{background:#f3f3f6}
+  table.var .bigsel select{font-size:28px;line-height:1;height:2.1em}
+  table.var .bigsel{padding:0 4px}
+  table.var input[type="text"]{width:110px;text-align:center}
+  table.var .thin td{ border-top:none; border-left:none; border-right:none; padding-top:2px; }
+  table.var .gaprow td{ border:none !important; height:8px; padding:0; }
+
+  /* zone courbes */
+  .graph{display:flex;justify-content:center;margin:.4rem 0}
+  svg.grid{background:#fff;border:1px solid #e5e5e5;border-radius:8px}
+  .g-ax{stroke:#000;stroke-width:1.4}
+  .g-grid{stroke:#a78bfa22}
+  .g-curve{stroke:#111;stroke-width:2.2;fill:none}
+  .g-pt{fill:#111}
+  .legend{display:flex;gap:12px;justify-content:center;font-size:.92rem}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  
+  /* Tableau de variations : uniquement le cadre + séparations x/f et labels */
+table.var.frame-only{
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table.var.frame-only th,
+table.var.frame-only td{
+  border: none;                 /* pas de bordures intérieures */
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cadre extérieur */
+table.var.frame-only tr:first-child > * { border-top:    1.5px solid #000; }
+table.var.frame-only tr:last-child  > * { border-bottom: 1.5px solid #000; }
+table.var.frame-only tr > *:first-child { border-left:   1.5px solid #000; }
+table.var.frame-only tr > *:last-child  { border-right:  1.5px solid #000; }
+
+/* Séparation verticale après la 1re colonne (labels x / f) */
+table.var.frame-only tbody tr > *:first-child { border-right: 1.5px solid #000; }
+
+/* Séparation horizontale entre la ligne x et la ligne f */
+table.var.frame-only tbody tr:first-child > * { border-bottom: 1.5px solid #000; }
+
+/* cellule flèche pleine hauteur */
+table.var.frame-only td.bigsel{ padding:0 }
+
+/* le select occupe 100% et centre la flèche */
+table.var.frame-only td.bigsel select{
+  display:block;
+  width:100%;
+  height:100%;
+  border:1;
+  background:transparent;
+  padding:0;
+  margin:0;
+  text-align:center;         /* Chrome/Edge */
+  text-align-last:center;    /* Firefox */
+  appearance:none;           /* enlève le chevron natif */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+}
+table.var.frame-only td.bigsel option{ font-size:inherit; line-height:inherit; }
+
+/* BÂTONS UNIQUEMENT DANS LES TABLEAUX DE SOLUTION (PDF) */
+table.pdf-tbl td.sbar,
+table.pdf-tbl td.zbar,
+table.pdf-tbl td.dbar { position: relative; }
+
+/* 1 barre centrale (vide ou avec 0) */
+table.pdf-tbl td.sbar::before,
+table.pdf-tbl td.zbar::before{
+  content:'';
+  position:absolute;
+  top:-1.5px;               /* colle aux lignes horizontales */
+  bottom:-1.5px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:2px solid #000;
+}
+/* 0 plus grand mais moins épais */
+table.pdf-tbl td.zbar,
+table.var td.zbar {
+  font-size: 1.35em;     /* plus grand */
+  font-weight: 400;      /* poids normal, plus fin */
+  line-height: 1;        /* évite que ça déborde verticalement */
+}
+/* écrase le gras inline sur les zéros */
+table.pdf-tbl td.zbar { font-weight:400 !important; }
+
+
+/* Variante "grille complète" pour les tableaux d'images f(x) */
+table.pdf-tbl.fullgrid{
+  border-collapse:collapse;
+  border-spacing:0;
+}
+
+table.pdf-tbl.fullgrid th,
+table.pdf-tbl.fullgrid td{
+  border:1.5px solid #000;      /* toutes les bordures visibles */
+  padding:8px 10px;
+}
+.graph svg.grid{
+  width:100%;
+  height:auto;
+}
+
+
+</style>
+
+<!-- MathJax -->
+<script>
+  window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},chtml:{matchFontHeight:false},startup:{typeset:true}};
+</script>
+<script defer src="../../../../es5/tex-chtml.js"></script>
+<script src='../../../../js/math-kbd.js' defer></script>
+
+<script src='../../../../js/exo-pdf-kit.multiplicatif-latex.js' defer></script>
+
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;font-size:1.1rem">Seconde – Puissances</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="controls card">
+      <label for="exo-select"><strong>Type d’exercice :</strong></label>
+      <select id="exo-select"></select>
+      <button id="btn-new" class="btn">🔄 Nouvel énoncé</button>
+      <button id="btn-check" class="btn">✅ Vérifier</button>
+      <button id="btn-solution" class="btn">💡 Solution</button>
+      <button id="btn-reset" class="btn">🧹 Réinitialiser</button>
+      <span class="score">Score : <span id="score">0 / 0</span></span>
+    </div>
+
+    <div class="card" id="host"></div>
+
+    <div class="card small">
+      <strong>Consignes de saisie</strong>
+      <ul style="margin:.5rem 0 0 18px">
+        <li>Extremums (tableau) : remplisser dans la saisie du haut si maximum et dans la saisie du bas si minimum.</li>
+        <li>Flèches : choisissez ↘ ou ↗.</li>
+		        <li>Extremums (phrase) : Si l'extremum est atteint plusieurs fois, écrire une liste. Exemple : -3;2</li>
+
+      </ul>
+    </div>
+
+    <div class="card"><div data-math-kbd style="display:flex;justify-content:center"></div></div>
+  </div>
+
+  <!-- même emplacement que dans ton modèle -->
+
+<script>
+(function(){
+'use strict';
+
+/* ————— Utils ————— */
+const $=(s,r)=> (r||document).querySelector(s);
+let scoreOK=0, scoreTot=0;
+const UMIN='−';
+function updateScore(){ $("#score").textContent=scoreOK+" / "+scoreTot; }
+function L(s){return '\\( '+s+' \\)';}
+function ensureTickAfter(el){
+  let s=el?.nextElementSibling;
+  if(!s||!s.classList?.contains('tick')){
+    s=document.createElement('span');
+    s.className='tick nu';
+    el.insertAdjacentElement('afterend',s);
+  }
+  return s;
+}
+function setTick(el, state){
+  if(!el) return;
+  ensureTickAfter(el).className='tick '+state;
+}
+function typesetAll(root){
+  const run=()=>MathJax.typesetPromise(root?[root]:undefined).catch(()=>{});
+  if(MathJax?.startup?.promise){
+    MathJax.startup.promise.then(run);
+  }else{
+    const t=setInterval(()=>{
+      if(MathJax?.typesetPromise){ clearInterval(t); run(); }
+    },60);
+  }
+}
+const choice=a=>a[Math.floor(Math.random()*a.length)];
+const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+// ----- Mélange simple (Fisher–Yates) -----
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ----- Parse d'une saisie de type a^n -----
+function parsePowInput(raw){
+  if(raw == null) return null;
+  let s = String(raw).trim();
+  if(!s) return null;
+
+  // on enlève les espaces et on normalise le moins Unicode
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/−/g,'-');
+  s = s.replace(/²/g, '^2');
+
+
+  let m;
+
+  // 1) base entre parenthèses : (-3)^2, (10)^-3, etc.
+  m = s.match(/^\(([+-]?\d+)\)\^\(?([+-]?\d+)\)?$/);
+  if(m){
+    const base = parseInt(m[1],10);
+    const exp  = parseInt(m[2],10);
+    if(!Number.isFinite(base) || !Number.isFinite(exp)) return null;
+    return { base, exp, hasParensBase:true };
+  }
+
+  // 2) base sans parenthèses : 5^3, 10^-2, -3^3, -3^2, etc.
+  m = s.match(/^([+-]?\d+)\^\(?([+-]?\d+)\)?$/);
+  if(!m) return null;
+
+  const base = parseInt(m[1],10);
+  const exp  = parseInt(m[2],10);
+  if(!Number.isFinite(base) || !Number.isFinite(exp)) return null;
+
+  return { base, exp, hasParensBase:false };
+}
+
+
+
+// m + n écrit proprement
+function texSum(m,n){
+  const s1 = String(m);
+  const sign = (n >= 0) ? "+" : "-";
+  const s2 = String(Math.abs(n));
+  return s1 + sign + s2;     // ex : 3-2, -3+5, -3-2
+}
+
+// m - n écrit proprement
+function texDiff(m,n){
+  const s1 = String(m);
+  const sign = (n >= 0) ? "-" : "+";
+  const s2 = String(Math.abs(n));
+  return s1 + sign + s2;     // ex : 3-2, -3-5, -3+2
+}
+
+// cas mix 1 : m + n - p
+function texMix1(m,n,p){
+  const s1 = String(m);
+  const s2 = (n >= 0 ? "+" : "-") + Math.abs(n);
+  const s3 = (p >= 0 ? "-" : "+") + Math.abs(p);
+  return s1 + s2 + s3;       // ex : 3+2-5, -3+4-2, 3-2+5...
+}
+
+// cas mix 2 : m - n - p
+function texMix2(m,n,p){
+  const s1 = String(m);
+  const s2 = (n >= 0 ? "-" : "+") + Math.abs(n);
+  const s3 = (p >= 0 ? "-" : "+") + Math.abs(p);
+  return s1 + s2 + s3;       // ex : 3-2-5, -3-4-2, 3+2+5...
+}
+
+function texProd(m,n){
+  const fmt = x => x < 0 ? `(${x})` : `${x}`;
+  return `${fmt(m)}\\times${fmt(n)}`;   // ex : (-2)\times(-3)
+}
+
+function texFinalExponent(a, n){
+  if(n === 1){
+    // dernière ligne : on écrit simplement a, même si a<0
+    return `\\\\ &= ${a}`;
+  }
+  if(n === 0){
+    // a^0 = 1
+    return `\\\\ &= 1`;
+  }
+  return "";
+}
+
+function texOddNegExtra(base, n){
+  // base négative ET exposant impair ⇒ on veut une ligne supplémentaire = -a^n (sans parenthèses)
+  if(base < 0 && Math.abs(n) % 2 === 1){
+    const a = Math.abs(base);
+    return `\\\\ &= -${a}^{${n}}`;
+  }
+  return "";
+}
+
+function texEvenNegExtra(base, n){
+  // base négative ET exposant pair NON NUL ⇒ on veut une ligne avec (-1)^n × a^n
+  if(base < 0 && n !== 0 && Math.abs(n) % 2 === 0){
+    const a = Math.abs(base);
+    return `\\\\ &= ${a}^{${n}}`;
+  }
+  return "";
+}
+
+
+/* ————————————————————————————————
+   EXERCICE 1 : Calculs de puissances (général, sans 10)
+   ———————————————————————————————— */
+const ex1 = {
+  id: "puissances_generales",
+  title: "Calculs de puissances (général)",
+
+  // base entière non nulle, ≠ ±10
+  randBaseNon10(){
+    let a;
+    do{
+      a = rint(-9,9);
+    }while(a===0 || a===1 || a===-1 || Math.abs(a)===10); // pas 0, ±1, ±10
+    return a;
+  },
+
+randExp(){
+  let e;
+  do{
+    e = rint(-4,5);   // plage de base
+  }while(e === 0 || e === 1);  // on refuse 0 et 1
+  return e;
+},
+
+
+  genItem(kind){
+    if(kind==="prod_same"){
+      const a = this.randBaseNon10();
+      const m = this.randExp();
+      const n = this.randExp();
+      const exp = m+n;
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      return {
+        kind,
+        label:"A",
+        latex: `${aTex}^{${m}} \\times ${aTex}^{${n}}`,
+        base: a,
+        exp,
+        m, n,
+    expRuleTex: texSum(m,n)   // au lieu de `${m}+${n}`
+      };
+    }
+
+    if(kind==="quot_same"){
+      const a = this.randBaseNon10();
+      const m = this.randExp();
+      const n = this.randExp();
+      const exp = m-n;
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      return {
+        kind,
+        label:"B",
+        latex: `\\dfrac{${aTex}^{${m}}}{${aTex}^{${n}}}`,
+        base: a,
+        exp,
+        m, n,
+    expRuleTex: texDiff(m,n)  // au lieu de `${m}-${n}`
+      };
+    }
+
+    if(kind==="pow_pow"){
+      const a = this.randBaseNon10();
+      let m = this.randExp();
+      let n = this.randExp();
+      if(m===0) m = 1;
+      const exp = m*n;
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      return {
+        kind,
+        label:"C",
+        latex: `\\left(${aTex}^{${m}}\\right)^{${n}}`,
+        base: a,
+        exp,
+        m, n,
+  expRuleTex: texProd(m,n)   // <-- au lieu de `${m}\\times${n}`
+      };
+    }
+
+    if(kind==="prod_sameExp"){
+      const m = this.randExp() || 1;
+      const a = this.randBaseNon10();
+      let b;
+      do{
+        b = this.randBaseNon10();
+      }while(b===a);
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      const bTex = b<0 ? `(${b})` : `${b}`;
+      const base = a*b;
+      return {
+        kind,
+        label:"D",
+        latex: `${aTex}^{${m}} \\times ${bTex}^{${m}}`,
+        base,
+        exp:m,
+        a, b, m
+      };
+    }
+
+    if(kind==="quot_sameExp"){
+      const m = this.randExp() || 1;
+      const q = this.randBaseNon10();
+      const b = this.randBaseNon10();
+      const a = q*b;
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      const bTex = b<0 ? `(${b})` : `${b}`;
+      return {
+        kind,
+        label:"E",
+        latex: `\\dfrac{${aTex}^{${m}}}{${bTex}^{${m}}}`,
+        base: q,
+        exp:m,
+        a, b, q, m
+      };
+    }
+
+    if(kind==="mix"){
+      const a = this.randBaseNon10();
+      const aTex = a<0 ? `(${a})` : `${a}`;
+      const m = this.randExp();
+      const n = this.randExp();
+      const p = this.randExp();
+      const pattern = choice([1,2]);
+      let exp, latex, expRuleTex;
+      if(pattern===1){
+        // (a^m * a^n)/a^p
+        exp = m+n-p;
+    expRuleTex = texMix1(m,n,p);   // au lieu de `${m}+${n}-${p}`
+        latex = `\\dfrac{${aTex}^{${m}} \\times ${aTex}^{${n}}}{${aTex}^{${p}}}`;
+      }else{
+        // a^m / (a^n * a^p)
+        exp = m-n-p;
+    expRuleTex = texMix2(m,n,p);   // au lieu de `${m}-${n}-${p}`
+        latex = `\\dfrac{${aTex}^{${m}}}{${aTex}^{${n}} \\times ${aTex}^{${p}}}`;
+      }
+      return {
+        kind,
+        label:"F",
+        latex,
+        base:a,
+        exp,
+        m,n,p,
+        expRuleTex
+      };
+    }
+  },
+
+  gen(){
+    // 6 types, mais on mélange les 5 premiers et on garde "mix" en dernier (question F)
+    const baseKinds = [
+      "prod_same",      // produit : même base ⇒ addition des exposants
+      "quot_same",      // quotient : même base ⇒ soustraction des exposants
+      "pow_pow",        // (a^m)^n
+      "prod_sameExp",   // même exposant ⇒ produit des bases
+      "quot_sameExp"    // même exposant ⇒ quotient des bases
+    ];
+
+    shuffle(baseKinds);           // on mélange A…E
+    const kinds = [...baseKinds, "mix"];   // "mix" toujours en F
+
+    const items = kinds.map(k => this.genItem(k));
+    return { items };
+  },
+
+
+  render(host,st){
+    host.innerHTML = `
+      <div>Écrire chaque expression suivante sous la forme \\(a^n\\), où \\(a\\) et \\(n\\) sont des entiers relatifs (sans utiliser de puissances de 10) :</div>
+      <div class="var-wrap">
+        <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
+          <tbody>
+            ${[0,1].map(row=>`
+              <tr>
+                ${[0,1,2].map(col=>{
+                  const idx = 3*row+col;
+                  const it  = st.items[idx];
+                  return `
+                    <td style="width:33%;vertical-align:top;padding:8px 10px">
+                      <div>\\(${String.fromCharCode(65+idx)} = ${it.latex} \\)</div>
+                      <div style="margin-top:10px">
+                        <input class="pow" data-i="${idx}" type="text"
+                               style="width:90%;max-width:180px;text-align:center">
+                        <span class="tick nu"></span>
+                      </div>
+                    </td>
+                  `;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div id="res" class="steps small"></div>
+    `;
+    host.querySelectorAll('input.pow').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+    correct(host,st){
+    let ok = 0, tot = 0;
+
+    st.items.forEach((it,i)=>{
+      const inp = host.querySelector(`input.pow[data-i="${i}"]`);
+      const raw = inp.value;
+      if(!raw.trim()){
+        setTick(inp,"nu");
+        return;
+      }
+      tot++;
+
+      const norm   = raw.replace(/\s+/g,'').replace(/−/g,'-');
+      const parsed = parsePowInput(raw);
+      let good = false;
+
+      // ===== 1) Cas "vrai" a^n avec parsePowInput =====
+      if(parsed){
+        // a) forme avec la même base que l'énoncé
+        if(parsed.base === it.base && parsed.exp === it.exp){
+          good = true;
+
+          // règle parenthèses : base négative & exposant pair ⇒ parenthèses obligatoires
+          if(it.base < 0 && Math.abs(it.exp)%2 === 0 && !parsed.hasParensBase){
+            good = false;
+          }
+        }
+        // b) base de l'élève positive = |it.base|, exposant identique, et it.base<0 & exposant pair
+        else if(it.base < 0 &&
+                parsed.base === Math.abs(it.base) &&
+                parsed.exp  === it.exp &&
+                Math.abs(it.exp)%2 === 0){
+          // cas pair : on accepte a^n avec a>0
+          good = true;
+        }
+      }
+
+      // ===== 2) Exposant 0 : on accepte aussi la réponse "1" =====
+      if(!good && it.exp === 0){
+        if(norm === '1'){
+          good = true;
+        }
+      }
+
+      // ===== 3) Exposant 1 : on accepte aussi la réponse "a" =====
+      if(!good && it.exp === 1){
+        // forme entière simple (éventuellement entre parenthèses)
+        const m = norm.match(/^\(?([+-]?\d+)\)?$/);
+        if(m){
+          const valInt = parseInt(m[1],10);
+          if(valInt === it.base){
+            good = true;
+          }
+        }
+      }
+
+      setTick(inp, good ? "ok" : "ko");
+      if(good) ok++;
+    });
+
+    $("#res",host).textContent = "";
+    return { ok, total: tot };
+  },
+
+
+
+
+  solution(host,st){
+    const box = $("#res",host);
+
+    const solTex = (it,idx)=>{
+      const lettre = String.fromCharCode(65+idx);
+
+      if(it.kind==="prod_same"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Même base : on additionne les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind==="quot_same"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Même base : on soustrait les exposants
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+
+`;
+      }
+
+      if(it.kind==="pow_pow"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Puissance d'une puissance : on multiplie les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind==="prod_sameExp"){
+        const aTex =  `${it.a}`;
+        const bTex = it.b<0 ? `(${it.b})` : `${it.b}`;
+        const baseTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const m = it.m;
+        return `
+Même exposant : on multiplie les bases
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= (${aTex}\\times${bTex})^{${m}} \\\\
+         &= ${baseTex}^{${m}}
+${texEvenNegExtra(it.base, m)}
+${texOddNegExtra(it.base, m)}
+${texFinalExponent(it.base, m)}
+
+\\end{aligned}
+\\]
+
+`;
+      }
+
+      if(it.kind==="quot_sameExp"){
+       const aRaw = it.a;              // ex : -27
+const bRaw = it.b;              // ex : -9
+const frac = `\\dfrac{${aRaw}}{${bRaw}}`;
+const qTex = it.q < 0 ? `(${it.q})` : `${it.q}`;
+const m = it.m;
+
+return `
+Même exposant : on divise les bases
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= \\left(${frac}\\right)^{${m}} \\\\
+         &= ${qTex}^{${m}}
+${texEvenNegExtra(it.base, m)}
+${texOddNegExtra(it.base, m)}
+${texFinalExponent(it.base, m)}
+
+\\end{aligned}
+\\]
+`;
+
+      }
+
+      if(it.kind==="mix"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Combinaison des règles sur une même base
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+
+`;
+      }
+
+      return "";
+    };
+
+    const cell = idx=>`
+      <td style="vertical-align:top;padding:8px 10px">
+        ${solTex(st.items[idx],idx)}
+      </td>`;
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+        <tbody>
+          <tr>${cell(0)}${cell(1)}${cell(2)}</tr>
+          <tr>${cell(3)}${cell(4)}${cell(5)}</tr>
+        </tbody>
+      </table>
+    `;
+    typesetAll(box);
+  },
+
+  reset(host){
+    const box = $("#res",host);
+    if(box) box.textContent="";
+    host.querySelectorAll("input.pow").forEach(inp=>{
+      inp.value="";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+/* ————————————————————————————————
+   EXERCICE 2 : Puissances de 10
+   ———————————————————————————————— */
+const ex2 = {
+  id: "puissances_10",
+  title: "Puissances de 10",
+
+  // exposant dans [-4 ; 6] mais sans 0 ni 1
+  randExp(){
+    let e;
+    do{
+      e = rint(-4,6);
+    }while(e === 0 || e === 1);
+    return e;
+  },
+
+  genItem(kind){
+    if(kind==="prod_same"){             // 10^m * 10^n
+      const m = this.randExp();
+      const n = this.randExp();
+      const exp = m + n;
+      return {
+        kind,
+        latex: `10^{${m}} \\times 10^{${n}}`,
+        base: 10,
+        exp,
+        m, n,
+        expRuleTex: texSum(m,n)
+      };
+    }
+
+    if(kind==="quot_same"){             // 10^m / 10^n
+      const m = this.randExp();
+      const n = this.randExp();
+      const exp = m - n;
+      return {
+        kind,
+        latex: `\\dfrac{10^{${m}}}{10^{${n}}}`,
+        base: 10,
+        exp,
+        m, n,
+        expRuleTex: texDiff(m,n)
+      };
+    }
+
+    if(kind==="pow_pow"){               // (10^m)^n
+      let m = this.randExp();
+      let n = this.randExp();
+      if(m === 0) m = 2;                // sécurité, mais normalement exclu
+      const exp = m * n;
+      return {
+        kind,
+        latex: `\\left(10^{${m}}\\right)^{${n}}`,
+        base: 10,
+        exp,
+        m, n,
+        expRuleTex: texProd(m,n)        // m×n avec parenthèses si négatif
+      };
+    }
+
+    if(kind==="mix"){                   // mélange sur la même base
+      const m = this.randExp();
+      const n = this.randExp();
+      const p = this.randExp();
+      const pattern = choice([1,2]);
+      let exp, latex, expRuleTex;
+
+      if(pattern === 1){
+        // (10^m * 10^n)/10^p  →  m+n-p
+        exp = m + n - p;
+        expRuleTex = texMix1(m,n,p);
+        latex = `\\dfrac{10^{${m}} \\times 10^{${n}}}{10^{${p}}}`;
+      }else{
+        // 10^m / (10^n * 10^p) → m-n-p
+        exp = m - n - p;
+        expRuleTex = texMix2(m,n,p);
+        latex = `\\dfrac{10^{${m}}}{10^{${n}} \\times 10^{${p}}}`;
+      }
+
+      return {
+        kind,
+        latex,
+        base: 10,
+        exp,
+        m,n,p,
+        expRuleTex
+      };
+    }
+  },
+
+  gen(){
+    // 6 questions : produit, quotient, 3 puissances d’une puissance, 1 mélange
+    const baseKinds = [
+      "prod_same",   // produit de puissances de 10
+      "quot_same",   // quotient de puissances de 10
+      "pow_pow",
+      "pow_pow",
+      "pow_pow"
+    ];
+
+    shuffle(baseKinds);               // on mélange les 5 premières
+    const kinds = [...baseKinds, "mix"];   // la question mix toujours en F
+
+    const items = kinds.map(k => this.genItem(k));
+    return { items };
+  },
+
+
+  render(host,st){
+    host.innerHTML = `
+      <div>Écrire chaque expression suivante sous la forme \\(10^n\\), où \\(n\\) est un entier relatif :</div>
+      <div class="var-wrap">
+        <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
+          <tbody>
+            ${[0,1].map(row=>`
+              <tr>
+                ${[0,1,2].map(col=>{
+                  const idx = 3*row+col;
+                  const it  = st.items[idx];
+                  return `
+                    <td style="width:33%;vertical-align:top;padding:8px 10px">
+                      <div>\\(${String.fromCharCode(65+idx)} = ${it.latex} \\)</div>
+                      <div style="margin-top:10px">
+                        <input class="pow10" data-i="${idx}" type="text"
+                               style="width:90%;max-width:180px;text-align:center">
+                        <span class="tick nu"></span>
+                      </div>
+                    </td>
+                  `;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div id="res" class="steps small"></div>
+    `;
+    host.querySelectorAll('input.pow10').forEach(ensureTickAfter);
+    typesetAll(host);
+  },
+
+    correct(host,st){
+    let ok = 0, tot = 0;
+
+    st.items.forEach((it,i)=>{
+      const inp = host.querySelector(`input.pow10[data-i="${i}"]`);
+      const raw = inp.value;
+      if(!raw.trim()){
+        setTick(inp,"nu");
+        return;
+      }
+      tot++;
+
+      const norm   = raw.replace(/\s+/g,'').replace(/−/g,'-');
+      const parsed = parsePowInput(raw);
+      let good = !!parsed && parsed.base === 10 && parsed.exp === it.exp;
+
+      // Exposant 0 : on accepte aussi "1"
+      if(!good && it.exp === 0){
+        if(norm === '1'){
+          good = true;
+        }
+      }
+
+      // Exposant 1 : on accepte aussi "10"
+      if(!good && it.exp === 1){
+        const m = norm.match(/^\(?([+-]?\d+)\)?$/);
+        if(m){
+          const valInt = parseInt(m[1],10);
+          if(valInt === 10){
+            good = true;
+          }
+        }
+      }
+
+      setTick(inp, good ? "ok" : "ko");
+      if(good) ok++;
+    });
+
+    $("#res",host).textContent = "";
+    return { ok, total: tot };
+  },
+
+
+  solution(host,st){
+    const box = $("#res",host);
+
+    const solTex = (it,idx)=>{
+      const lettre = String.fromCharCode(65+idx);
+      const n = it.exp;
+      const rTex = it.expRuleTex;
+
+      if(it.kind === "prod_same"){
+        return `
+Même base : on additionne les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind === "quot_same"){
+        return `
+Même base : on soustrait les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind === "pow_pow"){
+        return `
+Puissance d'une puissance : on multiplie les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind === "mix"){
+        return `
+Combinaison des règles sur une même base
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      return "";
+    };
+
+    const cell = idx => `
+      <td style="vertical-align:top;padding:8px 10px">
+        ${solTex(st.items[idx],idx)}
+      </td>`;
+
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+        <tbody>
+          <tr>${cell(0)}${cell(1)}${cell(2)}</tr>
+          <tr>${cell(3)}${cell(4)}${cell(5)}</tr>
+        </tbody>
+      </table>
+    `;
+    typesetAll(box);
+  },
+
+  reset(host){
+    const box = $("#res",host);
+    if(box) box.textContent = "";
+    host.querySelectorAll("input.pow10").forEach(inp=>{
+      inp.value = "";
+      setTick(inp,"nu");
+    });
+  }
+};
+
+
+
+/* ————— Registre & UI ————— */
+const REGISTRY=[ex1,ex2];
+window.REGISTRY = REGISTRY; // pour le kit PDF
+
+(function waitExoPDF(){
+  if (window.ExoPDF && typeof ExoPDF.init === 'function') {
+    ExoPDF.init({
+      title: 'Seconde – Puissances',
+      mountAfterSelector: '.card.small',
+    });
+  } else {
+    setTimeout(waitExoPDF, 50);
+  }
+})();
+
+function getDefById(id){ return REGISTRY.find(d=>d.id===id)||REGISTRY[0]; }
+
+function buildOne(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=def.gen(); host.dataset.active=def.id; host.dataset.state=JSON.stringify(st);
+  def.render(host,st);
+  try{ if(window.MathKbd?.attachAllInputs){ MathKbd.attachAllInputs(host);} }catch(_){}
+}
+function checkAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}');
+  const r=def.correct(host,st)||{ok:0,total:0};
+  scoreOK=r.ok; scoreTot=r.total; updateScore();
+}
+function showSolution(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  const st=JSON.parse(host.dataset.state||'{}'); def.solution(host,st);
+}
+function resetAll(){
+  const def=getDefById($("#exo-select").value), host=$("#host");
+  def.reset(host); scoreOK=0; scoreTot=0; updateScore();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    checkAll();
+  }
+});
+
+(function init(){
+  const sel=$("#exo-select");
+  sel.innerHTML = REGISTRY.map((ex,idx)=>`<option value="${ex.id}">${idx+1} — ${ex.title}</option>`).join('');
+  sel.onchange = buildOne;
+  $("#btn-new").onclick=buildOne;
+  $("#btn-check").onclick=checkAll;
+  $("#btn-solution").onclick=showSolution;
+  $("#btn-reset").onclick=resetAll;
+  sel.value = REGISTRY[0].id;
+  buildOne();
+})();
+
+})();
+</script>
+
+</body>
+</html>

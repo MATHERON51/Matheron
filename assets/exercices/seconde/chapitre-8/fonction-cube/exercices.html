@@ -469,115 +469,153 @@ correct(host, st) {
 },
 
 
-  solution(host, st) {
-    const box = $("#res",host);
+solution(host, st) {
+  const box = $("#res",host);
 
-    const solTex = it => {
-      if (it.kind === "intPos" || it.kind==="dec") {
-        const x = it.x;
-        const xDisplay = String(x).replace("-", UMIN);
-        const val = it.val;
-        return `
-\\[
-\\begin{aligned}
-f\\left(${xDisplay}\\right) &=${xDisplay}^3\\\\
-&= ${val}
-\\end{aligned}
-\\]`;
-      }
+  // -------- dédoublonnage : supprime lignes consécutives identiques --------
+  function dedupeRows(rows){
+    const out = [];
+    for (const row of rows || []) {
+      if (!row) continue;
+      const lhs = row.lhs || "";
+      const rhs = row.rhs || "";
+      const last = out[out.length - 1];
+      if (last && last.lhs === lhs && last.rhs === rhs) continue;
+      out.push({ lhs, rhs });
+    }
+    return out;
+  }
 
+  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
+  function makeEqTable(rows){
+    const cleaned = dedupeRows(rows);
 
-if (it.kind === "intNeg" ) {
-const x = it.x;
-const xn=-x
-        const val = it.val;
-  return `
-\\[
-\\begin{aligned}
-f\\left(${x}\\right) &= \\left(${x}\\right)^3\\\\
-&= -${xn}^3\\\\
-&= ${val}
-\\end{aligned}
-\\]`;
-}
-
-if (it.kind === "fracPos") {
-  const n = it.num, d = it.den;
-  const N = n**3, D = d**3;
-  return `
-\\[
-\\begin{aligned}
-f\\left(\\dfrac{${n}}{${d}}\\right)
-&= \\left(\\dfrac{${n}}{${d}}\\right)^3\\\\
-&= \\dfrac{${n}^3}{${d}^3}\\\\
-&= \\dfrac{${N}}{${D}}
-\\end{aligned}
-\\]`;
-}
-
-if (it.kind === "fracNeg") {
-  const n = it.num, d = it.den;
-  const N = n**3, D = d**3;
-  return `
-\\[
-\\begin{aligned}
-f\\left(-\\dfrac{${n}}{${d}}\\right)
-&= \\left(-\\dfrac{${n}}{${d}}\\right)^3\\\\
-&= -\\dfrac{${n}^3}{${d}^3}\\\\
-&= -\\dfrac{${N}}{${D}}
-\\end{aligned}
-\\]`;
-}
-if (it.kind === "sqrt") {
-  const a = it.a;
-  return `
-\\[
-\\begin{aligned}
-f\\left(\\sqrt{${a}}\\right)
-&= (\\sqrt{${a}})^3\\\\
-&= ${a}\\sqrt{${a}}
-\\end{aligned}
-\\]`;
-}
-
-
-      if (it.kind === "pow10") {
-        const e = it.exp;
-        const e3 = it.powExp;
-        return `
-\\[
-\\begin{aligned}
-f\\left(10^{${e}}\\right) &= \\left(10^{${e}}\\right)^3\\\\
-&= 10^{${e}\\times 3}\\\\
-&= 10^{${e3}}
-\\end{aligned}
-\\]`;
-      }
-      return "";
-    };
-
-    const cells = idx => {
-      const it = st.items[idx];
+    const trs = cleaned.map(({lhs, rhs}) => {
+      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
+      const vAlign3 = hasFrac ? "top" : "middle";
       return `
+        <tr>
+          <!-- 1ʳᵉ colonne : f(...) uniquement sur la 1ʳᵉ ligne -->
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.8em;text-align:right">
+            ${lhs ? `\\(${lhs}\\)` : ""}
+          </td>
+          <!-- 2ᵉ colonne : signe = -->
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">
+            \\(=\\)
+          </td>
+          <!-- 3ᵉ colonne : étape -->
+          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">
+            \\(${rhs}\\)
+          </td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <table style="border-collapse:collapse;border:none;margin-top:4px">
+        <tbody>
+          ${trs}
+        </tbody>
+      </table>`;
+  }
+
+  const solTex = it => {
+    // entiers positifs ou décimaux
+    if (it.kind === "intPos" || it.kind === "dec") {
+      const x = it.x;
+      const xDisplay = String(x).replace("-", UMIN);
+      const val = it.val;
+      const rows = [
+        { lhs: `f\\left(${xDisplay}\\right)`, rhs: `${xDisplay}^3` },
+        { lhs: "",                           rhs: `${val}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // entiers négatifs
+    if (it.kind === "intNeg") {
+      const x  = it.x;
+      const xn = -x;
+      const val = it.val;
+      const rows = [
+        { lhs: `f\\left(${x}\\right)`, rhs: `\\left(${x}\\right)^3` },
+        { lhs: "",                    rhs: `-${xn}^3` },
+        { lhs: "",                    rhs: `${val}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // fraction positive
+    if (it.kind === "fracPos") {
+      const n = it.num, d = it.den;
+      const N = n**3, D = d**3;
+      const rows = [
+        { lhs: `f\\left(\\dfrac{${n}}{${d}}\\right)`, rhs: `\\left(\\dfrac{${n}}{${d}}\\right)^3` },
+        { lhs: "",                                   rhs: `\\dfrac{${n}^3}{${d}^3}` },
+        { lhs: "",                                   rhs: `\\dfrac{${N}}{${D}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // fraction négative
+    if (it.kind === "fracNeg") {
+      const n = it.num, d = it.den;
+      const N = n**3, D = d**3;
+      const rows = [
+        { lhs: `f\\left(-\\dfrac{${n}}{${d}}\\right)`, rhs: `\\left(-\\dfrac{${n}}{${d}}\\right)^3` },
+        { lhs: "",                                    rhs: `-\\dfrac{${n}^3}{${d}^3}` },
+        { lhs: "",                                    rhs: `-\\dfrac{${N}}{${D}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // racine
+    if (it.kind === "sqrt") {
+      const a = it.a;
+      const rows = [
+        { lhs: `f\\left(\\sqrt{${a}}\\right)`, rhs: `(\\sqrt{${a}})^3` },
+        { lhs: "",                             rhs: `${a}\\sqrt{${a}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // puissance de 10
+    if (it.kind === "pow10") {
+      const e  = it.exp;
+      const e3 = it.powExp;  // tu le renseignes dans la génération
+      const rows = [
+        { lhs: `f\\left(10^{${e}}\\right)`, rhs: `\\left(10^{${e}}\\right)^3` },
+        { lhs: "",                         rhs: `10^{${e}\\times 3}` },
+        { lhs: "",                         rhs: `10^{${e3}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    return "";
+  };
+
+  const cells = idx => {
+    const it = st.items[idx];
+    return `
 <td style="vertical-align:top;padding:8px 10px">
   <div style="margin-top:6px">${solTex(it)}</div>
 </td>`;
-    };
+  };
 
-    box.innerHTML = `
-      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
-        <tbody>
-          <tr>
-            ${cells(0)}${cells(1)}${cells(2)}
-          </tr>
-          <tr>
-            ${cells(3)}${cells(4)}${cells(5)}
-          </tr>
-        </tbody>
-      </table>
-    `;
-    typesetAll(box);
-  },
+  box.innerHTML = `
+    <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+      <tbody>
+        <tr>
+          ${cells(0)}${cells(1)}${cells(2)}
+        </tr>
+        <tr>
+          ${cells(3)}${cells(4)}${cells(5)}
+        </tr>
+      </tbody>
+    </table>
+  `;
+  typesetAll(box);
+},
+
 
   reset(host) {
     const box = $("#res",host);
@@ -1071,106 +1109,145 @@ correct(host, st) {
 
 
   solution(host, st) {
-    const box = $("#res",host);
+  const box = $("#res",host);
 
-    const solTex = it => {
-      const y = it.y;
-      if (it.kind === "intPos") {
-        const r = it.root;
-        return `
-\\[
-\\begin{aligned}
-x^3 &= ${y} \\\\
-x &= \\sqrt[3]{${y}} \\\\
-x &= ${r}
-\\end{aligned}
-\\]`;
-      }
+  // -------- dédoublonnage : supprime lignes consécutives identiques --------
+  function dedupeRows(rows){
+    const out = [];
+    for (const row of rows || []) {
+      if (!row) continue;
+      const lhs = row.lhs || "";
+      const rhs = row.rhs || "";
+      const last = out[out.length - 1];
+      if (last && last.lhs === lhs && last.rhs === rhs) continue;
+      out.push({ lhs, rhs });
+    }
+    return out;
+  }
 
-if (it.kind === "intNeg") {
-        const r = it.root;
-		const yn=-y
-        return `
-\\[
-\\begin{aligned}
-x^3 &= ${y} \\\\
-x &= -\\sqrt[3]{${yn}} \\\\
-x &= ${r}
-\\end{aligned}
-\\]`;
-      }
+  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
+  function makeEqTable(rows){
+    const cleaned = dedupeRows(rows);
 
-      if (it.kind === "fracPos") {
-        const num = Math.abs(it.rootNum);
-        const den = it.rootDen;
-        const sign = it.rootNum < 0 ? "-" : "";
-        const num3 = num**3;
-        const den3 = den**3;
-        return `
-\\[
-\\begin{aligned}
-x^3 &= \\dfrac{${sign? "-" : ""}${num3}}{${den3}} \\\\
-x &= \\sqrt[3]{\\dfrac{${sign? "-" : ""}${num3}}{${den3}}} \\\\
-    x&= ${sign}\\dfrac{${num}}{${den}}
-\\end{aligned}
-\\]`;
-      }
-	  
-      if (it.kind === "fracNeg") {
-        const num = Math.abs(it.rootNum);
-        const den = it.rootDen;
-        const sign = it.rootNum < 0 ? "-" : "";
-        const num3 = num**3;
-        const den3 = den**3;
-		const num3n=-num3
-        return `
-\\[
-\\begin{aligned}
-x^3 &= -\\dfrac{${num3}}{${den3}} \\\\
-x &= -\\sqrt[3]{\\dfrac{${num3}}{${den3}}} \\\\
-    x&= ${sign}\\dfrac{${num}}{${den}}
-\\end{aligned}
-\\]`;
-      }	  
-	  
-if (it.kind === "nonCube") {
-  const y = it.y;
-  return `
-\\[
-\\begin{aligned}
-x^3 &= ${y} \\\\
-x &= \\sqrt[3]{${y}}
-\\end{aligned}
-\\]`;
-}
+    const trs = cleaned.map(({lhs, rhs}) => {
+      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
+      const vAlign3 = hasFrac ? "top" : "middle";
+      return `
+        <tr>
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:1.2em;text-align:right">
+            ${lhs ? `\\(${lhs}\\)` : ""}
+          </td>
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">
+            \\(=\\)
+          </td>
+          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">
+            \\(${rhs}\\)
+          </td>
+        </tr>`;
+    }).join("");
 
-	  
-      return "";
-    };
-
-    box.innerHTML = `
-      <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
-        <thead>
-          <tr>
-            <th>Nombre \\(y\\)</th>
-            <th>Correction</th>
-          </tr>
-        </thead>
+    return `
+      <table style="border-collapse:collapse;border:none;margin-top:4px">
         <tbody>
-          ${st.items.map(it => `
-            <tr>
-              <td style="width:30%">\\(${it.latex}\\)</td>
-              <td style="vertical-align:top;padding:6px 10px">
-                ${solTex(it)}
-              </td>
-            </tr>
-          `).join("")}
+          ${trs}
         </tbody>
-      </table>
-    `;
+      </table>`;
+  }
 
-    typesetAll(box);
-  },
+  const solTex = it => {
+    const y = it.y;
+
+    // ===== entier positif, cube parfait =====
+    if (it.kind === "intPos") {
+      const r = it.root;
+      const rows = [
+        { lhs: "x^3", rhs: `${y}` },
+        { lhs: "x",   rhs: `\\sqrt[3]{${y}}` },
+        { lhs: "x",   rhs: `${r}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // ===== entier négatif, cube parfait =====
+    if (it.kind === "intNeg") {
+      const r  = it.root;
+      const yn = -y;
+      const rows = [
+        { lhs: "x^3", rhs: `${y}` },
+        { lhs: "x",   rhs: `-\\sqrt[3]{${yn}}` },
+        { lhs: "x",   rhs: `${r}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // ===== fraction positive, cube parfait =====
+    if (it.kind === "fracPos") {
+      const num  = Math.abs(it.rootNum);
+      const den  = it.rootDen;
+      const sign = it.rootNum < 0 ? "-" : "";
+      const num3 = num**3;
+      const den3 = den**3;
+
+      const rows = [
+        { lhs: "x^3", rhs: `\\dfrac{${sign ? "-" : ""}${num3}}{${den3}}` },
+        { lhs: "x",   rhs: `\\sqrt[3]{\\dfrac{${sign ? "-" : ""}${num3}}{${den3}}}` },
+        { lhs: "x",   rhs: `${sign}\\dfrac{${num}}{${den}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // ===== fraction négative, cube parfait =====
+    if (it.kind === "fracNeg") {
+      const num  = Math.abs(it.rootNum);
+      const den  = it.rootDen;
+      const sign = it.rootNum < 0 ? "-" : "";
+      const num3 = num**3;
+      const den3 = den**3;
+
+      const rows = [
+        { lhs: "x^3", rhs: `-\\dfrac{${num3}}{${den3}}` },
+        { lhs: "x",   rhs: `-\\sqrt[3]{\\dfrac{${num3}}{${den3}}}` },
+        { lhs: "x",   rhs: `${sign}\\dfrac{${num}}{${den}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    // ===== non cube parfait (entier ou autre) =====
+    if (it.kind === "nonCube") {
+      const rows = [
+        { lhs: "x^3", rhs: `${y}` },
+        { lhs: "x",   rhs: `\\sqrt[3]{${y}}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    return "";
+  };
+
+  box.innerHTML = `
+    <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
+      <thead>
+        <tr>
+          <th>Nombre \\(y\\)</th>
+          <th>Correction</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${st.items.map(it => `
+          <tr>
+            <td style="width:30%">\\(${it.latex}\\)</td>
+            <td style="vertical-align:top;padding:6px 10px">
+              ${solTex(it)}
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+
+  typesetAll(box);
+},
+
 
   reset(host) {
     const box = $("#res",host);

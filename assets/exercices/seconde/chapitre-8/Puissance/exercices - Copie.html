@@ -256,6 +256,7 @@ function parsePowInput(raw){
   s = s.replace(/−/g,'-');
   s = s.replace(/²/g, '^2');
 
+
   let m;
 
   // 1) base entre parenthèses : (-3)^2, (10)^-3, etc.
@@ -355,10 +356,6 @@ const ex1 = {
   id: "puissances_generales",
   title: "Calculs de puissances (général)",
 
-  // cas sélectionné pour la génération / PDF
-  // "all" (Mélange) par défaut
-  selectedCase: "all",
-
   // base entière non nulle, ≠ ±10
   randBaseNon10(){
     let a;
@@ -368,13 +365,13 @@ const ex1 = {
     return a;
   },
 
-  randExp(){
-    let e;
-    do{
-      e = rint(-4,5);   // plage de base
-    }while(e === 0 || e === 1);  // on refuse 0 et 1
-    return e;
-  },
+randExp(){
+  let e;
+  do{
+    e = rint(-4,5);   // plage de base
+  }while(e === 0 || e === 1);  // on refuse 0 et 1
+  return e;
+},
 
 
   genItem(kind){
@@ -391,7 +388,7 @@ const ex1 = {
         base: a,
         exp,
         m, n,
-        expRuleTex: texSum(m,n)
+    expRuleTex: texSum(m,n)   // au lieu de `${m}+${n}`
       };
     }
 
@@ -408,7 +405,7 @@ const ex1 = {
         base: a,
         exp,
         m, n,
-        expRuleTex: texDiff(m,n)
+    expRuleTex: texDiff(m,n)  // au lieu de `${m}-${n}`
       };
     }
 
@@ -426,7 +423,7 @@ const ex1 = {
         base: a,
         exp,
         m, n,
-        expRuleTex: texProd(m,n)
+  expRuleTex: texProd(m,n)   // <-- au lieu de `${m}\\times${n}`
       };
     }
 
@@ -478,12 +475,12 @@ const ex1 = {
       if(pattern===1){
         // (a^m * a^n)/a^p
         exp = m+n-p;
-        expRuleTex = texMix1(m,n,p);
+    expRuleTex = texMix1(m,n,p);   // au lieu de `${m}+${n}-${p}`
         latex = `\\dfrac{${aTex}^{${m}} \\times ${aTex}^{${n}}}{${aTex}^{${p}}}`;
       }else{
         // a^m / (a^n * a^p)
         exp = m-n-p;
-        expRuleTex = texMix2(m,n,p);
+    expRuleTex = texMix2(m,n,p);   // au lieu de `${m}-${n}-${p}`
         latex = `\\dfrac{${aTex}^{${m}}}{${aTex}^{${n}} \\times ${aTex}^{${p}}}`;
       }
       return {
@@ -499,67 +496,26 @@ const ex1 = {
   },
 
   gen(){
-    const caseKey = this.selectedCase || "all";
-    let kinds;
+    // 6 types, mais on mélange les 5 premiers et on garde "mix" en dernier (question F)
+    const baseKinds = [
+      "prod_same",      // produit : même base ⇒ addition des exposants
+      "quot_same",      // quotient : même base ⇒ soustraction des exposants
+      "pow_pow",        // (a^m)^n
+      "prod_sameExp",   // même exposant ⇒ produit des bases
+      "quot_sameExp"    // même exposant ⇒ quotient des bases
+    ];
 
-    if(caseKey === "all"){
-      // Mélange : une question de chaque, mix en dernier
-      const baseKinds = [
-        "prod_same",      // produit : même base ⇒ addition des exposants
-        "quot_same",      // quotient : même base ⇒ soustraction des exposants
-        "pow_pow",        // (a^m)^n
-        "prod_sameExp",   // même exposant ⇒ produit des bases
-        "quot_sameExp"    // même exposant ⇒ quotient des bases
-      ];
-      shuffle(baseKinds);
-      kinds = [...baseKinds, "mix"];   // "mix" toujours en F
-    } else if(caseKey === "prod_same"){
-      kinds = Array(6).fill("prod_same");
-    } else if(caseKey === "quot_same"){
-      kinds = Array(6).fill("quot_same");
-    } else if(caseKey === "pow_pow"){
-      kinds = Array(6).fill("pow_pow");
-    } else if(caseKey === "prod_sameExp"){
-      kinds = Array(6).fill("prod_sameExp");
-    } else if(caseKey === "quot_sameExp"){
-      kinds = Array(6).fill("quot_sameExp");
-    } else if(caseKey === "mix_only"){
-      kinds = Array(6).fill("mix");
-    } else {
-      // fallback : mélange
-      const baseKinds = [
-        "prod_same",
-        "quot_same",
-        "pow_pow",
-        "prod_sameExp",
-        "quot_sameExp"
-      ];
-      shuffle(baseKinds);
-      kinds = [...baseKinds, "mix"];
-    }
+    shuffle(baseKinds);           // on mélange A…E
+    const kinds = [...baseKinds, "mix"];   // "mix" toujours en F
 
     const items = kinds.map(k => this.genItem(k));
-    return { items, caseKey };
+    return { items };
   },
 
 
   render(host,st){
     host.innerHTML = `
       <div>Écrire chaque expression suivante sous la forme \\(a^n\\), où \\(a\\) et \\(n\\) sont des entiers relatifs (sans utiliser de puissances de 10) :</div>
-
-      <div style="margin-top:8px;margin-bottom:6px">
-        <label for="case-ex1"><strong>Cas :</strong></label>
-        <select id="case-ex1" class="case-select">
-          <option value="all">Mélange : 1 question de chaque (A à F)</option>
-          <option value="prod_same">prod_same : 6 questions produit, même base</option>
-          <option value="quot_same">quot_same : 6 questions quotient, même base</option>
-          <option value="pow_pow">pow_pow : 6 questions puissance d'une puissance</option>
-          <option value="prod_sameExp">prod_sameExp : 6 questions produit, même exposant</option>
-          <option value="quot_sameExp">quot_sameExp : 6 questions quotient, même exposant</option>
-          <option value="mix_only">mix : 6 questions combinaison des règles</option>
-        </select>
-      </div>
-
       <div class="var-wrap">
         <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
           <tbody>
@@ -586,23 +542,11 @@ const ex1 = {
       </div>
       <div id="res" class="steps small"></div>
     `;
-
-    // remettre le sélecteur sur la bonne valeur + comportement
-    const sel = host.querySelector('#case-ex1');
-    if(sel){
-      sel.value = this.selectedCase || "all";
-      sel.addEventListener('change', (e)=>{
-        this.selectedCase = e.target.value || "all";
-        // on regénère un nouvel énoncé AVEC ce cas
-        buildOne();
-      });
-    }
-
     host.querySelectorAll('input.pow').forEach(ensureTickAfter);
     typesetAll(host);
   },
 
-  correct(host,st){
+    correct(host,st){
     let ok = 0, tot = 0;
 
     st.items.forEach((it,i)=>{
@@ -666,119 +610,147 @@ const ex1 = {
     return { ok, total: tot };
   },
 
+
+
+
   solution(host,st){
     const box = $("#res",host);
 
     const solTex = (it,idx)=>{
       const lettre = String.fromCharCode(65+idx);
 
-      // Construit la liste des étapes LaTeX (sans "=")
-      const buildSteps = ()=>{
-        const steps = [];
-        const base    = it.base;
-        const n       = it.exp;
-        const absBase = Math.abs(base);
-        const aTex    = base < 0 ? `(${base})` : `${base}`;
-
-        if(it.kind === "prod_same"){
-          // A = a^m × a^n
-          steps.push(it.latex);                     // a^m × a^n
-          steps.push(`${aTex}^{${it.expRuleTex}}`); // a^(m±n)
-          steps.push(`${aTex}^{${n}}`);             // a^n
-        } else if(it.kind === "quot_same"){
-          steps.push(it.latex);
-          steps.push(`${aTex}^{${it.expRuleTex}}`);
-          steps.push(`${aTex}^{${n}}`);
-        } else if(it.kind === "pow_pow"){
-          steps.push(it.latex);
-          steps.push(`${aTex}^{${it.expRuleTex}}`);
-          steps.push(`${aTex}^{${n}}`);
-        } else if(it.kind === "prod_sameExp"){
-          const aTexRaw  = `${it.a}`;
-          const bTexRaw  = it.b < 0 ? `(${it.b})` : `${it.b}`;
-          const baseTex  = it.base < 0 ? `(${it.base})` : `${it.base}`;
-          const m        = it.m;
-          steps.push(it.latex);
-          steps.push(`(${aTexRaw}\\times${bTexRaw})^{${m}}`);
-          steps.push(`${baseTex}^{${m}}`);
-        } else if(it.kind === "quot_sameExp"){
-          const aRaw = it.a;
-          const bRaw = it.b;
-          const frac = `\\dfrac{${aRaw}}{${bRaw}}`;
-          const qTex = it.q < 0 ? `(${it.q})` : `${it.q}`;
-          const m    = it.m;
-          steps.push(it.latex);
-          steps.push(`\\left(${frac}\\right)^{${m}}`);
-          steps.push(`${qTex}^{${m}}`);
-        } else if(it.kind === "mix"){
-          steps.push(it.latex);
-          steps.push(`${aTex}^{${it.expRuleTex}}`);
-          steps.push(`${aTex}^{${n}}`);
-        }
-
-        // Gestion des signes pour base négative
-        if(base < 0 && n !== 0 && Math.abs(n) % 2 === 0){
-          // exposant pair non nul : (-a)^n = a^n
-          steps.push(`${absBase}^{${n}}`);
-        }
-        if(base < 0 && Math.abs(n) % 2 === 1){
-          // exposant impair : (-a)^n = -a^n
-          steps.push(`-${absBase}^{${n}}`);
-        }
-
-        // Exposant 0 : dernière ligne 1
-        if(n === 0){
-          steps.push(`1`);
-        }
-
-        // Exposant 1 : dernière ligne a (sans parenthèses)
-        if(n === 1){
-          steps.push(`${base}`);
-        }
-
-        return steps;
-      };
-
-      const steps = buildSteps();
-
-      // intro texte
-      let intro = "";
-      if(it.kind === "prod_same")    intro = "Même base : on additionne les exposants";
-      if(it.kind === "quot_same")    intro = "Même base : on soustrait les exposants";
-      if(it.kind === "pow_pow")      intro = "Puissance d'une puissance : on multiplie les exposants";
-      if(it.kind === "prod_sameExp") intro = "Même exposant : on multiplie les bases";
-      if(it.kind === "quot_sameExp") intro = "Même exposant : on divise les bases";
-      if(it.kind === "mix")          intro = "Combinaison des règles sur une même base";
-
-const rows = steps.map((tex,i)=>{
-        // uniquement pour la 3e colonne :
-        const hasFrac = /\\dfrac|\\frac|\//.test(tex);
-        // si fraction -> on monte un peu (top), sinon -> ligne normale (baseline)
-        const vAlign3 = hasFrac ? 'top' : 'middle';
-
+      if(it.kind==="prod_same"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
         return `
-        <tr>
-          <!-- col.1 : lettre (inchangée) -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">
-            \\(${i===0 ? lettre : ""}\\)
-          </td>
-          <!-- col.2 : signe = (INCHANGÉ, toujours middle) -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">\\(=\\)</td>
-          <!-- col.3 : seule colonne dont on change le vertical-align -->
-          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">\\(${tex}\\)</td>
-        </tr>`;
-      }).join('');
+Même base : on additionne les exposants
 
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
 
-      return `
-<div>${intro}</div>
-<table style="border-collapse:collapse;border:none;width:auto;margin-top:4px">
-  <tbody>
-    ${rows}
-  </tbody>
-</table>
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind==="quot_same"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Même base : on soustrait les exposants
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
 
 `;
+      }
+
+      if(it.kind==="pow_pow"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Puissance d'une puissance : on multiplie les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind==="prod_sameExp"){
+        const aTex =  `${it.a}`;
+        const bTex = it.b<0 ? `(${it.b})` : `${it.b}`;
+        const baseTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const m = it.m;
+        return `
+Même exposant : on multiplie les bases
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= (${aTex}\\times${bTex})^{${m}} \\\\
+         &= ${baseTex}^{${m}}
+${texEvenNegExtra(it.base, m)}
+${texOddNegExtra(it.base, m)}
+${texFinalExponent(it.base, m)}
+
+\\end{aligned}
+\\]
+
+`;
+      }
+
+      if(it.kind==="quot_sameExp"){
+       const aRaw = it.a;              // ex : -27
+const bRaw = it.b;              // ex : -9
+const frac = `\\dfrac{${aRaw}}{${bRaw}}`;
+const qTex = it.q < 0 ? `(${it.q})` : `${it.q}`;
+const m = it.m;
+
+return `
+Même exposant : on divise les bases
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= \\left(${frac}\\right)^{${m}} \\\\
+         &= ${qTex}^{${m}}
+${texEvenNegExtra(it.base, m)}
+${texOddNegExtra(it.base, m)}
+${texFinalExponent(it.base, m)}
+
+\\end{aligned}
+\\]
+`;
+
+      }
+
+      if(it.kind==="mix"){
+        const aTex = it.base<0 ? `(${it.base})` : `${it.base}`;
+        const rTex = it.expRuleTex;
+        const n    = it.exp;
+        return `
+Combinaison des règles sur une même base
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= ${aTex}^{${rTex}} \\\\
+         &= ${aTex}^{${n}}
+${texEvenNegExtra(it.base, n)}
+${texOddNegExtra(it.base, n)}
+${texFinalExponent(it.base, n)}
+
+\\end{aligned}
+\\]
+
+`;
+      }
+
+      return "";
     };
 
     const cell = idx=>`
@@ -797,7 +769,6 @@ const rows = steps.map((tex,i)=>{
     typesetAll(box);
   },
 
-
   reset(host){
     const box = $("#res",host);
     if(box) box.textContent="";
@@ -815,9 +786,6 @@ const rows = steps.map((tex,i)=>{
 const ex2 = {
   id: "puissances_10",
   title: "Puissances de 10",
-
-  // cas sélectionné (pour Nouvel énoncé + PDF)
-  selectedCase: "all",
 
   // exposant dans [-4 ; 6] mais sans 0 ni 1
   randExp(){
@@ -903,60 +871,26 @@ const ex2 = {
   },
 
   gen(){
-    const caseKey = this.selectedCase || "all";
-    let kinds;
+    // 6 questions : produit, quotient, 3 puissances d’une puissance, 1 mélange
+    const baseKinds = [
+      "prod_same",   // produit de puissances de 10
+      "quot_same",   // quotient de puissances de 10
+      "pow_pow",
+      "pow_pow",
+      "pow_pow"
+    ];
 
-    if(caseKey === "all"){
-      // Mélange : produit, quotient, 3 puissances d’une puissance, 1 mélange
-      const baseKinds = [
-        "prod_same",   // produit de puissances de 10
-        "quot_same",   // quotient de puissances de 10
-        "pow_pow",
-        "pow_pow",
-        "pow_pow"
-      ];
-      shuffle(baseKinds);
-      kinds = [...baseKinds, "mix"];
-    } else if(caseKey === "prod_same"){
-      kinds = Array(6).fill("prod_same");
-    } else if(caseKey === "quot_same"){
-      kinds = Array(6).fill("quot_same");
-    } else if(caseKey === "pow_pow"){
-      kinds = Array(6).fill("pow_pow");
-    } else if(caseKey === "mix_only"){
-      kinds = Array(6).fill("mix");
-    } else {
-      const baseKinds = [
-        "prod_same",
-        "quot_same",
-        "pow_pow",
-        "pow_pow",
-        "pow_pow"
-      ];
-      shuffle(baseKinds);
-      kinds = [...baseKinds, "mix"];
-    }
+    shuffle(baseKinds);               // on mélange les 5 premières
+    const kinds = [...baseKinds, "mix"];   // la question mix toujours en F
 
     const items = kinds.map(k => this.genItem(k));
-    return { items, caseKey };
+    return { items };
   },
 
 
   render(host,st){
     host.innerHTML = `
       <div>Écrire chaque expression suivante sous la forme \\(10^n\\), où \\(n\\) est un entier relatif :</div>
-
-      <div style="margin-top:8px;margin-bottom:6px">
-        <label for="case-ex2"><strong>Cas :</strong></label>
-        <select id="case-ex2" class="case-select">
-          <option value="all">Mélange : 1 question de chaque type</option>
-          <option value="prod_same">prod_same : 6 questions produit de puissances de 10</option>
-          <option value="quot_same">quot_same : 6 questions quotient de puissances de 10</option>
-          <option value="pow_pow">pow_pow : 6 questions puissance d'une puissance de 10</option>
-          <option value="mix_only">mix : 6 questions combinaison des règles</option>
-        </select>
-      </div>
-
       <div class="var-wrap">
         <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
           <tbody>
@@ -983,21 +917,11 @@ const ex2 = {
       </div>
       <div id="res" class="steps small"></div>
     `;
-
-    const sel = host.querySelector('#case-ex2');
-    if(sel){
-      sel.value = this.selectedCase || "all";
-      sel.addEventListener('change', (e)=>{
-        this.selectedCase = e.target.value || "all";
-        buildOne();
-      });
-    }
-
     host.querySelectorAll('input.pow10').forEach(ensureTickAfter);
     typesetAll(host);
   },
 
-  correct(host,st){
+    correct(host,st){
     let ok = 0, tot = 0;
 
     st.items.forEach((it,i)=>{
@@ -1045,71 +969,70 @@ const ex2 = {
 
     const solTex = (it,idx)=>{
       const lettre = String.fromCharCode(65+idx);
-      const n      = it.exp;
-      const rTex   = it.expRuleTex;
+      const n = it.exp;
+      const rTex = it.expRuleTex;
 
-      const buildSteps = ()=>{
-        const steps = [];
+      if(it.kind === "prod_same"){
+        return `
+Même base : on additionne les exposants
 
-        if(it.kind === "prod_same"){
-          steps.push(it.latex);
-          steps.push(`10^{${rTex}}`);
-          steps.push(`10^{${n}}`);
-        } else if(it.kind === "quot_same"){
-          steps.push(it.latex);
-          steps.push(`10^{${rTex}}`);
-          steps.push(`10^{${n}}`);
-        } else if(it.kind === "pow_pow"){
-          steps.push(it.latex);
-          steps.push(`10^{${rTex}}`);
-          steps.push(`10^{${n}}`);
-        } else if(it.kind === "mix"){
-          steps.push(it.latex);
-          steps.push(`10^{${rTex}}`);
-          steps.push(`10^{${n}}`);
-        }
-
-        // Exposant 0 : 10^0 = 1
-        if(n === 0){
-          steps.push(`1`);
-        }
-
-        // Exposant 1 : 10^1 = 10
-        if(n === 1){
-          steps.push(`10`);
-        }
-
-        return steps;
-      };
-
-      const steps = buildSteps();
-
-      let intro = "";
-      if(it.kind === "prod_same") intro = "Même base : on additionne les exposants";
-      if(it.kind === "quot_same") intro = "Même base : on soustrait les exposants";
-      if(it.kind === "pow_pow")  intro = "Puissance d'une puissance : on multiplie les exposants";
-      if(it.kind === "mix")      intro = "Combinaison des règles sur une même base";
-
-const rows = steps.map((tex,i)=>`
-  <tr>
-    <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">
-      \\(${i===0 ? lettre : ""}\\)
-    </td>
-    <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">\\(=\\)</td>
-    <td style="border:none;padding:0;vertical-align:top;text-align:left">\\(${tex}\\)</td>
-  </tr>
-`).join('');
-
-
-      return `
-<div>${intro}</div>
-<table style="border-collapse:collapse;border:none;width:auto;margin-top:4px">
-  <tbody>
-    ${rows}
-  </tbody>
-</table>
-
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
 `;
+      }
+
+      if(it.kind === "quot_same"){
+        return `
+Même base : on soustrait les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind === "pow_pow"){
+        return `
+Puissance d'une puissance : on multiplie les exposants
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      if(it.kind === "mix"){
+        return `
+Combinaison des règles sur une même base
+
+\\[
+\\begin{aligned}
+${lettre} &= ${it.latex} \\\\
+         &= 10^{${rTex}} \\\\
+         &= 10^{${n}}
+         ${texFinalExponent(10, n)}
+\\end{aligned}
+\\]
+`;
+      }
+
+      return "";
     };
 
     const cell = idx => `
@@ -1127,7 +1050,6 @@ const rows = steps.map((tex,i)=>`
     `;
     typesetAll(box);
   },
-
 
   reset(host){
     const box = $("#res",host);
@@ -1200,7 +1122,6 @@ document.addEventListener('keydown',e=>{
 
 })();
 </script>
-
 
 </body>
 </html>

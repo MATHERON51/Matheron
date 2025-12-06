@@ -897,267 +897,223 @@ solution(host, st) {
     return `${a}${v}`;
   }
 
-// supprime les lignes exactement doublons (même lhs ET même rhs à la suite)
-function dedupeRows(rows){
-  const out = [];
-  for (const row of rows || []) {
-    if (!row) continue;
-    const lhs = row.lhs || "";
-    const rhs = row.rhs || "";
-    const last = out[out.length - 1];
-    if (last && last.lhs === lhs && last.rhs === rhs) {
-      continue; // on saute la ligne doublon
+function solTex(it){
+  /* ===== CAS 1/x = y (inchangé, pas de 1x ici) ===== */
+  if (it.kind === "entPos" || it.kind === "entNeg" ||
+      it.kind === "p10" || it.kind === "fracPos" || it.kind === "fracNeg") {
+
+    if (it.kind === "entPos" || it.kind === "entNeg") {
+      const y = it.y;
+      let num = 1, den = y;
+      if (den<0){ den=-den; num=-num; }
+      const fr = reduce(num,den);
+      const texX = texFrac(fr.num, fr.den);
+
+      if (it.kind === "entPos") {
+        return `
+\\[
+\\begin{aligned}
+\\frac{1}{x} &= ${it.latex} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else {
+        return `
+\\[
+\\begin{aligned}
+\\frac{1}{x} &= ${it.latex} \\\\
+x &= \\frac{1}{${it.latex}} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      }
     }
-    out.push({ lhs, rhs });
+
+    if (it.kind === "p10") {
+      const e = it.exp;
+      return `
+\\[
+\\begin{aligned}
+\\frac{1}{x} &= 10^{${e}} \\\\
+x &= \\frac{1}{10^{${e}}} \\\\
+x &= 10^{${-e}}
+\\end{aligned}
+\\]`;
+    }
+
+    // fractions ±a/b
+    if (it.kind === "fracPos" || it.kind === "fracNeg") {
+      const a = it.a, b = it.b;
+      const sign = (it.kind === "fracNeg") ? -1 : +1;
+      let num = sign * b;
+      let den = a;
+      const fr = reduce(num,den);
+      const texX = texFrac(fr.num, fr.den);
+
+      return `
+\\[
+\\begin{aligned}
+\\frac{1}{x} &= ${it.latex} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+    }
   }
-  return out;
-}
 
+  /* ===== CAS 1/(ax+b) = k avec k entier ===== */
+  if (it.kind === "affInt") {
+    const a = it.a;
+    const b = it.b;
+    const denTex = it.denTex;   // ax+b bien écrit sans 1x/-1x
+    const kTex  = it.kTex;
+    const isPlusMinusOne = (it.k === 1 || it.k === -1);  // NOUVEAU
 
+    // 1/k en fraction simplifiée (pour l'étape "denTex = 1/k")
+    let num1 = 1;
+    let den1 = it.k;
+    const fr1 = reduce(num1,den1);
+    const texInvK = texFrac(fr1.num, fr1.den);   // 1/k
 
-function makeEqTable(rows){
-  const cleaned = dedupeRows(rows);
+    // x interdit : -b/a (ensemble de def)
+    let exNum = -b;
+    let exDen = a;
+    const exFr = reduce(exNum, exDen);
+    const texXforbid = texFrac(exFr.num, exFr.den);
 
-  const trs = cleaned.map(({lhs, rhs}) => {
-    const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
-    const vAlign3 = hasFrac ? 'top' : 'middle';
+    // numériquement pour la simplification finale
+    let num2 = num1 - b*den1;   // 1/k - b
+    let den2 = den1;
+    const frS = reduce(num2, den2);
+    const texSomme = texFrac(frS.num, frS.den);
+
+    let numX = num2;
+    let denX = den2 * a;
+    const frX = reduce(numX, denX);
+    const texX = texFrac(frX.num, frX.den);
+
+    // écriture propre de texInvK - b (jamais "--")
+    let texInvKminusB;
+    if (b > 0) {
+      texInvKminusB = `${texInvK} - ${b}`;
+    } else if (b < 0) {
+      const bp = -b;
+      texInvKminusB = `${texInvK} + ${bp}`;
+    } else {
+      texInvKminusB = `${texInvK}`;
+    }
+
+    // ligne avec a·x sans jamais écrire 1x ou -1x
+    const texAXline = texAX(a,'x');
+
+    let resolution;
+
+    if (b === 0) {
+      // ===== CAS B = 0 : on évite les lignes doublons =====
+      if (a === 1) {
+        // 1/x = k
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else if (a === -1) {
+        // 1/(-x) = k
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else {
+        // 1/(ax) = k avec |a| ≠ 1
+        if (isPlusMinusOne) {
+          // CAS PARTICULIER k = ±1 : PAS de ligne "× 1/a"
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        } else {
+          // CAS GÉNÉRAL
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+x &= ${texInvK}\\times \\dfrac{1}{${a}} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        }
+      }
+    } else {
+      // ===== CAS GÉNÉRAL b ≠ 0 =====
+      if (a === 1) {
+        // x + b = 1/k - b
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+x &= ${texInvKminusB} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else if (a === -1) {
+        // -x + b = 1/k
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else {
+        // |a| ≠ 1 : ax + b = 1/k, puis somme
+        if (isPlusMinusOne) {
+          // CAS PARTICULIER k = ±1 : PAS de ligne "× 1/a"
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= \\dfrac{${texSomme}}{${a}} \\\\
+
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        } else {
+          // CAS GÉNÉRAL
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= ${texSomme}\\times \\dfrac{1}{${a}} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        }
+      }
+    }
+
     return `
-      <tr>
-        <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:1.2em;text-align:right">
-          ${lhs ? `\\(${lhs}\\)` : ""}
-        </td>
-        <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">
-          \\(=\\)
-        </td>
-        <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">
-          \\(${rhs}\\)
-        </td>
-      </tr>`;
-  }).join("");
-
-  return `
-    <table style="border-collapse:collapse;border:none;margin-top:4px">
-      <tbody>
-        ${trs}
-      </tbody>
-    </table>`;
-}
-
-
-
-  function solTex(it){
-    /* ===== CAS 1/x = y (inchangé dans la logique) ===== */
-    if (it.kind === "entPos" || it.kind === "entNeg" ||
-        it.kind === "p10" || it.kind === "fracPos" || it.kind === "fracNeg") {
-
-      if (it.kind === "entPos" || it.kind === "entNeg") {
-        const y = it.y;
-        let num = 1, den = y;
-        if (den<0){ den=-den; num=-num; }
-        const fr = reduce(num,den);
-        const texX = texFrac(fr.num, fr.den);
-
-        if (it.kind === "entPos") {
-          // AVANT :
-          // \[
-          // \begin{aligned}
-          // 1/x &= y \\
-          // x   &= texX
-          // \end{aligned}
-          // \]
-          const rows = [
-            { lhs: "\\dfrac{1}{x}", rhs: it.latex },
-            { lhs: "x",             rhs: texX }
-          ];
-          return makeEqTable(rows);
-        } else {
-          // entier négatif : on gardait une ligne intermédiaire x = 1/y
-          const rows = [
-            { lhs: "\\dfrac{1}{x}", rhs: it.latex },
-            { lhs: "x",             rhs: `\\dfrac{1}{${it.latex}}` },
-            { lhs: "x",             rhs: texX }
-          ];
-          return makeEqTable(rows);
-        }
-      }
-
-if (it.kind === "p10") {
-  const e = it.exp;
-  const rows = [
-    { lhs: "\\dfrac{1}{x}", rhs: `10^{${e}}` },
-    { lhs: "x",             rhs: `\\dfrac{1}{10^{${e}}}` },
-    { lhs: "x",             rhs: `10^{${-e}}` }
-  ];
-  return makeEqTable(rows);
-}
-
-
-      // fractions ±a/b
-      if (it.kind === "fracPos" || it.kind === "fracNeg") {
-        const a = it.a, b = it.b;
-        const sign = (it.kind === "fracNeg") ? -1 : +1;
-        let num = sign * b;
-        let den = a;
-        const fr = reduce(num,den);
-        const texX = texFrac(fr.num, fr.den);
-
-        // AVANT : 2 lignes dans un aligned
-        const rows = [
-          { lhs: "\\dfrac{1}{x}", rhs: it.latex },
-          { lhs: "x",             rhs: texX }
-        ];
-        return makeEqTable(rows);
-      }
-    }
-
-    /* ===== CAS 1/(ax+b) = k avec k entier ===== */
-    if (it.kind === "affInt") {
-      const a = it.a;
-      const b = it.b;
-      const denTex = it.denTex;   // ax+b bien écrit sans 1x/-1x
-      const kTex  = it.kTex;
-      const isPlusMinusOne = (it.k === 1 || it.k === -1);
-
-      // 1/k en fraction simplifiée (pour l’étape "denTex = 1/k")
-      let num1 = 1;
-      let den1 = it.k;
-      const fr1 = reduce(num1,den1);
-      const texInvK = texFrac(fr1.num, fr1.den);   // 1/k
-
-      // x interdit : -b/a (ensemble de def)
-      let exNum = -b;
-      let exDen = a;
-      const exFr = reduce(exNum, exDen);
-      const texXforbid = texFrac(exFr.num, exFr.den);
-
-      // numériquement pour la simplification finale
-      let num2 = num1 - b*den1;   // 1/k - b
-      let den2 = den1;
-      const frS = reduce(num2, den2);
-      const texSomme = texFrac(frS.num, frS.den);
-
-      let numX = num2;
-      let denX = den2 * a;
-      const frX = reduce(numX, denX);
-      const texX = texFrac(frX.num, frX.den);
-
-      // écriture propre de texInvK - b (jamais "--")
-      let texInvKminusB;
-      if (b > 0) {
-        texInvKminusB = `${texInvK} - ${b}`;
-      } else if (b < 0) {
-        const bp = -b;
-        texInvKminusB = `${texInvK} + ${bp}`;
-      } else {
-        texInvKminusB = `${texInvK}`;
-      }
-
-      // ligne avec a·x sans jamais écrire 1x ou -1x
-      const texAXline = texAX(a,'x');
-
-      let resolutionRows = [];
-
-      if (b === 0) {
-        // ===== CAS B = 0 : on évite les lignes doublons =====
-        if (a === 1) {
-          // 1/x = k
-          // AVANT :
-          // 1/(x) = k
-          // x     = 1/k
-          // x     = texX
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else if (a === -1) {
-          // 1/(-x) = k
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: texAXline,               rhs: texInvK },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else {
-          // 1/(ax) = k avec |a| ≠ 1
-          if (isPlusMinusOne) {
-            // CAS PARTICULIER k = ±1 : PAS de ligne "× 1/a"
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: "x",                     rhs: texX }
-            ];
-          } else {
-            // CAS GÉNÉRAL
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvK },
-              { lhs: "x",                     rhs: `${texInvK}\\times \\dfrac{1}{${a}}` },
-              { lhs: "x",                     rhs: texX }
-            ];
-          }
-        }
-      } else {
-        // ===== CAS GÉNÉRAL b ≠ 0 =====
-        if (a === 1) {
-          // x + b = 1/k - b
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: "x",                     rhs: texInvKminusB },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else if (a === -1) {
-          // -x + b = 1/k
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: texAXline,               rhs: texInvKminusB },
-            { lhs: texAXline,               rhs: texSomme },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else {
-          // |a| ≠ 1 : ax + b = 1/k, puis somme
-          if (isPlusMinusOne) {
-            // CAS PARTICULIER k = ±1 : PAS de ligne "× 1/a"
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvKminusB },
-              { lhs: texAXline,               rhs: texSomme },
-              { lhs: "x",                     rhs: `\\dfrac{${texSomme}}{${a}}` },
-              { lhs: "x",                     rhs: texX }
-            ];
-          } else {
-            // CAS GÉNÉRAL
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvKminusB },
-              { lhs: texAXline,               rhs: texSomme },
-              { lhs: "x",                     rhs: `${texSomme}\\times \\dfrac{1}{${a}}` },
-              { lhs: "x",                     rhs: texX }
-            ];
-          }
-        }
-      }
-
-      const resolution = makeEqTable(resolutionRows);
-
-const texAXlineED = texAX(a, 'x');
-const rhsMoved =
-  (b === 0) ? "0" : String(-b);   // ax = -b, avec le bon signe
-
-const edRows = [
-  { lhs: denTex,      rhs: "0" },        // ax + b = 0
-  { lhs: texAXlineED, rhs: rhsMoved },   // ax = -b
-  { lhs: "x",         rhs: texXforbid }  // x = -b/a
-];
-const edTable = makeEqTable(edRows);
-
-
-      return `
 <table class="pdf-tbl fullgrid" style="width:100%">
   <tr>
     <th>Ensemble de définition</th>
@@ -1165,9 +1121,14 @@ const edTable = makeEqTable(edRows);
   </tr>
   <tr>
     <td style="vertical-align:top;padding:4px 6px">
-      On cherche la valeur interdite en résolvant : <br>
-      ${edTable}<br>
-      La solution ne pourra donc pas être \\(${texXforbid}\\).
+	On cherche la valeur interdite en résolvant : <br>
+      \\[
+      \\begin{aligned}
+      ${denTex} &= 0 \\\\
+      x &= ${texXforbid}
+      \\end{aligned}
+      \\]<br>
+	  La solution ne pourra donc pas être \\(${texXforbid}\\).
     </td>
     <td style="vertical-align:top;padding:4px 6px">
       ${resolution}
@@ -1175,163 +1136,183 @@ const edTable = makeEqTable(edRows);
   </tr>
 </table>
 `;
-    }
-
-    /* ===== CAS 1/(ax+b) = num/den fraction ===== */
-    if (it.kind === "affFrac") {
-      const a = it.a;
-      const b = it.b;
-      const denTex = it.denTex;
-      const kTex  = it.kTex;
-
-      // 1/k en fraction simplifiée
-      let num1 = it.kDen;
-      let den1 = it.kNum;
-      const fr1 = reduce(num1,den1);
-      const texInvK = texFrac(fr1.num, fr1.den);   // 1/k
-      const isPlusMinusOne = (Math.abs(it.kNum) === 1);
-
-      // x interdit : -b/a
-      let exNum = -b;
-      let exDen = a;
-      const exFr = reduce(exNum, exDen);
-      const texXforbid = texFrac(exFr.num, exFr.den);
-
-      // numériquement pour la simplification finale
-      let num2 = num1 - b*den1;   // 1/k - b
-      let den2 = den1;
-      const frS = reduce(num2, den2);
-      const texSomme = texFrac(frS.num, frS.den);
-
-      let numX = num2;
-      let denX = den2 * a;
-      const frX = reduce(numX, denX);
-      const texX = texFrac(frX.num, frX.den);
-
-      // écriture propre de texInvK - b
-      let texInvKminusB;
-      if (b > 0) {
-        texInvKminusB = `${texInvK} - ${b}`;
-      } else if (b < 0) {
-        const bp = -b;
-        texInvKminusB = `${texInvK} + ${bp}`;
-      } else {
-        texInvKminusB = `${texInvK}`;
-      }
-
-      const texAXline = texAX(a,'x');
-
-      let resolutionRows = [];
-
-      if (b === 0) {
-        // ===== CAS B = 0 =====
-        if (a === 1) {
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else if (a === -1) {
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: texAXline,               rhs: texInvK },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else {
-          if (isPlusMinusOne) {
-            // k = ±1 : pas de "× 1/a"
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvK },
-              { lhs: "x",                     rhs: texX }
-            ];
-          } else {
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvK },
-              { lhs: "x",                     rhs: `${texInvK}\\times \\dfrac{1}{${a}}` },
-              { lhs: "x",                     rhs: texX }
-            ];
-          }
-        }
-      } else {
-        // ===== CAS GÉNÉRAL b ≠ 0 =====
-        if (a === 1) {
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: "x",                     rhs: texInvKminusB },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else if (a === -1) {
-          resolutionRows = [
-            { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-            { lhs: denTex,                  rhs: texInvK },
-            { lhs: texAXline,               rhs: texInvKminusB },
-            { lhs: texAXline,               rhs: texSomme },
-            { lhs: "x",                     rhs: texX }
-          ];
-        } else {
-          if (isPlusMinusOne) {
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvKminusB },
-              { lhs: texAXline,               rhs: texSomme },
-              { lhs: "x",                     rhs: texX }
-            ];
-          } else {
-            resolutionRows = [
-              { lhs: `\\dfrac{1}{${denTex}}`, rhs: kTex },
-              { lhs: denTex,                  rhs: texInvK },
-              { lhs: texAXline,               rhs: texInvKminusB },
-              { lhs: texAXline,               rhs: texSomme },
-              { lhs: "x",                     rhs: `${texSomme}\\times \\dfrac{1}{${a}}` },
-              { lhs: "x",                     rhs: texX }
-            ];
-          }
-        }
-      }
-
-      const resolution = makeEqTable(resolutionRows);
-
-const texAXlineED = texAX(a, 'x');
-const rhsMoved =
-  (b === 0) ? "0" : String(-b);   // ax = -b, avec le bon signe
-
-const edRows = [
-  { lhs: denTex,      rhs: "0" },        // ax + b = 0
-  { lhs: texAXlineED, rhs: rhsMoved },   // ax = -b
-  { lhs: "x",         rhs: texXforbid }  // x = -b/a
-];
-const edTable = makeEqTable(edRows);
-
-
-      return `
-<table class="pdf-tbl fullgrid" style="width:100%">
-  <tr>
-    <th>Ensemble de définition</th>
-    <th>Résolution de l’équation</th>
-  </tr>
-  <tr>
-    <td style="vertical-align:top;padding:4px 6px">
-      On cherche la valeur interdite en résolvant : <br>
-      ${edTable}<br>
-      La solution ne pourra donc pas être \\(${texXforbid}\\).
-    </td>
-    <td style="vertical-align:top;padding:4px 6px">
-      ${resolution}
-    </td>
-  </tr>
-</table>
-`;
-    }
-
-    return "";
   }
+
+  /* ===== CAS 1/(ax+b) = num/den fraction ===== */
+  if (it.kind === "affFrac") {
+    const a = it.a;
+    const b = it.b;
+    const denTex = it.denTex;
+    const kTex  = it.kTex;
+
+    // 1/k en fraction simplifiée
+    let num1 = it.kDen;
+    let den1 = it.kNum;
+    const fr1 = reduce(num1,den1);
+    const texInvK = texFrac(fr1.num, fr1.den);   // 1/k
+    const isPlusMinusOne = (Math.abs(it.kNum) === 1);  // prêt si un jour tu génères ±1 en fraction
+
+    // x interdit : -b/a
+    let exNum = -b;
+    let exDen = a;
+    const exFr = reduce(exNum, exDen);
+    const texXforbid = texFrac(exFr.num, exFr.den);
+
+    // numériquement pour la simplification finale
+    let num2 = num1 - b*den1;   // 1/k - b
+    let den2 = den1;
+    const frS = reduce(num2, den2);
+    const texSomme = texFrac(frS.num, frS.den);
+
+    let numX = num2;
+    let denX = den2 * a;
+    const frX = reduce(numX, denX);
+    const texX = texFrac(frX.num, frX.den);
+
+    // écriture propre de texInvK - b (jamais "--")
+    let texInvKminusB;
+    if (b > 0) {
+      texInvKminusB = `${texInvK} - ${b}`;
+    } else if (b < 0) {
+      const bp = -b;
+      texInvKminusB = `${texInvK} + ${bp}`;
+    } else {
+      texInvKminusB = `${texInvK}`;
+    }
+
+    const texAXline = texAX(a,'x');
+
+    let resolution;
+
+    if (b === 0) {
+      // ===== CAS B = 0 =====
+      if (a === 1) {
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else if (a === -1) {
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else {
+        // 1/(ax) = k avec |a| ≠ 1
+        if (isPlusMinusOne) {
+          // CAS k = ±1 : pas de "× 1/a"
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvK} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        } else {
+          // CAS général
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvK} \\\\
+x &= ${texInvK}\\times \\dfrac{1}{${a}} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        }
+      }
+    } else {
+      // ===== CAS GÉNÉRAL b ≠ 0 =====
+      if (a === 1) {
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else if (a === -1) {
+        resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+      } else {
+        // |a| ≠ 1
+        if (isPlusMinusOne) {
+          // k = ±1 : pas de "× 1/a"
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        } else {
+          // CAS général
+          resolution = `
+\\[
+\\begin{aligned}
+\\frac{1}{${denTex}} &= ${kTex} \\\\
+${denTex} &= ${texInvK} \\\\
+${texAXline} &= ${texInvKminusB} \\\\
+${texAXline} &= ${texSomme} \\\\
+x &= ${texSomme}\\times \\dfrac{1}{${a}} \\\\
+x &= ${texX}
+\\end{aligned}
+\\]`;
+        }
+      }
+    }
+
+    return `
+<table class="pdf-tbl fullgrid" style="width:100%">
+  <tr>
+    <th>Ensemble de définition</th>
+    <th>Résolution de l’équation</th>
+  </tr>
+  <tr>
+    <td style="vertical-align:top;padding:4px 6px">
+	On cherche la valeur interdite en résolvant : <br>
+      \\[
+      \\begin{aligned}
+      ${denTex} &= 0 \\\\
+      x &= ${texXforbid}
+      \\end{aligned}
+      \\]<br>
+	  La solution ne pourra donc pas être \\(${texXforbid}\\).
+    </td>
+    <td style="vertical-align:top;padding:4px 6px">
+      ${resolution}
+    </td>
+  </tr>
+</table>
+`;
+  }
+
+  return "";
+}
 
 
   box.innerHTML = `
@@ -1357,7 +1338,6 @@ const edTable = makeEqTable(edRows);
 
   typesetAll(box);
 },
-
 
 
   reset(host){

@@ -2509,119 +2509,78 @@ const ex4 = {
     return { ok, total: tot };
   },
 
-solution(host, st) {
-  const box = $("#res",host);
+  solution(host, st) {
+    const box = $("#res",host);
 
-  // -------- dédoublonnage : supprime lignes consécutives identiques --------
-  function dedupeRows(rows){
-    const out = [];
-    for (const row of rows || []) {
-      if (!row) continue;
-      const lhs = row.lhs || "";
-      const rhs = row.rhs || "";
-      const last = out[out.length - 1];
-      if (last && last.lhs === lhs && last.rhs === rhs) continue;
-      out.push({ lhs, rhs });
-    }
-    return out;
-  }
+    const solTex = it => {
+      const y = it.y;
+      if (it.kind === "intPerfect") {
+        const m = Math.round(Math.sqrt(y));
+        return `
+\\[
+\\begin{aligned}
+x^2 &= ${y} \\\\
+x &= -\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}} \\\\
+x &= -${m} \\quad \\text{ou} \\quad x = ${m}
+\\end{aligned}
+\\]`;
+      }
 
-  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
-  function makeEqTable(rows){
-    const cleaned = dedupeRows(rows);
-    const trs = cleaned.map(({lhs, rhs}) => {
-      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
-      const vAlign3 = hasFrac ? 'top' : 'middle';
+      if (it.kind === "nonPerfect") {
+        return `
+\\[
+\\begin{aligned}
+x^2 &= ${y} \\\\
+x &= -\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}}.
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "fracPerfect") {
+        const p = it.p, q = it.q;
+        const num = p*p, den = q*q;
+        return `
+\\[
+\\begin{aligned}
+x^2 &= \\dfrac{${num}}{${den}} \\\\
+x &= -\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}} \\\\
+    &= -\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}.
+\\end{aligned}
+\\]`;
+      }
+
+      // négatif
       return `
-        <tr>
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:1.2em;text-align:right">
-            ${lhs ? `\\(${lhs}\\)` : ""}
-          </td>
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">
-            \\(=\\)
-          </td>
-          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">
-            \\(${rhs}\\)
-          </td>
-        </tr>`;
-    }).join("");
-
-    return `
-      <table style="border-collapse:collapse;border:none;margin-top:4px">
-        <tbody>
-          ${trs}
-        </tbody>
-      </table>`;
-  }
-
-  const solTex = it => {
-    const y = it.y;
-
-    // ---- 1) y entier >0, carré parfait ----
-    if (it.kind === "intPerfect") {
-      const m = Math.round(Math.sqrt(y));
-      const rows = [
-        { lhs: "x^2", rhs: `${y}` },
-        { lhs: "x",   rhs: `-\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}}` },
-        { lhs: "x",   rhs: `-${m} \\quad \\text{ou} \\quad x = ${m}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ---- 2) y entier >0, non carré parfait ----
-    if (it.kind === "nonPerfect") {
-      const rows = [
-        { lhs: "x^2", rhs: `${y}` },
-        { lhs: "x",   rhs: `-\\sqrt{${y}} \\quad \\text{ou} \\quad x = \\sqrt{${y}}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ---- 3) y fraction >0, carré parfait p²/q² ----
-    if (it.kind === "fracPerfect") {
-      const p = it.p, q = it.q;
-      const num = p*p, den = q*q;
-      const rows = [
-        { lhs: "x^2", rhs: `\\dfrac{${num}}{${den}}` },
-        { lhs: "x",   rhs: `-\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}}` },
-        { lhs: "x",   rhs: `-\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ---- 4) y < 0 : pas de solution réelle ----
-    return `
 \\[
 x^2 = ${y}
 \\]
 n'admet <b>aucune solution réelle</b>, car le carré d'un nombre réel est toujours positif ou nul.
 Il n’y a donc <b>aucun antécédent réel</b> de \\(${y}\\) par la fonction carré.`;
-  };
+    };
 
-  box.innerHTML = `
-    <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
-      <thead>
-        <tr>
-          <th>Nombre \\(y\\)</th>
-          <th>Correction</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${st.items.map(it => `
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
+        <thead>
           <tr>
-            <td style="width:30%">\\(${it.latex}\\)</td>
-            <td style="vertical-align:top;padding:6px 10px">
-              ${solTex(it)}
-            </td>
+            <th>Nombre \\(y\\)</th>
+            <th>Correction</th>
           </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
+        </thead>
+        <tbody>
+          ${st.items.map(it => `
+            <tr>
+              <td style="width:30%">\\(${it.latex}\\)</td>
+              <td style="vertical-align:top;padding:6px 10px">
+                ${solTex(it)}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
 
-  typesetAll(box);
-},
-
+    typesetAll(box);
+  },
 
   reset(host) {
     const box = $("#res",host);

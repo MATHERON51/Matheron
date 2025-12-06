@@ -271,6 +271,9 @@ function unwrapLegacyEqu(html){
 }
 
 
+
+
+
 async function buildPrintableHTML(nb, mix, withSolutions /* ignoré */, header, opts){
   const today = new Date().toLocaleDateString('fr-FR');
   const title = opts.title || DEFAULTS.title;
@@ -1180,6 +1183,25 @@ table.pdf-tbl.fullgrid td{
   padding:8px 10px;
 }
 
+/* === Patch : éviter les racines “écrasées” dans les tableaux === */
+
+/* 1) Taille des formules dans les tableaux, SANS déformer les racines */
+table.pdf-tbl mjx-container,
+.table-exo mjx-container,
+table.table mjx-container {
+  font-size: 1.10em !important;   /* tu peux remettre 1.15 si tu veux plus gros */
+  display: inline-block;          /* détache la formule de la hauteur de la cellule */
+  line-height: normal !important; /* on laisse MathJax gérer la hauteur de ligne */
+}
+
+
+/* 2) On s’assure que rien ne rogne verticalement */
+table.pdf-tbl th, table.pdf-tbl td,
+.table-exo th, .table-exo td,
+table.table th, table.table td {
+  overflow: visible !important;
+  vertical-align: middle;         /* ou baseline si tu préfères */
+}
 
 
 </style>

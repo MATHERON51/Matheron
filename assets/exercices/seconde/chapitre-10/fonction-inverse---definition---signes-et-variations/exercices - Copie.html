@@ -664,173 +664,142 @@ const ex1 = {
   },
 
 
-    solution(host, st) {
+  solution(host, st) {
     const box = $("#res",host);
 
-    const solTex = (it) => {
-      let lhs = "";          // f(...)
-      let rhsSteps = [];     // étapes à droite du =
-
-      // ——— 1) Cas fraction positive ———
+    const solTex = it => {
       if (it.kind === "fracPos") {
         const n = it.num, d = it.den;
-        lhs = `f\\left(\\dfrac{${n}}{${d}}\\right)`;
-
-        // si le numérateur vaut 1, f(1/d) = d (entier, pas d'écriture en fraction)
-        if (n === 1) {
-          rhsSteps = [ `${d}` ];
-        } else {
-          rhsSteps = [ `\\dfrac{${d}}{${n}}` ];
-        }
+        return `
+\\[
+\\begin{aligned}
+f\\left(\\dfrac{${n}}{${d}}\\right)
+&= \\dfrac{${d}}{${n}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 2) Cas fraction négative ———
-      else if (it.kind === "fracNeg") {
+      if (it.kind === "fracNeg") {
         const n = it.num, d = it.den;
-        lhs = `f\\left(-\\dfrac{${n}}{${d}}\\right)`;
-
-        // si le numérateur vaut 1, f(-1/d) = -d (entier, pas de -d/1)
-        if (n === 1) {
-          rhsSteps = [ `-${d}` ];
-        } else {
-          rhsSteps = [ `-\\dfrac{${d}}{${n}}` ];
-        }
+        return `
+\\[
+\\begin{aligned}
+f\\left(-\\dfrac{${n}}{${d}}\\right)
+&= -\\dfrac{${d}}{${n}}
+\\end{aligned}
+\\]`;
       }
 
-
-      // ——— 3) Entier positif ———
-      else if (it.kind === "entPos") {
+      if (it.kind === "entPos") {
         const k = it.k;
-        lhs = `f(${k})`;
-        rhsSteps = [
-          `\\dfrac{1}{${k}}`
-        ];
+        return `
+\\[
+\\begin{aligned}
+f(${k}) &= \\dfrac{1}{${k}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 4) Entier négatif ———
-      else if (it.kind === "entNeg") {
+      if (it.kind === "entNeg") {
         const k = it.k;
-        lhs = `f(-${k})`;
-        rhsSteps = [
-          `\\dfrac{1}{-${k}}`,
-          `-\\dfrac{1}{${k}}`
-        ];
+        return `
+\\[
+\\begin{aligned}
+f(-${k}) &= \\dfrac{1}{- ${k}}\\\\
+&= -\\dfrac{1}{${k}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 5) Puissance de 10 ———
-      else if (it.kind === "pow10") {
-        const e  = it.exp;
+      if (it.kind === "pow10") {
+        const e = it.exp;
         const e2 = it.powExp;
-        lhs = `f\\left(10^{${e}}\\right)`;
-        rhsSteps = [
-          `\\dfrac{1}{10^{${e}}}`,
-          `10^{${e2}}`
-        ];
+        return `
+\\[
+\\begin{aligned}
+f\\left(10^{${e}}\\right)
+&= \\dfrac{1}{10^{${e}}}\\\\
+&= 10^{${e2}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 6) Décimal 0,m ———
-      else if (it.kind === "dec") {
+      if (it.kind === "dec") {
         const m = it.num;
-        lhs = `f(0,${m})`;
-        rhsSteps = [
-          `f\\left(\\dfrac{${m}}{10}\\right)`,
-          `\\dfrac{10}{${m}}`
-        ];
+        return `
+\\[
+\\begin{aligned}
+f(0,${m})
+&=f\\left(\\dfrac{${m}}{10}\\right)\\\\
+&= \\dfrac{10}{${m}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 7) √a ———
-      else if (it.kind === "racSimple") {
+  // ----- √a -----
+      if (it.kind === "racSimple") {
         const a = it.a;
-        lhs = `f\\bigl(\\sqrt{${a}}\\bigr)`;
-        rhsSteps = [
-          `\\dfrac{1}{\\sqrt{${a}}}`,
-          `\\dfrac{1}{\\sqrt{${a}}}\\times\\dfrac{\\sqrt{${a}}}{\\sqrt{${a}}}`,
-          `\\dfrac{\\sqrt{${a}}}{(\\sqrt{${a}})^2}`,
-          `\\dfrac{\\sqrt{${a}}}{${a}}`
-        ];
+        return `
+\\[
+\\begin{aligned}
+f\\bigl(\\sqrt{${a}}\\bigr)
+&= \\dfrac{1}{\\sqrt{${a}}}\\\\
+&= \\dfrac{1}{\\sqrt{${a}}}\\times\\dfrac{\\sqrt{${a}}}{\\sqrt{${a}}}\\\\
+&= \\dfrac{\\sqrt{${a}}}{(\\sqrt{${a}})^2}\\\\
+&= \\dfrac{\\sqrt{${a}}}{${a}}
+\\end{aligned}
+\\]`;
       }
 
-      // ——— 8) √a − √b ———
-      else if (it.kind === "racDiff") {
+      // ----- √a − √b -----
+      if (it.kind === "racDiff") {
         const a = it.a, b = it.b;
-        const diff = a - b;          // peut valoir 1, -1 ou autre
-        lhs = `f\\bigl(\\sqrt{${a}} - \\sqrt{${b}}\\bigr)`;
+        const diff = a - b;
 
-        const baseSteps = [
-          `\\dfrac{1}{\\sqrt{${a}} - \\sqrt{${b}}}`,
-          `\\dfrac{1}{\\sqrt{${a}} - \\sqrt{${b}}}
-             \\times\\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{\\sqrt{${a}} + \\sqrt{${b}}}`,
-          `\\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{(\\sqrt{${a}} - \\sqrt{${b}})(\\sqrt{${a}} + \\sqrt{${b}})}`,
-          `\\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{(\\sqrt{${a}})^2 - (\\sqrt{${b}})^2}`,
-          `\\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{${a} - ${b}}`
-        ];
-
-        // on complète selon la valeur de a-b, sans jamais écrire /1 ou /-1
+        // texte final selon la valeur de a-b
+        let finalPart;
         if (diff === 1) {
-          // a - b = 1 → pas de /1
-          rhsSteps = [
-            ...baseSteps,
-            `\\sqrt{${a}} + \\sqrt{${b}}`
-          ];
+          // pas de /1 à la fin
+          finalPart = `
+&= \\sqrt{${a}} + \\sqrt{${b}}`;
         } else if (diff === -1) {
-          // a - b = -1 → on factorise le signe, sans afficher /-1
-          rhsSteps = [
-            ...baseSteps,
-            `-\\bigl(\\sqrt{${a}} + \\sqrt{${b}}\\bigr)`,
-            `-\\sqrt{${a}} - \\sqrt{${b}}`
-          ];
+          // on évite aussi /(-1), on factorise le signe
+          finalPart = `
+&= \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{-1}\\\\
+&= -\\sqrt{${a}} - \\sqrt{${b}}`;
         } else {
-          // cas général : dénominateur quelconque ≠ ±1
-          rhsSteps = [
-            ...baseSteps,
-            `\\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{${diff}}`
-          ];
+          // cas général
+          finalPart = `
+&= \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{${a-b}}`;
         }
-      }
-
-      // ——— Construction du tableau 3 colonnes ———
-            const rows = rhsSteps.map((tex, idx) => {
-        // on regarde s'il y a une fraction dans cette ligne
-        const hasFrac = /\\dfrac|\\frac|\//.test(tex);
-        const vAlign3 = hasFrac ? 'top' : 'middle';
 
         return `
-        <tr>
-          <!-- 1ʳᵉ colonne : f(...) uniquement sur la 1ʳᵉ ligne -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.8em">
-            ${idx === 0 ? `\\(${lhs}\\)` : ""}
-          </td>
-          <!-- 2ᵉ colonne : le signe =, toujours centré verticalement -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">\\(=\\)</td>
-          <!-- 3ᵉ colonne : alignement dépend de la présence d'une fraction -->
-          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">\\(${tex}\\)</td>
-        </tr>`;
-      }).join("");
-
-
-      // petite remarque uniquement pour le cas conjugué
-      let remark = "";
-      if (it.kind === "racDiff") {
-        remark = `<div style="margin-top:4px;font-size:0.9em">
-          Remarque&nbsp;: on multiplie par le <em>conjugué</em>.
-        </div>`;
+\\[
+\\begin{aligned}
+f\\bigl(\\sqrt{${a}} - \\sqrt{${b}}\\bigr)
+&= \\dfrac{1}{\\sqrt{${a}} - \\sqrt{${b}}}\\\\[4pt]
+&= \\dfrac{1}{\\sqrt{${a}} - \\sqrt{${b}}}
+   \\times \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{\\sqrt{${a}} + \\sqrt{${b}}}\\\\
+&= \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{%
+(\\sqrt{${a}} - \\sqrt{${b}})(\\sqrt{${a}} + \\sqrt{${b}})}\\\\[4pt]
+&= \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{(\\sqrt{${a}})^2 - (\\sqrt{${b}})^2}\\\\
+&= \\dfrac{\\sqrt{${a}} + \\sqrt{${b}}}{${a} - ${b}}\\\\
+${finalPart}
+\\end{aligned}
+\\]
+Remarque : on dit qu'on multiplie par le conjugué.
+`;
       }
 
-      return `
-<table style="border-collapse:collapse;border:none;width:auto;margin-top:4px">
-  <tbody>
-    ${rows}
-  </tbody>
-</table>
-${remark}
-`;
+
+      return "";
     };
 
-    const cell = idx => {
+    const cells = idx => {
       const it = st.items[idx];
       return `
 <td style="vertical-align:top;padding:8px 10px">
-  ${solTex(it)}
+  <div style="margin-top:6px">${solTex(it)}</div>
 </td>`;
     };
 
@@ -838,17 +807,16 @@ ${remark}
       <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
         <tbody>
           <tr>
-            ${cell(0)}${cell(1)}${cell(2)}${cell(3)}
+            ${cells(0)}${cells(1)}${cells(2)}${cells(3)}
           </tr>
           <tr>
-            ${cell(4)}${cell(5)}${cell(6)}${cell(7)}
+            ${cells(4)}${cells(5)}${cells(6)}${cells(7)}
           </tr>
         </tbody>
       </table>
     `;
     typesetAll(box);
   },
-
 
   reset(host) {
     const box = $("#res",host);

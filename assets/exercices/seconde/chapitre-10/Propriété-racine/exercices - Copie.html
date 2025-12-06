@@ -253,6 +253,7 @@ function parsePowInput(raw){
   s = s.replace(/−/g,'-');
   s = s.replace(/²/g, '^2');
 
+
   let m;
 
   // 1) base entre parenthèses : (-3)^2, (10)^-3, etc.
@@ -327,6 +328,7 @@ function texFinalExponent(a, n){
 }
 
 function texOddNegExtra(base, n){
+  // base négative ET exposant impair ⇒ on veut une ligne supplémentaire = -a^n (sans parenthèses)
   if(base < 0 && Math.abs(n) % 2 === 1){
     const a = Math.abs(base);
     return `\\\\ &= -${a}^{${n}}`;
@@ -335,6 +337,7 @@ function texOddNegExtra(base, n){
 }
 
 function texEvenNegExtra(base, n){
+  // base négative ET exposant pair NON NUL ⇒ on veut une ligne avec (-1)^n × a^n
   if(base < 0 && n !== 0 && Math.abs(n) % 2 === 0){
     const a = Math.abs(base);
     return `\\\\ &= ${a}^{${n}}`;
@@ -350,20 +353,19 @@ const ex1 = {
   id: "racines_carrees_props",
   title: "Propriétés de la racine carrée",
 
-  // cas sélectionné (Mélange par défaut)
-  selectedCase: "all",
-
   // entier positif >=2
   rp(min=2,max=12){ return rint(min,max); },
 
   // carré parfait
   sq(n){ return n*n; },
 
+
   // test "carré parfait"
   isSquare(n){
     const r = Math.round(Math.sqrt(n));
     return r*r === n;
   },
+
 
   genItem(kind){
     // 1) √(a²) = a
@@ -376,7 +378,7 @@ const ex1 = {
         ans: `${a}`,
         steps: [
           `\\sqrt{${N}}`,
-          `= \\sqrt{${a}\\times${a}}`,
+		  `= \\sqrt{${a}\\times${a}}`,
           `= ${a}`
         ]
       };
@@ -394,8 +396,8 @@ const ex1 = {
         latex: `\\sqrt{${A}\\times${B}}`,
         ans: `${a*b}`,
         steps: [
-          `\\sqrt{${A}\\times${B}}`,
-          `= \\sqrt{${A}}\\times\\sqrt{${B}}`,
+          `\\sqrt{${A}\\times${B}} `,
+		  `= \\sqrt{${A}}\\times\\sqrt{${B}}`,
           `= ${a}\\times${b}`,
           `= ${a*b}`
         ]
@@ -414,14 +416,14 @@ const ex1 = {
         latex: `\\sqrt{\\dfrac{${A}}{${B}}}`,
         ans: `\\dfrac{${a}}{${b}}`,
         steps: [
-          `\\sqrt{\\dfrac{${A}}{${B}}}`,
-          `= \\dfrac{\\sqrt{${A}}}{\\sqrt{${B}}}`,
+          `\\sqrt{\\dfrac{${A}}{${B}}} `,
+		  `=\\dfrac{\\sqrt{${A}}}{\\sqrt{${B}}}`,
           `= \\dfrac{${a}}{${b}}`
         ]
       };
     }
 
-    // 4) √(a² k) = a√k
+    // 4) √(a² k) = a√k  (ex : √490 = √49×10 = √49×√10 = 7√10)
     if(kind === "rac_a2k"){
       const a = this.rp();
       let k;
@@ -430,7 +432,7 @@ const ex1 = {
       } while (this.isSquare(k)); // k non carré
 
       const A = this.sq(a);   // a²
-      const N = A * k;        // nombre sous le radical
+      const N = A * k;        // nombre sous le radical, ex : 490
 
       return {
         kind,
@@ -445,139 +447,111 @@ const ex1 = {
       };
     }
 
-    // 5) 1/√a = √a/a  avec a NON carré parfait
+
+        // 5) 1/√a = √a/a  avec a NON carré parfait
     if(kind === "inv_rac_a"){
       let a;
       do{
         a = this.rp(2,20);
       } while (this.isSquare(a));   // on exclut les carrés parfaits
 
-      return {
-        kind,
-        latex: `\\dfrac{1}{\\sqrt{${a}}}`,
-        ans: `\\sqrt{${a}}/${a}`,
-        steps: [
-          `\\dfrac{1}{\\sqrt{${a}}}`,
-          `= \\dfrac{1}{\\sqrt{${a}}} \\times \\dfrac{\\sqrt{${a}}}{\\sqrt{${a}}}`,
-          `= \\dfrac{\\sqrt{${a}}}{(\\sqrt{${a}})^2}`,
-          `= \\dfrac{\\sqrt{${a}}}{${a}}`
-        ]
-      };
+// APRÈS
+return {
+  kind,
+  latex: `\\dfrac{1}{\\sqrt{${a}}}`,
+  // réponse interne en écriture "clavier"
+  ans: `\\sqrt{${a}}/${a}`,
+  steps: [
+    `\\dfrac{1}{\\sqrt{${a}}}`,
+    `= \\dfrac{1}{\\sqrt{${a}}} \\times \\dfrac{\\sqrt{${a}}}{\\sqrt{${a}}}`,
+    `= \\dfrac{\\sqrt{${a}}}{(\\sqrt{${a}})^2}`,
+    `= \\dfrac{\\sqrt{${a}}}{${a}}`
+  ]
+};
+
     }
 
-    // 6) 1/(√a ± √b) = (conjugué)/(a − b) avec a,b NON carrés parfaits
-    if(kind === "inv_rac_a_m_rac_b"){
-      let a, b;
-      // a non carré parfait
-      do { a = this.rp(2,20); } while (this.isSquare(a));
-      // b non carré parfait, différent de a
-      do { b = this.rp(2,20); } while (b === a || this.isSquare(b));
 
-      // signe du dénominateur : - ou +
-      const denSign  = Math.random() < 0.5 ? '-' : '+';
-      const conjSign = (denSign === '-') ? '+' : '-';
+// 6) 1/(√a ± √b) = (conjugué)/(a − b)
+// avec a,b NON carrés parfaits
+if(kind === "inv_rac_a_m_rac_b"){
+  let a, b;
+  // a non carré parfait
+  do { a = this.rp(2,20); } while (this.isSquare(a));
+  // b non carré parfait, différent de a
+  do { b = this.rp(2,20); } while (b === a || this.isSquare(b));
 
-      const denomTex = `\\sqrt{${a}}${denSign}\\sqrt{${b}}`;
-      const conjTex  = `\\sqrt{${a}}${conjSign}\\sqrt{${b}}`;
-      const numTex   = conjTex;
+  // on choisit au hasard le signe du dénominateur : - ou +
+  const denSign  = Math.random() < 0.5 ? '-' : '+';
+  const conjSign = (denSign === '-') ? '+' : '-';
 
-      const denomNum = a - b;
-      const denomSym = `${a}-${b}`;
+  const denomTex = `\\sqrt{${a}}${denSign}\\sqrt{${b}}`;   // dénominateur de l'énoncé
+  const conjTex  = `\\sqrt{${a}}${conjSign}\\sqrt{${b}}`;   // conjugué
+  const numTex   = conjTex;                                // numérateur après rationalisation
 
-      const steps = [
-        `\\dfrac{1}{${denomTex}}`,
-        `= \\dfrac{1}{${denomTex}} \\times \\dfrac{${conjTex}}{${conjTex}}`,
-        `= \\dfrac{${numTex}}{(${denomTex})(${conjTex})}`,
-        `= \\dfrac{${numTex}}{(\\sqrt{${a}})^2-(\\sqrt{${b}})^2}`,
-        `= \\dfrac{${numTex}}{${denomSym}}`
-      ];
+  const denomNum = a - b;               // valeur numérique (peut être 1, -1, autre)
+  const denomSym = `${a}-${b}`;         // forme "a-b"
 
-      let ans;
+  const steps = [
+    `\\dfrac{1}{${denomTex}}`,
+    `= \\dfrac{1}{${denomTex}} \\times \\dfrac{${conjTex}}{${conjTex}}`,
+    `= \\dfrac{${numTex}}{(${denomTex})(${conjTex})}`,
+    `= \\dfrac{${numTex}}{(\\sqrt{${a}})^2-(\\sqrt{${b}})^2}`,
+    `= \\dfrac{${numTex}}{${denomSym}}`
+  ];
 
-      if(denomNum === 1){
-        steps.push(`= \\dfrac{${numTex}}{1}`);
-        steps.push(`= ${numTex}`);
-        ans = `${numTex}`;
-      } else if(denomNum === -1){
-        const oppTex = (conjSign === '+')
-          ? `-\\sqrt{${a}}-\\sqrt{${b}}`
-          : `-\\sqrt{${a}}+\\sqrt{${b}}`;
+  let ans;
 
-        steps.push(`= \\dfrac{${numTex}}{-1}`);
-        steps.push(`= -\\big(${numTex}\\big)`);
-        steps.push(`= ${oppTex}`);
-        ans = oppTex;
-      } else {
-        steps.push(`= \\dfrac{${numTex}}{${denomNum}}`);
-        ans = `${numTex}/${denomNum}`;
-      }
+  if(denomNum === 1){
+    // on montre la simplification vers 1 puis on enlève /1 à la fin
+    steps.push(`= \\dfrac{${numTex}}{1}`);
+    steps.push(`= ${numTex}`);
+    ans = `${numTex}`;
+  } else if(denomNum === -1){
+    // on montre le /-1 puis la ligne avec l'opposé du numérateur
+    const oppTex = (conjSign === '+')
+      ? `-\\sqrt{${a}}-\\sqrt{${b}}`
+      : `-\\sqrt{${a}}+\\sqrt{${b}}`;
 
-      return {
-        kind,
-        latex: `\\dfrac{1}{${denomTex}}`,
-        ans,
-        steps
-      };
-    }
+    steps.push(`= \\dfrac{${numTex}}{-1}`);
+    steps.push(`= -\\big(${numTex}\\big)`);
+    steps.push(`= ${oppTex}`);
+    ans = oppTex;
+  } else {
+    // cas général : dénominateur quelconque ≠ ±1
+    steps.push(`= \\dfrac{${numTex}}{${denomNum}}`);
+    // réponse interne simplifiée pour le check
+    ans = `${numTex}/${denomNum}`;
+  }
+
+  return {
+    kind,
+    latex: `\\dfrac{1}{${denomTex}}`,
+    ans,
+    steps
+  };
+}
+
+
+
   },
 
   gen(){
-    const caseKey = this.selectedCase || "all";
-    let kinds;
-
-    if(caseKey === "all"){
-      kinds = [
-        "rac_a2",
-        "rac_a2b2",
-        "rac_a2_sur_b2",
-        "rac_a2k",
-        "inv_rac_a",
-        "inv_rac_a_m_rac_b"
-      ];
-    } else if(caseKey === "rac_a2"){
-      kinds = Array(6).fill("rac_a2");
-    } else if(caseKey === "rac_a2b2"){
-      kinds = Array(6).fill("rac_a2b2");
-    } else if(caseKey === "rac_a2_sur_b2"){
-      kinds = Array(6).fill("rac_a2_sur_b2");
-    } else if(caseKey === "rac_a2k"){
-      kinds = Array(6).fill("rac_a2k");
-    } else if(caseKey === "inv_rac_a"){
-      kinds = Array(6).fill("inv_rac_a");
-    } else if(caseKey === "inv_rac_a_m_rac_b"){
-      kinds = Array(6).fill("inv_rac_a_m_rac_b");
-    } else {
-      kinds = [
-        "rac_a2",
-        "rac_a2b2",
-        "rac_a2_sur_b2",
-        "rac_a2k",
-        "inv_rac_a",
-        "inv_rac_a_m_rac_b"
-      ];
-    }
-
+    const kinds = [
+      "rac_a2",
+      "rac_a2b2",
+      "rac_a2_sur_b2",
+      "rac_a2k",
+      "inv_rac_a",
+      "inv_rac_a_m_rac_b"
+    ];
     const items = kinds.map(k => this.genItem(k));
-    return { items, caseKey };
+    return { items };
   },
 
   render(host,st){
     host.innerHTML = `
       <div>Simplifier les expressions suivantes :</div>
-
-      <div style="margin-top:8px;margin-bottom:6px">
-        <label for="case-ex1"><strong>Cas :</strong></label>
-        <select id="case-ex1" class="case-select">
-          <option value="all">Mélange : 1 question de chaque (A à F)</option>
-          <option value="rac_a2">\\(\\sqrt{a^2}=a\\) : 6 questions</option>
-          <option value="rac_a2b2">\\(\\sqrt{a^2b^2}=ab\\) : 6 questions</option>
-          <option value="rac_a2_sur_b2">\\(\\sqrt{\\dfrac{a^2}{b^2}}=\\dfrac{a}{b}\\) : 6 questions</option>
-          <option value="rac_a2k">\\(\\sqrt{a^2k}=a\\sqrt{k}\\) : 6 questions</option>
-          <option value="inv_rac_a">\\(\\dfrac{1}{\\sqrt{a}}\\) : 6 questions</option>
-          <option value="inv_rac_a_m_rac_b">\\(\\dfrac{1}{\\sqrt{a}\\pm\\sqrt{b}}\\) : 6 questions</option>
-        </select>
-      </div>
-
       <table class="pdf-tbl fullgrid" style="width:100%;margin-top:8px">
         <tbody>
           ${[0,1].map(row => `
@@ -601,69 +575,64 @@ const ex1 = {
       </table>
       <div id="res" class="steps small"></div>
     `;
-
-    // selecteur de cas
-    const selCase = host.querySelector('#case-ex1');
-    if(selCase){
-      selCase.value = this.selectedCase || "all";
-      selCase.addEventListener('change', e=>{
-        this.selectedCase = e.target.value || "all";
-        buildOne();
-      });
-    }
-
     host.querySelectorAll("input.rac").forEach(ensureTickAfter);
     typesetAll(host);
   },
 
-  // normalisation très simple pour le check
-  normStr(s){
-    if(!s) return "";
-    s = String(s).trim();
+ // normalisation très simple pour le check
+normStr(s){
+  if(!s) return "";
+  s = String(s).trim();
 
-    // enlever espaces, normaliser le moins unicode
-    s = s.replace(/\s+/g,'');
-    s = s.replace(/−/g,'-');
+  // enlever espaces, normaliser le moins unicode
+  s = s.replace(/\s+/g,'');
+  s = s.replace(/−/g,'-');
 
-    // rac(…) -> \sqrt{…}
-    s = s.replace(/rac\(([^\(\)]+)\)/g,'\\sqrt{$1}');
+  // rac(…) -> \sqrt{…}
+  s = s.replace(/rac\(([^\(\)]+)\)/g,'\\sqrt{$1}');
 
-    // \dfrac{num}{den} ou \frac{num}{den} -> (num)/(den)
-    s = s.replace(/\\(?:dfrac|frac)\{([^{}]+)\}\{([^{}]+)\}/g,'($1)/($2)');
+  // \dfrac{num}{den} ou \frac{num}{den} -> (num)/(den)
+  s = s.replace(/\\(?:dfrac|frac)\{([^{}]+)\}\{([^{}]+)\}/g,'($1)/($2)');
 
-    // 4*\sqrt{…} -> 4\sqrt{…}
-    s = s.replace(/(\d)\*(\\sqrt)/g,'$1$2');
+  // 4*\sqrt{…} -> 4\sqrt{…}
+  s = s.replace(/(\d)\*(\\sqrt)/g,'$1$2');
 
-    const stripParens = t => {
-      if(t.startsWith('(') && t.endsWith(')')){
-        return t.slice(1,-1);
-      }
-      return t;
-    };
-
-    const slash = s.indexOf('/');
-    if(slash !== -1){
-      let num = s.slice(0, slash);
-      let den = s.slice(slash+1);
-
-      num = stripParens(num);
-      den = stripParens(den);
-
-      if(den === '1'){
-        s = num;
-      } else if(den === '-1'){
-        s = '-(' + num + ')';
-      } else {
-        s = num + '/' + den;
-      }
+  // helper pour enlever une paire de parenthèses extérieures
+  const stripParens = t => {
+    if(t.startsWith('(') && t.endsWith(')')){
+      return t.slice(1,-1);
     }
+    return t;
+  };
 
-    s = s.replace(/^-\(([^()]+)\+([^()]+)\)$/,'-$1-$2');
+  // si on a une fraction, on met tout sous la forme canonique num/den
+  const slash = s.indexOf('/');
+  if(slash !== -1){
+    let num = s.slice(0, slash);
+    let den = s.slice(slash+1);
 
-    return s;
-  },
+    num = stripParens(num);
+    den = stripParens(den);
 
-  correct(host,st){
+    if(den === '1'){
+      s = num;                 // (X)/1 -> X
+    } else if(den === '-1'){
+      s = '-(' + num + ')';    // (X)/-1 -> -(X)
+    } else {
+      s = num + '/' + den;     // forme canonique
+    }
+  }
+
+  // Développer un signe - devant une somme simple :
+  // -(A+B) -> -A-B
+  s = s.replace(/^-\(([^()]+)\+([^()]+)\)$/,'-$1-$2');
+
+  return s;
+},
+
+
+
+    correct(host,st){
     let ok = 0, tot = 0;
     st.items.forEach((it,i)=>{
       const inp = host.querySelector(`input.rac[data-i="${i}"]`);
@@ -683,80 +652,50 @@ const ex1 = {
     return { ok, total: tot };
   },
 
+
   solution(host,st){
     const box = $("#res",host);
 
-    const solTex = (it,idx)=>{
-      const lettre = String.fromCharCode(65+idx);
+    const rowsHtml = [0,1].map(row => `
+      <tr>
+        ${[0,1,2].map(col => {
+          const idx = row*3 + col;
+          const it  = st.items[idx];
+          const lettre = String.fromCharCode(65+idx);
 
-      const stripEq = s=>{
-        if(!s) return "";
-        let t = s.trim();
-        if(t.startsWith('=')) t = t.slice(1).trim();
-        return t;
-      };
+          // on construit les lignes du aligned :
+          // 1ʳᵉ ligne : A &= (1er step)
+          // lignes suivantes :   &= (step suivant)
+          const lines = it.steps.map((s,j)=> {
+            if(j === 0){
+              return `${lettre} &= ${s}`;
+            }else{
+              return `& ${s}`;
+            }
+          }).join(' \\\\ ');
 
-      const steps = it.steps.map(stripEq);
-
-      let intro = "";
-      if(it.kind === "rac_a2")
-        intro = "On utilise la propriété \\(\\sqrt{a^2}=a\\) pour \\(a\\geq 0\\).";
-      else if(it.kind === "rac_a2b2")
-        intro = "On utilise \\(\\sqrt{A \\times B}=\\sqrt{A} \\times \\sqrt{B}\\).";
-      else if(it.kind === "rac_a2_sur_b2")
-        intro = "On utilise \\(\\sqrt{\\dfrac{A}{B}}=\\dfrac{\\sqrt{A}}{\\sqrt{B}}\\).";
-      else if(it.kind === "rac_a2k")
-        intro = "On cherche \\(\\sqrt{a^2 \\times b}=a\\sqrt{b}\\).";
-      else if(it.kind === "inv_rac_a")
-        intro = "On obtient \\(\\dfrac{1}{\\sqrt{a}}=\\dfrac{\\sqrt{a}}{a}\\).";
-      else if(it.kind === "inv_rac_a_m_rac_b")
-        intro = "On utilise le conjugué pour rationaliser \\(\\dfrac{1}{\\sqrt{a}\\pm\\sqrt{b}}\\).";
-
-const rows = steps.map((tex,i)=>{
-        // uniquement pour la 3e colonne :
-        const hasFrac = /\\dfrac|\\frac|\//.test(tex);
-        // si fraction -> on monte un peu (top), sinon -> ligne normale (baseline)
-        const vAlign3 = hasFrac ? 'top' : 'middle';
-
-        return `
-        <tr>
-          <!-- col.1 : lettre (inchangée) -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">
-            \\(${i===0 ? lettre : ""}\\)
-          </td>
-          <!-- col.2 : signe = (INCHANGÉ, toujours middle) -->
-          <td style="border:none;padding:0 2px 0 0;white-space:nowrap;vertical-align:middle;line-height:1">\\(=\\)</td>
-          <!-- col.3 : seule colonne dont on change le vertical-align -->
-          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">\\(${tex}\\)</td>
-        </tr>`;
-      }).join('');
-
-
-      return `
-<div>${intro}</div>
-<table style="border-collapse:collapse;border:none;width:auto;margin-top:4px">
-  <tbody>
-    ${rows}
-  </tbody>
-</table>
-`;
-    };
-
-    const cell = idx=>`
-      <td style="padding:10px;vertical-align:top">
-        ${solTex(st.items[idx],idx)}
-      </td>`;
+          return `
+            <td style="padding:10px;vertical-align:top">
+              \\[
+              \\begin{aligned}
+              ${lines}
+              \\end{aligned}
+              \\]
+            </td>`;
+        }).join('')}
+      </tr>
+    `).join('');
 
     box.innerHTML = `
       <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
         <tbody>
-          <tr>${cell(0)}${cell(1)}${cell(2)}</tr>
-          <tr>${cell(3)}${cell(4)}${cell(5)}</tr>
+          ${rowsHtml}
         </tbody>
       </table>
     `;
     typesetAll(box);
   },
+
 
   reset(host){
     const box = $("#res",host);
@@ -767,6 +706,8 @@ const rows = steps.map((tex,i)=>{
     });
   }
 };
+
+
 
 
 /* ————— Registre & UI ————— */
@@ -828,7 +769,6 @@ document.addEventListener('keydown',e=>{
 
 })();
 </script>
-
 
 </body>
 </html>

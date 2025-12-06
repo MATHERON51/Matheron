@@ -477,174 +477,136 @@ const parseVal = raw => {
     return { ok, total: tot };
   },
 
- solution(host, st) {
-  const box = $("#res",host);
+  solution(host, st) {
+    const box = $("#res",host);
 
-  // -------- dédoublonnage : supprime lignes consécutives identiques --------
-  function dedupeRows(rows){
-    const out = [];
-    for (const row of rows || []) {
-      if (!row) continue;
-      const lhs = row.lhs || "";
-      const rhs = row.rhs || "";
-      const last = out[out.length - 1];
-      if (last && last.lhs === lhs && last.rhs === rhs) continue;
-      out.push({ lhs, rhs });
-    }
-    return out;
-  }
-
-  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
-  function makeEqTable(rows){
-    const cleaned = dedupeRows(rows);
-
-    const trs = cleaned.map(({lhs, rhs}) => {
-      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
-      const vAlign3 = hasFrac ? "top" : "middle";
-      return `
-        <tr>
-          <!-- 1ʳᵉ colonne : f(...) uniquement sur la 1ʳᵉ ligne -->
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;
-                     vertical-align:middle;line-height:1;min-width:0.8em;
-                     text-align:right">
-            ${lhs ? `\\(${lhs}\\)` : ""}
-          </td>
-          <!-- 2ᵉ colonne : signe = -->
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;
-                     vertical-align:middle;line-height:1;min-width:0.6em">
-            \\(=\\)
-          </td>
-          <!-- 3ᵉ colonne : étape -->
-          <td style="border:none;padding:0;vertical-align:${vAlign3};
-                     text-align:left">
-            \\(${rhs}\\)
-          </td>
-        </tr>`;
-    }).join("");
-
-    return `
-      <table style="border-collapse:collapse;border:none;margin-top:4px">
-        <tbody>
-          ${trs}
-        </tbody>
-      </table>`;
-  }
-
-  const solTex = it => {
-    /* ===== carré parfait entier ===== */
-    if (it.kind === "carre_parfait") {
-      const a = it.a;
-      const n2 = a*a;
-      const rows = [
-        { lhs: `f(${n2})`, rhs: `\\sqrt{${n2}}` },
-        { lhs: "",         rhs: `${a}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    /* ===== a²×k ===== */
-    if (it.kind === "a2k") {
-      const a = it.a, k = it.k;
-      const n = a*a*k;
-      const rows = [
-        { lhs: `f(${n})`, rhs: `\\sqrt{${n}}` },
-        { lhs: "",        rhs: `\\sqrt{${a*a}\\times ${k}}` },
-        { lhs: "",        rhs: `\\sqrt{${a*a}}\\times\\sqrt{${k}}` },
-        { lhs: "",        rhs: `${a}\\sqrt{${k}}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    /* ===== fraction p²/q² ===== */
-    if (it.kind === "frac_carre") {
-      const p = it.p, q = it.q;
-      const num = p*p, den = q*q;
-      const rows = [
-        { lhs: `f\\left(\\dfrac{${num}}{${den}}\\right)`, rhs: `\\sqrt{\\dfrac{${num}}{${den}}}` },
-        { lhs: "",                                       rhs: `\\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}` },
-        { lhs: "",                                       rhs: `\\dfrac{${p}}{${q}}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    /* ===== puissance de 10 ===== */
-    if (it.kind === "pow10") {
-      const e  = it.e;
-      const e2 = e/2;
-      const rep = 10**(e2);
-      const rows = [
-        { lhs: `f\\left(10^{${e}}\\right)`, rhs: `\\sqrt{10^{${e}}}` },
-        { lhs: "",                         rhs: `(10^{${e}})^{\\tfrac{1}{2}}` },
-        { lhs: "",                         rhs: `10^{${e}\\times \\tfrac{1}{2}}` },
-        { lhs: "",                         rhs: `10^{${e/2}}` },
-        { lhs: "",                         rhs: `${rep}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    /* ===== décimal carré (m²/100) ===== */
-    if (it.kind === "dec_carre") {
-      const m = it.m;
-      const x = it.x;
-      const xStr = String(x).replace('.',',');
-      const rows = [
-        { lhs: `f(${xStr})`, rhs: `\\sqrt{${xStr}}` },
-        { lhs: "",           rhs: `\\sqrt{\\dfrac{${m*m}}{100}}` },
-        { lhs: "",           rhs: `\\dfrac{\\sqrt{${m*m}}}{\\sqrt{100}}` },
-        { lhs: "",           rhs: `\\dfrac{${m}}{10}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    /* ===== fraction mixte : num ou den carré parfait ===== */
-    if (it.kind === "frac_mixed") {
-      const num = it.num, den = it.den, r = it.r, mode = it.mode;
-
-      if (mode === "numCarre") {
-        // num = r²
-        const rows = [
-          { lhs: `f\\left(\\dfrac{${num}}{${den}}\\right)`, rhs: `\\sqrt{\\dfrac{${num}}{${den}}}` },
-          { lhs: "",                                       rhs: `\\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}` },
-          { lhs: "",                                       rhs: `\\dfrac{${r}}{\\sqrt{${den}}}` }
-        ];
-        return makeEqTable(rows);
-      } else {
-        // den = r²
-        const rows = [
-          { lhs: `f\\left(\\dfrac{${num}}{${den}}\\right)`, rhs: `\\sqrt{\\dfrac{${num}}{${den}}}` },
-          { lhs: "",                                       rhs: `\\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}` },
-          { lhs: "",                                       rhs: `\\dfrac{\\sqrt{${num}}}{${r}}` }
-        ];
-        return makeEqTable(rows);
+    const solTex = it => {
+      if (it.kind === "carre_parfait") {
+        const a = it.a;
+        const n2 = a*a;
+        return `
+\\[
+\\begin{aligned}
+f(${n2}) &= \\sqrt{${n2}}\\\\
+         &= ${a}
+\\end{aligned}
+\\]`;
       }
-    }
 
-    return "";
-  };
+      if (it.kind === "a2k") {
+        const a = it.a, k = it.k;
+        const n = a*a*k;
+        return `
+\\[
+\\begin{aligned}
+f(${n}) &= \\sqrt{${n}}\\\\
+       &= \\sqrt{${a*a}\\times ${k}}\\\\
+       &= \\sqrt{${a*a}}\\times\\sqrt{${k}}\\\\
+       &= ${a}\\sqrt{${k}}
+\\end{aligned}
+\\]`;
+      }
 
-  const cells = idx => {
-    const it = st.items[idx];
-    return `
+      if (it.kind === "frac_carre") {
+        const p = it.p, q = it.q;
+        const num = p*p, den = q*q;
+        return `
+\\[
+\\begin{aligned}
+f\\left(\\dfrac{${num}}{${den}}\\right)
+&= \\sqrt{\\dfrac{${num}}{${den}}}\\\\
+&= \\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}\\\\
+&= \\dfrac{${p}}{${q}}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "pow10") {
+        const e = it.e;
+		const e2=e/2;
+		const rep=10**(e2);
+        return `
+\\[
+\\begin{aligned}
+f\\left(10^{${e}}\\right)
+&= \\sqrt{10^{${e}}}\\\\
+&= (10^{${e}})^{\\tfrac{1}{2}}\\\\
+&= 10^{${e}\\times \\tfrac{1}{2}}\\\\
+&= 10^{${e/2}}\\\\
+&= ${rep}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "dec_carre") {
+        const m = it.m;
+        const x = it.x;
+        const xStr = String(x).replace('.',',');
+        return `
+\\[
+\\begin{aligned}
+f(${xStr}) &= \\sqrt{${xStr}}\\\\
+           &= \\sqrt{\\dfrac{${m*m}}{100}}\\\\
+           &= \\dfrac{\\sqrt{${m*m}}}{\\sqrt{100}}\\\\
+
+           &= \\dfrac{${m}}{10}
+\\end{aligned}
+\\]`;
+      }
+
+      if (it.kind === "frac_mixed") {
+        const num = it.num, den = it.den, r = it.r, mode = it.mode;
+
+        if (mode === "numCarre") {
+          // num = r²
+          return `
+\\[
+\\begin{aligned}
+f\\left(\\dfrac{${num}}{${den}}\\right)
+&= \\sqrt{\\dfrac{${num}}{${den}}}\\\\
+&= \\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}\\\\
+&= \\dfrac{${r}}{\\sqrt{${den}}}\\\\
+\\end{aligned}
+\\]`;
+        } else {
+          // den = r²
+          return `
+\\[
+\\begin{aligned}
+f\\left(\\dfrac{${num}}{${den}}\\right)
+&= \\sqrt{\\dfrac{${num}}{${den}}}\\\\
+&= \\dfrac{\\sqrt{${num}}}{\\sqrt{${den}}}\\\\
+&= \\dfrac{\\sqrt{${num}}}{${r}}
+\\end{aligned}
+\\]`;
+        }
+      }
+
+      return "";
+    };
+
+    const cells = idx => {
+      const it = st.items[idx];
+      return `
 <td style="vertical-align:top;padding:8px 10px">
   <div style="margin-top:6px">${solTex(it)}</div>
 </td>`;
-  };
+    };
 
-  box.innerHTML = `
-    <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
-      <tbody>
-        <tr>
-          ${cells(0)}${cells(1)}${cells(2)}
-        </tr>
-        <tr>
-          ${cells(3)}${cells(4)}${cells(5)}
-        </tr>
-      </tbody>
-    </table>
-  `;
-  typesetAll(box);
-},
-
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;margin-top:4px">
+        <tbody>
+          <tr>
+            ${cells(0)}${cells(1)}${cells(2)}
+          </tr>
+          <tr>
+            ${cells(3)}${cells(4)}${cells(5)}
+          </tr>
+        </tbody>
+      </table>
+    `;
+    typesetAll(box);
+  },
 
   reset(host) {
     const box = $("#res",host);
@@ -1073,101 +1035,53 @@ const ex3 = {
     return { ok, total: tot };
   },
 
-solution(host, st) {
-  const box = $("#res",host);
+  solution(host, st) {
+    const box = $("#res",host);
 
-  // -------- dédoublonnage : supprime lignes consécutives identiques --------
-  function dedupeRows(rows){
-    const out = [];
-    for (const row of rows || []) {
-      if (!row) continue;
-      const lhs = row.lhs || "";
-      const rhs = row.rhs || "";
-      const last = out[out.length - 1];
-      if (last && last.lhs === lhs && last.rhs === rhs) continue;
-      out.push({ lhs, rhs });
-    }
-    return out;
-  }
+    const solTex = it => {
+      const y = it.y;
 
-  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
-  function makeEqTable(rows){
-    const cleaned = dedupeRows(rows);
+      if (it.kind === "int1" || it.kind === "int2") {
+        const x = it.ant;
+        return `
+\\[
+\\begin{aligned}
+\\sqrt{x} &= ${y} \\; \\text{avec} \\; x \\ge 0\\\\
+x &= ${y}^2\\\\
+x &= ${x}
+\\end{aligned}
+\\]`;
+      }
 
-    const trs = cleaned.map(({lhs, rhs}) => {
-      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
-      const vAlign3 = hasFrac ? "top" : "middle";
-      return `
-        <tr>
-          <!-- 1ʳᵉ colonne : alignée à droite -->
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;
-                     vertical-align:middle;line-height:1;min-width:0.8em;
-                     text-align:right">
-            ${lhs ? `\\(${lhs}\\)` : ""}
-          </td>
-          <!-- 2ᵉ colonne : signe = -->
-          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;
-                     vertical-align:middle;line-height:1;min-width:0.6em">
-            \\(=\\)
-          </td>
-          <!-- 3ᵉ colonne : étape -->
-          <td style="border:none;padding:0;vertical-align:${vAlign3};
-                     text-align:left">
-            \\(${rhs}\\)
-          </td>
-        </tr>`;
-    }).join("");
+      if (it.kind === "frac") {
+        const p = it.p, q = it.q;
+        const xNum = p*p, xDen = q*q;
+        return `
+\\[
+\\begin{aligned}
+\\sqrt{x} &= \\dfrac{${p}}{${q}} \\; \\text{avec} \\; x \\ge 0\\\\
+x &= \\left(\\dfrac{${p}}{${q}}\\right)^2\\\\
+x &= \\dfrac{${xNum}}{${xDen}}
+\\end{aligned}
+\\]`;
+      }
 
-    return `
-      <table style="border-collapse:collapse;border:none;margin-top:4px">
-        <tbody>
-          ${trs}
-        </tbody>
-      </table>`;
-  }
+      if (it.kind === "dec") {
+        const yStr = String(y).replace('.',',');
+        const xStr = String(it.ant).replace('.',',');
+        return `
+\\[
+\\begin{aligned}
+\\sqrt{x} &= ${yStr}  \\; \\text{avec} \\; x \\ge 0\\\\
+x &= (${yStr})^2\\\\
+x &= ${xStr}
+\\end{aligned}
+\\]`;
+      }
 
-  const solTex = it => {
-    const y = it.y;
-
-    // ===== cas entiers (int1 / int2) =====
-    if (it.kind === "int1" || it.kind === "int2") {
-      const x = it.ant;
-      const rows = [
-        { lhs: "\\sqrt{x}", rhs: `${y} \\\\; \\text{avec} \\; x \\ge 0` },
-        { lhs: "x",         rhs: `${y}^2` },
-        { lhs: "x",         rhs: `${x}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ===== cas fraction p/q =====
-    if (it.kind === "frac") {
-      const p = it.p, q = it.q;
-      const xNum = p*p, xDen = q*q;
-      const rows = [
-        { lhs: "\\sqrt{x}", rhs: `\\dfrac{${p}}{${q}} \\\\; \\text{avec} \\; x \\ge 0` },
-        { lhs: "x",         rhs: `\\left(\\dfrac{${p}}{${q}}\\right)^2` },
-        { lhs: "x",         rhs: `\\dfrac{${xNum}}{${xDen}}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ===== cas décimal =====
-    if (it.kind === "dec") {
-      const yStr = String(y).replace('.',',');
-      const xStr = String(it.ant).replace('.',',');
-      const rows = [
-        { lhs: "\\sqrt{x}", rhs: `${yStr} \\\\; \\text{avec} \\; x \\ge 0` },
-        { lhs: "x",         rhs: `(${yStr})^2` },
-        { lhs: "x",         rhs: `${xStr}` }
-      ];
-      return makeEqTable(rows);
-    }
-
-    // ===== cas négatif : texte explicatif inchangé =====
-    if (it.kind === "neg") {
-      const yStr = String(y).replace('.',',');
-      return `
+      if (it.kind === "neg") {
+        const yStr = String(y).replace('.',',');
+        return `
 \\[
 \\begin{aligned}
 \\sqrt{x} &= ${yStr}\\\\
@@ -1177,35 +1091,34 @@ Or \\(\\sqrt{x} \\ge 0 \\) pour tout  \\(x \\ge 0\\)<br>
 Il n'existe donc aucun réel  \\(x \\ge 0\\)  tel que \\(\\sqrt{x} = ${yStr}\\)<br>
 \\(f\\) n'admet donc aucun antécédent.
 `;
-    }
+      }
 
-    return "";
-  };
+      return "";
+    };
 
-  box.innerHTML = `
-    <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
-      <thead>
-        <tr>
-          <th>Nombre \\(y\\)</th>
-          <th>Correction</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${st.items.map(it => `
+    box.innerHTML = `
+      <table class="pdf-tbl fullgrid" style="width:100%;max-width:750px">
+        <thead>
           <tr>
-            <td style="width:30%">\\(${it.latex}\\)</td>
-            <td style="vertical-align:top;padding:6px 10px">
-              ${solTex(it)}
-            </td>
+            <th>Nombre \\(y\\)</th>
+            <th>Correction</th>
           </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
+        </thead>
+        <tbody>
+          ${st.items.map(it => `
+            <tr>
+              <td style="width:30%">\\(${it.latex}\\)</td>
+              <td style="vertical-align:top;padding:6px 10px">
+                ${solTex(it)}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
 
-  typesetAll(box);
-},
-
+    typesetAll(box);
+  },
 
   reset(host) {
     const box = $("#res",host);

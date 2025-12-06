@@ -995,144 +995,183 @@ const ex1 = {
   },
 
   solution(host, st) {
-    const gcd = (a,b)=>{
-      a=Math.abs(a); b=Math.abs(b);
-      while (b){ const t=b; b=a%b; a=t; }
-      return a||1;
-    };
-    const fracTex = (num,den) => {
-      if (den === 0) return "\\text{indéfini}";
-      let n=num, d=den;
-      const g = gcd(n,d);
-      n /= g; d /= g;
-      const sign = (d<0 ? -1 : 1);
-      n *= sign; d *= sign;
-      if (d === 1) return `${n}`;
-      if (d === -1) return `${-n}`;
-      return `\\dfrac{${n}}{${d}}`;
-    };
+  const gcd = (a,b)=>{
+    a=Math.abs(a); b=Math.abs(b);
+    while (b){ const t=b; b=a%b; a=t; }
+    return a||1;
+  };
+  const fracTex = (num,den) => {
+    if (den === 0) return "\\text{indéfini}";
+    let n=num, d=den;
+    const g = gcd(n,d);
+    n /= g; d /= g;
+    const sign = (d<0 ? -1 : 1);
+    n *= sign; d *= sign;
+    if (d === 1)  return `${n}`;
+    if (d === -1) return `${-n}`;
+    return `\\dfrac{${n}}{${d}}`;
+  };
 
-    const solTex = it => {
-      const eqType = it.eqType;
+  // -------- dédoublonnage : supprime lignes consécutives identiques --------
+  function dedupeRows(rows){
+    const out = [];
+    for (const row of rows || []) {
+      if (!row) continue;
+      const lhs = row.lhs || "";
+      const rhs = row.rhs || "";
+      const last = out[out.length - 1];
+      if (last && last.lhs === lhs && last.rhs === rhs) continue;
+      out.push({ lhs, rhs });
+    }
+    return out;
+  }
 
-      if (eqType === "x2_pos") {
-        const a = it.a;
-        const r = Math.sqrt(a);
-        const isPerf = Number.isInteger(r);
-        if (isPerf) {
-          const m = r;
-          return `
-\\[
-\\begin{aligned}
-x^2 &= ${a} \\\\
-x &= -\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}} \\\\
-x &= -${m} \\quad \\text{ou} \\quad x = ${m}\\\\
-S=\\left\\{ -${m};${m}\\right\\}
-\\end{aligned}
-\\]`;
-        }
-        return `
-\\[
-\\begin{aligned}
-x^2 &= ${a} \\\\
-x &= -\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}}\\\\
-S=\\left\\{ -\\sqrt{${a}};\\sqrt{${a}}\\right\\}
-\\end{aligned}
-\\]`;
+  // -------- petit tableau 3 colonnes : LHS | = | RHS --------
+  function makeEqTable(rows){
+    const cleaned = dedupeRows(rows);
+    const trs = cleaned.map(({lhs, rhs}) => {
+      const hasFrac = /\\dfrac|\\frac|\//.test(rhs || "");
+      const vAlign3 = hasFrac ? 'top' : 'middle';
+      return `
+        <tr>
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:1.2em;text-align:right">
+            ${lhs ? `\\(${lhs}\\)` : ""}
+          </td>
+          <td style="border:none;padding:0 4px 0 0;white-space:nowrap;vertical-align:middle;line-height:1;min-width:0.6em">
+            \\(=\\)
+          </td>
+          <td style="border:none;padding:0;vertical-align:${vAlign3};text-align:left">
+            \\(${rhs}\\)
+          </td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <table style="border-collapse:collapse;border:none;margin-top:4px">
+        <tbody>
+          ${trs}
+        </tbody>
+      </table>`;
+  }
+
+  const solTex = it => {
+    const eqType = it.eqType;
+
+    /* ===== 1) x² = a, a>0 ===== */
+    if (eqType === "x2_pos") {
+      const a = it.a;
+      const r = Math.sqrt(a);
+      const isPerf = Number.isInteger(r);
+
+      if (isPerf) {
+        const m = r;
+        const rows = [
+          { lhs: "x^2", rhs: `${a}` },
+          { lhs: "x",   rhs: `-\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}}` },
+          { lhs: "x",   rhs: `-${m} \\quad \\text{ou} \\quad x = ${m}` },
+          { lhs: "S",   rhs: `\\left\\{ -${m};${m}\\right\\}` }
+        ];
+        return makeEqTable(rows);
       }
 
-      if (eqType === "x2_neg") {
-        const a = it.a;
-        return `
+      const rows = [
+        { lhs: "x^2", rhs: `${a}` },
+        { lhs: "x",   rhs: `-\\sqrt{${a}} \\quad \\text{ou} \\quad x = \\sqrt{${a}}` },
+        { lhs: "S",   rhs: `\\left\\{ -\\sqrt{${a}};\\sqrt{${a}}\\right\\}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    /* ===== 2) x² = a, a<0 ===== */
+    if (eqType === "x2_neg") {
+      const a = it.a;
+      return `
 \\[
 x^2 = ${a}
 \\]
 n'admet <b>aucune solution réelle</b>, car le carré d'un nombre réel est toujours positif ou nul.
 <br> \\(S=\\emptyset\\)
 `;
+    }
+
+    /* ===== 3) ax² + b = c  ===== */
+    if (eqType === "ax2_lin") {
+      const {a,b,c,num,den,p,q} = it;
+      const left1 = `${ex1.fmtAx2(a)} ${ex1.fmtSignedConst(b)}`.trim();
+      const rhs1  = c - b;   // on évite 7-(-5)
+
+      const rows = [
+        { lhs: left1,            rhs: `${c}` },
+        { lhs: ex1.fmtAx2(a),    rhs: `${rhs1}` },
+        { lhs: "x^2",            rhs: `\\dfrac{${rhs1}}{${a}}` },
+        { lhs: "x^2",            rhs: `\\dfrac{${num}}{${den}}` },
+        { lhs: "x",              rhs: `-\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}}` },
+        { lhs: "x",              rhs: `-\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}` },
+        { lhs: "S",              rhs: `\\left\\{ -\\dfrac{${p}}{${q}};\\dfrac{${p}}{${q}}\\right\\}` }
+      ];
+      return makeEqTable(rows);
+    }
+
+    /* ===== 4) (ax+b)² = k  ===== */
+    if (eqType === "axp_b_sq") {
+      const {a,b,k,p} = it;
+      const inner = ex1.fmtAxPlusB(a,b);
+      const x1Tex = fracTex(-b-p,a);
+      const x2Tex = fracTex(-b+p,a);
+      const diff1 = -p - b;
+      const diff2 =  p - b;
+
+      if (a === 1) {
+        // CAS PARTICULIER a = 1 : pas de "1x = ..."
+        const rows = [
+          { lhs: `(${inner})^2`, rhs: `${k}` },
+          { lhs: inner,          rhs: `-\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}}` },
+          { lhs: inner,          rhs: `-${p} \\quad \\text{ou} \\quad ${inner} = ${p}` },
+          { lhs: "x",            rhs: `${diff1} \\quad \\text{ou} \\quad x = ${diff2}` },
+          { lhs: "S",            rhs: `\\left\\{ ${x1Tex};${x2Tex} \\right\\}` }
+        ];
+        return makeEqTable(rows);
       }
 
-      if (eqType === "ax2_lin") {
-        const {a,b,c,num,den,p,q} = it;
-        const left1 = `${ex1.fmtAx2(a)} ${ex1.fmtSignedConst(b)}`.trim();
-        const rhs1  = c - b;   // on évite "7-(-5)" → on met directement 12
-        return `
-\\[
-\\begin{aligned}
-${left1} &= ${c} \\\\
-${ex1.fmtAx2(a)} &= ${rhs1} \\\\
-x^2 &= \\dfrac{${rhs1}}{${a}} \\\\
-x^2 &= \\dfrac{${num}}{${den}} \\\\
-x &= -\\sqrt{\\dfrac{${num}}{${den}}} \\quad \\text{ou} \\quad x = \\sqrt{\\dfrac{${num}}{${den}}} \\\\
-x &= -\\dfrac{${p}}{${q}} \\quad \\text{ou} \\quad x = \\dfrac{${p}}{${q}}\\\\
-S=\\left\\{ -\\dfrac{${p}}{${q}};\\dfrac{${p}}{${q}}\\right\\}
-\\end{aligned}
-\\]`;
-      }
+      // CAS GÉNÉRAL a ≠ 1 : on garde la ligne "ax = ..."
+      const rows = [
+        { lhs: `(${inner})^2`, rhs: `${k}` },
+        { lhs: inner,          rhs: `-\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}}` },
+        { lhs: inner,          rhs: `-${p} \\quad \\text{ou} \\quad ${inner} = ${p}` },
+        { lhs: `${a}x`,        rhs: `${diff1} \\quad \\text{ou} \\quad ${a}x = ${diff2}` },
+        { lhs: "x",            rhs: `${x1Tex} \\quad \\text{ou} \\quad x = ${x2Tex}` },
+        { lhs: "S",            rhs: `\\left\\{ ${x1Tex};${x2Tex} \\right\\}` }
+      ];
+      return makeEqTable(rows);
+    }
 
-if (eqType === "axp_b_sq") {
-  const {a,b,k,p} = it;
-  const inner = ex1.fmtAxPlusB(a,b);
-  const x1Tex = fracTex(-b-p,a);
-  const x2Tex = fracTex(-b+p,a);
-  const diff1 = -p - b;
-  const diff2 =  p - b;
+    return "";
+  };
 
-  if (a === 1) {
-    // CAS PARTICULIER a = 1 : pas de ligne "1x = ..."
-    return `
-\\[
-\\begin{aligned}
-(${inner})^2 &= ${k} \\\\
-${inner} &= -\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}} \\\\
-${inner} &= -${p} \\quad \\text{ou} \\quad ${inner} = ${p} \\\\
-x &= ${diff1} \\quad \\text{ou} \\quad x = ${diff2} \\\\
-S=\\left\\{ ${x1Tex};${x2Tex} \\right\\}
-\\end{aligned}
-\\]`;
-  }
-
-  // CAS GÉNÉRAL a ≠ 1 : on garde la ligne "ax = ..."
-  return `
-\\[
-\\begin{aligned}
-(${inner})^2 &= ${k} \\\\
-${inner} &= -\\sqrt{${k}} \\quad \\text{ou} \\quad ${inner} = \\sqrt{${k}} \\\\
-${inner} &= -${p} \\quad \\text{ou} \\quad ${inner} = ${p} \\\\
-${a}x &= ${diff1}\\quad \\text{ou} \\quad ${a}x = ${diff2}\\\\
-x &= ${x1Tex} \\quad \\text{ou} \\quad x = ${x2Tex}\\\\
-S=\\left\\{ ${x1Tex};${x2Tex} \\right\\}
-\\end{aligned}
-\\]`;
-}
-
-
-      return "";
-    };
-
-    const box = $("#res",host);
-    box.innerHTML = `
-      <table class="pdf-tbl fullgrid" style="width:100%;max-width:780px">
-        <thead>
+  const box = $("#res",host);
+  box.innerHTML = `
+    <table class="pdf-tbl fullgrid" style="width:100%;max-width:780px">
+      <thead>
+        <tr>
+          <th>Équation</th>
+          <th>Correction</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${st.items.map(it => `
           <tr>
-            <th>Équation</th>
-            <th>Correction</th>
+            <td style="width:35%">\\(${it.latex}\\)</td>
+            <td style="vertical-align:top;padding:6px 10px">
+              ${solTex(it)}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          ${st.items.map(it => `
-            <tr>
-              <td style="width:35%">\\(${it.latex}\\)</td>
-              <td style="vertical-align:top;padding:6px 10px">
-                ${solTex(it)}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-    typesetAll(box);
-  },
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+  typesetAll(box);
+},
+
 
   reset(host) {
     const box = $("#res",host);
